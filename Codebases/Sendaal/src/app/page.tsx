@@ -69,8 +69,18 @@ export default function HomePage() {
 
 
         {/* Waitlist Form */}
-        <div className="pt-12">
+        <div className="pt-12 space-y-4">
           <WaitlistForm />
+          <div className="flex items-center gap-4">
+            <div className="flex-1 border-t border-border/40" />
+            <span className="text-sm text-muted-foreground">or</span>
+            <div className="flex-1 border-t border-border/40" />
+          </div>
+          <a href="/create" className="block">
+            <button className="w-full px-6 py-3 bg-background border border-border hover:bg-accent text-foreground rounded-lg font-medium transition-colors">
+              Create a Payment Link
+            </button>
+          </a>
         </div>
       </div>
     </main>
