@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   dispatchReceiptRequest,
   dispatchWithFallback,
@@ -33,6 +34,12 @@ export async function POST(request: NextRequest) {
       .single();
     if (!membership) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Enforce plan limits
+    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'dispatch_channel');
+    if (!planCheck.allowed) {
+      return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
     // Verify entity belongs to the user's org

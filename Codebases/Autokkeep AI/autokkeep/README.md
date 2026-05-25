@@ -9,7 +9,7 @@ Autokkeep is an AI-native autonomous bookkeeping engine that replaces reactive, 
 ## Architecture
 
 | Layer | Technology |
-|-------|-----------|
+|-------|------------|
 | **Frontend** | Next.js 16 (App Router), React 19, CSS |
 | **Backend** | Next.js API Routes (Edge) |
 | **Database** | Supabase (PostgreSQL), Row-Level Security |
@@ -17,8 +17,23 @@ Autokkeep is an AI-native autonomous bookkeeping engine that replaces reactive, 
 | **Banking** | Plaid (Transactions Sync) |
 | **Ledger** | QuickBooks Online, Xero |
 | **Channels** | Slack, Microsoft Teams, SMS, WhatsApp |
-| **Billing** | Stripe (Subscriptions) |
+| **Billing** | Stripe (Subscriptions + Plan Enforcement) |
 | **Auth** | Supabase Auth (SSR Sessions) |
+
+### Transaction Pipeline
+
+```
+Bank (Plaid) → Sync → AI Categorize → Auto-Approve / HITL Review → Journal Entry → Ledger Sync (QBO/Xero)
+                                              ↓
+                                   Receipt Chase (Slack/Teams/SMS/WhatsApp)
+```
+
+1. **Sync** — Plaid pulls transactions via cursor-based pagination
+2. **Categorize** — Dual-engine AI: deterministic rules first, then GPT-4o probabilistic fallback
+3. **Auto-Approve** — Transactions ≥95% confidence are auto-approved; <95% flagged for HITL review
+4. **Receipt Chase** — Multi-channel dispatch requests missing receipts from cardholders
+5. **Journal Entry** — Double-entry validated journal entries created automatically
+6. **Ledger Sync** — Posted to QuickBooks Online or Xero via OAuth2
 
 ## Features
 
@@ -46,10 +61,12 @@ Autokkeep is an AI-native autonomous bookkeeping engine that replaces reactive, 
 - **WhatsApp**: Receipt requests via Twilio WhatsApp Business
 - **Unified Dispatcher**: Priority-based routing with fallback
 
-### 💳 Stripe Billing
-- CPA Firm and SMB pricing tiers
+### 💳 Stripe Billing & Plan Enforcement
+- CPA Firm and SMB pricing tiers (free → enterprise)
 - Checkout sessions + Customer Portal
 - Webhook processing for subscription lifecycle
+- **Runtime plan enforcement** via `checkPlanLimits()` on all billable operations:
+  - Transaction processing, bank connections, ledger sync, channel dispatch
 
 ### 🔐 Security
 - Supabase Row-Level Security on all 15 tables
@@ -67,9 +84,10 @@ Autokkeep is an AI-native autonomous bookkeeping engine that replaces reactive, 
 - A [Supabase](https://supabase.com) project
 - API keys for integrations you want to enable
 
-### 1. Install Dependencies
+### 1. Clone & Install
 
 ```bash
+git clone <repo-url>
 cd autokkeep
 npm install
 ```
@@ -80,8 +98,10 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your API keys. At minimum, you need:
-- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Edit `.env.local` with your API keys. See [`.env.example`](.env.example) for the full list with documentation.
+
+**Minimum required:**
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `OPENAI_API_KEY` (for AI categorization)
 
 ### 3. Set Up Database
@@ -113,34 +133,56 @@ Set all environment variables in the Vercel dashboard. Update webhook URLs for:
 
 ---
 
+## Environment Variables
+
+All environment variables are documented in [`.env.example`](.env.example), organized by integration:
+
+| Section | Variables | Required |
+|---------|-----------|----------|
+| **Supabase** | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | ✅ |
+| **OpenAI** | `OPENAI_API_KEY`, `OPENAI_MODEL` | ✅ |
+| **Plaid** | `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` | For banking |
+| **Stripe** | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_*` | For billing |
+| **Slack** | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` | Optional |
+| **Teams** | `TEAMS_WEBHOOK_URL` | Optional |
+| **Twilio** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER` | Optional |
+| **QuickBooks** | `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENVIRONMENT` | Optional |
+| **Xero** | `XERO_CLIENT_ID`, `XERO_CLIENT_SECRET`, `XERO_REDIRECT_URI` | Optional |
+| **App** | `NEXT_PUBLIC_APP_URL` | ✅ |
+
+---
+
 ## API Routes
 
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/api/ai/categorize` | POST | Categorize single transaction |
+| `/api/ai/categorize` | POST | Categorize single transaction (dual-engine) |
 | `/api/ai/batch` | POST | Batch categorize transactions |
 | `/api/plaid/link-token` | POST | Create Plaid Link token |
-| `/api/plaid/exchange` | POST | Exchange public token |
-| `/api/plaid/sync` | POST | Sync transactions |
+| `/api/plaid/exchange` | POST | Exchange public token + setup connection ⛔ |
+| `/api/plaid/sync` | POST | Sync transactions from Plaid |
 | `/api/transactions` | GET/POST | List/create transactions |
 | `/api/transactions/[id]` | GET/PUT/DELETE | Transaction CRUD |
-| `/api/transactions/process` | POST | Full pipeline orchestrator |
+| `/api/transactions/process` | POST | Full pipeline orchestrator ⛔ |
 | `/api/channels/slack/install` | GET | Slack OAuth install |
 | `/api/channels/slack/events` | POST | Slack Events API |
 | `/api/channels/slack/interact` | POST | Interactive messages |
 | `/api/channels/teams/webhook` | POST | Teams webhook |
 | `/api/channels/sms` | POST | SMS handler |
 | `/api/channels/whatsapp` | POST | WhatsApp handler |
-| `/api/channels/dispatch` | POST | Unified dispatch |
-| `/api/ledger/quickbooks/auth` | GET/POST | QBO OAuth |
-| `/api/ledger/quickbooks/sync` | GET/POST | QBO sync |
-| `/api/ledger/xero/auth` | GET/POST | Xero OAuth |
-| `/api/ledger/xero/sync` | GET/POST | Xero sync |
-| `/api/billing/checkout` | POST | Stripe checkout |
+| `/api/channels/dispatch` | POST | Unified dispatch ⛔ |
+| `/api/ledger/quickbooks/auth` | GET/POST | QBO OAuth flow |
+| `/api/ledger/quickbooks/sync` | GET/POST | QBO sync ⛔ |
+| `/api/ledger/xero/auth` | GET/POST | Xero OAuth flow |
+| `/api/ledger/xero/sync` | GET/POST | Xero sync ⛔ |
+| `/api/billing/checkout` | POST | Stripe checkout session |
 | `/api/billing/portal` | POST | Customer portal |
+| `/api/contact` | POST | Contact form |
 | `/api/webhooks/plaid` | POST | Plaid webhooks |
 | `/api/webhooks/stripe` | POST | Stripe webhooks |
 | `/api/webhooks/twilio` | POST | Twilio callbacks |
+
+> ⛔ = Plan-enforced route (uses `checkPlanLimits`)
 
 ---
 
@@ -148,21 +190,25 @@ Set all environment variables in the Vercel dashboard. Update webhook URLs for:
 
 15 tables with full referential integrity:
 
-- `organizations` — Multi-tenant org container
-- `entities` — Bookkeeping entities (companies/clients)
-- `bank_connections` — Plaid connections
-- `bank_accounts` — Individual bank accounts
-- `chart_of_accounts` — GL codes
-- `transactions` — Financial transactions
-- `categorization_rules` — Deterministic matching rules
-- `journal_entries` — Double-entry journal headers
-- `journal_lines` — Debit/credit lines (balanced constraint)
-- `audit_log` — Immutable audit trail
-- `channel_connections` — Slack/Teams/SMS/WhatsApp connections
-- `receipt_requests` — Outstanding receipt requests
-- `ledger_connections` — QBO/Xero OAuth tokens
-- `subscriptions` — Stripe billing
-- `team_members` — Role-based access
+| Table | Description |
+|-------|-------------|
+| `organizations` | Multi-tenant org container |
+| `entities` | Bookkeeping entities (companies/clients) |
+| `bank_connections` | Plaid connections |
+| `bank_accounts` | Individual bank accounts |
+| `chart_of_accounts` | GL codes |
+| `transactions` | Financial transactions |
+| `categorization_rules` | Deterministic matching rules |
+| `journal_entries` | Double-entry journal headers |
+| `journal_lines` | Debit/credit lines (balanced constraint) |
+| `audit_log` | Immutable audit trail |
+| `channel_connections` | Slack/Teams/SMS/WhatsApp connections |
+| `receipt_requests` | Outstanding receipt requests |
+| `ledger_connections` | QBO/Xero OAuth tokens |
+| `subscriptions` | Stripe billing |
+| `team_members` | Role-based access |
+
+Full schema: [`src/lib/supabase/schema.sql`](src/lib/supabase/schema.sql)
 
 ---
 
@@ -172,18 +218,19 @@ Set all environment variables in the Vercel dashboard. Update webhook URLs for:
 autokkeep/
 ├── src/
 │   ├── app/
-│   │   ├── api/                    # 24 API routes
+│   │   ├── api/                    # 25 API routes
 │   │   │   ├── ai/                 # AI categorization
 │   │   │   ├── billing/            # Stripe billing
 │   │   │   ├── channels/           # Slack/Teams/SMS/WhatsApp
+│   │   │   ├── contact/            # Contact form
 │   │   │   ├── ledger/             # QuickBooks/Xero
 │   │   │   ├── plaid/              # Bank integrations
-│   │   │   ├── transactions/       # Transaction CRUD
+│   │   │   ├── transactions/       # Transaction CRUD + pipeline
 │   │   │   └── webhooks/           # Plaid/Stripe/Twilio
 │   │   ├── auth/                   # Login/Signup/Callback
 │   │   ├── dashboard/              # Exception review dashboard
 │   │   ├── settings/               # Integrations/Billing/Team
-│   │   ├── globals.css             # Design system (2,300+ lines)
+│   │   ├── globals.css             # Design system
 │   │   ├── layout.tsx              # Root layout
 │   │   └── page.tsx                # Landing page
 │   ├── components/
@@ -193,16 +240,12 @@ autokkeep/
 │   │   └── mockTransactions.ts     # Demo data
 │   └── lib/
 │       ├── ai/                     # Categorization engine
+│       ├── billing/                # Plan definitions & enforcement
 │       ├── channels/               # Channel libraries
-│       ├── ledger/                  # Ledger sync engine
-│       ├── plaid/                   # Plaid client
+│       ├── ledger/                 # Ledger sync engine
+│       ├── plaid/                  # Plaid client
 │       └── supabase/               # DB, Auth, RLS, Types
-├── docs/
-│   ├── PRD.md                      # Product Requirements
-│   ├── ARCHITECTURE.md             # System Architecture
-│   ├── PRICING.md                  # Pricing Model
-│   └── PITCH.md                    # Investor Pitch
-├── .env.example                    # Environment template
+├── .env.example                    # Environment template (documented)
 └── package.json
 ```
 

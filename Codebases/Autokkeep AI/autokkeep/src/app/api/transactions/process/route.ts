@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { syncTransactions } from '@/lib/plaid/client';
 import { batchCategorize } from '@/lib/ai/categorizer';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -66,6 +67,12 @@ export async function POST(request: NextRequest) {
 
     if (!membership) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Enforce plan limits
+    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'process_transaction');
+    if (!planCheck.allowed) {
+      return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
     const { data: entity } = await (supabase as any)

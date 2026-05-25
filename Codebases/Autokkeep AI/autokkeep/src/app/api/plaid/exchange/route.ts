@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   exchangePublicToken,
   getAccounts,
@@ -67,6 +68,12 @@ export async function POST(request: NextRequest) {
         { error: 'Entity not found or access denied' },
         { status: 403 }
       );
+    }
+
+    // Enforce plan limits
+    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'connect_bank');
+    if (!planCheck.allowed) {
+      return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
     // Exchange public token for access token

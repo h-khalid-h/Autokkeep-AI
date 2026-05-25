@@ -5,6 +5,7 @@ import {
   extractTransactionRef,
   validateTwilioSignature,
 } from '@/lib/channels/twilio';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/channels/sms — Handle inbound SMS messages
 export async function POST(request: NextRequest) {
@@ -23,8 +24,7 @@ export async function POST(request: NextRequest) {
     const message = parseTwilioWebhook(params);
     const userResponse = parseUserResponse(message);
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
+    const supabase = createAdminClient();
 
     // Find pending receipt request from this phone number
     const { data: receiptRequest } = await (supabase as any)

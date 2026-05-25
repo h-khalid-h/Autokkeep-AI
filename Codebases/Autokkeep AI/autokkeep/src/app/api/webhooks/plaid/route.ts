@@ -4,7 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { syncTransactions } from '@/lib/plaid/client';
 
 // Plaid webhook event types
@@ -39,7 +39,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createServerClient();
+    // Verify Plaid webhook
+    const plaidVerifyKey = process.env.PLAID_WEBHOOK_VERIFY_KEY;
+    if (plaidVerifyKey) {
+      const receivedToken = request.headers.get('plaid-verification');
+      // In production, use plaid-node's webhookVerificationKeyGet to verify
+      // For now, log if header is missing
+      if (!receivedToken) {
+        console.warn('[Plaid Webhook] No verification header received');
+      }
+    }
+
+    const supabase = createAdminClient();
 
     // Find the bank connection for this Plaid item
     const { data: connection, error: connError } = await (supabase as any)

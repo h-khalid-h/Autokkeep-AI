@@ -4,6 +4,7 @@ import {
   parseUserResponse,
   validateTwilioSignature,
 } from '@/lib/channels/twilio';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/channels/whatsapp — Handle inbound WhatsApp messages
 export async function POST(request: NextRequest) {
@@ -28,8 +29,7 @@ export async function POST(request: NextRequest) {
 
     const userResponse = parseUserResponse(message);
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
+    const supabase = createAdminClient();
 
     // Strip whatsapp: prefix for lookup
     const phoneNumber = message.from.replace('whatsapp:', '');

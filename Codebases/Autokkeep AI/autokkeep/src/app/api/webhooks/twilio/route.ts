@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseTwilioWebhook, validateTwilioSignature } from '@/lib/channels/twilio';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/webhooks/twilio — Handle Twilio status callbacks
 export async function POST(request: NextRequest) {
@@ -20,8 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Log delivery status
     if (messageStatus && messageSid) {
-      const { createServerClient } = await import('@/lib/supabase/server');
-      const supabase = await createServerClient();
+      const supabase = createAdminClient();
 
       // Update receipt request delivery status if applicable
       if (messageStatus === 'delivered' || messageStatus === 'read') {

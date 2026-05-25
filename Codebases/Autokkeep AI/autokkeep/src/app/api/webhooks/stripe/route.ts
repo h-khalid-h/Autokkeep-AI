@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -30,8 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
+    const supabase = createAdminClient();
 
     switch (event.type) {
       case 'checkout.session.completed': {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   syncJournalEntry,
   syncChartOfAccounts,
@@ -17,6 +18,35 @@ export async function POST(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+
+    // Auth check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Org membership check
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .single();
+    if (!membership) {
+      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Verify entity belongs to user's org
+    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    if (!entity || entity.org_id !== membership.org_id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Enforce plan limits
+    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'sync_ledger');
+    if (!planCheck.allowed) {
+      return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
+    }
+
 
     const { data: conn } = await (supabase as any)
       .from('ledger_connections')
@@ -159,6 +189,29 @@ export async function GET(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+
+    // Auth check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Org membership check
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('org_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Verify entity belongs to user's org
+    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    if (!entity || entity.org_id !== membership.org_id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { data: conn } = await (supabase as any)
       .from('ledger_connections')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseTeamsWebhookPayload, mapTeamsChoiceToGL, sendTeamsConfirmation } from '@/lib/channels/teams';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/channels/teams/webhook — Handle Teams adaptive card responses
 export async function POST(request: NextRequest) {
@@ -11,8 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
+    const supabase = createAdminClient();
 
     if (parsed.categoryChoice === 'personal') {
       // Mark as personal/excluded
