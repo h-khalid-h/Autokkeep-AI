@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// POST /api/contact — Store contact form submission
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, email, company, type, entityCount, message } = body;
+
+    if (!name || !email || !message) {
+      return NextResponse.json(
+        { error: 'Name, email, and message are required' },
+        { status: 400 }
+      );
+    }
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    const supabase = await createServerClient();
+
+    // Store in audit_log (or a dedicated contact_submissions table)
+    await (supabase as any).from('audit_log').insert({
+      action: 'create',
+      target_type: 'contact_form',
+      target_id: email,
+      actor_type: 'system',
+      details: {
+        name,
+        email,
+        company: company || null,
+        type: type || null,
+        entity_count: entityCount || null,
+        message,
+        submitted_at: new Date().toISOString(),
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Contact form error:', error);
+    return NextResponse.json(
+      { error: 'Failed to submit contact form' },
+      { status: 500 }
+    );
+  }
+}

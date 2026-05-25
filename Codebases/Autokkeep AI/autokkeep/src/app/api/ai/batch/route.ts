@@ -1,0 +1,233 @@
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POST /api/ai/batch — Batch AI Categorization
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
+import { batchCategorize } from '@/lib/ai/categorizer';
+import type {
+  TransactionInput,
+  CategorizationRule,
+  ChartOfAccountsEntry,
+  HistoricalPattern,
+} from '@/lib/ai/categorizer';
+
+interface BatchRequestBody {
+  entityId: string;
+  transactionIds?: string[];
+}
+
+interface BatchSummary {
+  processed: number;
+  auto_approved: number;
+  flagged_for_review: number;
+  failed: number;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+
+    // Validate auth
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body: BatchRequestBody = await request.json();
+    const { entityId, transactionIds } = body;
+
+    if (!entityId) {
+      return NextResponse.json(
+        { error: 'entityId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate entity access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('id, org_id')
+      .eq('user_id', user.id)
+      .single() as { data: { id: string; org_id: string } | null };
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { data: entity } = await (supabase as any)
+      .from('entities')
+      .select('id, org_id')
+      .eq('id', entityId)
+      .eq('org_id', membership.org_id)
+      .single();
+
+    if (!entity) {
+      return NextResponse.json(
+        { error: 'Entity not found or access denied' },
+        { status: 403 }
+      );
+    }
+
+    // Fetch pending transactions
+    let query = (supabase as any)
+      .from('transactions')
+      .select('*')
+      .eq('entity_id', entityId)
+      .in('status', ['pending', 'human_review']);
+
+    if (transactionIds && transactionIds.length > 0) {
+      query = query.in('id', transactionIds);
+    }
+
+    const { data: transactions, error: txError } = await query;
+
+    if (txError) {
+      return NextResponse.json(
+        { error: 'Failed to fetch transactions' },
+        { status: 500 }
+      );
+    }
+
+    if (!transactions || transactions.length === 0) {
+      const emptyResult: BatchSummary = {
+        processed: 0,
+        auto_approved: 0,
+        flagged_for_review: 0,
+        failed: 0,
+      };
+      return NextResponse.json(emptyResult);
+    }
+
+    // Fetch chart of accounts
+    const { data: chartData } = await (supabase as any)
+      .from('chart_of_accounts')
+      .select('code, name')
+      .eq('entity_id', entityId);
+
+    const chartOfAccounts: ChartOfAccountsEntry[] = (chartData || []).map(
+      (c: { code: string; name: string }) => ({
+        code: c.code,
+        name: c.name,
+      })
+    );
+
+    // Fetch categorization rules
+    const { data: rulesData } = await (supabase as any)
+      .from('categorization_rules')
+      .select('*')
+      .eq('entity_id', entityId);
+
+    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
+      id: r.id,
+      vendor_pattern: r.match_value,
+      mcc_code: r.mcc_code || undefined,
+      gl_code: r.gl_code,
+      gl_name: '',
+      match_type: r.rule_type || 'contains',
+      priority: r.priority || 0,
+    }));
+
+    // Fetch historical patterns
+    const { data: historyData } = await (supabase as any)
+      .from('categorization_history')
+      .select('merchant, gl_code, gl_name, frequency, last_used')
+      .eq('entity_id', entityId)
+      .order('frequency', { ascending: false })
+      .limit(100);
+
+    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+      merchant: h.merchant,
+      glCode: h.gl_code,
+      glName: h.gl_name,
+      frequency: h.frequency,
+      lastUsed: h.last_used,
+    }));
+
+    // Build transaction inputs
+    const transactionInputs: TransactionInput[] = transactions.map((t: Record<string, any>) => ({
+      id: t.id,
+      merchant: t.merchant_name,
+      merchantRaw: t.merchant_raw,
+      amount: t.amount,
+      date: t.date,
+      mcc: t.mcc || undefined,
+      currency: t.currency || 'USD',
+      cardHolder: t.card_holder || undefined,
+      bankDescription: t.merchant_raw,
+    }));
+
+    // Run batch categorization
+    const results = await batchCategorize(
+      transactionInputs,
+      rules,
+      chartOfAccounts,
+      history
+    );
+
+    // Update transaction records and build summary
+    let autoApproved = 0;
+    let flaggedForReview = 0;
+    let failed = 0;
+
+    for (const [txId, result] of results) {
+      const status =
+        result.confidence >= 95 ? 'auto_categorized' : 'human_review';
+
+      if (result.confidence === 0 && !result.glCode) {
+        failed++;
+      } else if (result.confidence >= 95) {
+        autoApproved++;
+      } else {
+        flaggedForReview++;
+      }
+
+      await (supabase as any)
+        .from('transactions')
+        .update({
+          category_ai: result.glCode || null,
+          confidence: result.confidence,
+          ai_reasoning: result.glName ? `${result.reasoning} [GL Name: ${result.glName}]` : result.reasoning,
+          status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', txId)
+        .eq('entity_id', entityId);
+    }
+
+    // Log to audit
+    await (supabase as any).from('audit_log').insert({
+      entity_id: entityId,
+      actor_id: user.id,
+      actor_type: 'human',
+      action: 'categorize',
+      target_type: 'transaction',
+      details: {
+        processed: results.size,
+        auto_approved: autoApproved,
+        flagged_for_review: flaggedForReview,
+        failed,
+      },
+    });
+
+    const summary: BatchSummary = {
+      processed: results.size,
+      auto_approved: autoApproved,
+      flagged_for_review: flaggedForReview,
+      failed,
+    };
+
+    return NextResponse.json(summary);
+  } catch (error) {
+    console.error('[AI Batch] Error:', error);
+    return NextResponse.json(
+      { error: 'Batch categorization failed' },
+      { status: 500 }
+    );
+  }
+}
