@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import UserMenu from './UserMenu';
 
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
 function getSupabase() {
@@ -187,13 +188,7 @@ const GlobalDashboardHeader: React.FC = () => {
         >
           {connectionStatus}
         </span>
-        <div
-          className="slack-avatar"
-          role="img"
-          aria-label="User avatar"
-        >
-          {userInitials}
-        </div>
+        <UserMenu initials={userInitials} />
       </nav>
     </header>
   );

@@ -153,7 +153,8 @@ CREATE TABLE bank_connections (
   error_code         text,
   error_message      text,
   last_synced_at     timestamptz,
-  created_at         timestamptz DEFAULT now()
+  created_at         timestamptz DEFAULT now(),
+  updated_at         timestamptz DEFAULT now()
 );
 
 COMMENT ON COLUMN bank_connections.plaid_access_token
@@ -407,6 +408,8 @@ CREATE INDEX idx_transactions_bank_account_id      ON transactions(bank_account_
 CREATE INDEX idx_transactions_plaid_transaction_id ON transactions(plaid_transaction_id);
 CREATE INDEX idx_transactions_status               ON transactions(status);
 CREATE INDEX idx_transactions_date                 ON transactions(date);
+CREATE INDEX idx_transactions_entity_status        ON transactions(entity_id, status);
+CREATE INDEX idx_transactions_entity_date          ON transactions(entity_id, date DESC);
 
 -- categorization_rules
 CREATE INDEX idx_categorization_rules_entity_id ON categorization_rules(entity_id);
@@ -423,7 +426,8 @@ CREATE INDEX idx_journal_lines_journal_entry_id ON journal_lines(journal_entry_i
 CREATE INDEX idx_journal_lines_gl_code          ON journal_lines(gl_code);
 
 -- audit_log
-CREATE INDEX idx_audit_log_entity_id ON audit_log(entity_id);
+CREATE INDEX idx_audit_log_entity_id  ON audit_log(entity_id);
+CREATE INDEX idx_audit_log_created_at ON audit_log(created_at DESC);
 
 -- channel_connections
 CREATE INDEX idx_channel_connections_entity_id ON channel_connections(entity_id);
@@ -435,7 +439,11 @@ CREATE INDEX idx_receipt_requests_transaction_id ON receipt_requests(transaction
 CREATE INDEX idx_ledger_connections_entity_id ON ledger_connections(entity_id);
 
 -- subscriptions
-CREATE INDEX idx_subscriptions_org_id ON subscriptions(org_id);
+CREATE INDEX idx_subscriptions_org_id                  ON subscriptions(org_id);
+CREATE INDEX idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+
+-- bank_connections
+CREATE INDEX idx_bank_connections_plaid_item_id ON bank_connections(plaid_item_id);
 
 -- team_members
 CREATE INDEX idx_team_members_org_id  ON team_members(org_id);
@@ -456,6 +464,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_transactions_updated_at
   BEFORE UPDATE ON transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_bank_connections_updated_at
+  BEFORE UPDATE ON bank_connections
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 

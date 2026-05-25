@@ -58,6 +58,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!transaction.amount || !transaction.merchant) {
+      return NextResponse.json(
+        { error: 'Transaction with amount and merchant_name is required' },
+        { status: 400 }
+      );
+    }
+
     // Validate entity access
     const { data: membership } = await (supabase as any)
       .from('team_members')

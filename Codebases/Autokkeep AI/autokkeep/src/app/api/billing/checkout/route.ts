@@ -19,6 +19,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate plan and orgId
+    const validPlans = ['smb_basic', 'smb_growth', 'smb_premium', 'cpa_foundation', 'cpa_scale', 'cpa_enterprise'];
+    if (!plan || !validPlans.includes(plan)) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+    if (!orgId || typeof orgId !== 'string') {
+      return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
+    }
+
     // Map plan to Stripe price ID
     const priceMap: Record<string, string | undefined> = {
       cpa_foundation: process.env.STRIPE_PRICE_ID_CPA_FOUNDATION,

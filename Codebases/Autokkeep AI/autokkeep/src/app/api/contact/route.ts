@@ -13,6 +13,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
+    }
+    if (message && message.length > 5000) {
+      return NextResponse.json({ error: 'Message too long (max 5000 chars)' }, { status: 400 });
+    }
+    // Sanitize
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedMessage = message?.trim().slice(0, 5000) || '';
+
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
@@ -20,15 +32,15 @@ export async function POST(request: NextRequest) {
     await (supabase as any).from('audit_log').insert({
       action: 'create',
       target_type: 'contact_form',
-      target_id: email,
+      target_id: sanitizedEmail,
       actor_type: 'system',
       details: {
         name,
-        email,
+        email: sanitizedEmail,
         company: company || null,
         type: type || null,
         entity_count: entityCount || null,
-        message,
+        message: sanitizedMessage,
         submitted_at: new Date().toISOString(),
       },
     });

@@ -31,7 +31,14 @@ function LoginContent() {
       return;
     }
 
-    router.push(redirect || '/dashboard');
+    // Check for stored redirect from AuthGuard
+    const storedRedirect = typeof window !== 'undefined'
+      ? sessionStorage.getItem('autokkeep_redirect')
+      : null;
+    if (storedRedirect) {
+      sessionStorage.removeItem('autokkeep_redirect');
+    }
+    router.push(storedRedirect || redirect || '/dashboard');
   };
 
   return (

@@ -120,6 +120,13 @@ CREATE POLICY bank_connections_delete_policy ON public.bank_connections
     auth.user_org_role(auth.entity_org_id(entity_id)) IN ('owner', 'admin')
   );
 
+-- service_role bypass for Plaid webhook writes via admin client
+CREATE POLICY bank_connections_service_role ON public.bank_connections
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- =============================================================================
 -- 6. Policies — bank_accounts (via connection_id -> bank_connections -> entities)
 -- =============================================================================
@@ -211,6 +218,13 @@ CREATE POLICY transactions_delete_policy ON public.transactions
   FOR DELETE USING (
     auth.user_org_role(auth.entity_org_id(entity_id)) IN ('owner', 'admin')
   );
+
+-- service_role bypass for Plaid webhook writes via admin client
+CREATE POLICY transactions_service_role ON public.transactions
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 -- =============================================================================
 -- 9. Policies — categorization_rules
@@ -315,10 +329,17 @@ CREATE POLICY audit_log_select_policy ON public.audit_log
 
 CREATE POLICY audit_log_insert_policy ON public.audit_log
   FOR INSERT WITH CHECK (
-    -- Entity-scoped inserts must belong to user's org; null entity_id allowed for system events
-    entity_id IS NULL
+    -- Entity-scoped inserts must belong to user's org; null entity_id allowed for authenticated system events
+    (entity_id IS NULL AND auth.uid() IS NOT NULL)
     OR auth.entity_org_id(entity_id) IN (SELECT auth.user_org_ids())
   );
+
+-- service_role bypass for webhook/admin audit log writes
+CREATE POLICY audit_log_service_role ON public.audit_log
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 -- No UPDATE or DELETE policies for audit_log — immutable by design.
 
@@ -390,6 +411,13 @@ CREATE POLICY receipt_requests_delete_policy ON public.receipt_requests
     )
   );
 
+-- service_role bypass for webhook/system receipt request writes
+CREATE POLICY receipt_requests_service_role ON public.receipt_requests
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- =============================================================================
 -- 15. Policies — ledger_connections
 -- =============================================================================
@@ -438,6 +466,13 @@ CREATE POLICY subscriptions_delete_policy ON public.subscriptions
     auth.user_org_role(org_id) = 'owner'
   );
 
+-- service_role bypass for Stripe webhook writes via admin client
+CREATE POLICY subscriptions_service_role ON public.subscriptions
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- =============================================================================
 -- 17. Policies — team_members
 -- =============================================================================
@@ -451,7 +486,9 @@ CREATE POLICY team_members_select_policy ON public.team_members
 
 CREATE POLICY team_members_insert_policy ON public.team_members
   FOR INSERT WITH CHECK (
+    -- Org owners/admins can invite; users can add themselves when creating a new org
     auth.user_org_role(org_id) IN ('owner', 'admin')
+    OR (user_id = auth.uid() AND role = 'owner')
   );
 
 CREATE POLICY team_members_update_policy ON public.team_members

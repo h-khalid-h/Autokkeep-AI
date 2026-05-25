@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const body: ProcessRequestBody = await request.json();
     const { entityId } = body;
 
-    if (!entityId) {
+    if (!entityId || typeof entityId !== 'string') {
       return NextResponse.json(
         { error: 'entityId is required' },
         { status: 400 }
