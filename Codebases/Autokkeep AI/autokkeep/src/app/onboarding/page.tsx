@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 type OnboardingStep = 'welcome' | 'entity' | 'bank' | 'ledger' | 'channel' | 'complete';
 
@@ -15,10 +16,24 @@ const STEPS: { id: OnboardingStep; title: string; icon: string; description: str
 ];
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [entityName, setEntityName] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [fiscalYearEnd, setFiscalYearEnd] = useState('12');
   const [selectedLedger, setSelectedLedger] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('');
+
+  // Persisted IDs from entity creation
+  const [entityId, setEntityId] = useState<string | null>(null);
+
+  // Loading & error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Bank connection state
+  const [bankConnected, setBankConnected] = useState(false);
+  const [bankLinkToken, setBankLinkToken] = useState<string | null>(null);
 
   const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
   const progress = ((currentIndex) / (STEPS.length - 1)) * 100;
@@ -26,6 +41,7 @@ export default function OnboardingPage() {
   const goNext = () => {
     const nextIndex = currentIndex + 1;
     if (nextIndex < STEPS.length) {
+      setError(null);
       setCurrentStep(STEPS[nextIndex].id);
     }
   };
@@ -33,7 +49,208 @@ export default function OnboardingPage() {
   const goBack = () => {
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
+      setError(null);
       setCurrentStep(STEPS[prevIndex].id);
+    }
+  };
+
+  // ── Step 1: Create entity in Supabase ──────────────────────────────────
+  const handleCreateEntity = async () => {
+    if (!entityName.trim()) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const supabase = createClient();
+
+      // 1. Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setError('You must be logged in to create an entity. Please sign in first.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check if user already has an org, if not create one
+      const { data: existingMembership } = await (supabase as any)
+        .from('team_members')
+        .select('id, org_id')
+        .eq('user_id', user.id)
+        .single();
+
+      let orgId: string;
+
+      if (existingMembership?.org_id) {
+        orgId = existingMembership.org_id;
+      } else {
+        // Create a new organization
+        const { data: newOrg, error: orgError } = await (supabase as any)
+          .from('organizations')
+          .insert({ name: `${entityName} Org` })
+          .select('id')
+          .single();
+
+        if (orgError || !newOrg) {
+          setError('Failed to create organization. Please try again.');
+          setLoading(false);
+          return;
+        }
+        orgId = newOrg.id;
+
+        // 3. Add user as team member with owner role
+        const { error: memberError } = await (supabase as any)
+          .from('team_members')
+          .insert({
+            user_id: user.id,
+            org_id: orgId,
+            role: 'owner',
+          });
+
+        if (memberError) {
+          setError('Failed to set up team membership. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 4. Create the entity
+      const { data: newEntity, error: entityError } = await (supabase as any)
+        .from('entities')
+        .insert({
+          name: entityName.trim(),
+          currency,
+          fiscal_year_end: parseInt(fiscalYearEnd, 10),
+          org_id: orgId,
+        })
+        .select('id')
+        .single();
+
+      if (entityError || !newEntity) {
+        setError('Failed to create entity. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // 5. Store entityId for subsequent steps
+      setEntityId(newEntity.id);
+      goNext();
+    } catch (err) {
+      console.error('[Onboarding] Entity creation error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Step 2: Initiate Plaid Link ────────────────────────────────────────
+  const handleConnectBank = async () => {
+    if (!entityId) {
+      setError('Entity not found. Please go back and create one first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/plaid/link-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Failed to initiate bank connection. You can skip and connect later.');
+        setLoading(false);
+        return;
+      }
+
+      const { link_token } = await res.json();
+      setBankLinkToken(link_token);
+      // In production, this token would be passed to the Plaid Link SDK
+      // For now, show the simulated success UI
+    } catch (err) {
+      console.error('[Onboarding] Plaid link error:', err);
+      setError('Failed to connect to Plaid. You can skip and connect later from the dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSimulateBankSuccess = () => {
+    setBankConnected(true);
+  };
+
+  // ── Step 3: Ledger OAuth redirect ──────────────────────────────────────
+  const handleConnectLedger = async () => {
+    if (!entityId) {
+      setError('Entity not found. Please go back and create one first.');
+      return;
+    }
+
+    if (selectedLedger === 'none') {
+      goNext();
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (selectedLedger === 'quickbooks') {
+        // The GET endpoint returns a redirect, so we navigate directly
+        window.location.href = `/api/ledger/quickbooks/auth?entityId=${entityId}`;
+        return;
+      }
+
+      if (selectedLedger === 'xero') {
+        window.location.href = `/api/ledger/xero/auth?entityId=${entityId}`;
+        return;
+      }
+
+      // Fallback: just proceed
+      goNext();
+    } catch (err) {
+      console.error('[Onboarding] Ledger connect error:', err);
+      setError('Failed to start ledger connection. You can skip and connect later.');
+      setLoading(false);
+    }
+  };
+
+  // ── Step 4: Channel setup ──────────────────────────────────────────────
+  const handleSetupChannel = async () => {
+    if (!entityId || !selectedChannel) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (selectedChannel === 'slack') {
+        // Redirect to Slack OAuth install flow
+        window.location.href = `/api/channels/slack/install?entityId=${entityId}`;
+        return;
+      }
+
+      // For other channels (teams, sms, whatsapp): save preference and proceed
+      const supabase = createClient();
+      const { error: channelError } = await (supabase as any)
+        .from('channel_connections')
+        .insert({
+          entity_id: entityId,
+          channel_type: selectedChannel,
+          is_active: false, // Pending setup
+        });
+
+      if (channelError) {
+        console.error('[Onboarding] Channel save error:', channelError);
+        // Non-fatal — still proceed
+      }
+
+      goNext();
+    } catch (err) {
+      console.error('[Onboarding] Channel setup error:', err);
+      setError('Failed to save channel preference. You can configure this later.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,7 +280,7 @@ export default function OnboardingPage() {
             Autokkeep Setup
           </span>
         </div>
-        <Link href="/dashboard" className="btn btn-ghost btn-sm">Skip for now →</Link>
+        <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard')}>Skip for now →</button>
       </header>
 
       {/* Progress Bar */}
@@ -103,6 +320,32 @@ export default function OnboardingPage() {
       }}>
         <div style={{ maxWidth: '560px', width: '100%' }}>
 
+          {/* Error Banner */}
+          {error && (
+            <div style={{
+              padding: '12px 16px',
+              marginBottom: '20px',
+              borderRadius: '8px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: 'var(--status-error, #ef4444)',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span>⚠️</span>
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                style={{
+                  marginLeft: 'auto', background: 'none', border: 'none',
+                  color: 'inherit', cursor: 'pointer', fontSize: '16px',
+                }}
+              >×</button>
+            </div>
+          )}
+
           {/* Welcome Step */}
           {currentStep === 'welcome' && (
             <div style={{ textAlign: 'center' }}>
@@ -134,11 +377,17 @@ export default function OnboardingPage() {
                     placeholder="e.g. Acme Corp, My Startup LLC"
                     value={entityName}
                     onChange={(e) => setEntityName(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Base Currency</label>
-                  <select className="input" defaultValue="USD">
+                  <select
+                    className="input"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    disabled={loading}
+                  >
                     <option value="USD">USD — US Dollar</option>
                     <option value="EUR">EUR — Euro</option>
                     <option value="GBP">GBP — British Pound</option>
@@ -147,7 +396,12 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <label className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Fiscal Year End</label>
-                  <select className="input" defaultValue="12">
+                  <select
+                    className="input"
+                    value={fiscalYearEnd}
+                    onChange={(e) => setFiscalYearEnd(e.target.value)}
+                    disabled={loading}
+                  >
                     <option value="12">December</option>
                     <option value="3">March</option>
                     <option value="6">June</option>
@@ -156,9 +410,13 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack}>← Back</button>
-                <button className="btn btn-primary" onClick={goNext} disabled={!entityName.trim()}>
-                  Continue →
+                <button className="btn btn-ghost" onClick={goBack} disabled={loading}>← Back</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleCreateEntity}
+                  disabled={!entityName.trim() || loading}
+                >
+                  {loading ? '⏳ Creating…' : 'Continue →'}
                 </button>
               </div>
             </div>
@@ -172,25 +430,57 @@ export default function OnboardingPage() {
                 We use Plaid to securely connect to your bank. Your credentials are never stored on our servers.
               </p>
               <div className="card" style={{ padding: '32px', textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔒</div>
-                <p className="text-body" style={{ marginBottom: '24px' }}>
-                  Click below to open Plaid Link and connect your bank accounts.
-                  Autokkeep will automatically import and categorize your transactions.
-                </p>
-                <button className="btn btn-primary btn-lg" onClick={() => {
-                  // In production, this calls /api/plaid/link-token
-                  alert('Plaid Link would open here. Configure PLAID_CLIENT_ID in .env.local to enable.');
-                  goNext();
-                }}>
-                  🏦 Connect Bank Account
-                </button>
-                <p className="text-caption" style={{ marginTop: '16px' }}>
-                  Supported: Chase, Bank of America, Wells Fargo, Capital One, and 12,000+ more
-                </p>
+                {bankConnected ? (
+                  <>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
+                    <p className="text-body" style={{ marginBottom: '8px', color: 'var(--status-success)' }}>
+                      Bank account connected successfully!
+                    </p>
+                    <p className="text-caption">
+                      Autokkeep will begin importing transactions shortly.
+                    </p>
+                  </>
+                ) : bankLinkToken ? (
+                  <>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔗</div>
+                    <p className="text-body" style={{ marginBottom: '16px' }}>
+                      Bank connection initiated. In production, the Plaid Link window would open automatically.
+                    </p>
+                    <p className="text-caption" style={{ marginBottom: '16px' }}>
+                      Link token: <code style={{ fontSize: '11px', opacity: 0.6 }}>{bankLinkToken.slice(0, 20)}…</code>
+                    </p>
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleSimulateBankSuccess}
+                    >
+                      ✅ Simulate Connection Success
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔒</div>
+                    <p className="text-body" style={{ marginBottom: '24px' }}>
+                      Click below to open Plaid Link and connect your bank accounts.
+                      Autokkeep will automatically import and categorize your transactions.
+                    </p>
+                    <button
+                      className="btn btn-primary btn-lg"
+                      onClick={handleConnectBank}
+                      disabled={loading}
+                    >
+                      {loading ? '⏳ Connecting…' : '🏦 Connect Bank Account'}
+                    </button>
+                    <p className="text-caption" style={{ marginTop: '16px' }}>
+                      Supported: Chase, Bank of America, Wells Fargo, Capital One, and 12,000+ more
+                    </p>
+                  </>
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack}>← Back</button>
-                <button className="btn btn-ghost" onClick={goNext}>Skip for now →</button>
+                <button className="btn btn-ghost" onClick={goBack} disabled={loading}>← Back</button>
+                <button className="btn btn-ghost" onClick={goNext}>
+                  {bankConnected ? 'Continue →' : 'Skip for now →'}
+                </button>
               </div>
             </div>
           )}
@@ -212,6 +502,7 @@ export default function OnboardingPage() {
                     key={ledger.id}
                     className="card"
                     onClick={() => setSelectedLedger(ledger.id)}
+                    disabled={loading}
                     style={{
                       padding: '20px',
                       display: 'flex', alignItems: 'center', gap: '16px',
@@ -234,10 +525,17 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack}>← Back</button>
-                <button className="btn btn-primary" onClick={goNext} disabled={!selectedLedger}>
-                  Continue →
-                </button>
+                <button className="btn btn-ghost" onClick={goBack} disabled={loading}>← Back</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-ghost" onClick={goNext}>Skip →</button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleConnectLedger}
+                    disabled={!selectedLedger || loading}
+                  >
+                    {loading ? '⏳ Connecting…' : selectedLedger === 'none' ? 'Continue →' : 'Connect & Continue →'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -251,15 +549,16 @@ export default function OnboardingPage() {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {[
-                  { id: 'slack', name: 'Slack', icon: '💬', desc: 'Interactive messages' },
-                  { id: 'teams', name: 'Teams', icon: '🟣', desc: 'Adaptive Cards' },
-                  { id: 'sms', name: 'SMS', icon: '📲', desc: 'Text messages' },
-                  { id: 'whatsapp', name: 'WhatsApp', icon: '📱', desc: 'Business messaging' },
+                  { id: 'slack', name: 'Slack', icon: '💬', desc: 'Interactive messages', available: true },
+                  { id: 'teams', name: 'Teams', icon: '🟣', desc: 'Adaptive Cards', available: false },
+                  { id: 'sms', name: 'SMS', icon: '📲', desc: 'Text messages', available: false },
+                  { id: 'whatsapp', name: 'WhatsApp', icon: '📱', desc: 'Business messaging', available: false },
                 ].map((channel) => (
                   <button
                     key={channel.id}
                     className="card"
                     onClick={() => setSelectedChannel(channel.id)}
+                    disabled={loading}
                     style={{
                       padding: '24px',
                       cursor: 'pointer', textAlign: 'center',
@@ -267,8 +566,16 @@ export default function OnboardingPage() {
                         ? '2px solid var(--accent-primary)'
                         : '1px solid var(--border-primary)',
                       transition: 'border 0.2s ease',
+                      position: 'relative',
                     }}
                   >
+                    {!channel.available && (
+                      <span style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
+                        background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                      }}>Coming soon</span>
+                    )}
                     <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{channel.icon}</div>
                     <div className="text-h4">{channel.name}</div>
                     <div className="text-caption">{channel.desc}</div>
@@ -279,9 +586,13 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack}>← Back</button>
-                <button className="btn btn-primary" onClick={goNext} disabled={!selectedChannel}>
-                  Finish Setup →
+                <button className="btn btn-ghost" onClick={goBack} disabled={loading}>← Back</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSetupChannel}
+                  disabled={!selectedChannel || loading}
+                >
+                  {loading ? '⏳ Setting up…' : 'Finish Setup →'}
                 </button>
               </div>
             </div>
@@ -311,9 +622,12 @@ export default function OnboardingPage() {
                   <li className="text-body">✅ Sync approved entries to {selectedLedger === 'quickbooks' ? 'QuickBooks' : selectedLedger === 'xero' ? 'Xero' : 'your ledger'}</li>
                 </ul>
               </div>
-              <Link href="/dashboard" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>
+              <button
+                className="btn btn-primary btn-lg"
+                onClick={() => router.push('/dashboard')}
+              >
                 Go to Dashboard →
-              </Link>
+              </button>
             </div>
           )}
 

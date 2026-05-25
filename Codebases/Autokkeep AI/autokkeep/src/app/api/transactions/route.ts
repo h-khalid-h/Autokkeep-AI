@@ -32,14 +32,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    if (!entityId) {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate entity access
+    // Validate org membership
     const { data: membership } = await (supabase as any)
       .from('team_members')
       .select('id, org_id')
@@ -50,32 +43,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
-      .from('entities')
-      .select('id, org_id')
-      .eq('id', entityId)
-      .eq('org_id', membership.org_id)
-      .single();
+    // If entityId provided, validate access; otherwise use all org entities
+    let entityIds: string[] = [];
 
-    if (!entity) {
-      return NextResponse.json(
-        { error: 'Entity not found or access denied' },
-        { status: 403 }
-      );
+    if (entityId) {
+      const { data: entity } = await (supabase as any)
+        .from('entities')
+        .select('id, org_id')
+        .eq('id', entityId)
+        .eq('org_id', membership.org_id)
+        .single();
+
+      if (!entity) {
+        return NextResponse.json(
+          { error: 'Entity not found or access denied' },
+          { status: 403 }
+        );
+      }
+      entityIds = [entity.id];
+    } else {
+      const { data: orgEntities } = await (supabase as any)
+        .from('entities')
+        .select('id')
+        .eq('org_id', membership.org_id);
+
+      entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+      if (entityIds.length === 0) {
+        return NextResponse.json({
+          transactions: [],
+          pagination: { total: 0, limit, offset, hasMore: false },
+        });
+      }
     }
 
     // Build query with filters
     let query = (supabase as any)
       .from('transactions')
       .select('*', { count: 'exact' })
-      .eq('entity_id', entityId)
+      .in('entity_id', entityIds)
       .neq('status', 'removed')
       .neq('status', 'deleted')
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (status) {
-      query = query.eq('status', status);
+      const statuses = status.split(',').map((s: string) => s.trim());
+      query = statuses.length === 1
+        ? query.eq('status', statuses[0])
+        : query.in('status', statuses);
     }
 
     if (dateFrom) {
