@@ -27,6 +27,7 @@ export default function Navbar() {
     { label: 'About', href: '/about' },
     { label: 'Security', href: '/security' },
     { label: 'Resources', href: '/resources' },
+    { label: 'Partners', href: '/partners' },
   ];
 
   return (

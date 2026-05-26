@@ -296,6 +296,71 @@ export async function POST(request: NextRequest) {
       }
 
       summary.categorization.processed = results.size;
+
+      // ── Step 5: History Learning Loop ─────────────────────────────────
+      // Write successful categorizations back to categorization_history
+      // so the deterministic engine gets smarter over time.
+
+      const historyInserts: Array<{
+        entity_id: string;
+        merchant: string;
+        gl_code: string;
+        gl_name: string;
+      }> = [];
+
+      for (const [, result] of results) {
+        if (result.confidence >= 95 && result.glCode) {
+          const txn = pendingTransactions.find(
+            (t: Record<string, any>) =>
+              results.get(t.id)?.glCode === result.glCode &&
+              results.get(t.id)?.confidence === result.confidence
+          );
+          const merchantName = txn?.merchant_name || txn?.merchant_raw;
+          if (merchantName) {
+            historyInserts.push({
+              entity_id: entityId,
+              merchant: merchantName.toLowerCase().trim(),
+              gl_code: result.glCode,
+              gl_name: result.glName || '',
+            });
+          }
+        }
+      }
+
+      if (historyInserts.length > 0) {
+        // Upsert: if merchant+gl_code combo exists, increment frequency
+        for (const h of historyInserts) {
+          const { data: existing } = await (supabase as any)
+            .from('categorization_history')
+            .select('id, frequency')
+            .eq('entity_id', h.entity_id)
+            .eq('merchant', h.merchant)
+            .eq('gl_code', h.gl_code)
+            .single();
+
+          if (existing) {
+            await (supabase as any)
+              .from('categorization_history')
+              .update({
+                frequency: existing.frequency + 1,
+                last_used: new Date().toISOString(),
+              })
+              .eq('id', existing.id);
+          } else {
+            await (supabase as any)
+              .from('categorization_history')
+              .insert({
+                entity_id: h.entity_id,
+                merchant: h.merchant,
+                gl_code: h.gl_code,
+                gl_name: h.gl_name,
+                frequency: 1,
+                last_used: new Date().toISOString(),
+              });
+          }
+        }
+      }
+
     }
 
     // Log to audit

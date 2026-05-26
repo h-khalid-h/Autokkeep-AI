@@ -515,3 +515,11 @@ CREATE CONSTRAINT TRIGGER trg_validate_journal_balance
 -- Index for categorization_history
 CREATE INDEX idx_categorization_history_entity_id ON categorization_history(entity_id);
 CREATE INDEX idx_categorization_history_merchant ON categorization_history(entity_id, merchant);
+
+-- ---------------------------------------------------------------------------
+-- MIGRATIONS (run in order after initial schema)
+-- ---------------------------------------------------------------------------
+-- See src/lib/supabase/migrations/ for:
+--   001_rls_policies.sql     — Row-Level Security for all tables
+--   002_period_locking.sql   — Accounting period locking + mutation prevention
+--   003_escrow_suspense.sql  — Add escrow_suspense transaction status

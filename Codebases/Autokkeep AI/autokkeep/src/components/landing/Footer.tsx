@@ -22,6 +22,7 @@ export default function Footer() {
               <a href="/#architecture" className="footer-link">Architecture</a>
               <a href="/#pricing" className="footer-link">Pricing</a>
               <Link href="/dashboard" className="footer-link">Live Dashboard Demo</Link>
+              <Link href="/demo/shadow-audit" className="footer-link">Shadow Audit Demo</Link>
               <a href="/#cta" className="footer-link">Request Access</a>
             </div>
           </div>
@@ -30,6 +31,7 @@ export default function Footer() {
             <div className="footer-col-title">Company</div>
             <div className="footer-links">
               <Link href="/about" className="footer-link">About</Link>
+              <Link href="/partners" className="footer-link">Partners</Link>
               <Link href="/resources" className="footer-link">Resources</Link>
               <Link href="/contact" className="footer-link">Contact</Link>
             </div>
