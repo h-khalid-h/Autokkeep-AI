@@ -4,14 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import UserMenu from './UserMenu';
+import NotificationBell from './NotificationBell';
 
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder';
+    _supabase = createBrowserClient(url, key);
   }
   return _supabase;
 }
@@ -182,6 +182,9 @@ const GlobalDashboardHeader: React.FC = () => {
         <Link href="/transactions" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
           📋 History
         </Link>
+        <Link href="/chart-of-accounts" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+          📒 GL Codes
+        </Link>
         <Link href="/settings" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
           ⚙️ Settings
         </Link>
@@ -191,6 +194,7 @@ const GlobalDashboardHeader: React.FC = () => {
         >
           {connectionStatus}
         </span>
+        <NotificationBell />
         <UserMenu initials={userInitials} />
       </nav>
     </header>

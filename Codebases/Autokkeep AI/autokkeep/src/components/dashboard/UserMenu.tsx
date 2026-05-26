@@ -6,10 +6,9 @@ import { createBrowserClient } from '@supabase/ssr';
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder';
+    _supabase = createBrowserClient(url, key);
   }
   return _supabase;
 }
@@ -144,6 +143,25 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               ⚙️ Settings
+            </a>
+            <a
+              href="/account"
+              role="menuitem"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                fontSize: '13px',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              👤 Account
             </a>
             <a
               href="/analytics"
