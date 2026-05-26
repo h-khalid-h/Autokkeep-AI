@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authLimiter } from '@/lib/rate-limit';
 
 // POST /api/contact — Store contact form submission
 export async function POST(request: NextRequest) {
   try {
+    const limit = authLimiter(request);
+    if (limit && !limit.allowed) {
+      return NextResponse.json({ error: 'Too many submissions. Please wait.' }, { status: 429 });
+    }
+
     const body = await request.json();
     const { name, email, company, type, entityCount, message } = body;
 

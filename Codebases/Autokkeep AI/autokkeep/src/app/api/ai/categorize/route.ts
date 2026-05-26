@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
+import { aiLimiter } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const limit = aiLimiter(request, user.id);
+    if (limit && !limit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 });
     }
 
     const body: CategorizeRequestBody = await request.json();
