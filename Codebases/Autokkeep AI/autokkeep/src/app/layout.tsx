@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import CookieConsent from "@/components/CookieConsent";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -35,12 +36,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Autokkeep",
+    url: "https://autokkeep.com",
+    images: [
+      {
+        url: "https://autokkeep.com/images/hero-dashboard.png",
+        width: 1200,
+        height: 630,
+        alt: "Autokkeep — Autonomous Bookkeeping Dashboard",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
     description:
       "The end of the monthly close. AI-native bookkeeping for modern businesses.",
+    images: ["https://autokkeep.com/images/hero-dashboard.png"],
   },
   robots: {
     index: true,
@@ -55,7 +66,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+      <body>{children}<CookieConsent /></body>
     </html>
   );
 }

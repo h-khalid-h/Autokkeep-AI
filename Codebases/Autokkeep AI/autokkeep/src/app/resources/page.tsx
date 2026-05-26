@@ -56,6 +56,14 @@ const articles = [
     readTime: '6 min read',
     featured: false,
   },
+  {
+    date: 'May 2026',
+    category: 'CPA Practice',
+    title: 'Value-Based Billing for AI-Augmented Accounting: Moving Beyond the Hourly Model',
+    excerpt: 'When AI handles 80% of bookkeeping volume, hourly billing becomes unsustainable. Here\'s the framework for transitioning to value-based pricing that both firms and clients prefer.',
+    readTime: '6 min read',
+    featured: false,
+  },
 ];
 
 export default function ResourcesPage() {

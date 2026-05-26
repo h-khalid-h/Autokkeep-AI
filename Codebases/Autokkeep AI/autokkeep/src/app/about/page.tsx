@@ -4,7 +4,7 @@ import Footer from '@/components/landing/Footer';
 
 export const metadata: Metadata = {
   title: 'About — Autokkeep',
-  description: 'Learn about Autokkeep, the AI-native bookkeeping engine that eliminates manual data entry for modern businesses.',
+  description: 'Meet the team behind Autokkeep. We\'re building the future of autonomous bookkeeping — eliminating manual data entry with dual-engine AI technology.',
 };
 
 const timeline = [

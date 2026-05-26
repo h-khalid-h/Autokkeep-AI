@@ -78,7 +78,28 @@ export default function PartnersPage() {
 
   /* ── form state ── */
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const handleSubmit = (e: FormEvent) => { e.preventDefault(); setFormSubmitted(true); };
+  const [email, setEmail] = useState('');
+  const [firmName, setFirmName] = useState('');
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: firmName,
+          email: email,
+          subject: 'Partner Program Inquiry',
+          message: `CPA firm partner application from ${firmName}`,
+        }),
+      });
+      if (response.ok) {
+        setFormSubmitted(true);
+      }
+    } catch (err) {
+      console.error('Partner form submission failed:', err);
+    }
+  };
 
   /* ────────── inline‑style tokens (supplement CSS vars) ────────── */
   const s = {
@@ -537,6 +558,8 @@ export default function PartnersPage() {
                     type="email"
                     required
                     placeholder="Work email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '14px 18px',
@@ -557,6 +580,8 @@ export default function PartnersPage() {
                     type="text"
                     required
                     placeholder="Firm name"
+                    value={firmName}
+                    onChange={e => setFirmName(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '14px 18px',

@@ -36,13 +36,46 @@ export default function AccountPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Preferences state
-  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
-  const [notifPrefs, setNotifPrefs] = useState({
+  // Preferences state — persisted to localStorage
+  const [theme, setThemeRaw] = useState<'dark' | 'light' | 'system'>('dark');
+  const [notifPrefs, setNotifPrefsRaw] = useState({
     email: true,
     slack: false,
     sms: false,
   });
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem('autokkeep-theme');
+      if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system') {
+        setThemeRaw(savedTheme);
+      }
+      const savedNotifs = localStorage.getItem('autokkeep-notif-prefs');
+      if (savedNotifs) {
+        setNotifPrefsRaw(JSON.parse(savedNotifs));
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  // Wrap setters to persist
+  const setTheme = useCallback((t: 'dark' | 'light' | 'system') => {
+    setThemeRaw(t);
+    try { localStorage.setItem('autokkeep-theme', t); } catch {}
+  }, []);
+
+  const setNotifPrefs: React.Dispatch<React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>> = useCallback(
+    (action: React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>) => {
+      setNotifPrefsRaw((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action;
+        try { localStorage.setItem('autokkeep-notif-prefs', JSON.stringify(next)); } catch {}
+        return next;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     async function loadUser() {
@@ -95,8 +128,17 @@ export default function AccountPage() {
     if (deleteConfirmText !== 'DELETE') return;
     setDeleting(true);
     try {
-      // In a real app, this would call a server endpoint to delete the account
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
       const supabase = getSupabase();
       await supabase.auth.signOut();
       window.location.href = '/';

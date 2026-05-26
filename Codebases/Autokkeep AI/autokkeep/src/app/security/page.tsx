@@ -4,7 +4,7 @@ import Footer from '@/components/landing/Footer';
 
 export const metadata: Metadata = {
   title: 'Security — Autokkeep',
-  description: 'How Autokkeep protects your financial data with bank-grade encryption, row-level security, immutable audit trails, and SOC 2 Type II readiness.',
+  description: 'Bank-grade security for your financial data. AES-256 encryption, TLS 1.3, Row-Level Security, immutable audit trails, and SOC 2 Type II readiness.',
 };
 
 const securityLayers = [
@@ -182,6 +182,121 @@ export default function SecurityPage() {
                     }}>📋</div>
                     <div className="arch-node-label">Audit Trail (RLS)</div>
                     <div className="arch-node-sublabel">Immutable, hash-chained</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* AI Safety */}
+            <section className="section-sm">
+              <div className="section-header">
+                <h2 className="section-title">AI <span className="text-gradient">Safety</span></h2>
+                <p className="section-subtitle">
+                  Our AI is designed with guardrails that prioritize accuracy and accountability over speed.
+                </p>
+              </div>
+
+              <div className="grid-2" style={{ gap: '24px' }}>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>🚫</div>
+                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>No Training on Your Data</h3>
+                  <p className="text-body">No financial data is used to train our AI models. Strict Data Processing Agreements with all AI providers ensure your data is processed in real-time only.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>📊</div>
+                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Confidence-Scored Categorizations</h3>
+                  <p className="text-body">All AI categorizations are confidence-scored — transactions below 95% are routed to human review. No blind automation touches your books.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⚙️</div>
+                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Deterministic Filter First</h3>
+                  <p className="text-body">Deterministic filter handles 60%+ of transactions without touching AI at all — rule-based, predictable, and zero-cost per transaction.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>✅</div>
+                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Double-Entry Validation</h3>
+                  <p className="text-body">Double-entry validation trigger ensures ledger integrity at the database level. Every debit must have a matching credit — enforced by PostgreSQL, not application code.</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Compliance */}
+            <section className="section-sm">
+              <div className="section-header">
+                <h2 className="section-title">Compliance <span className="text-gradient">Standards</span></h2>
+                <p className="section-subtitle">
+                  Built for regulatory readiness from day one — not bolted on as an afterthought.
+                </p>
+              </div>
+
+              <div className="grid-2" style={{ gap: '24px' }}>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '2rem' }}>🏛️</span>
+                    <h3 className="text-h4" style={{ margin: 0 }}>SOC 2 Type II Readiness</h3>
+                  </div>
+                  <p className="text-body">Security controls, policies, and monitoring built to meet SOC 2 Type II requirements. Formal audit engagement planned for 2026.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '2rem' }}>🇪🇺</span>
+                    <h3 className="text-h4" style={{ margin: 0 }}>GDPR Compliance</h3>
+                  </div>
+                  <p className="text-body">Full GDPR compliance including data deletion on request, consent management, and data portability. EU residents can exercise all data rights.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '2rem' }}>💳</span>
+                    <h3 className="text-h4" style={{ margin: 0 }}>PCI DSS via Plaid/Stripe</h3>
+                  </div>
+                  <p className="text-body">PCI DSS compliance handled entirely by Plaid and Stripe. No card numbers are ever stored on Autokkeep infrastructure.</p>
+                </div>
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '2rem' }}>🗑️</span>
+                    <h3 className="text-h4" style={{ margin: 0 }}>Right to Be Forgotten</h3>
+                  </div>
+                  <p className="text-body">Real account deletion — not just deactivation. When you delete your account, your data is permanently removed from all systems within 30 days.</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Infrastructure */}
+            <section className="section-sm">
+              <div className="section-header">
+                <h2 className="section-title">Infrastructure <span className="text-gradient">Security</span></h2>
+                <p className="section-subtitle">
+                  Defense in depth — from the database layer to the application layer.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '700px', margin: '0 auto' }}>
+                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                  <div>
+                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>PostgreSQL with Row-Level Security</h3>
+                    <p className="text-body">16 tables, every query automatically filtered by tenant. No client can ever access another client&apos;s data — enforced at the database level.</p>
+                  </div>
+                </div>
+                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                  <div>
+                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Period Locking</h3>
+                    <p className="text-body">Locked accounting periods cannot be modified — preventing accidental or malicious changes to finalized financial records.</p>
+                  </div>
+                </div>
+                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                  <div>
+                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Immutable Audit Trail</h3>
+                    <p className="text-body">Every action logged with actor, timestamp, and details. Hash-chained entries cannot be modified retroactively.</p>
+                  </div>
+                </div>
+                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                  <div>
+                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Encrypted Token Storage</h3>
+                    <p className="text-body">Supabase Vault for third-party API credentials. Encryption keys managed separately from application code.</p>
                   </div>
                 </div>
               </div>

@@ -145,11 +145,11 @@ export default function ChartOfAccountsPage() {
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
       const data = await res.json();
       const mapped = (data.accounts || []).map(mapApiAccount);
-      setAccounts(mapped.length > 0 ? mapped : mockAccounts);
+      setAccounts(mapped);
     } catch (err) {
       console.error('[ChartOfAccounts] Fetch error:', err);
-      setAccounts(mockAccounts);
-      setError('Using demo data — could not load from server.');
+      setAccounts([]);
+      setError('Could not load accounts from server. Please try again.');
     } finally {
       setIsLoading(false);
     }
