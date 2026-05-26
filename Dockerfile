@@ -7,8 +7,9 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files from the nested app directory
-COPY "Codebases/Autokkeep AI/autokkeep/package.json" "Codebases/Autokkeep AI/autokkeep/package-lock.json"* ./
+# Copy package files from the nested app directory (JSON form for spaces)
+COPY ["Codebases/Autokkeep AI/autokkeep/package.json", "./"]
+COPY ["Codebases/Autokkeep AI/autokkeep/package-lock.json", "./"]
 RUN npm ci --omit=dev
 
 # ---- Stage 2: Build ----
@@ -16,7 +17,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY "Codebases/Autokkeep AI/autokkeep/" .
+COPY ["Codebases/Autokkeep AI/autokkeep/", "./"]
 
 # Build-time environment variables
 ARG NEXT_PUBLIC_SUPABASE_URL=""
