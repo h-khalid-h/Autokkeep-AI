@@ -39,9 +39,9 @@ export const metadata: Metadata = {
     url: "https://autokkeep.com",
     images: [
       {
-        url: "https://autokkeep.com/images/hero-dashboard.png",
-        width: 1200,
-        height: 630,
+        url: "https://autokkeep.com/images/og-image.png",
+        width: 1024,
+        height: 1024,
         alt: "Autokkeep — Autonomous Bookkeeping Dashboard",
       },
     ],
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
     description:
       "The end of the monthly close. AI-native bookkeeping for modern businesses.",
-    images: ["https://autokkeep.com/images/hero-dashboard.png"],
+    images: ["https://autokkeep.com/images/og-image.png"],
   },
   robots: {
     index: true,
