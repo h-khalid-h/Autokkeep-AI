@@ -6,6 +6,7 @@ import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader'
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
 import ActionsConsole from '@/components/dashboard/ActionsConsole';
+import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
 
 // ─── Helpers: map API response → Transaction interface ──────────────────────
 
@@ -66,6 +67,7 @@ export default function DashboardPage() {
   const [exitingId, setExitingId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [reasoningExpanded, setReasoningExpanded] = React.useState(false);
 
   // Fetch transactions from API on mount
   React.useEffect(() => {
@@ -198,6 +200,40 @@ export default function DashboardPage() {
     []
   );
 
+  // ─── Keyboard shortcut handler ─────────────────────────────────────────────
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const action = (e as CustomEvent).detail?.action;
+      switch (action) {
+        case 'accept':
+          if (selectedTransaction) handleAccept(selectedTransaction);
+          break;
+        case 'navigate-up':
+          setTransactions((prev) => {
+            const idx = prev.findIndex((tx) => tx.id === selectedTransaction?.id);
+            if (idx > 0) setSelectedTransaction(prev[idx - 1]);
+            return prev;
+          });
+          break;
+        case 'navigate-down':
+          setTransactions((prev) => {
+            const idx = prev.findIndex((tx) => tx.id === selectedTransaction?.id);
+            if (idx < prev.length - 1) setSelectedTransaction(prev[idx + 1]);
+            return prev;
+          });
+          break;
+        case 'toggle-reasoning':
+          setReasoningExpanded((prev) => !prev);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('autokkeep-shortcut', handler);
+    return () => window.removeEventListener('autokkeep-shortcut', handler);
+  }, [selectedTransaction, handleAccept]);
+
   // ─── Loading state ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -300,6 +336,8 @@ export default function DashboardPage() {
           />
         </main>
       </div>
+
+      <KeyboardShortcuts />
     </div>
   );
 }

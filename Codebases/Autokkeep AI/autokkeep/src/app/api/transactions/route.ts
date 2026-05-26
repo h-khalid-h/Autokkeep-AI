@@ -77,13 +77,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query with filters
+    const sort = searchParams.get('sort') || 'date_desc';
+    const [sortField, sortDir] = sort.split('_');
+    const sortColumn = sortField === 'amount' ? 'amount'
+      : sortField === 'confidence' ? 'confidence'
+      : 'date';
+    const ascending = sortDir === 'asc';
+
     let query = (supabase as any)
       .from('transactions')
       .select('*', { count: 'exact' })
       .in('entity_id', entityIds)
       .neq('status', 'removed')
       .neq('status', 'deleted')
-      .order('date', { ascending: false })
+      .order(sortColumn, { ascending })
       .range(offset, offset + limit - 1);
 
     if (status) {

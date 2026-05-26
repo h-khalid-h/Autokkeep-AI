@@ -179,6 +179,9 @@ const GlobalDashboardHeader: React.FC = () => {
         <Link href="/analytics" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
           📊 Analytics
         </Link>
+        <Link href="/transactions" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+          📋 History
+        </Link>
         <Link href="/settings" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
           ⚙️ Settings
         </Link>
