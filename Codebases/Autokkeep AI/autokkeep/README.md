@@ -69,7 +69,7 @@ Bank (Plaid) → Sync → AI Categorize → Auto-Approve / HITL Review → Journ
   - Transaction processing, bank connections, ledger sync, channel dispatch
 
 ### 🔐 Security
-- Supabase Row-Level Security on all 15 tables
+- Supabase Row-Level Security on all 16 tables
 - Org-based access control (owner/admin/accountant/viewer)
 - Auth middleware protecting all routes
 - Immutable audit log
@@ -106,10 +106,12 @@ Edit `.env.local` with your API keys. See [`.env.example`](.env.example) for the
 
 ### 3. Set Up Database
 
-Run the SQL migrations in your Supabase SQL Editor:
+Run the SQL migrations in your Supabase SQL Editor (in order):
 
-1. Execute `src/lib/supabase/schema.sql` — creates 15 tables, enums, triggers, indexes
-2. Execute `src/lib/supabase/rls.sql` — enables Row-Level Security
+1. Execute `src/lib/supabase/schema.sql` — creates 16 tables, enums, triggers, indexes
+2. Execute `src/lib/supabase/migrations/001_rls_policies.sql` — Row-Level Security for all 16 tables
+3. Execute `src/lib/supabase/migrations/002_period_locking.sql` — accounting period locking
+4. Execute `src/lib/supabase/migrations/003_escrow_suspense.sql` — escrow_suspense transaction status
 
 ### 4. Run Development Server
 
@@ -177,7 +179,15 @@ All environment variables are documented in [`.env.example`](.env.example), orga
 | `/api/ledger/xero/sync` | GET/POST | Xero sync ⛔ |
 | `/api/billing/checkout` | POST | Stripe checkout session |
 | `/api/billing/portal` | POST | Customer portal |
+| `/api/transactions/[id]/receipt` | POST | Receipt image upload |
+| `/api/transactions/export` | GET | CSV export |
+| `/api/account/delete` | POST | Account deletion (GDPR) |
+| `/api/audit` | GET | Audit log |
 | `/api/contact` | POST | Contact form |
+| `/api/dashboard/stats` | GET | Dashboard statistics |
+| `/api/chart-of-accounts` | GET/POST | Chart of accounts CRUD |
+| `/api/cron/plaid-sync` | GET | Automated Plaid sync (cron) |
+| `/api/cron/suspense-timeout` | GET | 48h suspense timeout (cron) |
 | `/api/webhooks/plaid` | POST | Plaid webhooks |
 | `/api/webhooks/stripe` | POST | Stripe webhooks |
 | `/api/webhooks/twilio` | POST | Twilio callbacks |
@@ -188,7 +198,7 @@ All environment variables are documented in [`.env.example`](.env.example), orga
 
 ## Database Schema
 
-15 tables with full referential integrity:
+16 tables with full referential integrity:
 
 | Table | Description |
 |-------|-------------|
@@ -207,6 +217,8 @@ All environment variables are documented in [`.env.example`](.env.example), orga
 | `ledger_connections` | QBO/Xero OAuth tokens |
 | `subscriptions` | Stripe billing |
 | `team_members` | Role-based access |
+| `categorization_history` | Merchant → GL code learning data |
+| `accounting_periods` | Period locking for immutability |
 
 Full schema: [`src/lib/supabase/schema.sql`](src/lib/supabase/schema.sql)
 
@@ -218,7 +230,7 @@ Full schema: [`src/lib/supabase/schema.sql`](src/lib/supabase/schema.sql)
 autokkeep/
 ├── src/
 │   ├── app/
-│   │   ├── api/                    # 25 API routes
+│   │   ├── api/                    # 37 API routes
 │   │   │   ├── ai/                 # AI categorization
 │   │   │   ├── billing/            # Stripe billing
 │   │   │   ├── channels/           # Slack/Teams/SMS/WhatsApp
