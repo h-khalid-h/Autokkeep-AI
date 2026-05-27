@@ -123,15 +123,19 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('entity_id', entityId);
 
-    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
-      id: r.id,
-      vendor_pattern: r.match_value,
-      mcc_code: r.mcc_code || undefined,
-      gl_code: r.gl_code,
-      gl_name: '',
-      match_type: r.rule_type || 'contains',
-      priority: r.priority || 0,
-    }));
+    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+      // Look up gl_name from chart of accounts for this rule's GL code
+      const coaEntry = chartOfAccounts.find((c: { code: string; name: string }) => c.code === r.gl_code);
+      return {
+        id: r.id,
+        vendor_pattern: r.match_value,
+        mcc_code: r.mcc_code || undefined,
+        gl_code: r.gl_code,
+        gl_name: coaEntry?.name || '',
+        match_type: r.rule_type || 'contains',
+        priority: r.priority || 0,
+      };
+    });
 
     // Fetch historical patterns
     const { data: historyData } = await (supabase as any)

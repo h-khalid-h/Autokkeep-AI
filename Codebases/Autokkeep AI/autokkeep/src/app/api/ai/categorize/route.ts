@@ -64,9 +64,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!transaction.amount || !transaction.merchant) {
+    if (transaction.amount === undefined || transaction.amount === null || !transaction.merchant) {
       return NextResponse.json(
         { error: 'Transaction with amount and merchant_name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!transaction.date) {
+      return NextResponse.json(
+        { error: 'Transaction date is required' },
         { status: 400 }
       );
     }
@@ -115,15 +122,19 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('entity_id', entityId);
 
-    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
-      id: r.id,
-      vendor_pattern: r.match_value,
-      mcc_code: r.mcc_code || undefined,
-      gl_code: r.gl_code,
-      gl_name: '',
-      match_type: r.rule_type || 'contains',
-      priority: r.priority || 0,
-    }));
+    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+      // Look up gl_name from chart of accounts for this rule's GL code
+      const coaEntry = chartOfAccounts.find(c => c.code === r.gl_code);
+      return {
+        id: r.id,
+        vendor_pattern: r.match_value,
+        mcc_code: r.mcc_code || undefined,
+        gl_code: r.gl_code,
+        gl_name: coaEntry?.name || '',
+        match_type: r.rule_type || 'contains',
+        priority: r.priority || 0,
+      };
+    });
 
     // Fetch historical patterns
     const { data: historyData } = await (supabase as any)

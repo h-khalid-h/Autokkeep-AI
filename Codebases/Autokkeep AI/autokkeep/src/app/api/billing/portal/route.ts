@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: membership } = await (supabase as any)
       .from('team_members')
-      .select('id, org_id')
+      .select('id, org_id, role')
       .eq('user_id', user.id)
       .single();
     if (!membership) {
@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
     }
     if (membership.org_id !== orgId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+    if (!['owner', 'admin'].includes(membership.role)) {
+      return NextResponse.json({ error: 'Only owners and admins can manage billing' }, { status: 403 });
     }
 
     const { data: sub } = await (supabase as any)

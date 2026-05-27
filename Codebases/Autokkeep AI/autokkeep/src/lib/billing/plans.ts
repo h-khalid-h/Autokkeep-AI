@@ -58,10 +58,10 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     receiptChaseEnabled: true,
   },
   cpa_enterprise: {
-    maxEntities: Infinity,
-    maxTransactionsPerMonth: Infinity,
-    maxBankConnections: Infinity,
-    maxTeamMembers: Infinity,
+    maxEntities: 999999,
+    maxTransactionsPerMonth: 999999,
+    maxBankConnections: 999999,
+    maxTeamMembers: 999999,
     aiCategorizationEnabled: true,
     ledgerSyncEnabled: true,
     channelDispatchEnabled: true,
@@ -134,13 +134,25 @@ export async function checkPlanLimits(
       firstOfMonth.setDate(1);
       firstOfMonth.setHours(0, 0, 0, 0);
 
+      // Step 1: Get entity IDs for this org
+      const { data: orgEntities } = await supabase
+        .from('entities')
+        .select('id')
+        .eq('org_id', orgId);
+      
+      const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+      
+      if (entityIds.length === 0) {
+        // No entities yet — allow the operation
+        break;
+      }
+
+      // Step 2: Count transactions this month across all org entities
       const { count } = await supabase
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', firstOfMonth.toISOString())
-        .in('entity_id', 
-          supabase.from('entities').select('id').eq('org_id', orgId)
-        );
+        .in('entity_id', entityIds);
 
       if ((count || 0) >= limits.maxTransactionsPerMonth) {
         return {
@@ -155,13 +167,24 @@ export async function checkPlanLimits(
     }
 
     case 'connect_bank': {
+      // Step 1: Get entity IDs for this org
+      const { data: bankEntities } = await supabase
+        .from('entities')
+        .select('id')
+        .eq('org_id', orgId);
+      
+      const bankEntityIds = (bankEntities || []).map((e: { id: string }) => e.id);
+      
+      if (bankEntityIds.length === 0) {
+        break;
+      }
+
+      // Step 2: Count active bank connections across all org entities
       const { count } = await supabase
         .from('bank_connections')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'active')
-        .in('entity_id',
-          supabase.from('entities').select('id').eq('org_id', orgId)
-        );
+        .in('entity_id', bankEntityIds);
 
       if ((count || 0) >= limits.maxBankConnections) {
         return {

@@ -76,8 +76,9 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (journalEntry) {
-          // Balanced double-entry: debit Suspense, credit the AI-suggested account (or Suspense itself)
-          const targetGl = txn.category_ai || SUSPENSE_GL_CODE;
+          // Balanced double-entry: debit Suspense, credit the bank/cash clearing account
+          // We always credit '1010' (Cash & Bank) since the money has already left the bank.
+          // The suspense account holds the debit until a CPA classifies it.
           const absAmount = Math.abs(txn.amount);
 
           await (supabase as any)
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
               },
               {
                 journal_entry_id: journalEntry.id,
-                gl_code: targetGl,
+                gl_code: '1010', // Cash & Bank — always use as contra
                 debit: 0,
                 credit: absAmount,
                 description: `Suspense contra: pending classification`,

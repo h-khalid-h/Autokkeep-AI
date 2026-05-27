@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate plan and orgId
-    const validPlans = ['smb_basic', 'smb_growth', 'smb_premium', 'cpa_foundation', 'cpa_scale', 'cpa_enterprise'];
+    const validPlans = ['starter', 'smb_growth', 'cpa_professional', 'cpa_enterprise'];
     if (!plan || !validPlans.includes(plan)) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
@@ -30,11 +30,10 @@ export async function POST(request: NextRequest) {
 
     // Map plan to Stripe price ID
     const priceMap: Record<string, string | undefined> = {
-      cpa_foundation: process.env.STRIPE_PRICE_ID_CPA_FOUNDATION,
-      cpa_scale: process.env.STRIPE_PRICE_ID_CPA_SCALE,
-      smb_basic: process.env.STRIPE_PRICE_ID_SMB_BASIC,
+      starter: process.env.STRIPE_PRICE_ID_STARTER,
       smb_growth: process.env.STRIPE_PRICE_ID_SMB_GROWTH,
-      smb_premium: process.env.STRIPE_PRICE_ID_SMB_PREMIUM,
+      cpa_professional: process.env.STRIPE_PRICE_ID_CPA_PROFESSIONAL,
+      cpa_enterprise: process.env.STRIPE_PRICE_ID_CPA_ENTERPRISE,
     };
 
     const priceId = priceMap[plan];
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: membership } = await (supabase as any)
       .from('team_members')
-      .select('id, org_id')
+      .select('id, org_id, role')
       .eq('user_id', user.id)
       .single();
     if (!membership) {
@@ -60,6 +59,9 @@ export async function POST(request: NextRequest) {
     }
     if (membership.org_id !== orgId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+    if (!['owner', 'admin'].includes(membership.role)) {
+      return NextResponse.json({ error: 'Only owners and admins can manage billing' }, { status: 403 });
     }
 
     // Check if org already has a Stripe customer

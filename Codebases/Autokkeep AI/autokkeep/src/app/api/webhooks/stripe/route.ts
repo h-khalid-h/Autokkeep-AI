@@ -9,6 +9,14 @@ function getStripe() {
   });
 }
 
+// Reverse-map Stripe price IDs back to canonical plan names
+const PRICE_TO_PLAN: Record<string, string> = {
+  [process.env.STRIPE_PRICE_ID_STARTER || '']: 'starter',
+  [process.env.STRIPE_PRICE_ID_SMB_GROWTH || '']: 'smb_growth',
+  [process.env.STRIPE_PRICE_ID_CPA_PROFESSIONAL || '']: 'cpa_professional',
+  [process.env.STRIPE_PRICE_ID_CPA_ENTERPRISE || '']: 'cpa_enterprise',
+};
+
 // POST /api/webhooks/stripe — Handle Stripe webhook events
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +60,7 @@ export async function POST(request: NextRequest) {
               org_id: orgId,
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
-              plan: plan as 'cpa_foundation' | 'cpa_scale' | 'cpa_enterprise' | 'smb_basic' | 'smb_growth' | 'smb_premium',
+              plan: plan as 'starter' | 'smb_growth' | 'cpa_professional' | 'cpa_enterprise',
               status: 'active',
             },
             { onConflict: 'stripe_subscription_id' }
@@ -72,12 +80,20 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Record<string, any>;
 
+        const updateData: Record<string, any> = {
+          status: subscription.status === 'active' ? 'active' : subscription.status,
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        };
+
+        // Extract new price ID and reverse-map to plan name
+        const newPriceId = subscription.items?.data?.[0]?.price?.id;
+        if (newPriceId && PRICE_TO_PLAN[newPriceId]) {
+          updateData.plan = PRICE_TO_PLAN[newPriceId];
+        }
+
         await (supabase as any)
           .from('subscriptions')
-          .update({
-            status: subscription.status === 'active' ? 'active' : subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          })
+          .update(updateData)
           .eq('stripe_subscription_id', subscription.id);
         break;
       }
@@ -139,6 +155,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Stripe webhook error:', error);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 200 });
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 }

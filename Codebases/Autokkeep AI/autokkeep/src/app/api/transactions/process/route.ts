@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
             summary.sync.transactions_added += syncResult.added.length;
           }
 
-          // Handle modified transactions
+          // Handle modified transactions — clear AI categorization for re-processing
           for (const t of syncResult.modified) {
             await (supabase as any)
               .from('transactions')
@@ -152,6 +152,11 @@ export async function POST(request: NextRequest) {
                 date: t.date,
                 merchant_name: t.merchant_name || t.name,
                 merchant_raw: t.name,
+                // Reset AI categorization so the transaction gets re-categorized
+                category_ai: null,
+                confidence: 0,
+                ai_reasoning: null,
+                status: 'pending',
                 updated_at: new Date().toISOString(),
               })
               .eq('plaid_transaction_id', t.transaction_id)
@@ -219,15 +224,19 @@ export async function POST(request: NextRequest) {
         .select('*')
         .eq('entity_id', entityId);
 
-      const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
-        id: r.id,
-        vendor_pattern: r.match_value,
-        mcc_code: r.mcc_code || undefined,
-        gl_code: r.gl_code,
-        gl_name: '',
-        match_type: r.rule_type || 'contains',
-        priority: r.priority || 0,
-      }));
+      const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+        // Look up gl_name from chart of accounts for this rule's GL code
+        const coaEntry = chartOfAccounts.find(c => c.code === r.gl_code);
+        return {
+          id: r.id,
+          vendor_pattern: r.match_value,
+          mcc_code: r.mcc_code || undefined,
+          gl_code: r.gl_code,
+          gl_name: coaEntry?.name || '',
+          match_type: r.rule_type || 'contains',
+          priority: r.priority || 0,
+        };
+      });
 
       // Fetch historical patterns
       const { data: historyData } = await (supabase as any)
@@ -308,12 +317,10 @@ export async function POST(request: NextRequest) {
         gl_name: string;
       }> = [];
 
-      for (const [, result] of results) {
+      for (const [txId, result] of results) {
         if (result.confidence >= 95 && result.glCode) {
           const txn = pendingTransactions.find(
-            (t: Record<string, any>) =>
-              results.get(t.id)?.glCode === result.glCode &&
-              results.get(t.id)?.confidence === result.confidence
+            (t: Record<string, any>) => t.id === txId
           );
           const merchantName = txn?.merchant_name || txn?.merchant_raw;
           if (merchantName) {

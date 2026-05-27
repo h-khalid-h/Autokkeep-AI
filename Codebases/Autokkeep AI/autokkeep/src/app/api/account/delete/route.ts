@@ -1,5 +1,6 @@
 // POST /api/account/delete — Delete user account and all associated data
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -49,6 +50,20 @@ export async function POST(request: NextRequest) {
                   .from('documents')
                   .remove([`receipts/${entity.id}`]);
               }
+            }
+
+            // Cancel Stripe subscription before deleting org
+            const { data: orgSub } = await (admin as any)
+              .from('subscriptions')
+              .select('stripe_subscription_id')
+              .eq('org_id', membership.org_id)
+              .single();
+
+            if (orgSub?.stripe_subscription_id) {
+              const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+                apiVersion: '2026-04-22.dahlia',
+              });
+              await stripe.subscriptions.cancel(orgSub.stripe_subscription_id);
             }
 
             // Delete org — all child tables cascade
