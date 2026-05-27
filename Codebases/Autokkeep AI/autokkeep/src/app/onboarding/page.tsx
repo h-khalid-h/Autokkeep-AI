@@ -167,18 +167,43 @@ export default function OnboardingPage() {
 
       const { link_token } = await res.json();
       setBankLinkToken(link_token);
-      // In production, this token would be passed to the Plaid Link SDK
-      // For now, show the simulated success UI
+
+      // Open Plaid Link
+      if (typeof window !== 'undefined' && (window as any).Plaid) {
+        const handler = (window as any).Plaid.create({
+          token: link_token,
+          onSuccess: async (publicToken: string, metadata: any) => {
+            try {
+              await fetch('/api/plaid/exchange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  publicToken,
+                  entityId,
+                  institutionName: metadata?.institution?.name || 'Unknown',
+                }),
+              });
+              setBankConnected(true);
+              goNext();
+            } catch (exchangeErr) {
+              console.error('[Onboarding] Plaid exchange error:', exchangeErr);
+              setError('Connected to bank but failed to save. Please try again from Settings.');
+            }
+          },
+          onExit: () => {
+            setLoading(false);
+          },
+        });
+        handler.open();
+      } else {
+        setError('Plaid Link SDK not loaded. Please refresh the page and try again.');
+        setLoading(false);
+      }
     } catch (err) {
       console.error('[Onboarding] Plaid link error:', err);
       setError('Failed to connect to Plaid. You can skip and connect later from the dashboard.');
-    } finally {
       setLoading(false);
     }
-  };
-
-  const handleSimulateBankSuccess = () => {
-    setBankConnected(true);
   };
 
   // ── Step 3: Ledger OAuth redirect ──────────────────────────────────────
@@ -444,17 +469,11 @@ export default function OnboardingPage() {
                   <>
                     <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔗</div>
                     <p className="text-body" style={{ marginBottom: '16px' }}>
-                      Bank connection initiated. In production, the Plaid Link window would open automatically.
+                      Plaid Link is opening…
                     </p>
-                    <p className="text-caption" style={{ marginBottom: '16px' }}>
-                      Link token: <code style={{ fontSize: '11px', opacity: 0.6 }}>{bankLinkToken.slice(0, 20)}…</code>
+                    <p className="text-caption">
+                      If the window didn&apos;t open, please check your pop-up blocker.
                     </p>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleSimulateBankSuccess}
-                    >
-                      ✅ Simulate Connection Success
-                    </button>
                   </>
                 ) : (
                   <>

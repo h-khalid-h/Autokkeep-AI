@@ -2,17 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient as getSupabase } from '@/lib/supabase/client';
 
-let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function getSupabase() {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder';
-    _supabase = createBrowserClient(url, key);
-  }
-  return _supabase;
-}
 
 interface UserProfile {
   email: string;

@@ -19,6 +19,7 @@ function getSupabase() {
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Account {
   id: string;
+  entity_id?: string;
   code: string;
   name: string;
   type: string;
@@ -96,6 +97,7 @@ function displayType(t: string): string {
 function mapApiAccount(row: any): Account {
   return {
     id: row.id,
+    entity_id: row.entity_id,
     code: row.code,
     name: row.name,
     type: displayType(row.type),
@@ -244,14 +246,53 @@ export default function ChartOfAccountsPage() {
     setFormError(null);
 
     if (editingAccount) {
-      // Local-only edit (update in state)
-      setAccounts(prev => prev.map(a =>
-        a.id === editingAccount.id
-          ? { ...a, code: formCode.trim(), name: formName.trim(), type: formType, description: formDescription, active: formActive }
-          : a
-      ));
-      closeModal();
-      setIsSaving(false);
+      // Persist edit via API
+      try {
+        const res = await fetch('/api/chart-of-accounts', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingAccount.id,
+            code: formCode.trim(),
+            name: formName.trim(),
+            type: formType,
+            is_active: formActive,
+          }),
+        });
+
+        if (res.status === 409) {
+          const data = await res.json();
+          setFormError(data.error || 'Duplicate code');
+          setIsSaving(false);
+          return;
+        }
+
+        if (!res.ok) {
+          const data = await res.json();
+          setFormError(data.error || 'Failed to update account');
+          setIsSaving(false);
+          return;
+        }
+
+        const data = await res.json();
+        if (data.account) {
+          setAccounts(prev => prev.map(a =>
+            a.id === editingAccount.id ? mapApiAccount(data.account) : a
+          ));
+        } else {
+          // Fallback: update locally
+          setAccounts(prev => prev.map(a =>
+            a.id === editingAccount.id
+              ? { ...a, code: formCode.trim(), name: formName.trim(), type: formType, description: formDescription, active: formActive }
+              : a
+          ));
+        }
+        closeModal();
+      } catch {
+        setFormError('Network error — could not save changes');
+      } finally {
+        setIsSaving(false);
+      }
     } else {
       // Create via API
       try {
@@ -313,21 +354,88 @@ export default function ChartOfAccountsPage() {
   };
 
   // ─── Delete ─────────────────────────────────────────────────────────────
-  const handleDelete = (id: string) => {
-    setAccounts(prev => prev.filter(a => a.id !== id));
-    setDeleteConfirmId(null);
-    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/chart-of-accounts?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to delete account');
+        setDeleteConfirmId(null);
+        return;
+      }
+
+      setAccounts(prev => prev.filter(a => a.id !== id));
+      setDeleteConfirmId(null);
+      setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    } catch {
+      setError('Network error — could not delete account');
+      setDeleteConfirmId(null);
+    }
   };
 
   // ─── Toggle active ─────────────────────────────────────────────────────
-  const toggleActive = (id: string) => {
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
+  const toggleActive = async (id: string) => {
+    const account = accounts.find(a => a.id === id);
+    if (!account) return;
+
+    const newActive = !account.active;
+
+    // Optimistically update UI
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: newActive } : a));
+
+    try {
+      const res = await fetch('/api/chart-of-accounts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_active: newActive }),
+      });
+
+      if (!res.ok) {
+        // Revert on failure
+        setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
+        const data = await res.json();
+        setError(data.error || 'Failed to update account status');
+      }
+    } catch {
+      // Revert on network error
+      setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
+      setError('Network error — could not update account status');
+    }
   };
 
   // ─── Bulk actions ───────────────────────────────────────────────────────
-  const bulkDelete = () => {
-    setAccounts(prev => prev.filter(a => !selectedIds.has(a.id)));
-    setSelectedIds(new Set());
+  const bulkDelete = async () => {
+    const idsToDelete = Array.from(selectedIds);
+    const failed: string[] = [];
+
+    await Promise.all(
+      idsToDelete.map(async (id) => {
+        try {
+          const res = await fetch(`/api/chart-of-accounts?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+          });
+          if (!res.ok) failed.push(id);
+        } catch {
+          failed.push(id);
+        }
+      })
+    );
+
+    // Remove only successfully deleted accounts from state
+    const deletedIds = new Set(idsToDelete.filter(id => !failed.includes(id)));
+    setAccounts(prev => prev.filter(a => !deletedIds.has(a.id)));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      deletedIds.forEach(id => next.delete(id));
+      return next;
+    });
+
+    if (failed.length > 0) {
+      setError(`Failed to delete ${failed.length} account(s). Please try again.`);
+    }
   };
 
   const bulkDeactivate = () => {

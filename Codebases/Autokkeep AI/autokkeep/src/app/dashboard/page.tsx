@@ -114,81 +114,103 @@ export default function DashboardPage() {
   );
 
   const handleAccept = React.useCallback(
-    (transaction: Transaction) => {
-      // Fire API call (non-blocking — animation proceeds immediately)
-      fetch(`/api/transactions/${transaction.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'approved',
-          glCode: transaction.suggestedGLCode,
-        }),
-      }).catch((err) => console.error('[Dashboard] Approve error:', err));
-
-      // Start exit animation
-      setExitingId(transaction.id);
-
-      // After animation, remove and select next
-      setTimeout(() => {
-        setTransactions((prev) => {
-          const idx = prev.findIndex((tx) => tx.id === transaction.id);
-          const next = prev.filter((tx) => tx.id !== transaction.id);
-
-          // Auto-select next transaction
-          if (next.length > 0) {
-            const nextIdx = Math.min(idx, next.length - 1);
-            setSelectedTransaction(next[nextIdx]);
-          } else {
-            setSelectedTransaction(null);
-          }
-
-          return next;
+    async (transaction: Transaction) => {
+      try {
+        // Call API first and wait for response
+        const res = await fetch(`/api/transactions/${transaction.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'approved',
+            glCode: transaction.suggestedGLCode,
+          }),
         });
-        setExitingId(null);
-      }, 300);
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || `Failed to approve transaction (${res.status})`);
+          return;
+        }
+
+        // API succeeded — start exit animation
+        setExitingId(transaction.id);
+
+        // After animation, remove and select next
+        setTimeout(() => {
+          setTransactions((prev) => {
+            const idx = prev.findIndex((tx) => tx.id === transaction.id);
+            const next = prev.filter((tx) => tx.id !== transaction.id);
+
+            // Auto-select next transaction
+            if (next.length > 0) {
+              const nextIdx = Math.min(idx, next.length - 1);
+              setSelectedTransaction(next[nextIdx]);
+            } else {
+              setSelectedTransaction(null);
+            }
+
+            return next;
+          });
+          setExitingId(null);
+        }, 300);
+      } catch (err) {
+        console.error('[Dashboard] Approve error:', err);
+        setError('Network error — could not approve transaction');
+      }
     },
     []
   );
 
   const handleChangeCategory = React.useCallback(
-    (transaction: Transaction, glCode: string, glName: string) => {
-      // Fire API call (non-blocking — animation proceeds immediately)
-      fetch(`/api/transactions/${transaction.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'approved',
-          glCode,
-          glName,
-        }),
-      }).catch((err) => console.error('[Dashboard] Category change error:', err));
-
-      // Update the transaction with new GL code then accept it
-      const updatedTransaction = {
-        ...transaction,
-        suggestedGLCode: glCode,
-        suggestedGLName: glName,
-      };
-
-      // Start exit animation
-      setExitingId(transaction.id);
-
-      setTimeout(() => {
-        setTransactions((prev) => {
-          const idx = prev.findIndex((tx) => tx.id === updatedTransaction.id);
-          const next = prev.filter((tx) => tx.id !== updatedTransaction.id);
-
-          if (next.length > 0) {
-            const nextIdx = Math.min(idx, next.length - 1);
-            setSelectedTransaction(next[nextIdx]);
-          } else {
-            setSelectedTransaction(null);
-          }
-
-          return next;
+    async (transaction: Transaction, glCode: string, glName: string) => {
+      try {
+        // Call API first and wait for response
+        const res = await fetch(`/api/transactions/${transaction.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'approved',
+            glCode,
+            glName,
+          }),
         });
-        setExitingId(null);
-      }, 300);
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || `Failed to update category (${res.status})`);
+          return;
+        }
+
+        // API succeeded — update and animate
+        const updatedTransaction = {
+          ...transaction,
+          suggestedGLCode: glCode,
+          suggestedGLName: glName,
+        };
+
+        // Start exit animation
+        setExitingId(transaction.id);
+
+        setTimeout(() => {
+          setTransactions((prev) => {
+            const idx = prev.findIndex((tx) => tx.id === updatedTransaction.id);
+            const next = prev.filter((tx) => tx.id !== updatedTransaction.id);
+
+            if (next.length > 0) {
+              const nextIdx = Math.min(idx, next.length - 1);
+              setSelectedTransaction(next[nextIdx]);
+            } else {
+              setSelectedTransaction(null);
+            }
+
+            return next;
+          });
+          setExitingId(null);
+        }, 300);
+      } catch (err) {
+        console.error('[Dashboard] Category change error:', err);
+        setError('Network error — could not update transaction category');
+      }
     },
     []
   );

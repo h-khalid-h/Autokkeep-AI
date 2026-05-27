@@ -203,3 +203,234 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// ─── PUT: Update an existing GL account ─────────────────────────────────────────
+
+interface UpdateAccountBody {
+  id: string;
+  code?: string;
+  name?: string;
+  type?: string;
+  is_active?: boolean;
+  entityId?: string;
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+
+    // Validate auth
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body: UpdateAccountBody = await request.json();
+    const { id, code, name, type, is_active, entityId } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Account id is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate org membership
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('id, org_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Get all entities for this org to validate account ownership
+    const { data: orgEntities } = await (supabase as any)
+      .from('entities')
+      .select('id')
+      .eq('org_id', membership.org_id);
+
+    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+
+    // Verify the account belongs to an entity in this org
+    const { data: existing } = await (supabase as any)
+      .from('chart_of_accounts')
+      .select('id, entity_id')
+      .eq('id', id)
+      .in('entity_id', entityIds)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Account not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    // Build update payload
+    const updates: Record<string, any> = {};
+    if (code !== undefined) updates.code = code;
+    if (name !== undefined) updates.name = name;
+    if (type !== undefined) updates.type = type.toLowerCase();
+    if (is_active !== undefined) updates.is_active = is_active;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate code if code is being changed
+    if (code !== undefined) {
+      const { data: duplicate } = await (supabase as any)
+        .from('chart_of_accounts')
+        .select('id')
+        .eq('entity_id', existing.entity_id)
+        .eq('code', code)
+        .neq('id', id)
+        .single();
+
+      if (duplicate) {
+        return NextResponse.json(
+          { error: `Account code "${code}" already exists` },
+          { status: 409 }
+        );
+      }
+    }
+
+    const { data: account, error: updateError } = await (supabase as any)
+      .from('chart_of_accounts')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[ChartOfAccounts] Update error:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update account' },
+        { status: 500 }
+      );
+    }
+
+    // Log to audit
+    await (supabase as any).from('audit_log').insert({
+      entity_id: existing.entity_id,
+      actor_id: user.id,
+      actor_type: 'human',
+      action: 'update',
+      target_type: 'chart_of_accounts',
+      target_id: id,
+      details: updates,
+    });
+
+    return NextResponse.json({ account });
+  } catch (error) {
+    console.error('[ChartOfAccounts] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update account' },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── DELETE: Remove a GL account ────────────────────────────────────────────────
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+
+    // Validate auth
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Account id is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate org membership
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('id, org_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Get all entities for this org
+    const { data: orgEntities } = await (supabase as any)
+      .from('entities')
+      .select('id')
+      .eq('org_id', membership.org_id);
+
+    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+
+    // Verify the account belongs to an entity in this org
+    const { data: existing } = await (supabase as any)
+      .from('chart_of_accounts')
+      .select('id, entity_id')
+      .eq('id', id)
+      .in('entity_id', entityIds)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Account not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    const { error: deleteError } = await (supabase as any)
+      .from('chart_of_accounts')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('[ChartOfAccounts] Delete error:', deleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete account' },
+        { status: 500 }
+      );
+    }
+
+    // Log to audit
+    await (supabase as any).from('audit_log').insert({
+      entity_id: existing.entity_id,
+      actor_id: user.id,
+      actor_type: 'human',
+      action: 'delete',
+      target_type: 'chart_of_accounts',
+      target_id: id,
+      details: {},
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[ChartOfAccounts] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete account' },
+      { status: 500 }
+    );
+  }
+}
+
+

@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
         const res = await fetch('/api/transactions');
         if (!res.ok) throw new Error('Failed to fetch');
         const result = await res.json();
-        const txns = result.data || [];
+        const txns = result.transactions || [];
 
         if (txns.length === 0) {
           setIsLoading(false);
@@ -237,7 +237,9 @@ export default function AnalyticsPage() {
           <div className="card-elevated" style={{ padding: '24px' }}>
             <div className="text-caption">Receipts Captured</div>
             <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px' }}>
-              {((data.receiptsCaptured / (data.receiptsCaptured + data.receiptsMissing)) * 100).toFixed(0)}%
+              {((data.receiptsCaptured + data.receiptsMissing) > 0
+                ? ((data.receiptsCaptured / (data.receiptsCaptured + data.receiptsMissing)) * 100).toFixed(0)
+                : '0')}%
             </div>
             <div className="text-caption">
               {data.receiptsMissing} still missing
@@ -327,7 +329,7 @@ export default function AnalyticsPage() {
                     <div style={{
                       height: '100%', borderRadius: '3px',
                       background: 'var(--accent-gradient)',
-                      width: `${(cat.count / data.topCategories[0].count) * 100}%`,
+                      width: `${(data.topCategories[0].count > 0 ? (cat.count / data.topCategories[0].count) * 100 : 0)}%`,
                       transition: 'width 0.5s ease',
                     }} />
                   </div>
