@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         console.error(`Twilio message ${messageSid} failed: ${params.ErrorCode} - ${params.ErrorMessage}`);
         await (supabase as any)
           .from('receipt_requests')
-          .update({ status: 'expired' })
+          .update({ status: 'failed' })
           .eq('message_id', messageSid);
       }
     }

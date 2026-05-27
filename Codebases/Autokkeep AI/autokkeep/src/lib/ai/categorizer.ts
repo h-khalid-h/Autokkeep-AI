@@ -219,11 +219,20 @@ export async function categorizeProbabilistic(
     }
 
     const parsed = JSON.parse(content);
+    let confidence = Math.min(100, Math.max(0, parsed.confidence));
+
+    // Validate that the suggested GL code exists in the chart of accounts
+    const validCode = chartOfAccounts.find(c => c.code === parsed.suggested_gl_code);
+    if (!validCode && chartOfAccounts.length > 0) {
+      // AI hallucinated a non-existent GL code — downgrade confidence to force human review
+      console.warn(`[AI Categorizer] AI suggested non-existent GL code: ${parsed.suggested_gl_code}`);
+      confidence = Math.min(confidence, 50);
+    }
 
     return {
       glCode: parsed.suggested_gl_code,
-      glName: parsed.suggested_gl_name,
-      confidence: Math.min(100, Math.max(0, parsed.confidence)),
+      glName: validCode?.name || parsed.suggested_gl_name,
+      confidence,
       reasoning: parsed.reasoning,
       engine: 'probabilistic',
       alternatives: (parsed.alternative_codes || []).map(
@@ -303,6 +312,11 @@ export async function batchCategorize(
           history
         );
         results.set(transaction.id, result);
+
+        // Only apply rate limit delay when OpenAI was called (probabilistic engine)
+        if (result.engine === 'probabilistic') {
+          await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
+        }
       } catch (error) {
         console.error(
           `[AI Categorizer] Failed to categorize transaction ${transaction.id}:`,
@@ -317,9 +331,6 @@ export async function batchCategorize(
           alternatives: [],
         });
       }
-
-      // Rate limit delay for probabilistic calls
-      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
     }
   }
 

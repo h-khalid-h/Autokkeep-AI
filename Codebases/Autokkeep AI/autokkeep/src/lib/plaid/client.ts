@@ -120,14 +120,17 @@ export async function syncTransactions(
   cursor?: string
 ): Promise<PlaidSyncResult> {
   const client = getPlaidClient();
+  const MAX_SYNC_PAGES = 20; // Safety limit: 20 pages × 500 = 10,000 transactions max
 
   const added: PlaidSyncResult['added'] = [];
   const modified: PlaidSyncResult['modified'] = [];
   const removed: PlaidSyncResult['removed'] = [];
   let hasMore = true;
   let nextCursor = cursor || '';
+  let pageCount = 0;
 
-  while (hasMore) {
+  while (hasMore && pageCount < MAX_SYNC_PAGES) {
+    pageCount++;
     const response = await client.transactionsSync({
       access_token: accessToken,
       cursor: nextCursor || undefined,
@@ -177,6 +180,10 @@ export async function syncTransactions(
 
     hasMore = data.has_more;
     nextCursor = data.next_cursor;
+  }
+
+  if (pageCount >= MAX_SYNC_PAGES && hasMore) {
+    console.warn(`[Plaid Sync] Hit max page limit (${MAX_SYNC_PAGES}). Remaining transactions will sync on next run.`);
   }
 
   return { added, modified, removed, nextCursor };
