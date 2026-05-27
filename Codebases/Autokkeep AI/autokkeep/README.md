@@ -73,6 +73,18 @@ Bank (Plaid) → Sync → AI Categorize → Auto-Approve / HITL Review → Journ
 - Org-based access control (owner/admin/accountant/viewer)
 - Auth middleware protecting all routes
 - Immutable audit log
+- Content-Security-Policy + Permissions-Policy headers
+- Webhook signature verification (Stripe, Plaid, Twilio)
+- Rate limiting on all API route categories
+- GDPR-compliant account deletion + cookie consent
+
+### ♿ Accessibility & PWA
+- Skip-to-content navigation link
+- `prefers-reduced-motion` support
+- `:focus-visible` keyboard indicators
+- Touch-friendly targets (44px+ on mobile)
+- Web App Manifest for mobile install
+- Print-friendly stylesheet
 
 ---
 
@@ -191,6 +203,7 @@ All environment variables are documented in [`.env.example`](.env.example), orga
 | `/api/webhooks/plaid` | POST | Plaid webhooks |
 | `/api/webhooks/stripe` | POST | Stripe webhooks |
 | `/api/webhooks/twilio` | POST | Twilio callbacks |
+| `/api/health` | GET | Health check (DB, env, uptime) |
 
 > ⛔ = Plan-enforced route (uses `checkPlanLimits`)
 
@@ -230,7 +243,7 @@ Full schema: [`src/lib/supabase/schema.sql`](src/lib/supabase/schema.sql)
 autokkeep/
 ├── src/
 │   ├── app/
-│   │   ├── api/                    # 37 API routes
+│   │   ├── api/                    # 38 API routes
 │   │   │   ├── ai/                 # AI categorization
 │   │   │   ├── billing/            # Stripe billing
 │   │   │   ├── channels/           # Slack/Teams/SMS/WhatsApp
