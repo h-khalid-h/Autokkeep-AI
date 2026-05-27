@@ -7,18 +7,23 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const body = JSON.parse(rawBody);
 
-    // Handle URL verification challenge
-    if (body.type === 'url_verification') {
-      return NextResponse.json({ challenge: body.challenge });
-    }
-
     // Verify Slack signature
     const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    if (!signingSecret) {
+      console.error('SLACK_SIGNING_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const timestamp = request.headers.get('x-slack-request-timestamp') || '';
     const signature = request.headers.get('x-slack-signature') || '';
 
-    if (signingSecret && !verifySlackSignature(signingSecret, timestamp, rawBody, signature)) {
+    if (!verifySlackSignature(signingSecret, timestamp, rawBody, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+
+    // Handle URL verification challenge (after signature check)
+    if (body.type === 'url_verification') {
+      return NextResponse.json({ challenge: body.challenge });
     }
 
     // Handle events

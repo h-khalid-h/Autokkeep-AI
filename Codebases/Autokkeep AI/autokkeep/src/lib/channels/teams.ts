@@ -237,7 +237,7 @@ export interface TeamsWebhookAction {
 export function parseTeamsWebhookPayload(body: Record<string, unknown>): TeamsWebhookAction | null {
   try {
     const data = body.data as Record<string, string> | undefined;
-    const categoryChoice = body.category_choice as string | undefined;
+    const categoryChoice = (data?.category_choice ?? body.category_choice) as string | undefined;
 
     if (!data?.transactionId) return null;
 

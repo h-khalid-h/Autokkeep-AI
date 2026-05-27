@@ -14,10 +14,8 @@ export function getQBOAuthUrl(state: string): string {
   const redirectUri = process.env.QBO_REDIRECT_URI;
   if (!clientId || !redirectUri) throw new Error('Missing QBO OAuth config');
 
-  const isProduction = process.env.QBO_ENVIRONMENT === 'production';
-  const baseUrl = isProduction
-    ? 'https://appcenter.intuit.com/connect/oauth2'
-    : 'https://appcenter.intuit.com/connect/oauth2'; // Same URL for both — Intuit uses realm for sandbox detection
+  // Intuit uses the same OAuth URL for both production and sandbox — environment is determined by realmId
+  const baseUrl = 'https://appcenter.intuit.com/connect/oauth2';
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -50,7 +48,7 @@ export function getXeroAuthUrl(state: string): string {
 // QuickBooks Token Exchange
 // ============================================
 
-export async function exchangeQBOCode(code: string): Promise<{
+export async function exchangeQBOCode(code: string, realmId: string): Promise<{
   accessToken: string;
   refreshToken: string;
   realmId: string;
@@ -60,10 +58,8 @@ export async function exchangeQBOCode(code: string): Promise<{
   const clientSecret = process.env.QBO_CLIENT_SECRET!;
   const redirectUri = process.env.QBO_REDIRECT_URI!;
 
-  const isProduction = process.env.QBO_ENVIRONMENT === 'production';
-  const tokenUrl = isProduction
-    ? 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
-    : 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
+  // Intuit uses the same token URL for both production and sandbox
+  const tokenUrl = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
 
   const response = await fetch(tokenUrl, {
     method: 'POST',
@@ -88,7 +84,7 @@ export async function exchangeQBOCode(code: string): Promise<{
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
-    realmId: data.realmId || '',
+    realmId,
     expiresIn: data.expires_in,
   };
 }

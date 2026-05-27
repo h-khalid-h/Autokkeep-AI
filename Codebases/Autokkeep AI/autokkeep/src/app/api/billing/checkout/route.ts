@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { authLimiter } from '@/lib/rate-limit';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -10,6 +11,15 @@ function getStripe() {
 // POST /api/billing/checkout — Create Stripe Checkout session
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit — billing operations are sensitive
+    const limit = authLimiter(request);
+    if (limit && !limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }
+      );
+    }
+
     const { orgId, plan, email } = await request.json();
 
     if (!orgId || !plan || !email) {

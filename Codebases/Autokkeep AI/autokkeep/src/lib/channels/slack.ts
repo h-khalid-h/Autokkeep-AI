@@ -262,10 +262,12 @@ export function verifySlackSignature(
   rawBody: string,
   signature: string
 ): boolean {
-  const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5;
+  const now = Math.floor(Date.now() / 1000);
+  const fiveMinutesAgo = now - 60 * 5;
+  const fiveMinutesFromNow = now + 60 * 5;
   const timestamp = parseInt(requestTimestamp, 10);
 
-  if (timestamp < fiveMinutesAgo) return false;
+  if (timestamp < fiveMinutesAgo || timestamp > fiveMinutesFromNow) return false;
 
   const baseString = `v0:${requestTimestamp}:${rawBody}`;
   const hmac = crypto.createHmac('sha256', signingSecret);

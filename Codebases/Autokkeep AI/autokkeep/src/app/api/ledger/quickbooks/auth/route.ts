@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authUrl);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate QBO auth URL' },
+      { error: 'Failed to generate QuickBooks auth URL' },
       { status: 500 }
     );
   }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Exchange code for tokens
-    const tokens = await exchangeQBOCode(code);
+    const tokens = await exchangeQBOCode(code, realmId);
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      console.error('[QBO Auth] DB error:', dbError);
+      return NextResponse.json({ error: 'Failed to save QuickBooks connection' }, { status: 500 });
     }
 
     // Log to audit trail
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'QBO auth failed' },
+      { error: 'QuickBooks authentication failed' },
       { status: 500 }
     );
   }

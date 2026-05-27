@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createLinkToken } from '@/lib/plaid/client';
+import { apiLimiter } from '@/lib/rate-limit';
 
 interface LinkTokenRequestBody {
   entityId: string;
@@ -13,6 +14,15 @@ interface LinkTokenRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit
+    const limit = apiLimiter(request);
+    if (limit && !limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }
+      );
+    }
+
     const supabase = await createServerClient();
 
     // Validate auth

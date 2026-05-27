@@ -5,6 +5,18 @@ import { createAdminClient } from '@/lib/supabase/admin';
 // POST /api/channels/teams/webhook — Handle Teams adaptive card responses
 export async function POST(request: NextRequest) {
   try {
+    // Verify shared secret
+    const webhookSecret = process.env.TEAMS_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('TEAMS_WEBHOOK_SECRET is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const providedSecret = request.headers.get('x-teams-secret') || request.nextUrl.searchParams.get('secret');
+    if (providedSecret !== webhookSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const parsed = parseTeamsWebhookPayload(body);

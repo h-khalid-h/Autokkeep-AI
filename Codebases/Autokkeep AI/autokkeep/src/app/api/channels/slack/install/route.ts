@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate Slack install URL' },
+      { error: 'Failed to generate Slack install URL' },
       { status: 500 }
     );
   }
@@ -55,15 +55,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing code or entityId' }, { status: 400 });
     }
 
+    // Auth check
+    const { createServerClient } = await import('@/lib/supabase/server');
+    const supabase = await createServerClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Org membership check
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('org_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Verify entity belongs to user's org
+    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    if (!entity || entity.org_id !== membership.org_id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const result = await exchangeSlackCode(code);
 
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
-
-    // Store channel connection in Supabase
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
 
     const { error: dbError } = await (supabase as any).from('channel_connections').insert({
       entity_id: entityId,
@@ -75,7 +97,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      console.error('[Slack Install] DB error:', dbError);
+      return NextResponse.json({ error: 'Failed to save Slack connection' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -85,7 +108,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Slack install failed' },
+      { error: 'Slack installation failed' },
       { status: 500 }
     );
   }

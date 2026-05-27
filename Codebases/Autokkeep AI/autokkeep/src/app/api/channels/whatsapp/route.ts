@@ -13,10 +13,15 @@ export async function POST(request: NextRequest) {
     const params = Object.fromEntries(new URLSearchParams(rawBody));
 
     // Validate Twilio signature
+    if (!process.env.TWILIO_AUTH_TOKEN) {
+      console.error('TWILIO_AUTH_TOKEN is not configured');
+      return new NextResponse('Server configuration error', { status: 500 });
+    }
+
     const signature = request.headers.get('x-twilio-signature') || '';
     const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/channels/whatsapp`;
 
-    if (process.env.TWILIO_AUTH_TOKEN && !validateTwilioSignature(url, params, signature)) {
+    if (!validateTwilioSignature(url, params, signature)) {
       return new NextResponse('Invalid signature', { status: 401 });
     }
 
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
           .from('transactions')
           .update({
             status: 'approved',
-            category_human: tx?.category_ai,
+            category_human: tx?.category_ai || 'uncategorized',
             updated_at: new Date().toISOString(),
           })
           .eq('id', receiptRequest.transaction_id);
@@ -158,6 +163,24 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq('id', receiptRequest.transaction_id);
+
+          // Audit log for receipt upload
+          const { data: receiptTx } = await (supabase as any)
+            .from('transactions')
+            .select('entity_id')
+            .eq('id', receiptRequest.transaction_id)
+            .single();
+
+          if (receiptTx) {
+            await (supabase as any).from('audit_log').insert({
+              entity_id: receiptTx.entity_id,
+              action: 'receipt_upload',
+              target_type: 'transaction',
+              target_id: receiptRequest.transaction_id,
+              actor_type: 'human',
+              details: { source: 'whatsapp', mediaUrl: userResponse.mediaUrls[0], from: phoneNumber },
+            });
+          }
 
           const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

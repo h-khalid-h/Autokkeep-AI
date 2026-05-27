@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { batchCategorize } from '@/lib/ai/categorizer';
+import { aiLimiter } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -27,6 +28,15 @@ interface BatchSummary {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit — batch AI is expensive
+    const limit = aiLimiter(request);
+    if (limit && !limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }
+      );
+    }
+
     const supabase = await createServerClient();
 
     // Validate auth

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authUrl);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate Xero auth URL' },
+      { error: 'Failed to generate Xero auth URL' },
       { status: 500 }
     );
   }
@@ -66,10 +66,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const tokens = await exchangeXeroCode(code);
-
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+
+    // Auth check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Org membership check
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('org_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Verify entity belongs to user's org
+    if (entityId) {
+      const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+      if (!entity || entity.org_id !== membership.org_id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    const tokens = await exchangeXeroCode(code);
 
     const { error: dbError } = await (supabase as any).from('ledger_connections').upsert(
       {
@@ -88,7 +113,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      console.error('[Xero Auth] DB error:', dbError);
+      return NextResponse.json({ error: 'Failed to save Xero connection' }, { status: 500 });
     }
 
     await (supabase as any).from('audit_log').insert({
@@ -106,7 +132,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Xero auth failed' },
+      { error: 'Xero authentication failed' },
       { status: 500 }
     );
   }

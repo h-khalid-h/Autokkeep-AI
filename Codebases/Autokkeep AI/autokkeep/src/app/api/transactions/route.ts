@@ -117,9 +117,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(
-        `merchant_name.ilike.%${search}%,merchant_raw.ilike.%${search}%`
-      );
+      // Sanitize search to prevent PostgREST filter injection
+      // Escape characters that have special meaning in PostgREST filter syntax
+      const sanitized = search
+        .replace(/[\\%_]/g, (c) => `\\${c}`) // Escape SQL LIKE wildcards
+        .replace(/[,.()]/g, '') // Strip PostgREST filter operators
+        .slice(0, 100); // Limit length
+
+      if (sanitized.length > 0) {
+        query = query.or(
+          `merchant_name.ilike.%${sanitized}%,merchant_raw.ilike.%${sanitized}%`
+        );
+      }
     }
 
     const { data: transactions, error: txError, count } = await query;
