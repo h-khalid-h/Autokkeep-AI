@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Channel dispatch error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Dispatch failed' },
+      { error: 'Receipt dispatch failed' },
       { status: 500 }
     );
   }

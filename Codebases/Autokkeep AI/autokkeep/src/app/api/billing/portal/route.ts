@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Portal creation failed' },
+      { error: 'Failed to create billing portal' },
       { status: 500 }
     );
   }

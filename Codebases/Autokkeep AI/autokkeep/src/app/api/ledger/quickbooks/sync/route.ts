@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         results.failed++;
         results.errors.push(
-          `${tx.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `${tx.id}: sync error`
         );
       }
     }
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'QBO sync failed' },
+      { error: 'QuickBooks sync failed' },
       { status: 500 }
     );
   }
@@ -280,7 +280,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'CoA sync failed' },
+      { error: 'QuickBooks chart of accounts sync failed' },
       { status: 500 }
     );
   }

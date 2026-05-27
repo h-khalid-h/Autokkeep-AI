@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         results.failed++;
-        results.errors.push(`${tx.id}: ${error instanceof Error ? error.message : 'Error'}`);
+        results.errors.push(`${tx.id}: sync error`);
       }
     }
 
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ...results });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Xero sync failed' },
+      { error: 'Xero sync failed' },
       { status: 500 }
     );
   }
@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, accounts: accounts.length });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Xero CoA sync failed' },
+      { error: 'Xero chart of accounts sync failed' },
       { status: 500 }
     );
   }
