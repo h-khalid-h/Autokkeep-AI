@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Script from 'next/script';
+
+export const metadata: Metadata = {
+  title: 'Dashboard — Autokkeep',
+  description: 'Review AI-categorized transactions, manage exceptions, and monitor your autonomous bookkeeping engine in real-time.',
+};
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
