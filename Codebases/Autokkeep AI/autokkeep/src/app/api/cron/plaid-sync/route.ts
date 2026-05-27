@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Process modified transactions
+        // Process modified transactions — clear AI categorization for re-processing
         for (const t of syncResult.modified) {
           await (supabase as any)
             .from('transactions')
@@ -81,6 +81,11 @@ export async function GET(request: NextRequest) {
               date: t.date,
               merchant_name: t.merchant_name || t.name,
               merchant_raw: t.name,
+              // Reset AI categorization so the transaction gets re-categorized
+              category_ai: null,
+              confidence: 0,
+              ai_reasoning: null,
+              status: 'pending',
               updated_at: new Date().toISOString(),
             })
             .eq('plaid_transaction_id', t.transaction_id)

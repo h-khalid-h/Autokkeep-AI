@@ -177,16 +177,24 @@ async function dispatchWhatsApp(
 
   const message = buildReceiptRequestMessage(receiptContext);
 
-  const result = await sendWhatsApp({
-    to: connection.channelId,
-    message,
-  });
+  try {
+    const result = await sendWhatsApp({
+      to: connection.channelId,
+      message,
+    });
 
-  return {
-    success: true,
-    channel: 'whatsapp',
-    messageId: result.sid,
-  };
+    return {
+      success: true,
+      channel: 'whatsapp',
+      messageId: result.sid,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      channel: 'whatsapp',
+      error: error instanceof Error ? error.message : 'WhatsApp dispatch failed',
+    };
+  }
 }
 
 async function dispatchSMS(
@@ -204,16 +212,24 @@ async function dispatchSMS(
 
   const message = buildReceiptRequestMessage(receiptContext);
 
-  const result = await sendSMS({
-    to: connection.channelId,
-    message,
-  });
+  try {
+    const result = await sendSMS({
+      to: connection.channelId,
+      message,
+    });
 
-  return {
-    success: true,
-    channel: 'sms',
-    messageId: result.sid,
-  };
+    return {
+      success: true,
+      channel: 'sms',
+      messageId: result.sid,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      channel: 'sms',
+      error: error instanceof Error ? error.message : 'SMS dispatch failed',
+    };
+  }
 }
 
 // ============================================
@@ -226,6 +242,14 @@ export async function dispatchWithFallback(
   context: TransactionContext,
   preferredChannel?: ChannelType
 ): Promise<DispatchResult> {
+  if (!connections || connections.length === 0) {
+    return {
+      success: false,
+      channel: preferredChannel || 'slack',
+      error: 'No channel connections configured',
+    };
+  }
+
   // Sort connections with preferred channel first
   const sorted = [...connections].sort((a, b) => {
     if (a.channelType === preferredChannel) return -1;
@@ -250,7 +274,7 @@ export async function dispatchWithFallback(
 
   return {
     success: false,
-    channel: sorted[0]?.channelType ?? 'slack',
+    channel: sorted[0].channelType,
     error: 'All channels failed',
   };
 }

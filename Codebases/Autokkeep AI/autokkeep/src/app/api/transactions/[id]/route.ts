@@ -155,7 +155,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updated_by: user.id,
     };
 
-    if (glCode !== undefined) updateData.category_ai = glCode;
+    if (glCode !== undefined) {
+      updateData.category_ai = glCode;
+      // If a human is setting the category, also store it as the human-approved category
+      updateData.category_human = glCode;
+    }
     if (glName !== undefined) updateData.ai_reasoning = glName;
     if (notes !== undefined) updateData.description = notes;
     if (receiptUrl !== undefined) updateData.document_url = receiptUrl;
@@ -165,6 +169,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.status = 'approved';
       updateData.confidence = 100;
     } else if (newStatus) {
+      // Validate allowed status transitions
+      const validStatuses = ['pending', 'human_review', 'approved', 'auto_categorized'];
+      if (!validStatuses.includes(newStatus)) {
+        return NextResponse.json(
+          { error: `Invalid status: ${newStatus}` },
+          { status: 400 }
+        );
+      }
       updateData.status = newStatus;
     }
 
@@ -203,11 +215,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Update categorization history for learning when a human approves
     if (glCode && newStatus === 'approved' && existing.merchant_name) {
+      const normalizedMerchant = existing.merchant_name.toLowerCase().trim();
       const { data: existingHistory } = await (supabase as any)
         .from('categorization_history')
         .select('id, frequency')
         .eq('entity_id', existing.entity_id)
-        .eq('merchant', existing.merchant_name)
+        .eq('merchant', normalizedMerchant)
         .eq('gl_code', glCode)
         .single();
 
@@ -222,7 +235,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       } else {
         await (supabase as any).from('categorization_history').insert({
           entity_id: existing.entity_id,
-          merchant: existing.merchant_name,
+          merchant: normalizedMerchant,
           gl_code: glCode,
           gl_name: glName || '',
           frequency: 1,
