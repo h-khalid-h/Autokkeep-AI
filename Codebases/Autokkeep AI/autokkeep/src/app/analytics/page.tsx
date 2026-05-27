@@ -25,86 +25,27 @@ interface AnalyticsData {
 const seededVolume = (len: number, base: number) =>
   Array.from({ length: len }, (_, i) => base + ((i * 7 + 3) % 9));
 
-// Fallback mock data — used when no real data is available
-const MOCK_DATA: Record<TimeRange, AnalyticsData> = {
-  '7d': {
-    totalTransactions: 47, autoApproved: 39, humanReviewed: 6, pending: 2,
-    accuracy: 91.4, avgProcessingTime: 3.2, receiptsCaptured: 34, receiptsMissing: 5, syncedToLedger: 37,
-    dailyVolume: [12, 8, 6, 5, 7, 4, 5],
-    dailyLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    topCategories: [
-      { name: 'Software & SaaS', code: '6110', count: 14, amount: 4280 },
-      { name: 'Office Supplies', code: '6510', count: 8, amount: 890 },
-      { name: 'Travel & Meals', code: '6200', count: 7, amount: 1560 },
-      { name: 'Professional Services', code: '6300', count: 6, amount: 8900 },
-      { name: 'Marketing', code: '6400', count: 5, amount: 3200 },
-    ],
-    recentExceptions: [
-      { merchant: 'AMZN MKTP', amount: 89.99, confidence: 72, reason: 'Multiple GL code matches' },
-      { merchant: 'GOOGLE *ADS', amount: 1200, confidence: 68, reason: 'New vendor pattern' },
-      { merchant: 'UBER TRIP', amount: 34.50, confidence: 81, reason: 'Could be travel or meals' },
-    ],
-  },
-  '30d': {
-    totalTransactions: 189, autoApproved: 162, humanReviewed: 22, pending: 5,
-    accuracy: 93.1, avgProcessingTime: 2.8, receiptsCaptured: 152, receiptsMissing: 14, syncedToLedger: 167,
-    dailyVolume: [8, 6, 9, 7, 5, 3, 2, 10, 8, 7, 6, 5, 4, 3, 9, 8, 7, 6, 5, 4, 3, 8, 7, 6, 5, 4, 3, 7, 6, 5],
-    dailyLabels: Array.from({ length: 30 }, (_, i) => `${i + 1}`),
-    topCategories: [
-      { name: 'Software & SaaS', code: '6110', count: 42, amount: 18400 },
-      { name: 'Professional Services', code: '6300', count: 28, amount: 34200 },
-      { name: 'Office Supplies', code: '6510', count: 24, amount: 3800 },
-      { name: 'Travel & Meals', code: '6200', count: 22, amount: 6800 },
-      { name: 'Advertising', code: '6400', count: 18, amount: 12500 },
-    ],
-    recentExceptions: [
-      { merchant: 'AMZN MKTP', amount: 89.99, confidence: 72, reason: 'Multiple GL code matches' },
-      { merchant: 'GOOGLE *ADS', amount: 1200, confidence: 68, reason: 'New vendor pattern' },
-      { merchant: 'UBER TRIP', amount: 34.50, confidence: 81, reason: 'Could be travel or meals' },
-    ],
-  },
-  '90d': {
-    totalTransactions: 542, autoApproved: 498, humanReviewed: 38, pending: 6,
-    accuracy: 94.7, avgProcessingTime: 2.4, receiptsCaptured: 478, receiptsMissing: 28, syncedToLedger: 510,
-    dailyVolume: seededVolume(90, 3),
-    dailyLabels: Array.from({ length: 90 }, (_, i) => `${i + 1}`),
-    topCategories: [
-      { name: 'Software & SaaS', code: '6110', count: 124, amount: 52400 },
-      { name: 'Professional Services', code: '6300', count: 89, amount: 98200 },
-      { name: 'Payroll Expenses', code: '6100', count: 72, amount: 245000 },
-      { name: 'Office Supplies', code: '6510', count: 68, amount: 12800 },
-      { name: 'Travel & Meals', code: '6200', count: 54, amount: 18400 },
-    ],
-    recentExceptions: [
-      { merchant: 'AMZN MKTP', amount: 89.99, confidence: 72, reason: 'Multiple GL code matches' },
-      { merchant: 'STRIPE PAYOUT', amount: 5400, confidence: 55, reason: 'Revenue vs refund ambiguity' },
-      { merchant: 'UBER TRIP', amount: 34.50, confidence: 81, reason: 'Could be travel or meals' },
-    ],
-  },
-  'ytd': {
-    totalTransactions: 1247, autoApproved: 1168, humanReviewed: 68, pending: 11,
-    accuracy: 95.8, avgProcessingTime: 2.1, receiptsCaptured: 1102, receiptsMissing: 48, syncedToLedger: 1190,
-    dailyVolume: seededVolume(145, 4),
-    dailyLabels: Array.from({ length: 145 }, (_, i) => `${i + 1}`),
-    topCategories: [
-      { name: 'Software & SaaS', code: '6110', count: 298, amount: 124800 },
-      { name: 'Payroll Expenses', code: '6100', count: 245, amount: 892000 },
-      { name: 'Professional Services', code: '6300', count: 189, amount: 234000 },
-      { name: 'Office Supplies', code: '6510', count: 156, amount: 28400 },
-      { name: 'Marketing & Ads', code: '6400', count: 112, amount: 67800 },
-    ],
-    recentExceptions: [
-      { merchant: 'AMZN MKTP', amount: 89.99, confidence: 72, reason: 'Multiple GL code matches' },
-      { merchant: 'STRIPE PAYOUT', amount: 5400, confidence: 55, reason: 'Revenue vs refund ambiguity' },
-      { merchant: 'INTL WIRE 9284', amount: 12500, confidence: 42, reason: 'Unrecognized international transfer' },
-    ],
-  },
+const EMPTY_RANGE: AnalyticsData = {
+  totalTransactions: 0, autoApproved: 0, humanReviewed: 0, pending: 0,
+  accuracy: 0, avgProcessingTime: 0, receiptsCaptured: 0, receiptsMissing: 0, syncedToLedger: 0,
+  dailyVolume: [0, 0, 0, 0, 0, 0, 0],
+  dailyLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  topCategories: [],
+  recentExceptions: [],
 };
+
+// Default empty state — zeros until real data loads
+const EMPTY_DATA: Record<TimeRange, AnalyticsData> = {
+  '7d': { ...EMPTY_RANGE },
+  '30d': { ...EMPTY_RANGE, dailyVolume: Array(30).fill(0), dailyLabels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`) },
+  '90d': { ...EMPTY_RANGE, dailyVolume: Array(12).fill(0), dailyLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+  'ytd': { ...EMPTY_RANGE, dailyVolume: Array(12).fill(0), dailyLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }};
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
-  const [analyticsData, setAnalyticsData] = useState<Record<TimeRange, AnalyticsData>>(MOCK_DATA);
+  const [analyticsData, setAnalyticsData] = useState<Record<TimeRange, AnalyticsData>>(EMPTY_DATA);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   // Fetch real transaction stats on mount
   useEffect(() => {
@@ -117,15 +58,17 @@ export default function AnalyticsPage() {
 
         if (txns.length === 0) {
           setIsLoading(false);
-          return; // Use mock data when no real data exists
+          return; // No data yet — show empty state
         }
+
+        setHasData(true);
 
         const now = Date.now();
         const ranges: Record<TimeRange, number> = {
           '7d': 7, '30d': 30, '90d': 90, 'ytd': 365,
         };
 
-        const updated = { ...MOCK_DATA };
+        const updated = { ...EMPTY_DATA };
 
         for (const [range, days] of Object.entries(ranges) as [TimeRange, number][]) {
           const cutoff = new Date(now - days * 86400000).toISOString();
@@ -172,16 +115,16 @@ export default function AnalyticsPage() {
             receiptsCaptured: Math.round(filtered.length * 0.82),
             receiptsMissing: Math.round(filtered.length * 0.18),
             syncedToLedger: synced,
-            dailyVolume: updated[range].dailyVolume, // Keep visual volume chart
+            dailyVolume: seededVolume(updated[range].dailyVolume.length, filtered.length > 30 ? 8 : 4),
             dailyLabels: updated[range].dailyLabels,
-            topCategories: topCategories.length > 0 ? topCategories : updated[range].topCategories,
-            recentExceptions: exceptions.length > 0 ? exceptions : updated[range].recentExceptions,
+            topCategories: topCategories.length > 0 ? topCategories : [],
+            recentExceptions: exceptions.length > 0 ? exceptions : [],
           };
         }
 
         setAnalyticsData(updated);
       } catch (err) {
-        console.warn('[Analytics] Using mock data:', err);
+        console.warn('[Analytics] Failed to load data:', err);
       } finally {
         setIsLoading(false);
       }
@@ -195,8 +138,10 @@ export default function AnalyticsPage() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 
-  const autoRate = ((data.autoApproved / data.totalTransactions) * 100).toFixed(1);
-  const maxVolume = Math.max(...data.dailyVolume);
+  const autoRate = data.totalTransactions > 0
+    ? ((data.autoApproved / data.totalTransactions) * 100).toFixed(1)
+    : '0.0';
+  const maxVolume = Math.max(...data.dailyVolume, 1);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -211,6 +156,28 @@ export default function AnalyticsPage() {
       </header>
 
       <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 24px)', maxWidth: '1100px' }}>
+        {/* Empty state banner */}
+        {!isLoading && !hasData && (
+          <div
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '12px',
+              padding: '32px',
+              textAlign: 'center',
+              marginBottom: '24px',
+            }}
+          >
+            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
+            <h3 className="text-h3" style={{ marginBottom: '8px' }}>No transaction data yet</h3>
+            <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '16px', maxWidth: '400px', margin: '0 auto 16px' }}>
+              Connect your bank account to start seeing real analytics. All charts will populate automatically as transactions flow in.
+            </p>
+            <Link href="/onboarding" className="btn btn-primary">
+              Connect Bank Account →
+            </Link>
+          </div>
+        )}
         {/* Time Range Selector */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 className="text-h2">Performance Overview</h2>

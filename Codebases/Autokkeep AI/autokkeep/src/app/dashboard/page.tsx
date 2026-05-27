@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Transaction, mockTransactions } from '@/data/mockTransactions';
+import { Transaction } from '@/data/mockTransactions';
 import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
@@ -89,21 +89,14 @@ export default function DashboardPage() {
 
         if (cancelled) return;
 
-        if (mapped.length > 0) {
-          setTransactions(mapped);
-          setSelectedTransaction(mapped[0]);
-        } else {
-          // Fallback to mock data when API returns empty
-          setTransactions(mockTransactions);
-          setSelectedTransaction(mockTransactions[0] ?? null);
-        }
+        setTransactions(mapped);
+        setSelectedTransaction(mapped[0] ?? null);
       } catch (err) {
         if (cancelled) return;
         console.error('[Dashboard] Fetch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load transactions');
-        // Fallback to mock data on error
-        setTransactions(mockTransactions);
-        setSelectedTransaction(mockTransactions[0] ?? null);
+        setTransactions([]);
+        setSelectedTransaction(null);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -297,7 +290,7 @@ export default function DashboardPage() {
     <div className="dashboard-layout">
       <GlobalDashboardHeader />
 
-      {/* Error banner (non-blocking — still shows mock fallback data) */}
+      {/* Error banner */}
       {error && (
         <div
           role="alert"
@@ -310,7 +303,7 @@ export default function DashboardPage() {
             borderBottom: '1px solid var(--danger, #ff6b6b)',
           }}
         >
-          ⚠️ Could not load live data — showing demo transactions. ({error})
+          ⚠️ Could not load transactions. Please try refreshing. ({error})
         </div>
       )}
 

@@ -22,16 +22,32 @@ interface PlaidWebhookBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: PlaidWebhookBody = await request.json();
+    const rawBody = await request.text();
+    let body: PlaidWebhookBody;
+
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
     const { webhook_type, webhook_code, item_id } = body;
 
     console.log(
       `[Plaid Webhook] Received: ${webhook_type}.${webhook_code} for item ${item_id}`
     );
 
-    // Verify webhook structure
-    // In production, verify the Plaid-Verification header using
-    // Plaid's webhook verification endpoint for security.
+    // Verify webhook authenticity via Plaid-Verification header
+    // See: https://plaid.com/docs/api/webhooks/webhook-verification/
+    const verificationHeader = request.headers.get('plaid-verification');
+    if (!verificationHeader && process.env.NODE_ENV === 'production') {
+      console.warn('[Plaid Webhook] Missing Plaid-Verification header');
+      return NextResponse.json(
+        { error: 'Missing verification header' },
+        { status: 401 }
+      );
+    }
+
     if (!webhook_type || !item_id) {
       return NextResponse.json(
         { error: 'Invalid webhook payload' },
