@@ -23,7 +23,8 @@ CREATE TYPE transaction_status AS ENUM (
   'human_review',
   'approved',
   'synced',
-  'removed'
+  'removed',
+  'escrow_suspense'
 );
 
 CREATE TYPE document_status_type AS ENUM (
@@ -72,7 +73,8 @@ CREATE TYPE channel_type AS ENUM (
 CREATE TYPE receipt_status AS ENUM (
   'sent',
   'responded',
-  'expired'
+  'expired',
+  'failed'
 );
 
 CREATE TYPE ledger_provider AS ENUM (
@@ -87,12 +89,11 @@ CREATE TYPE ledger_type_enum AS ENUM (
 );
 
 CREATE TYPE subscription_plan AS ENUM (
-  'cpa_foundation',
-  'cpa_scale',
-  'cpa_enterprise',
-  'smb_basic',
+  'free',
+  'starter',
   'smb_growth',
-  'smb_premium'
+  'cpa_professional',
+  'cpa_enterprise'
 );
 
 CREATE TYPE subscription_status AS ENUM (
