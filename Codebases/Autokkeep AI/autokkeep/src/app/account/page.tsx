@@ -133,8 +133,9 @@ export default function AccountPage() {
       const supabase = getSupabase();
       await supabase.auth.signOut();
       window.location.href = '/';
-    } catch {
+    } catch (err) {
       setDeleting(false);
+      alert(`Account deletion failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [deleteConfirmText]);
 

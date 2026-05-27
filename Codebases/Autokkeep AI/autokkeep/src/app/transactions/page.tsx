@@ -149,6 +149,7 @@ export default function TransactionsPage() {
       if (statusFilter) params.set('status', statusFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
+      params.set('sort', sort);
 
       const res = await fetch(`/api/transactions?${params}`);
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
@@ -156,10 +157,8 @@ export default function TransactionsPage() {
       const data = await res.json();
       const txns: TransactionRow[] = data.transactions || [];
 
-      // Sort client-side (API sorts by date desc by default)
-      const sorted = sortTransactions(txns, sort);
-
-      setTransactions(sorted);
+      // Server handles sorting — no need to sort client-side
+      setTransactions(txns);
       setPagination(data.pagination || { total: 0, limit: PAGE_SIZE, offset: page * PAGE_SIZE, hasMore: false });
 
       // Track whether user has any transactions at all
@@ -240,6 +239,7 @@ export default function TransactionsPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('[Export] Error:', err);
+      setError('Export failed. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -367,7 +367,7 @@ export default function TransactionsPage() {
               </div>
             </div>
             <div className="card-elevated" style={{ padding: '16px 20px' }}>
-              <div className="text-caption">Total Amount</div>
+              <div className="text-caption">Page Amount</div>
               <div style={{
                 fontSize: '1.5rem',
                 fontWeight: 700,
