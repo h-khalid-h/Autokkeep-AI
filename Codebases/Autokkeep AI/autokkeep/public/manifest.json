@@ -1,0 +1,35 @@
+{
+  "name": "Autokkeep",
+  "short_name": "Autokkeep",
+  "description": "Autonomous bookkeeping for modern finance. AI-powered ledger management that eliminates manual data entry.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0A0B0F",
+  "theme_color": "#5b5fe6",
+  "orientation": "any",
+  "scope": "/",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/hero-dashboard.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Autokkeep Dashboard — Exception Queue"
+    }
+  ]
+}
