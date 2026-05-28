@@ -399,6 +399,42 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Check for transactions referencing this GL account code
+    const { data: accountData } = await (supabase as any)
+      .from('chart_of_accounts')
+      .select('code')
+      .eq('id', id)
+      .single();
+
+    if (accountData?.code) {
+      const { count: refCount } = await (supabase as any)
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', existing.entity_id)
+        .or(`category_ai.eq.${accountData.code},category_human.eq.${accountData.code}`);
+
+      if (refCount && refCount > 0) {
+        // Soft-delete: deactivate instead of hard delete to preserve references
+        const { error: deactivateError } = await (supabase as any)
+          .from('chart_of_accounts')
+          .update({ is_active: false })
+          .eq('id', id);
+
+        if (deactivateError) {
+          return NextResponse.json(
+            { error: 'Failed to deactivate account' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          soft_deleted: true,
+          message: `Account deactivated (referenced by ${refCount} transactions)`,
+        });
+      }
+    }
+
     const { error: deleteError } = await (supabase as any)
       .from('chart_of_accounts')
       .delete()
