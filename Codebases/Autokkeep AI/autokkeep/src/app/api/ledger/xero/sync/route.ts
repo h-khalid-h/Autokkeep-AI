@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
 
     // Refresh token before making API calls (Xero tokens expire after 30 minutes)
     let accessToken = conn.access_token;
+    const tokenExpired = conn.token_expires_at && new Date(conn.token_expires_at).getTime() < Date.now();
+
     if (conn.refresh_token) {
       try {
         const refreshed = await refreshXeroToken(conn.refresh_token);
@@ -93,11 +95,25 @@ export async function POST(request: NextRequest) {
           .update({
             access_token: refreshed.accessToken,
             refresh_token: refreshed.refreshToken,
+            token_expires_at: new Date(Date.now() + (refreshed.expiresIn || 1800) * 1000).toISOString(),
           })
           .eq('id', conn.id);
       } catch (refreshError) {
-        console.warn('[Xero Sync] Token refresh failed, using existing token:', refreshError);
+        console.error('[Xero Sync] Token refresh failed:', refreshError);
+        if (tokenExpired) {
+          await (supabase as any).from('ledger_connections').update({ is_active: false }).eq('id', conn.id);
+          return NextResponse.json(
+            { error: 'Xero token expired. Please re-authenticate.' },
+            { status: 401 }
+          );
+        }
+        console.warn('[Xero Sync] Using existing token (may still be valid)');
       }
+    } else if (tokenExpired) {
+      return NextResponse.json(
+        { error: 'Xero token expired and no refresh token available' },
+        { status: 401 }
+      );
     }
 
     for (const tx of transactions) {

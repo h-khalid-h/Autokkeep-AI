@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       // If a human is setting the category, also store it as the human-approved category
       updateData.category_human = glCode;
     }
-    if (glName !== undefined) updateData.ai_reasoning = glName;
+    if (glName !== undefined) updateData.gl_name = glName;
     if (notes !== undefined) updateData.description = notes;
     if (receiptUrl !== undefined) updateData.document_url = receiptUrl;
 
@@ -170,7 +170,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.confidence = 100;
     } else if (newStatus) {
       // Validate allowed status transitions
-      const validStatuses = ['pending', 'human_review', 'approved', 'auto_categorized'];
+      const validStatuses = ['pending', 'human_review', 'approved'];
       if (!validStatuses.includes(newStatus)) {
         return NextResponse.json(
           { error: `Invalid status: ${newStatus}` },

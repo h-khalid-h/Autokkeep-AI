@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('*')
       .eq('id', transactionId)
+      .eq('entity_id', entityId)
       .single();
 
     if (txError || !tx) {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       cardLast4: tx.card_last4 || '0000',
       cardHolder: tx.card_holder || 'Team Member',
       suggestedCategory: tx.category_ai || undefined,
-      suggestedGLCode: tx.category_ai || undefined,
+      suggestedGLCode: tx.gl_code || tx.category_ai || undefined,
       confidence: tx.confidence ? parseFloat(tx.confidence) : undefined,
     };
 

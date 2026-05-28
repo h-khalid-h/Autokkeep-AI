@@ -38,14 +38,21 @@ export async function POST(request: NextRequest) {
     );
 
     // Verify webhook authenticity via Plaid-Verification header
+    // Full JWT verification requires plaid-node's webhookVerificationKeyGet
     // See: https://plaid.com/docs/api/webhooks/webhook-verification/
     const verificationHeader = request.headers.get('plaid-verification');
-    if (!verificationHeader && process.env.NODE_ENV === 'production') {
-      console.warn('[Plaid Webhook] Missing Plaid-Verification header');
-      return NextResponse.json(
-        { error: 'Missing verification header' },
-        { status: 401 }
-      );
+    if (process.env.NODE_ENV === 'production') {
+      if (!verificationHeader) {
+        console.warn('[Plaid Webhook] Missing Plaid-Verification header — rejecting');
+        return NextResponse.json(
+          { error: 'Missing verification header' },
+          { status: 401 }
+        );
+      }
+      // TODO: Implement full JWT verification using plaid-node webhookVerificationKeyGet
+      // For now, we verify the header exists (Plaid sends a signed JWT)
+    } else if (!verificationHeader) {
+      console.warn('[Plaid Webhook] No verification header (non-production — allowing)');
     }
 
     if (!webhook_type || !item_id) {
@@ -53,17 +60,6 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid webhook payload' },
         { status: 400 }
       );
-    }
-
-    // Verify Plaid webhook
-    const plaidVerifyKey = process.env.PLAID_WEBHOOK_VERIFY_KEY;
-    if (plaidVerifyKey) {
-      const receivedToken = request.headers.get('plaid-verification');
-      // In production, use plaid-node's webhookVerificationKeyGet to verify
-      // For now, log if header is missing
-      if (!receivedToken) {
-        console.warn('[Plaid Webhook] No verification header received');
-      }
     }
 
     const supabase = createAdminClient();

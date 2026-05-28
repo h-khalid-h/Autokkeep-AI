@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
             .eq('org_id', membership.org_id)
             .neq('user_id', user.id);
 
-          if (count === 0) {
+          if ((count ?? 0) === 0) {
             // User is sole owner — delete the entire org (cascades delete everything)
             // Get all entity IDs first for storage cleanup
             const { data: entities } = await (admin as any)

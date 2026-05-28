@@ -85,11 +85,6 @@ const jsonLd = {
     priceCurrency: "USD",
     offerCount: "6",
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.9",
-    ratingCount: "127",
-  },
   creator: {
     "@type": "Organization",
     name: "Autokkeep",

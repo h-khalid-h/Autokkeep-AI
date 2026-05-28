@@ -229,17 +229,32 @@ export default function ShadowAuditPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [uploadError, setUploadError] = useState('');
+
   /* Handle file */
   const handleFile = useCallback((file: File) => {
-    if (!file.name.endsWith('.csv')) return;
+    setUploadError('');
+    if (!file.name.endsWith('.csv')) {
+      setUploadError('Please upload a .csv file. Other formats (Excel, TSV) are not supported in this demo.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File too large. The demo supports CSV files up to 5 MB.');
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const parsed = parseCSV(text);
-      if (parsed.headers.length === 0) return;
+      if (parsed.headers.length === 0) {
+        setUploadError('Could not parse CSV. Please check the file format.');
+        return;
+      }
+      // Limit to 2000 rows for the demo
+      const limitedRows = parsed.rows.slice(0, 2000);
       setHeaders(parsed.headers);
-      setRows(parsed.rows);
+      setRows(limitedRows);
       const detected = autoDetect(parsed.headers);
       setMapping(detected);
       setStep('mapping');
@@ -388,6 +403,9 @@ export default function ShadowAuditPage() {
                 <p className="text-body" style={{ color: 'var(--text-secondary)' }}>
                   or click to browse • Accepts .csv files
                 </p>
+                {uploadError && (
+                  <p style={{ color: '#ef4444', marginTop: '12px', fontSize: '0.875rem' }}>{uploadError}</p>
+                )}
               </div>
             )}
 

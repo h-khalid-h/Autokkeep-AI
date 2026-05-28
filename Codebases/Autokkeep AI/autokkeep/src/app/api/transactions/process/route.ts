@@ -281,7 +281,11 @@ export async function POST(request: NextRequest) {
 
       for (const [txId, result] of results) {
         const status =
-          result.confidence >= 95 ? 'auto_categorized' : 'human_review';
+          result.confidence === 0 && !result.glCode
+            ? 'categorization_failed'
+            : result.confidence >= 95
+              ? 'auto_categorized'
+              : 'human_review';
 
         if (result.confidence === 0 && !result.glCode) {
           summary.categorization.failed++;

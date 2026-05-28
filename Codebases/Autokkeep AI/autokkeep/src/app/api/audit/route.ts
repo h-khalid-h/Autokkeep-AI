@@ -21,8 +21,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const parsedLimit = parseInt(searchParams.get('limit') || '50', 10);
+    const parsedOffset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(Math.max(1, isNaN(parsedLimit) ? 50 : parsedLimit), 200);
+    const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
 
     // Validate org membership
     const { data: membership } = await (supabase as any)

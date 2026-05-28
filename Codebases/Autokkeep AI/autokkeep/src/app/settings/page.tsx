@@ -379,16 +379,24 @@ function IntegrationsTab({
         const handler = (window as any).Plaid.create({
           token: data.link_token,
           onSuccess: async (publicToken: string, metadata: any) => {
-            await fetch('/api/plaid/exchange', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                publicToken,
-                entityId: primaryEntityId,
-                institutionName: metadata?.institution?.name || 'Unknown',
-              }),
-            });
-            onRefresh();
+            try {
+              const exchangeRes = await fetch('/api/plaid/exchange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  publicToken,
+                  entityId: primaryEntityId,
+                  institutionName: metadata?.institution?.name || 'Unknown',
+                }),
+              });
+              if (!exchangeRes.ok) {
+                const errData = await exchangeRes.json().catch(() => ({}));
+                throw new Error(errData.error || 'Token exchange failed');
+              }
+              onRefresh();
+            } catch (err) {
+              setActionError(err instanceof Error ? err.message : 'Failed to connect bank account');
+            }
           },
           onExit: () => setActionLoading(null),
         });
@@ -643,11 +651,18 @@ function BillingTab({
         body: JSON.stringify({ orgId, plan, email: userEmail }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Checkout failed. Please try again.');
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        alert('Checkout failed: no redirect URL received.');
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      alert('Checkout failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -663,11 +678,18 @@ function BillingTab({
         body: JSON.stringify({ orgId }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to open billing portal.');
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        alert('Failed to open billing portal: no redirect URL received.');
       }
     } catch (error) {
       console.error('Portal error:', error);
+      alert('Failed to open billing portal. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -801,7 +823,8 @@ function TeamTab({
       const { error: deleteError } = await (supabase as any)
         .from('team_members')
         .delete()
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .eq('org_id', orgId);
 
       if (deleteError) {
         throw new Error(deleteError.message);
