@@ -79,6 +79,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, synced: 0, message: 'No transactions to sync' });
     }
 
+    // Optimistic lock: claim transactions by setting status to 'syncing'
+    const txIds = transactions.map((t: any) => t.id);
+    const { data: claimed, error: claimError } = await (supabase as any)
+      .from('transactions')
+      .update({ status: 'syncing', updated_at: new Date().toISOString() })
+      .in('id', txIds)
+      .eq('status', 'approved')
+      .select('*');
+
+    if (claimError || !claimed?.length) {
+      return NextResponse.json({ ok: true, synced: 0, message: 'Transactions already being synced by another process' });
+    }
+
     const bankAccountGLCode = '1010';
     const results = { synced: 0, failed: 0, errors: [] as string[] };
 
@@ -116,7 +129,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    for (const tx of transactions) {
+    for (const tx of claimed) {
       try {
         const entry = buildJournalEntryFromTransaction(tx, bankAccountGLCode);
 
@@ -181,6 +194,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Reset any failed transactions back to 'approved' for retry
+    if (results.failed > 0) {
+      const { data: stillSyncing } = await (supabase as any)
+        .from('transactions')
+        .select('id')
+        .in('id', txIds)
+        .eq('status', 'syncing');
+      if (stillSyncing?.length) {
+        await (supabase as any)
+          .from('transactions')
+          .update({ status: 'approved', updated_at: new Date().toISOString() })
+          .in('id', stillSyncing.map((t: any) => t.id));
+      }
+    }
+
     await (supabase as any)
       .from('ledger_connections')
       .update({ last_synced_at: new Date().toISOString() })
@@ -241,8 +269,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No Xero connection' }, { status: 404 });
     }
 
+    // Refresh token if expired (Xero tokens last 30 minutes)
+    let accessToken = conn.access_token;
+    const tokenExpired = conn.token_expires_at && new Date(conn.token_expires_at).getTime() < Date.now();
+
+    if (conn.refresh_token && tokenExpired) {
+      try {
+        const refreshed = await refreshXeroToken(conn.refresh_token);
+        accessToken = refreshed.accessToken;
+        await (supabase as any)
+          .from('ledger_connections')
+          .update({
+            access_token: refreshed.accessToken,
+            refresh_token: refreshed.refreshToken,
+            token_expires_at: new Date(Date.now() + (refreshed.expiresIn || 1800) * 1000).toISOString(),
+          })
+          .eq('id', conn.id);
+      } catch {
+        return NextResponse.json({ error: 'Xero token expired. Please re-authenticate.' }, { status: 401 });
+      }
+    } else if (tokenExpired) {
+      return NextResponse.json({ error: 'Xero token expired and no refresh token available' }, { status: 401 });
+    }
+
     const accounts = await syncChartOfAccounts('xero', {
-      accessToken: conn.access_token,
+      accessToken,
       tenantId: conn.tenant_id,
     });
 

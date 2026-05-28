@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import AuthGuard from '@/components/auth/AuthGuard';
 
 export const metadata: Metadata = {
@@ -7,5 +8,14 @@ export const metadata: Metadata = {
 };
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGuard>{children}</AuthGuard>;
+  return (
+    <AuthGuard>
+      {/* Plaid Link SDK — needed for bank connection step */}
+      <Script
+        src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"
+        strategy="lazyOnload"
+      />
+      {children}
+    </AuthGuard>
+  );
 }

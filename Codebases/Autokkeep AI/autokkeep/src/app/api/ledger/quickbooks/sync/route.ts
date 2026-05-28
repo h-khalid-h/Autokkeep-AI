@@ -85,6 +85,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Optimistic lock: claim transactions by setting status to 'syncing'
+    // This prevents double-sync if two requests arrive concurrently
+    const txIds = transactions.map((t: any) => t.id);
+    const { data: claimed, error: claimError } = await (supabase as any)
+      .from('transactions')
+      .update({ status: 'syncing', updated_at: new Date().toISOString() })
+      .in('id', txIds)
+      .eq('status', 'approved') // Only claim if still approved (another request may have claimed them)
+      .select('*');
+
+    if (claimError || !claimed?.length) {
+      return NextResponse.json({
+        ok: true,
+        synced: 0,
+        message: 'Transactions already being synced by another process',
+      });
+    }
+
     // Get the bank account GL code (default: 1010 - Checking)
     const bankAccountGLCode = '1010';
 
@@ -131,7 +149,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    for (const tx of transactions) {
+    for (const tx of claimed) {
       try {
         const entry = buildJournalEntryFromTransaction(tx, bankAccountGLCode);
 
@@ -208,6 +226,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Reset any failed transactions back to 'approved' so they can be retried
+    if (results.failed > 0) {
+      const failedIds = claimed
+        .filter((t: any) => !results.errors.every((e: string) => !e.startsWith(t.id)))
+        .map((t: any) => t.id);
+      // Simpler: get IDs of txns that are still 'syncing' (weren't set to 'synced')
+      const { data: stillSyncing } = await (supabase as any)
+        .from('transactions')
+        .select('id')
+        .in('id', txIds)
+        .eq('status', 'syncing');
+      if (stillSyncing?.length) {
+        await (supabase as any)
+          .from('transactions')
+          .update({ status: 'approved', updated_at: new Date().toISOString() })
+          .in('id', stillSyncing.map((t: any) => t.id));
+      }
+    }
+
     // Update last synced timestamp
     await (supabase as any)
       .from('ledger_connections')
@@ -273,8 +310,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No QBO connection' }, { status: 404 });
     }
 
+    // Refresh token if expired (QBO tokens last 1 hour)
+    let accessToken = conn.access_token;
+    const tokenExpired = conn.token_expires_at && new Date(conn.token_expires_at).getTime() < Date.now();
+
+    if (conn.refresh_token && tokenExpired) {
+      try {
+        const refreshed = await refreshQBOToken(conn.refresh_token);
+        accessToken = refreshed.accessToken;
+        await (supabase as any)
+          .from('ledger_connections')
+          .update({
+            access_token: refreshed.accessToken,
+            refresh_token: refreshed.refreshToken,
+            token_expires_at: new Date(Date.now() + (refreshed.expiresIn || 3600) * 1000).toISOString(),
+          })
+          .eq('id', conn.id);
+      } catch {
+        return NextResponse.json({ error: 'QuickBooks token expired. Please re-authenticate.' }, { status: 401 });
+      }
+    } else if (tokenExpired) {
+      return NextResponse.json({ error: 'QuickBooks token expired and no refresh token available' }, { status: 401 });
+    }
+
     const accounts = await syncChartOfAccounts('quickbooks', {
-      accessToken: conn.access_token,
+      accessToken,
       realmId: conn.realm_id,
     });
 

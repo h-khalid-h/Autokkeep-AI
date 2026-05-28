@@ -174,7 +174,7 @@ export default function OnboardingPage() {
           token: link_token,
           onSuccess: async (publicToken: string, metadata: any) => {
             try {
-              await fetch('/api/plaid/exchange', {
+              const res = await fetch('/api/plaid/exchange', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -183,6 +183,10 @@ export default function OnboardingPage() {
                   institutionName: metadata?.institution?.name || 'Unknown',
                 }),
               });
+              if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Exchange failed');
+              }
               setBankConnected(true);
               goNext();
             } catch (exchangeErr) {

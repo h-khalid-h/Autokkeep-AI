@@ -6,6 +6,90 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { syncTransactions } from '@/lib/plaid/client';
+import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
+
+// ─── Plaid Webhook JWT Verification ─────────────────────────────────────────
+// Plaid signs webhooks with ES256 JWTs. We verify the signature using
+// the public key fetched from Plaid's /webhook_verification_key/get endpoint.
+// Keys are cached in memory to avoid API calls on every webhook.
+// See: https://plaid.com/docs/api/webhooks/webhook-verification/
+
+type VerificationKey = Awaited<ReturnType<typeof importJWK>>;
+const keyCache = new Map<string, VerificationKey>();
+const KEY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const keyCacheTimestamps = new Map<string, number>();
+
+async function verifyPlaidWebhook(
+  token: string,
+  rawBody: string
+): Promise<boolean> {
+  try {
+    // 1. Decode the JWT header to get the key ID (kid)
+    const header = decodeProtectedHeader(token);
+    const kid = header.kid;
+    if (!kid) return false;
+
+    // 2. Get the verification key (cached or fresh)
+    let key = keyCache.get(kid);
+    const cachedAt = keyCacheTimestamps.get(kid) || 0;
+    if (!key || Date.now() - cachedAt > KEY_CACHE_TTL_MS) {
+      // Fetch from Plaid API
+      const response = await fetch(
+        'https://production.plaid.com/webhook_verification_key/get',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: process.env.PLAID_CLIENT_ID,
+            secret: process.env.PLAID_SECRET,
+            key_id: kid,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Plaid Webhook] Failed to fetch verification key');
+        return false;
+      }
+
+      const data = await response.json();
+      key = await importJWK(data.key, 'ES256');
+      keyCache.set(kid, key);
+      keyCacheTimestamps.set(kid, Date.now());
+    }
+
+    // 3. Verify the JWT signature (algorithm restricted to ES256)
+    const { payload } = await jwtVerify(token, key, {
+      algorithms: ['ES256'],
+    });
+
+    // 4. Check that webhook is not older than 5 minutes (replay prevention)
+    const iat = payload.iat;
+    if (!iat || Date.now() / 1000 - iat > 300) {
+      console.warn('[Plaid Webhook] JWT expired (iat too old)');
+      return false;
+    }
+
+    // 5. Verify request body hash matches the JWT claim
+    const bodyHash = payload.request_body_sha256;
+    if (bodyHash) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(rawBody);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      if (computedHash !== bodyHash) {
+        console.warn('[Plaid Webhook] Body hash mismatch');
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[Plaid Webhook] JWT verification failed:', error);
+    return false;
+  }
+}
 
 // Plaid webhook event types
 interface PlaidWebhookBody {
@@ -37,9 +121,7 @@ export async function POST(request: NextRequest) {
       `[Plaid Webhook] Received: ${webhook_type}.${webhook_code} for item ${item_id}`
     );
 
-    // Verify webhook authenticity via Plaid-Verification header
-    // Full JWT verification requires plaid-node's webhookVerificationKeyGet
-    // See: https://plaid.com/docs/api/webhooks/webhook-verification/
+    // Verify webhook authenticity via Plaid-Verification JWT header
     const verificationHeader = request.headers.get('plaid-verification');
     if (process.env.NODE_ENV === 'production') {
       if (!verificationHeader) {
@@ -49,8 +131,15 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
-      // TODO: Implement full JWT verification using plaid-node webhookVerificationKeyGet
-      // For now, we verify the header exists (Plaid sends a signed JWT)
+
+      const isValid = await verifyPlaidWebhook(verificationHeader, rawBody);
+      if (!isValid) {
+        console.warn('[Plaid Webhook] JWT verification failed — rejecting');
+        return NextResponse.json(
+          { error: 'Invalid webhook signature' },
+          { status: 401 }
+        );
+      }
     } else if (!verificationHeader) {
       console.warn('[Plaid Webhook] No verification header (non-production — allowing)');
     }
@@ -114,19 +203,21 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Handle removed transactions (soft delete)
-          for (const t of syncResult.removed) {
+          // Handle removed transactions (batch soft delete)
+          if (syncResult.removed.length > 0) {
+            const removedIds = syncResult.removed.map((t: Record<string, any>) => t.transaction_id);
             await (supabase as any)
               .from('transactions')
               .update({
                 status: 'removed',
                 updated_at: new Date().toISOString(),
               })
-              .eq('plaid_transaction_id', t.transaction_id)
+              .in('plaid_transaction_id', removedIds)
               .eq('entity_id', connection.entity_id);
           }
 
           // Handle modified transactions — clear AI categorization for re-processing
+          // (per-row update needed due to different values per row)
           for (const t of syncResult.modified) {
             await (supabase as any)
               .from('transactions')

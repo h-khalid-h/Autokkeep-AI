@@ -105,8 +105,12 @@ export async function GET(request: NextRequest) {
     const csvRows = rows.map((t: Record<string, any>) => {
       const escapeCsv = (val: string | null | undefined): string => {
         if (val === null || val === undefined) return '';
-        const str = String(val);
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        let str = String(val);
+        // Prevent CSV formula injection — prefix dangerous starting chars
+        if (/^[=+\-@\t\r]/.test(str)) {
+          str = "'" + str;
+        }
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes("'")) {
           return `"${str.replace(/"/g, '""')}"`;
         }
         return str;

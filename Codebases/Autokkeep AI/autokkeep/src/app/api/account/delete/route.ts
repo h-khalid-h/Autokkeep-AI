@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
             const { data: bankConns } = await (admin as any)
               .from('bank_connections')
               .select('plaid_access_token')
-              .eq('org_id', membership.org_id);
+              .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
 
             if (bankConns) {
               const { removeItem } = await import('@/lib/plaid/client');

@@ -111,9 +111,9 @@ export default function AnalyticsPage() {
             humanReviewed,
             pending,
             accuracy: filtered.length > 0 ? Math.round((highConf / filtered.length) * 1000) / 10 : 0,
-            avgProcessingTime: 2.4,
-            receiptsCaptured: Math.round(filtered.length * 0.82),
-            receiptsMissing: Math.round(filtered.length * 0.18),
+            avgProcessingTime: 0, // Not tracked per-transaction
+            receiptsCaptured: filtered.filter((t: any) => t.document_status === 'found').length,
+            receiptsMissing: filtered.filter((t: any) => t.document_status === 'missing' || !t.document_status).length,
             syncedToLedger: synced,
             dailyVolume: seededVolume(updated[range].dailyVolume.length, filtered.length > 30 ? 8 : 4),
             dailyLabels: updated[range].dailyLabels,
