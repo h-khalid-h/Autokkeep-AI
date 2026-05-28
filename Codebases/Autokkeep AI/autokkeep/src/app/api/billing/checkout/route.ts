@@ -10,12 +10,6 @@ function getStripe() {
 // POST /api/billing/checkout — Create Stripe Checkout session
 export async function POST(request: NextRequest) {
   try {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        { status: 429, headers: { 'Retry-After': String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }
-      );
-    }
-
     const { orgId, plan, email } = await request.json();
 
     if (!orgId || !plan || !email) {

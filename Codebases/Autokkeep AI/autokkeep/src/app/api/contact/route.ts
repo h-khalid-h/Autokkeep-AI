@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
         { error: 'Name, email, and message are required' },
         { status: 400 }
       );
+    }
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
