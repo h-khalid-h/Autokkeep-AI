@@ -30,7 +30,7 @@ export default function Error({
           className="text-body"
           style={{ marginBottom: '24px' }}
         >
-          {error.message || 'An unexpected error occurred. Our team has been notified.'}
+          An unexpected error occurred. Please try again or contact support if the issue persists.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
           <button className="btn btn-primary" onClick={reset}>
