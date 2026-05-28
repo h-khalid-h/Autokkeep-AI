@@ -239,6 +239,40 @@ export async function POST(request: NextRequest) {
       },
       request,
     });
+    // ── Dispatch alerts for high-risk transactions (PRD §4.2) ──────────────
+    if (triage.decision === 'freeze_review' && process.env.RESEND_API_KEY) {
+      try {
+        const { sendAlertEmail } = await import('@/lib/email/resend');
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const adminSupabase = createAdminClient();
+
+        // Get entity admin email
+        const { data: members } = await adminSupabase
+          .from('entity_memberships')
+          .select('user_id, role, users:user_id(email)')
+          .eq('entity_id', entityId)
+          .in('role', ['owner', 'admin'])
+          .limit(1);
+
+        const adminEmail = (members?.[0]?.users as unknown as { email: string })?.email;
+        if (adminEmail) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://autokkeep.com';
+          await sendAlertEmail({
+            to: adminEmail,
+            merchantName: transaction.merchant || transaction.merchantRaw || 'Unknown',
+            amount: transaction.amount,
+            confidence: Math.round(triage.confidence.compositeScore * 100),
+            reasoning: result.reasoning,
+            approveUrl: `${appUrl}/transactions?action=approve&id=${transaction.id}`,
+            rejectUrl: `${appUrl}/transactions?action=reject&id=${transaction.id}`,
+          });
+          console.log(`[AI Categorize] Alert email sent to ${adminEmail} for $${transaction.amount} transaction`);
+        }
+      } catch (alertError) {
+        // Don't fail the categorization if alert dispatch fails
+        console.error('[AI Categorize] Alert dispatch failed:', alertError);
+      }
+    }
 
     return NextResponse.json({
       ...result,
