@@ -12,7 +12,7 @@ interface AuditLogEntry {
   action: string;
   targetType: string;
   targetId?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | object;
   request?: NextRequest | Request;
 }
 
