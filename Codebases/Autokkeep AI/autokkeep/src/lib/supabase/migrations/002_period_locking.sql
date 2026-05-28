@@ -63,7 +63,14 @@ BEGIN
     AND period = v_period;
 
   IF v_locked IS TRUE THEN
-    RAISE EXCEPTION 'Cannot modify journal entries in locked period %', v_period;
+    -- PRD §6: Allow adjusting journal entries on locked periods
+    -- Corrections can only be executed by passing a balancing adjusting entry
+    IF TG_OP = 'INSERT' AND NEW.is_adjustment IS TRUE THEN
+      -- Adjusting entries are allowed on locked periods
+      NULL;
+    ELSE
+      RAISE EXCEPTION 'Cannot modify journal entries in locked period %', v_period;
+    END IF;
   END IF;
 
   IF TG_OP = 'DELETE' THEN

@@ -240,7 +240,17 @@ export async function POST(request: NextRequest) {
       request,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      triage: {
+        decision: triage.decision,
+        compositeScore: triage.confidence.compositeScore,
+        confidence: triage.confidence,
+        targetStatus: triage.targetStatus,
+        notificationChannel: triage.notificationChannel,
+      },
+      citationToken,
+    });
   } catch (error) {
     console.error('[AI Categorize] Error:', error);
     return NextResponse.json(

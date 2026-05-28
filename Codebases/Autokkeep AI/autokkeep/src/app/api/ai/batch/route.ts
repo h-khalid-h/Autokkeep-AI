@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
+import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { generateCitationToken } from '@/lib/ai/privacy-parser';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -179,14 +181,36 @@ export async function POST(request: NextRequest) {
     let autoApproved = 0;
     let flaggedForReview = 0;
     let failed = 0;
+    const citationTokens: Array<{ txId: string; citationToken: string; sourceHash: string }> = [];
 
     for (const [txId, result] of results) {
-      const status =
-        result.confidence >= 95 ? 'auto_categorized' : 'human_review';
+      // ── Composite Confidence Gate (PRD §5.1) ──
+      // Check for document corroboration
+      let hasDocument = false;
+      const { data: docAnchor } = await (supabase as any)
+        .from('document_anchors')
+        .select('id')
+        .eq('transaction_id', txId)
+        .limit(1);
+      hasDocument = (docAnchor && docAnchor.length > 0);
+
+      // Find the original transaction amount for triage
+      const originalTx = transactions.find((t: Record<string, any>) => t.id === txId);
+      const txAmount = originalTx?.amount || 0;
+
+      // Compute composite score and triage decision
+      const triage = triageTransaction(
+        result.confidence / 100, // Normalize 0-100 to 0.0-1.0
+        result.ruleMatchType as RuleMatchType,
+        hasDocument,
+        txAmount,
+      );
+
+      const citationToken = generateCitationToken(result.sourceHash, new Date().toISOString());
 
       if (result.confidence === 0 && !result.glCode) {
         failed++;
-      } else if (result.confidence >= 95) {
+      } else if (triage.decision === 'auto_commit') {
         autoApproved++;
       } else {
         flaggedForReview++;
@@ -196,16 +220,19 @@ export async function POST(request: NextRequest) {
         .from('transactions')
         .update({
           category_ai: result.glCode || null,
-          confidence: result.confidence,
-          ai_reasoning: result.glName ? `${result.reasoning} [GL Name: ${result.glName}]` : result.reasoning,
-          status,
+          confidence: Math.round(triage.confidence.compositeScore * 100),
+          ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+          status: triage.targetStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', txId)
         .eq('entity_id', entityId);
+
+      // Store citation token in audit details for batch tracking
+      citationTokens.push({ txId, citationToken, sourceHash: result.sourceHash });
     }
 
-    // Log to audit
+    // Log to audit with citation anchoring
     await writeAuditLog({
       supabase,
       entityId,
@@ -214,10 +241,12 @@ export async function POST(request: NextRequest) {
       action: 'categorize',
       targetType: 'transaction',
       details: {
+        batch: true,
         processed: results.size,
         auto_approved: autoApproved,
         flagged_for_review: flaggedForReview,
         failed,
+        citations: citationTokens,
       },
       request,
     });
