@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySlackSignature } from '@/lib/channels/slack';
+import { writeAuditLog } from '@/lib/audit';
 
 // POST /api/channels/slack/events — Handle Slack Events API
 export async function POST(request: NextRequest) {
@@ -102,13 +103,14 @@ async function handleFileUpload(event: Record<string, unknown>) {
     .single();
 
   if (tx) {
-    await (supabase as any).from('audit_log').insert({
-      entity_id: tx.entity_id,
+    await writeAuditLog({
+      supabase,
+      entityId: tx.entity_id,
+      actorId: (event.user as string) || 'slack_user',
+      actorType: 'human',
       action: 'update',
-      target_type: 'transaction',
-      target_id: receiptRequest.transaction_id,
-      actor_id: (event.user as string) || 'slack_user',
-      actor_type: 'human',
+      targetType: 'transaction',
+      targetId: receiptRequest.transaction_id,
       details: {
         source: 'slack',
         action: 'receipt_upload',

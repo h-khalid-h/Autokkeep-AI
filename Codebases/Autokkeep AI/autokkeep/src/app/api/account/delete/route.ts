@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -145,16 +146,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Log the deletion (user is already gone, log with system actor)
-    await (admin as any).from('audit_log').insert({
+    await writeAuditLog({
+      supabase: admin,
+      actorType: 'system',
       action: 'delete',
-      target_type: 'user',
-      target_id: user.id,
-      actor_type: 'system',
+      targetType: 'user',
+      targetId: user.id,
       details: {
         action: 'account_deletion',
         email: user.email,
         memberships_removed: memberships?.length || 0,
       },
+      request,
     });
 
     return NextResponse.json({ success: true });

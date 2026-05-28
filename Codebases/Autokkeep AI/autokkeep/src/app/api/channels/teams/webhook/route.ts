@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseTeamsWebhookPayload, mapTeamsChoiceToGL, sendTeamsConfirmation } from '@/lib/channels/teams';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { writeAuditLog } from '@/lib/audit';
 
 // POST /api/channels/teams/webhook — Handle Teams adaptive card responses
 export async function POST(request: NextRequest) {
@@ -102,17 +103,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (tx) {
-      await (supabase as any).from('audit_log').insert({
-        entity_id: tx.entity_id,
+      await writeAuditLog({
+        supabase,
+        entityId: tx.entity_id,
+        actorType: 'human',
         action: 'categorize',
-        target_type: 'transaction',
-        target_id: parsed.transactionId,
-        actor_type: 'human',
+        targetType: 'transaction',
+        targetId: parsed.transactionId,
         details: {
           source: 'teams',
           choice: parsed.categoryChoice,
           action: parsed.action,
         },
+        request,
       });
     }
 

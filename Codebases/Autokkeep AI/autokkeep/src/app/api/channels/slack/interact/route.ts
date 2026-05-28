@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeAuditLog } from '@/lib/audit';
 import {
   verifySlackSignature,
   parseSlackInteraction,
@@ -59,19 +60,21 @@ export async function POST(request: NextRequest) {
 
           if (!error) {
             // Log to audit trail
-            await (supabase as any).from('audit_log').insert({
-              entity_id: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+            await writeAuditLog({
+              supabase,
+              entityId: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+              actorId: payload.user?.id || 'slack_user',
+              actorType: 'human',
               action: 'approve',
-              target_type: 'transaction',
-              target_id: parsed.transactionId,
-              actor_id: payload.user?.id || 'slack_user',
-              actor_type: 'human',
+              targetType: 'transaction',
+              targetId: parsed.transactionId,
               details: {
                 source: 'slack',
                 action: 'accept',
                 gl_code: parsed.glCode,
                 user: payload.user?.name,
               },
+              request,
             });
 
             await sendSlackConfirmation(
@@ -97,19 +100,21 @@ export async function POST(request: NextRequest) {
             .eq('id', parsed.transactionId);
 
           if (!error) {
-            await (supabase as any).from('audit_log').insert({
-              entity_id: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+            await writeAuditLog({
+              supabase,
+              entityId: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+              actorId: payload.user?.id || 'slack_user',
+              actorType: 'human',
               action: 'categorize',
-              target_type: 'transaction',
-              target_id: parsed.transactionId,
-              actor_id: payload.user?.id || 'slack_user',
-              actor_type: 'human',
+              targetType: 'transaction',
+              targetId: parsed.transactionId,
               details: {
                 source: 'slack',
                 action: 'categorize',
                 gl_code: parsed.glCode,
                 gl_name: parsed.glName,
               },
+              request,
             });
 
             await sendSlackConfirmation(

@@ -5,6 +5,7 @@ import {
   validateTwilioSignature,
 } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { writeAuditLog } from '@/lib/audit';
 
 // POST /api/channels/whatsapp — Handle inbound WhatsApp messages
 export async function POST(request: NextRequest) {
@@ -84,13 +85,15 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.id);
 
         if (tx) {
-          await (supabase as any).from('audit_log').insert({
-            entity_id: tx.entity_id,
+          await writeAuditLog({
+            supabase,
+            entityId: tx.entity_id,
+            actorType: 'human',
             action: 'approve',
-            target_type: 'transaction',
-            target_id: receiptRequest.transaction_id,
-            actor_type: 'human',
+            targetType: 'transaction',
+            targetId: receiptRequest.transaction_id,
             details: { source: 'whatsapp', action: 'business', from: phoneNumber },
+            request,
           });
         }
 
@@ -125,13 +128,15 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.id);
 
         if (tx) {
-          await (supabase as any).from('audit_log').insert({
-            entity_id: tx.entity_id,
+          await writeAuditLog({
+            supabase,
+            entityId: tx.entity_id,
+            actorType: 'human',
             action: 'categorize',
-            target_type: 'transaction',
-            target_id: receiptRequest.transaction_id,
-            actor_type: 'human',
+            targetType: 'transaction',
+            targetId: receiptRequest.transaction_id,
             details: { source: 'whatsapp', action: 'personal', from: phoneNumber },
+            request,
           });
         }
 
@@ -172,13 +177,15 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (receiptTx) {
-            await (supabase as any).from('audit_log').insert({
-              entity_id: receiptTx.entity_id,
+            await writeAuditLog({
+              supabase,
+              entityId: receiptTx.entity_id,
+              actorType: 'human',
               action: 'receipt_upload',
-              target_type: 'transaction',
-              target_id: receiptRequest.transaction_id,
-              actor_type: 'human',
+              targetType: 'transaction',
+              targetId: receiptRequest.transaction_id,
               details: { source: 'whatsapp', mediaUrl: userResponse.mediaUrls[0], from: phoneNumber },
+              request,
             });
           }
 

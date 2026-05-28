@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   dispatchReceiptRequest,
@@ -136,17 +137,19 @@ export async function POST(request: NextRequest) {
       });
 
       // Log to audit trail
-      await (supabase as any).from('audit_log').insert({
-        entity_id: entityId,
+      await writeAuditLog({
+        supabase,
+        entityId,
+        actorType: 'system',
         action: 'create',
-        target_type: 'receipt_request',
-        target_id: transactionId,
-        actor_type: 'system',
+        targetType: 'receipt_request',
+        targetId: transactionId,
         details: {
           channel: result.channel,
           success: result.success,
           message_id: result.messageId,
         },
+        request,
       });
 
       return NextResponse.json({

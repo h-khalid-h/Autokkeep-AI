@@ -7,6 +7,8 @@
 // this engine isolates the variance and creates a balancing adjusting entry
 // to "Bank Fees & Charges" (GL 6180).
 
+import { writeAuditLog } from '@/lib/audit';
+
 export interface ReconciliationInput {
   transactionId: string;
   entityId: string;
@@ -196,12 +198,13 @@ export async function createFeeAdjustingEntry(
   ]);
 
   // Log to audit
-  await supabase.from('audit_log').insert({
-    entity_id: input.entityId,
+  await writeAuditLog({
+    supabase,
+    entityId: input.entityId,
+    actorType: 'system',
     action: 'create',
-    target_type: 'journal_entry',
-    target_id: journalEntry.id,
-    actor_type: 'system',
+    targetType: 'journal_entry',
+    targetId: journalEntry.id,
     details: {
       action: 'self_healing_reconciliation',
       bank_amount: input.bankAmount,
