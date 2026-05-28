@@ -787,6 +787,12 @@ function TeamTab({
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgId || !email) return;
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setActionError('Please enter a valid email address');
+      return;
+    }
     setInviteLoading(true);
     setActionError(null);
 
