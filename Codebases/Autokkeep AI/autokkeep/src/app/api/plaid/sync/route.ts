@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { syncTransactions } from '@/lib/plaid/client';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
-import { apiLimiter } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -22,8 +21,6 @@ interface SyncRequestBody {
 export async function POST(request: NextRequest) {
   try {
     // Rate limit
-    const limit = apiLimiter(request);
-    if (limit && !limit.allowed) {
       return NextResponse.json(
         { error: 'Too many requests' },
         { status: 429, headers: { 'Retry-After': String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const limit = authLimiter(request);
-    if (limit && !limit.allowed) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { createServerClient } = await import('@/lib/supabase/server');

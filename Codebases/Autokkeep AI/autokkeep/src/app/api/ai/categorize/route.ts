@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
-import { aiLimiter } from '@/lib/rate-limit';
+import { rateLimit } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -39,6 +39,10 @@ interface CategorizeRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 30 requests per minute per IP
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'ai' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -50,10 +54,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const limit = aiLimiter(request, user.id);
-    if (limit && !limit.allowed) {
-      return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 });
-    }
 
     const body: CategorizeRequestBody = await request.json();
     const { transaction, entityId } = body;
