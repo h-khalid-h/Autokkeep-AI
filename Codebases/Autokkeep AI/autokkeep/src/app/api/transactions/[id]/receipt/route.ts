@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { writeAuditLog } from '@/lib/audit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -99,18 +100,20 @@ export async function POST(
           .eq('status', 'sent');
 
         // Audit log
-        await (supabase as any).from('audit_log').insert({
-          entity_id: transaction.entity_id,
+        await writeAuditLog({
+          supabase,
+          entityId: transaction.entity_id,
+          actorId: user.id,
+          actorType: 'human',
           action: 'update',
-          target_type: 'transaction',
-          target_id: transactionId,
-          actor_id: user.id,
-          actor_type: 'human',
+          targetType: 'transaction',
+          targetId: transactionId,
           details: {
             action: 'receipt_attached',
             source: 'url',
             url: receiptUrl,
           },
+          request,
         });
 
         return NextResponse.json({
@@ -193,13 +196,14 @@ export async function POST(
       .eq('status', 'sent');
 
     // Audit log
-    await (supabase as any).from('audit_log').insert({
-      entity_id: transaction.entity_id,
+    await writeAuditLog({
+      supabase,
+      entityId: transaction.entity_id,
+      actorId: user.id,
+      actorType: 'human',
       action: 'update',
-      target_type: 'transaction',
-      target_id: transactionId,
-      actor_id: user.id,
-      actor_type: 'human',
+      targetType: 'transaction',
+      targetId: transactionId,
       details: {
         action: 'receipt_uploaded',
         source: 'file',
@@ -208,6 +212,7 @@ export async function POST(
         file_size: file.size,
         storage_path: uploadData.path,
       },
+      request,
     });
 
     return NextResponse.json({

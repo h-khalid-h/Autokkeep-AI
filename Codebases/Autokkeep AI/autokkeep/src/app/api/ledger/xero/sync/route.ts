@@ -6,6 +6,7 @@ import {
   buildJournalEntryFromTransaction,
   refreshXeroToken,
 } from '@/lib/ledger/sync';
+import { writeAuditLog } from '@/lib/audit';
 
 // POST /api/ledger/xero/sync — Sync approved transactions to Xero
 export async function POST(request: NextRequest) {
@@ -176,13 +177,16 @@ export async function POST(request: NextRequest) {
 
           results.synced++;
 
-          await (supabase as any).from('audit_log').insert({
-            entity_id: entityId,
+          await writeAuditLog({
+            supabase,
+            entityId,
+            actorId: user.id,
+            actorType: 'system',
             action: 'sync',
-            target_type: 'transaction',
-            target_id: tx.id,
-            actor_type: 'system',
+            targetType: 'transaction',
+            targetId: tx.id,
             details: { ledger: 'xero', journal_entry_id: syncResult.journalEntryId },
+            request,
           });
         } else {
           results.failed++;
@@ -213,6 +217,18 @@ export async function POST(request: NextRequest) {
       .from('ledger_connections')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', conn.id);
+
+    // Audit log the sync
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'sync',
+      targetType: 'xero',
+      details: { ...results },
+      request,
+    });
 
     return NextResponse.json({ ok: true, ...results });
   } catch (error) {

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { syncTransactions } from '@/lib/plaid/client';
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
+import { writeAuditLog } from '@/lib/audit';
 
 // ─── Plaid Webhook JWT Verification ─────────────────────────────────────────
 // Plaid signs webhooks with ES256 JWTs. We verify the signature using
@@ -296,6 +297,19 @@ export async function POST(request: NextRequest) {
           `[Plaid Webhook] Unhandled event: ${webhook_type}.${webhook_code}`
         );
     }
+
+    // Audit log the webhook event
+    await writeAuditLog({
+      supabase,
+      entityId: connection?.entity_id || 'unknown',
+      actorId: 'plaid',
+      actorType: 'system',
+      action: `webhook.${webhook_type}.${webhook_code}`,
+      targetType: 'bank_connection',
+      targetId: connection?.id,
+      details: { webhook_type, webhook_code, item_id },
+      request,
+    });
 
     // Always return 200 for webhooks
     return NextResponse.json({ received: true });

@@ -121,12 +121,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit trail
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
+    const { writeAuditLog } = await import('@/lib/audit');
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'create',
-      target_type: 'ledger_connection',
-      actor_type: 'human',
+      targetType: 'ledger_connection',
       details: { provider: 'quickbooks', realm_id: realmId },
+      request,
     });
 
     return NextResponse.json({

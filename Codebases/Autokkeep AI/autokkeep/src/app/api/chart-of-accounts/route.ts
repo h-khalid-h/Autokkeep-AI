@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { writeAuditLog } from '@/lib/audit';
 
 // ─── GET: List all chart of accounts for user's entity ──────────────────────────
 
@@ -190,14 +191,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: resolvedEntityId,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId: resolvedEntityId!,
+      actorId: user.id,
+      actorType: 'human',
       action: 'create',
-      target_type: 'chart_of_accounts',
-      target_id: account.id,
+      targetType: 'chart_of_accounts',
+      targetId: account.id,
       details: { code, name, type, description },
+      request,
     });
 
     return NextResponse.json({ account }, { status: 201 });
@@ -326,14 +329,16 @@ export async function PUT(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: existing.entity_id,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId: existing.entity_id,
+      actorId: user.id,
+      actorType: 'human',
       action: 'update',
-      target_type: 'chart_of_accounts',
-      target_id: id,
+      targetType: 'chart_of_accounts',
+      targetId: id,
       details: updates,
+      request,
     });
 
     return NextResponse.json({ account });
@@ -455,14 +460,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: existing.entity_id,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId: existing.entity_id,
+      actorId: user.id,
+      actorType: 'human',
       action: 'delete',
-      target_type: 'chart_of_accounts',
-      target_id: id,
+      targetType: 'chart_of_accounts',
+      targetId: id,
       details: {},
+      request,
     });
 
     return NextResponse.json({ success: true });

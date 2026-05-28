@@ -8,6 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { syncTransactions } from '@/lib/plaid/client';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
+import { writeAuditLog } from '@/lib/audit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -377,14 +378,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'sync',
-      target_type: 'entity',
-      target_id: entityId,
+      targetType: 'entity',
+      targetId: entityId,
       details: summary,
+      request,
     });
 
     return NextResponse.json(summary);

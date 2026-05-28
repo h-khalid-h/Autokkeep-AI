@@ -34,12 +34,16 @@ export async function POST(request: NextRequest) {
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
+    const { writeAuditLog } = await import('@/lib/audit');
     // Store in audit_log (or a dedicated contact_submissions table)
-    await (supabase as any).from('audit_log').insert({
+    await writeAuditLog({
+      supabase,
+      entityId: 'system',
+      actorId: 'anonymous',
+      actorType: 'system',
       action: 'create',
-      target_type: 'contact_form',
-      target_id: sanitizedEmail,
-      actor_type: 'system',
+      targetType: 'contact_form',
+      targetId: sanitizedEmail,
       details: {
         name,
         email: sanitizedEmail,
@@ -49,6 +53,7 @@ export async function POST(request: NextRequest) {
         message: sanitizedMessage,
         submitted_at: new Date().toISOString(),
       },
+      request,
     });
 
     return NextResponse.json({ ok: true });

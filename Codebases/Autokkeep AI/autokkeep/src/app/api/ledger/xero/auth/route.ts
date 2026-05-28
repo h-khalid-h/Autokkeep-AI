@@ -117,12 +117,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save Xero connection' }, { status: 500 });
     }
 
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
+    const { writeAuditLog } = await import('@/lib/audit');
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'create',
-      target_type: 'ledger_connection',
-      actor_type: 'human',
+      targetType: 'ledger_connection',
       details: { provider: 'xero', tenant_id: tokens.tenantId },
+      request,
     });
 
     return NextResponse.json({

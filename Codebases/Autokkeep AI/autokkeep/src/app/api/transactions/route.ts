@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { writeAuditLog } from '@/lib/audit';
 
 // ─── GET: List transactions with filtering ─────────────────────────────────────
 
@@ -249,14 +250,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'create',
-      target_type: 'transaction',
-      target_id: transaction.id,
+      targetType: 'transaction',
+      targetId: transaction.id,
       details: { merchant, amount, source: 'manual' },
+      request,
     });
 
     return NextResponse.json({ transaction }, { status: 201 });
