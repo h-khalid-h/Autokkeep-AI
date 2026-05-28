@@ -10,9 +10,10 @@
 -- Safe to run multiple times (uses IF NOT EXISTS).
 -- =============================================================================
 
--- 1. Add escrow_suspense and categorization_failed to transaction_status
+-- 1. Add escrow_suspense, categorization_failed, and syncing to transaction_status
 ALTER TYPE transaction_status ADD VALUE IF NOT EXISTS 'escrow_suspense';
 ALTER TYPE transaction_status ADD VALUE IF NOT EXISTS 'categorization_failed';
+ALTER TYPE transaction_status ADD VALUE IF NOT EXISTS 'syncing';
 
 -- 2. Add 'failed' to receipt_status (for Twilio failed deliveries)
 ALTER TYPE receipt_status ADD VALUE IF NOT EXISTS 'failed';

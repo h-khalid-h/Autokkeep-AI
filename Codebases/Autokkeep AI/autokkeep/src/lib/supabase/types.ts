@@ -13,6 +13,7 @@ export type TransactionStatus =
   | 'human_review'
   | 'categorization_failed'
   | 'approved'
+  | 'syncing'
   | 'synced'
   | 'removed'
   | 'escrow_suspense';

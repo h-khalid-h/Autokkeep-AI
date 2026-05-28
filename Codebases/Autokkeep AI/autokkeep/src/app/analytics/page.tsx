@@ -21,9 +21,8 @@ interface AnalyticsData {
   recentExceptions: { merchant: string; amount: number; confidence: number; reason: string }[];
 }
 
-// Deterministic daily volume (no Math.random to avoid hydration mismatch)
-const seededVolume = (len: number, base: number) =>
-  Array.from({ length: len }, (_, i) => base + ((i * 7 + 3) % 9));
+
+
 
 const EMPTY_RANGE: AnalyticsData = {
   totalTransactions: 0, autoApproved: 0, humanReviewed: 0, pending: 0,
@@ -115,8 +114,31 @@ export default function AnalyticsPage() {
             receiptsCaptured: filtered.filter((t: any) => t.document_status === 'found').length,
             receiptsMissing: filtered.filter((t: any) => t.document_status === 'missing' || !t.document_status).length,
             syncedToLedger: synced,
-            dailyVolume: seededVolume(updated[range].dailyVolume.length, filtered.length > 30 ? 8 : 4),
-            dailyLabels: updated[range].dailyLabels,
+            dailyVolume: (() => {
+              // Compute real daily volume from transactions
+              const dayCount = Math.min(days, 30); // Show max 30 data points
+              const volumeMap = new Map<string, number>();
+              for (const tx of filtered) {
+                const d = tx.date?.slice(0, 10);
+                if (d) volumeMap.set(d, (volumeMap.get(d) || 0) + 1);
+              }
+              const result: number[] = [];
+              for (let i = dayCount - 1; i >= 0; i--) {
+                const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+                result.push(volumeMap.get(d) || 0);
+              }
+              return result;
+            })(),
+            dailyLabels: (() => {
+              const dayCount = Math.min(days, 30);
+              const labels: string[] = [];
+              const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              for (let i = dayCount - 1; i >= 0; i--) {
+                const d = new Date(now - i * 86400000);
+                labels.push(dayNames[d.getDay()]);
+              }
+              return labels;
+            })(),
             topCategories: topCategories.length > 0 ? topCategories : [],
             recentExceptions: exceptions.length > 0 ? exceptions : [],
           };
