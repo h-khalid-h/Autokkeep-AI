@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { writeAuditLog } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -196,21 +197,23 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: existing.entity_id,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId: existing.entity_id,
+      actorId: user.id,
+      actorType: 'human',
       action:
         newStatus === 'approved'
           ? 'approve'
           : 'update',
-      target_type: 'transaction',
-      target_id: id,
+      targetType: 'transaction',
+      targetId: id,
       details: {
         changes: body,
         previous_status: existing.status,
         previous_category_ai: existing.category_ai,
       },
+      request,
     });
 
     // Update categorization history for learning when a human approves
@@ -328,18 +331,20 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: existing.entity_id,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId: existing.entity_id,
+      actorId: user.id,
+      actorType: 'human',
       action: 'delete',
-      target_type: 'transaction',
-      target_id: id,
+      targetType: 'transaction',
+      targetId: id,
       details: {
         merchant: existing.merchant_name,
         amount: existing.amount,
         previous_status: existing.status,
       },
+      request,
     });
 
     return NextResponse.json({ success: true });

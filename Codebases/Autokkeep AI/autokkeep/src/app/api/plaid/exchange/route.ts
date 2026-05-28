@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   exchangePublicToken,
@@ -183,17 +184,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'create',
-      target_type: 'bank_connection',
-      target_id: connection.id,
+      targetType: 'bank_connection',
+      targetId: connection.id,
       details: {
         institution_name: institutionName,
         accounts_count: accounts.length,
       },
+      request,
     });
 
     return NextResponse.json({

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { batchCategorize } from '@/lib/ai/categorizer';
+import { writeAuditLog } from '@/lib/audit';
 import { aiLimiter } from '@/lib/rate-limit';
 import type {
   TransactionInput,
@@ -215,18 +216,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await (supabase as any).from('audit_log').insert({
-      entity_id: entityId,
-      actor_id: user.id,
-      actor_type: 'human',
+    await writeAuditLog({
+      supabase,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
       action: 'categorize',
-      target_type: 'transaction',
+      targetType: 'transaction',
       details: {
         processed: results.size,
         auto_approved: autoApproved,
         flagged_for_review: flaggedForReview,
         failed,
       },
+      request,
     });
 
     const summary: BatchSummary = {
