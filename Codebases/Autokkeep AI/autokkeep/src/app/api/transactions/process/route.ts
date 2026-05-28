@@ -10,7 +10,6 @@ import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
-import { generateCitationToken } from '@/lib/ai/privacy-parser';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -304,7 +303,7 @@ export async function POST(request: NextRequest) {
         );
 
         const targetStatus = result.confidence === 0 && !result.glCode
-          ? 'pending' // categorization failed, keep as pending
+          ? 'categorization_failed'
           : triage.targetStatus;
 
         if (result.confidence === 0 && !result.glCode) {
