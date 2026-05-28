@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies only (cache layer)
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # ---- Stage 2: Build ----
 FROM node:20-alpine AS builder
