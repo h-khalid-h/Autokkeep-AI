@@ -33,9 +33,11 @@ async function verifyPlaidWebhook(
     let key = keyCache.get(kid);
     const cachedAt = keyCacheTimestamps.get(kid) || 0;
     if (!key || Date.now() - cachedAt > KEY_CACHE_TTL_MS) {
-      // Fetch from Plaid API
+      // Fetch from Plaid API (use environment-specific URL)
+      const plaidEnv = process.env.PLAID_ENV || 'production';
+      const plaidHost = plaidEnv === 'sandbox' ? 'sandbox' : plaidEnv === 'development' ? 'development' : 'production';
       const response = await fetch(
-        'https://production.plaid.com/webhook_verification_key/get',
+        `https://${plaidHost}.plaid.com/webhook_verification_key/get`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
