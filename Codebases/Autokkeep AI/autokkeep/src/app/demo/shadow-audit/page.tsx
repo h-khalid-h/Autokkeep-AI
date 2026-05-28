@@ -102,14 +102,20 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
   return { headers, rows };
 }
 
+/* ─── Seeded PRNG ─── */
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
 /* ─── Categorizer ─── */
-function categorize(description: string): { category: string; glCode: string; confidence: number; matchType: 'exact' | 'ai_inferred' | 'needs_review' } {
+function categorize(description: string, index: number): { category: string; glCode: string; confidence: number; matchType: 'exact' | 'ai_inferred' | 'needs_review' } {
   const lower = description.toLowerCase();
 
   // Exact merchant match
   for (const [merchant, data] of Object.entries(KNOWN_MERCHANTS)) {
     if (lower.includes(merchant)) {
-      return { ...data, confidence: 97 + Math.random() * 2, matchType: 'exact' };
+      return { ...data, confidence: 97 + seededRandom(index) * 2, matchType: 'exact' };
     }
   }
 
@@ -117,13 +123,13 @@ function categorize(description: string): { category: string; glCode: string; co
   for (const pc of PATTERN_CATEGORIES) {
     for (const pattern of pc.patterns) {
       if (lower.includes(pattern)) {
-        return { category: pc.category, glCode: pc.glCode, confidence: 82 + Math.random() * 9, matchType: 'ai_inferred' };
+        return { category: pc.category, glCode: pc.glCode, confidence: 82 + seededRandom(index + 100) * 9, matchType: 'ai_inferred' };
       }
     }
   }
 
   // Unknown
-  return { category: 'Uncategorized', glCode: '9999', confidence: 45 + Math.random() * 20, matchType: 'needs_review' };
+  return { category: 'Uncategorized', glCode: '9999', confidence: 45 + seededRandom(index + 200) * 20, matchType: 'needs_review' };
 }
 
 /* ─── Auto-detect columns ─── */
@@ -279,7 +285,7 @@ export default function ShadowAuditPage() {
       }
       const row = rows[i];
       const desc = row[mapping.descCol] || '';
-      const cat = categorize(desc);
+      const cat = categorize(desc, i);
       const newRow: CategorizedRow = {
         date: row[mapping.dateCol] || '',
         description: desc,
@@ -292,7 +298,7 @@ export default function ShadowAuditPage() {
       setResults(prev => [...prev, newRow]);
       setProgress(Math.round(((i + 1) / total) * 100));
       i++;
-      setTimeout(processNext, 50 + Math.random() * 100);
+      setTimeout(processNext, 50 + seededRandom(i + 300) * 100);
     }
     processNext();
   }, [rows, mapping]);

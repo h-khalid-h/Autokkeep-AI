@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { syncTransactions } from '@/lib/plaid/client';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -125,6 +126,20 @@ export async function GET(request: NextRequest) {
           err
         );
       }
+    }
+
+    // Audit log the cron run
+    if (connections.length > 0) {
+      await writeAuditLog({
+        supabase,
+        entityId: connections[0].entity_id,
+        actorId: 'system',
+        actorType: 'system',
+        action: 'sync',
+        targetType: 'plaid_sync',
+        details: { synced: syncedCount, failed: failedCount, total: connections.length },
+        request,
+      });
     }
 
     return NextResponse.json({

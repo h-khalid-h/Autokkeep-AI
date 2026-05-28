@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { writeAuditLog } from '@/lib/audit';
 
 const SUSPENSE_GL_CODE = '2900'; // Suspense/Clearing account
 const SUSPENSE_TIMEOUT_HOURS = 48;
@@ -123,6 +124,23 @@ export async function GET(request: NextRequest) {
         const msg = `Failed to move txn ${txn.id}: ${err instanceof Error ? err.message : 'Unknown'}`;
         errors.push(msg);
         console.error('[Suspense Timeout]', msg);
+      }
+    }
+
+    // Audit log the cron run
+    if (movedCount > 0) {
+      for (const txn of staleTransactions.slice(0, movedCount)) {
+        await writeAuditLog({
+          supabase,
+          entityId: txn.entity_id,
+          actorId: 'system',
+          actorType: 'system',
+          action: 'update',
+          targetType: 'transaction',
+          targetId: txn.id,
+          details: { from_status: 'human_review', to_status: 'escrow_suspense', reason: '48h_timeout' },
+          request,
+        });
       }
     }
 

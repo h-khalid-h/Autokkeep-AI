@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/data/mockTransactions';
 import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
@@ -61,6 +62,7 @@ const mapTransaction = (tx: any): Transaction => ({
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { selectedEntity } = useEntity();
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<Transaction | null>(null);
@@ -71,6 +73,7 @@ export default function DashboardPage() {
 
   // Fetch transactions from API on mount
   React.useEffect(() => {
+    if (!selectedEntity?.id) return;
     let cancelled = false;
 
     async function fetchTransactions() {
@@ -78,7 +81,7 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const res = await fetch('/api/transactions?status=human_review,pending');
+        const res = await fetch(`/api/transactions?status=human_review,pending&entityId=${selectedEntity!.id}`);
 
         if (!res.ok) {
           throw new Error(`Failed to fetch transactions (${res.status})`);
@@ -104,7 +107,7 @@ export default function DashboardPage() {
 
     fetchTransactions();
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedEntity?.id]);
 
   const handleSelectTransaction = React.useCallback(
     (transaction: Transaction) => {

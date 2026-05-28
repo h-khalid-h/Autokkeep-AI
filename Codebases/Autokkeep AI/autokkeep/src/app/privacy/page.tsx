@@ -160,6 +160,48 @@ const sections = [
     ],
   },
   {
+    id: 'children',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    title: "Children's Privacy",
+    content: [
+      {
+        subtitle: 'Age Restriction',
+        text: 'Autokkeep is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children. If you are under 18, please do not use the platform or provide any personal data.',
+      },
+      {
+        subtitle: 'Parental Notice',
+        text: 'If we become aware that we have inadvertently collected personal data from a child under 18, we will take immediate steps to delete such information from our servers. If you believe a child has provided us with personal data, please contact our privacy team.',
+      },
+    ],
+  },
+  {
+    id: 'policy-changes',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+    ),
+    title: 'Changes to This Policy',
+    content: [
+      {
+        subtitle: 'Notification of Changes',
+        text: 'We may update this Privacy Policy from time to time to reflect changes in our practices, technologies, or legal requirements. Material changes will be communicated via email or a prominent notice on our platform at least 30 days before taking effect.',
+      },
+      {
+        subtitle: 'Continued Use',
+        text: 'Your continued use of the platform after the effective date of any updated Privacy Policy constitutes your acceptance of the revised terms. We encourage you to review this policy periodically to stay informed about how we protect your information.',
+      },
+    ],
+  },
+  {
     id: 'security',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

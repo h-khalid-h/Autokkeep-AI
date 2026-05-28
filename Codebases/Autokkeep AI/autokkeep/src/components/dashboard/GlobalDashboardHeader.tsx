@@ -3,82 +3,34 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient as getSupabase } from '@/lib/supabase/client';
+import { useEntity } from '@/lib/context/EntityContext';
 import UserMenu from './UserMenu';
 import NotificationBell from './NotificationBell';
 
-
-interface EntityItem {
-  id: string;
-  name: string;
-}
-
 const GlobalDashboardHeader: React.FC = () => {
-  const [entities, setEntities] = React.useState<EntityItem[]>([]);
-  const [selectedEntity, setSelectedEntity] = React.useState<EntityItem | null>(null);
+  const { entities, selectedEntity, setSelectedEntityId } = useEntity();
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = React.useState(false);
   const [userInitials, setUserInitials] = React.useState('AK');
   const [connectionStatus, setConnectionStatus] = React.useState('Connecting...');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Fetch real entities and user info
   React.useEffect(() => {
     async function loadData() {
       try {
         const supabase = getSupabase();
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (user) {
-          // Set user initials from email
           const email = user.email || '';
           const parts = email.split('@')[0].split(/[._-]/);
           const initials = parts.length >= 2
             ? (parts[0][0] + parts[1][0]).toUpperCase()
             : email.slice(0, 2).toUpperCase();
           setUserInitials(initials);
-
-          // Get user's org
-          const { data: membership } = await (supabase as any)
-            .from('team_members')
-            .select('org_id')
-            .eq('user_id', user.id)
-            .single();
-
-          if (membership) {
-            // Get entities
-            const { data: entityData } = await (supabase as any)
-              .from('entities')
-              .select('id, name')
-              .eq('org_id', membership.org_id)
-              .order('created_at', { ascending: true });
-
-            if (entityData && entityData.length > 0) {
-              setEntities(entityData);
-              setSelectedEntity(entityData[0]);
-
-              // Check bank connection status
-              const { data: bankConns } = await (supabase as any)
-                .from('bank_connections')
-                .select('id, status')
-                .eq('entity_id', entityData[0].id)
-                .eq('status', 'active');
-
-              setConnectionStatus(
-                bankConns && bankConns.length > 0
-                  ? 'Live · Plaid Connected'
-                  : 'No Bank Connected'
-              );
-            } else {
-              setEntities([]);
-              setConnectionStatus('Setup Required');
-            }
-          }
         } else {
           setConnectionStatus('Not Logged In');
         }
       } catch {
-        // Fallback to demo mode
-        setEntities([{ id: 'demo', name: 'Demo Entity' }]);
-        setSelectedEntity({ id: 'demo', name: 'Demo Entity' });
         setConnectionStatus('Demo Mode');
       }
     }
@@ -86,14 +38,42 @@ const GlobalDashboardHeader: React.FC = () => {
     loadData();
   }, []);
 
+  React.useEffect(() => {
+    async function loadConnectionStatus() {
+      if (!selectedEntity) {
+        setConnectionStatus(entities.length === 0 ? 'Setup Required' : 'Connecting...');
+        return;
+      }
+
+      try {
+        const supabase = getSupabase();
+        const { data: bankConns } = await (supabase as any)
+          .from('bank_connections')
+          .select('id, status')
+          .eq('entity_id', selectedEntity.id)
+          .eq('status', 'active');
+
+        setConnectionStatus(
+          bankConns && bankConns.length > 0
+            ? 'Live · Plaid Connected'
+            : 'No Bank Connected'
+        );
+      } catch {
+        setConnectionStatus('Demo Mode');
+      }
+    }
+
+    loadConnectionStatus();
+  }, [selectedEntity, entities.length]);
+
   const toggleDropdown = React.useCallback(() => {
     setIsEntityDropdownOpen((prev) => !prev);
   }, []);
 
-  const selectEntity = React.useCallback((entity: EntityItem) => {
-    setSelectedEntity(entity);
+  const selectEntity = React.useCallback((entity: { id: string; name: string }) => {
+    setSelectedEntityId(entity.id);
     setIsEntityDropdownOpen(false);
-  }, []);
+  }, [setSelectedEntityId]);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useEntity } from '@/lib/context/EntityContext';
 
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
 
@@ -41,6 +42,7 @@ const EMPTY_DATA: Record<TimeRange, AnalyticsData> = {
   'ytd': { ...EMPTY_RANGE, dailyVolume: Array(12).fill(0), dailyLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }};
 
 export default function AnalyticsPage() {
+  const { selectedEntity } = useEntity();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [analyticsData, setAnalyticsData] = useState<Record<TimeRange, AnalyticsData>>(EMPTY_DATA);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,9 +50,10 @@ export default function AnalyticsPage() {
 
   // Fetch real transaction stats on mount
   useEffect(() => {
+    if (!selectedEntity?.id) return;
     async function fetchAnalytics() {
       try {
-        const res = await fetch('/api/transactions');
+        const res = await fetch(`/api/transactions?entityId=${selectedEntity!.id}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const result = await res.json();
         const txns = result.transactions || [];
@@ -153,7 +156,7 @@ export default function AnalyticsPage() {
     }
 
     fetchAnalytics();
-  }, []);
+  }, [selectedEntity?.id]);
 
   const data = analyticsData[timeRange];
 

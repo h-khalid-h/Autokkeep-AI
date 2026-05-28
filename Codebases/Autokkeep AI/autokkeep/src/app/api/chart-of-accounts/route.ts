@@ -8,7 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 
 // ─── GET: List all chart of accounts for user's entity ──────────────────────────
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient();
 
@@ -38,10 +38,16 @@ export async function GET() {
       .select('id')
       .eq('org_id', membership.org_id);
 
-    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
-    if (entityIds.length === 0) {
+    const allEntityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+    if (allEntityIds.length === 0) {
       return NextResponse.json({ accounts: [] });
     }
+
+    // If entityId provided, validate it belongs to this org; otherwise use all
+    const requestedEntityId = new URL(request.url).searchParams.get('entityId');
+    const entityIds = requestedEntityId && allEntityIds.includes(requestedEntityId)
+      ? [requestedEntityId]
+      : allEntityIds;
 
     // Fetch chart of accounts
     const { data: accounts, error: queryError } = await (supabase as any)

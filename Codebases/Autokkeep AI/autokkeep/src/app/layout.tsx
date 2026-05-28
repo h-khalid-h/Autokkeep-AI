@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
+import Providers from "@/components/Providers";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -108,24 +109,26 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {/* Skip to main content — accessibility */}
-        <a
-          href="#main-content"
-          className="skip-to-content"
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            top: 'auto',
-            width: '1px',
-            height: '1px',
-            overflow: 'hidden',
-            zIndex: 9999,
-          }}
-        >
-          Skip to main content
-        </a>
-        <div id="main-content">{children}</div>
-        <CookieConsent />
+        <Providers>
+          {/* Skip to main content — accessibility */}
+          <a
+            href="#main-content"
+            className="skip-to-content"
+            style={{
+              position: 'absolute',
+              left: '-9999px',
+              top: 'auto',
+              width: '1px',
+              height: '1px',
+              overflow: 'hidden',
+              zIndex: 9999,
+            }}
+          >
+            Skip to main content
+          </a>
+          <div id="main-content">{children}</div>
+          <CookieConsent />
+        </Providers>
       </body>
     </html>
   );

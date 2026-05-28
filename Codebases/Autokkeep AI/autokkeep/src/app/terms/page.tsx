@@ -32,6 +32,59 @@ const sections = [
     ],
   },
   {
+    id: 'data-handling',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      </svg>
+    ),
+    title: 'Data Handling',
+    content: [
+      {
+        subtitle: 'Bank Data',
+        text: 'We access your bank transactions through Plaid\'s secure API. Bank credentials are never stored on our servers — they are handled exclusively by Plaid. Transaction data is encrypted in transit and at rest.',
+      },
+      {
+        subtitle: 'Financial Records',
+        text: 'Your financial records — including categorized transactions, journal entries, reconciliation data, and generated reports — are stored securely in our database with row-level security. Each organization\'s data is fully isolated.',
+      },
+      {
+        subtitle: 'AI Processing',
+        text: 'Transaction descriptions may be sent to OpenAI\'s API for categorization purposes. This data is processed in real-time and is not stored by OpenAI or used for model training, in accordance with their API data usage policy.',
+      },
+    ],
+  },
+  {
+    id: 'third-party-services',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+    title: 'Third-Party Services',
+    content: [
+      {
+        subtitle: 'Plaid',
+        text: 'We use Plaid to securely connect to your bank accounts. Plaid acts as a secure intermediary for accessing transaction data and does not store your bank login credentials on our behalf. Use of Plaid is subject to the Plaid End User Privacy Policy.',
+      },
+      {
+        subtitle: 'Stripe',
+        text: 'Payment processing is handled by Stripe. Your payment card details are transmitted directly to Stripe and never touch our servers. Stripe is PCI DSS Level 1 certified. Use of Stripe is subject to the Stripe Services Agreement.',
+      },
+      {
+        subtitle: 'OpenAI',
+        text: 'We use OpenAI\'s API to power our AI categorization and financial insights engine. Data sent to OpenAI is processed under their API data usage policy — it is not stored or used for model training. We send only transaction descriptions, never full account numbers or credentials.',
+      },
+      {
+        subtitle: 'Supabase',
+        text: 'Our database and authentication infrastructure is hosted on Supabase, which provides SOC 2 Type II certified PostgreSQL hosting with row-level security, encrypted backups, and real-time monitoring.',
+      },
+    ],
+  },
+  {
     id: 'user-responsibilities',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { useEntity } from '@/lib/context/EntityContext';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
@@ -108,6 +109,8 @@ function mapApiAccount(row: any): Account {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function ChartOfAccountsPage() {
+  const { selectedEntity } = useEntity();
+
   // Data state
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,10 +143,11 @@ export default function ChartOfAccountsPage() {
 
   // ─── Fetch accounts ─────────────────────────────────────────────────────
   const fetchAccounts = useCallback(async () => {
+    if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/chart-of-accounts');
+      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`);
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
       const data = await res.json();
       const mapped = (data.accounts || []).map(mapApiAccount);
@@ -155,7 +159,7 @@ export default function ChartOfAccountsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedEntity?.id]);
 
   useEffect(() => {
     fetchAccounts();

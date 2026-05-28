@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { writeAuditLog } from '@/lib/audit';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -157,6 +158,18 @@ export async function POST(request: NextRequest) {
         break;
       }
     }
+
+    // Audit log the webhook event
+    await writeAuditLog({
+      supabase,
+      entityId: 'system',
+      actorId: 'stripe',
+      actorType: 'system',
+      action: event.type,
+      targetType: 'subscription',
+      details: { stripe_event_id: event.id, event_type: event.type },
+      request,
+    });
 
     return NextResponse.json({ received: true });
   } catch (error) {

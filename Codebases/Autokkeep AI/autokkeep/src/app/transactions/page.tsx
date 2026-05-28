@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { useEntity } from '@/lib/context/EntityContext';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
@@ -75,6 +76,8 @@ const getConfidenceColor = (conf: number) => {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
+  const { selectedEntity } = useEntity();
+
   // Data state
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ total: 0, limit: PAGE_SIZE, offset: 0, hasMore: false });
@@ -93,7 +96,6 @@ export default function TransactionsPage() {
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [entityId, setEntityId] = useState<string | null>(null);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -102,41 +104,11 @@ export default function TransactionsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Resolve entity on mount
-  useEffect(() => {
-    async function resolveEntity() {
-      try {
-        const supabase = getSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
 
-        const { data: membership } = await (supabase as any)
-          .from('team_members')
-          .select('org_id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (!membership) return;
-
-        const { data: entities } = await (supabase as any)
-          .from('entities')
-          .select('id')
-          .eq('org_id', membership.org_id)
-          .order('created_at', { ascending: true })
-          .limit(1);
-
-        if (entities && entities.length > 0) {
-          setEntityId(entities[0].id);
-        }
-      } catch {
-        // Will use API without entityId
-      }
-    }
-    resolveEntity();
-  }, []);
 
   // Fetch transactions
   const fetchTransactions = useCallback(async () => {
+    if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
 
@@ -144,6 +116,7 @@ export default function TransactionsPage() {
       const params = new URLSearchParams();
       params.set('limit', String(PAGE_SIZE));
       params.set('offset', String(page * PAGE_SIZE));
+      params.set('entityId', selectedEntity.id);
 
       if (debouncedSearch) params.set('search', debouncedSearch);
       if (statusFilter) params.set('status', statusFilter);
@@ -171,7 +144,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, hasAnyTransactions]);
+  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, hasAnyTransactions, selectedEntity?.id]);
 
   useEffect(() => {
     fetchTransactions();
@@ -220,7 +193,7 @@ export default function TransactionsPage() {
     setIsExporting(true);
     try {
       const params = new URLSearchParams();
-      if (entityId) params.set('entityId', entityId);
+      if (selectedEntity?.id) params.set('entityId', selectedEntity.id);
       if (statusFilter) params.set('status', statusFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
