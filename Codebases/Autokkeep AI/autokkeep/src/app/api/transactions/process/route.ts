@@ -9,6 +9,8 @@ import { syncTransactions } from '@/lib/plaid/client';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
+import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { generateCitationToken } from '@/lib/ai/privacy-parser';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -282,16 +284,32 @@ export async function POST(request: NextRequest) {
       // ── Step 3 & 4: Auto-approve ≥95%, flag <95% for HITL ──────────────
 
       for (const [txId, result] of results) {
-        const status =
-          result.confidence === 0 && !result.glCode
-            ? 'categorization_failed'
-            : result.confidence >= 95
-              ? 'auto_categorized'
-              : 'human_review';
+        // ── Composite Confidence Gate (PRD §5.1) ──
+        let hasDocument = false;
+        const { data: docAnchor } = await (supabase as any)
+          .from('document_anchors')
+          .select('id')
+          .eq('transaction_id', txId)
+          .limit(1);
+        hasDocument = (docAnchor && docAnchor.length > 0);
+
+        const originalTx = pendingTransactions.find((t: Record<string, any>) => t.id === txId);
+        const txAmount = originalTx?.amount || 0;
+
+        const triage = triageTransaction(
+          result.confidence / 100,
+          result.ruleMatchType as RuleMatchType,
+          hasDocument,
+          txAmount,
+        );
+
+        const targetStatus = result.confidence === 0 && !result.glCode
+          ? 'pending' // categorization failed, keep as pending
+          : triage.targetStatus;
 
         if (result.confidence === 0 && !result.glCode) {
           summary.categorization.failed++;
-        } else if (result.confidence >= 95) {
+        } else if (triage.decision === 'auto_commit') {
           summary.categorization.auto_approved++;
         } else {
           summary.categorization.flagged_for_review++;
@@ -301,9 +319,9 @@ export async function POST(request: NextRequest) {
           .from('transactions')
           .update({
             category_ai: result.glCode || null,
-            confidence: result.confidence,
-            ai_reasoning: result.glName ? `${result.reasoning} [GL Name: ${result.glName}]` : result.reasoning,
-            status,
+            confidence: Math.round(triage.confidence.compositeScore * 100),
+            ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+            status: targetStatus,
             updated_at: new Date().toISOString(),
           })
           .eq('id', txId)
@@ -324,7 +342,14 @@ export async function POST(request: NextRequest) {
       }> = [];
 
       for (const [txId, result] of results) {
-        if (result.confidence >= 95 && result.glCode) {
+        // Use the confidence gate threshold for history learning
+        const triage = triageTransaction(
+          result.confidence / 100,
+          result.ruleMatchType as RuleMatchType,
+          false, // don't re-check docs for history
+          0, // amount irrelevant for history
+        );
+        if (triage.decision === 'auto_commit' && result.glCode) {
           const txn = pendingTransactions.find(
             (t: Record<string, any>) => t.id === txId
           );

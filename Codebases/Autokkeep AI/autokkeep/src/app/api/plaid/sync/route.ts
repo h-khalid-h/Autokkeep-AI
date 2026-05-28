@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { syncTransactions } from '@/lib/plaid/client';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
+import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -155,8 +156,13 @@ export async function POST(request: NextRequest) {
         history
       );
 
-      const status =
-        result.confidence >= 95 ? 'auto_categorized' : 'human_review';
+      // ── Composite Confidence Gate (PRD §5.1) ──
+      const triage = triageTransaction(
+        result.confidence / 100,
+        result.ruleMatchType as RuleMatchType,
+        false, // new transaction, no document yet
+        t.amount || 0,
+      );
 
       const { error: insertError } = await (supabase as any)
         .from('transactions')
@@ -170,9 +176,9 @@ export async function POST(request: NextRequest) {
           merchant_raw: t.name,
           currency: t.iso_currency_code || 'USD',
           category_ai: result.glCode || null,
-          confidence: result.confidence,
-          ai_reasoning: result.glName ? `${result.reasoning} [GL Name: ${result.glName}]` : result.reasoning,
-          status,
+          confidence: Math.round(triage.confidence.compositeScore * 100),
+          ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+          status: triage.targetStatus,
         }, { onConflict: 'plaid_transaction_id', ignoreDuplicates: true });
 
       if (!insertError) addedCount++;
