@@ -6,8 +6,8 @@ import { NextRequest } from 'next/server';
 
 interface AuditLogEntry {
   supabase: any;
-  entityId: string;
-  actorId: string;
+  entityId?: string;
+  actorId?: string;
   actorType: 'human' | 'ai' | 'system';
   action: string;
   targetType: string;
@@ -22,8 +22,8 @@ interface AuditLogEntry {
  */
 export async function writeAuditLog({
   supabase,
-  entityId,
-  actorId,
+  entityId = 'system',
+  actorId = 'system',
   actorType,
   action,
   targetType,

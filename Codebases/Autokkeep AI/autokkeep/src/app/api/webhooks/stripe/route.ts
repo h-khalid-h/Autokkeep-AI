@@ -73,12 +73,15 @@ export async function POST(request: NextRequest) {
             { onConflict: 'stripe_subscription_id' }
           );
 
-          await (supabase as any).from('audit_log').insert({
+          await writeAuditLog({
+            supabase,
+            actorId: 'stripe',
+            actorType: 'system',
             action: 'create',
-            target_type: 'subscription',
-            target_id: subscriptionId,
-            actor_type: 'system',
+            targetType: 'subscription',
+            targetId: subscriptionId,
             details: { plan, customer_id: customerId, event: 'checkout.session.completed' },
+            request,
           });
         }
         break;
@@ -113,12 +116,15 @@ export async function POST(request: NextRequest) {
           .update({ status: 'canceled' })
           .eq('stripe_subscription_id', subscription.id);
 
-        await (supabase as any).from('audit_log').insert({
+        await writeAuditLog({
+          supabase,
+          actorId: 'stripe',
+          actorType: 'system',
           action: 'delete',
-          target_type: 'subscription',
-          target_id: subscription.id,
-          actor_type: 'system',
+          targetType: 'subscription',
+          targetId: subscription.id,
           details: { event: 'customer.subscription.deleted' },
+          request,
         });
         break;
       }

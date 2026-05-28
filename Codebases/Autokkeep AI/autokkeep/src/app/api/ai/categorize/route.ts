@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
       actorType: 'human',
       action: 'categorize',
       targetType: 'transaction',
-      targetId: transaction.id || null,
+      targetId: transaction.id || undefined,
       details: {
         engine: result.engine,
         confidence: result.confidence,

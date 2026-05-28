@@ -272,17 +272,20 @@ export async function POST(request: NextRequest) {
           .eq('id', connection.id);
 
         // Log to audit
-        await (supabase as any).from('audit_log').insert({
-          entity_id: connection.entity_id,
+        await writeAuditLog({
+          supabase,
+          entityId: connection.entity_id,
+          actorId: 'plaid',
+          actorType: 'system',
           action: 'update',
-          actor_type: 'system',
-          target_type: 'bank_connection',
-          target_id: connection.id,
+          targetType: 'bank_connection',
+          targetId: connection.id,
           details: {
             error_type: body.error?.error_type,
             error_code: body.error?.error_code,
             error_message: body.error?.error_message,
           },
+          request,
         });
 
         console.error(

@@ -104,12 +104,14 @@ export async function GET(request: NextRequest) {
         }
 
         // 3. Log to audit trail
-        await (supabase as any).from('audit_log').insert({
-          entity_id: txn.entity_id,
+        await writeAuditLog({
+          supabase,
+          entityId: txn.entity_id,
+          actorId: 'system',
+          actorType: 'system',
           action: 'update',
-          target_type: 'transaction',
-          target_id: txn.id,
-          actor_type: 'system',
+          targetType: 'transaction',
+          targetId: txn.id,
           details: {
             action: 'suspense_timeout',
             reason: `Unresolved for >${SUSPENSE_TIMEOUT_HOURS} hours`,
@@ -117,6 +119,7 @@ export async function GET(request: NextRequest) {
             new_status: 'escrow_suspense',
             journal_entry_id: journalEntry?.id || null,
           },
+          request,
         });
 
         movedCount++;

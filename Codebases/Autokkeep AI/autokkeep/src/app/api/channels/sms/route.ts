@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeAuditLog } from '@/lib/audit';
 import {
   parseTwilioWebhook,
   parseUserResponse,
@@ -78,13 +79,15 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.id);
 
         if (tx) {
-          await (supabase as any).from('audit_log').insert({
-            entity_id: tx.entity_id,
+          await writeAuditLog({
+            supabase,
+            entityId: tx.entity_id,
             action: 'approve',
-            target_type: 'transaction',
-            target_id: receiptRequest.transaction_id,
-            actor_type: 'human',
+            targetType: 'transaction',
+            targetId: receiptRequest.transaction_id,
+            actorType: 'human',
             details: { source: 'sms', action: 'business', from: message.from },
+            request,
           });
         }
 
@@ -119,13 +122,15 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.id);
 
         if (tx) {
-          await (supabase as any).from('audit_log').insert({
-            entity_id: tx.entity_id,
+          await writeAuditLog({
+            supabase,
+            entityId: tx.entity_id,
             action: 'categorize',
-            target_type: 'transaction',
-            target_id: receiptRequest.transaction_id,
-            actor_type: 'human',
+            targetType: 'transaction',
+            targetId: receiptRequest.transaction_id,
+            actorType: 'human',
             details: { source: 'sms', action: 'personal', from: message.from },
+            request,
           });
         }
 
@@ -167,13 +172,15 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (receiptTx) {
-            await (supabase as any).from('audit_log').insert({
-              entity_id: receiptTx.entity_id,
+            await writeAuditLog({
+              supabase,
+              entityId: receiptTx.entity_id,
               action: 'receipt_upload',
-              target_type: 'transaction',
-              target_id: receiptRequest.transaction_id,
-              actor_type: 'human',
+              targetType: 'transaction',
+              targetId: receiptRequest.transaction_id,
+              actorType: 'human',
               details: { source: 'sms', mediaUrl: userResponse.mediaUrls[0], from: message.from },
+              request,
             });
           }
 
