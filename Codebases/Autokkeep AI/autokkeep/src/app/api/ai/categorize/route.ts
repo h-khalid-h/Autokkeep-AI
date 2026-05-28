@@ -8,6 +8,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { generateCitationToken } from '@/lib/ai/privacy-parser';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -177,22 +179,47 @@ export async function POST(request: NextRequest) {
       history
     );
 
-    // Update the transaction record with AI results
+    // ── Composite Confidence Gate (PRD §5.1) ──
+    // Determine rule match type for C_s calculation
+    const ruleMatchType = result.ruleMatchType;
+    
+    // Check for document corroboration (receipt/invoice exists for this transaction)
+    let hasDocument = false;
+    if (transaction.id) {
+      const { data: docAnchor } = await (supabase as any)
+        .from('document_anchors')
+        .select('id')
+        .eq('transaction_id', transaction.id)
+        .limit(1);
+      hasDocument = (docAnchor && docAnchor.length > 0);
+    }
+
+    // Compute composite score and triage decision
+    const triage = triageTransaction(
+      result.confidence / 100, // Normalize 0-100 to 0.0-1.0
+      ruleMatchType as RuleMatchType,
+      hasDocument,
+      transaction.amount,
+    );
+
+    const citationToken = generateCitationToken(result.sourceHash, new Date().toISOString());
+
+    // Update the transaction record with triage results
     if (transaction.id) {
       await (supabase as any)
         .from('transactions')
         .update({
           category_ai: result.glCode || null,
-          confidence: result.confidence,
-          ai_reasoning: result.glName ? `${result.reasoning} [GL Name: ${result.glName}]` : result.reasoning,
-          status: result.confidence >= 95 ? 'auto_categorized' : 'human_review',
+          confidence: Math.round(triage.confidence.compositeScore * 100),
+          ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+          status: triage.targetStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', transaction.id)
         .eq('entity_id', entityId);
     }
 
-    // Log to audit
+    // Log to audit with citation anchoring (PRD §4.1)
     await writeAuditLog({
       supabase,
       entityId,
@@ -203,8 +230,12 @@ export async function POST(request: NextRequest) {
       targetId: transaction.id || undefined,
       details: {
         engine: result.engine,
-        confidence: result.confidence,
+        confidence: triage.confidence,
         category_ai: result.glCode,
+        triage_decision: triage.decision,
+        notification_channel: triage.notificationChannel,
+        source_hash: result.sourceHash,
+        citation_token: citationToken,
       },
       request,
     });

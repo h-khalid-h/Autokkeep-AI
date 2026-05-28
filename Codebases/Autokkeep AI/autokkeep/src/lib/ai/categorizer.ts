@@ -7,6 +7,11 @@ import {
   CATEGORIZATION_SYSTEM_PROMPT,
   buildCategorizationUserPrompt,
 } from './prompts';
+import {
+  tokenizeTransaction,
+  hashSourceData,
+  type RawTransactionData,
+} from './privacy-parser';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,6 +21,10 @@ export interface CategorizationResult {
   confidence: number;
   reasoning: string;
   engine: 'deterministic' | 'probabilistic';
+  /** Rule match type for confidence gate calculation */
+  ruleMatchType: 'exact_match' | 'pattern' | 'mcc' | 'none';
+  /** SHA-256 hash of the source data for citation anchoring */
+  sourceHash: string;
   alternatives: Array<{ code: string; name: string; confidence: number }>;
 }
 
@@ -112,12 +121,26 @@ export function categorizeDeterministic(
     }
 
     if (matched) {
+      const ruleType = rule.mcc_code && transaction.mcc && rule.mcc_code === transaction.mcc
+        ? 'mcc' as const
+        : rule.match_type === 'exact'
+          ? 'exact_match' as const
+          : 'pattern' as const;
+
       return {
         glCode: rule.gl_code,
         glName: rule.gl_name,
         confidence: 100,
         reasoning: `Matched deterministic rule: "${rule.vendor_pattern}" (${rule.match_type} match, priority ${rule.priority})`,
         engine: 'deterministic',
+        ruleMatchType: ruleType,
+        sourceHash: hashSourceData({
+          merchant: transaction.merchant,
+          amount: transaction.amount,
+          date: transaction.date,
+          cardHolder: transaction.cardHolder,
+          rawData: { bankDescription: transaction.bankDescription },
+        }),
         alternatives: [],
       };
     }
@@ -151,16 +174,33 @@ export async function categorizeProbabilistic(
   const client = getOpenAIClient();
   const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
-  const userPrompt = buildCategorizationUserPrompt(
-    {
-      merchant: transaction.merchant,
-      merchantRaw: transaction.merchantRaw,
-      amount: transaction.amount,
-      date: transaction.date,
+  // ── Privacy Parser: tokenize before sending to OpenAI ──
+  const rawData: RawTransactionData = {
+    merchant: transaction.merchant,
+    merchantRaw: transaction.merchantRaw,
+    amount: transaction.amount,
+    date: transaction.date,
+    cardHolder: transaction.cardHolder,
+    rawData: {
       mcc: transaction.mcc,
       currency: transaction.currency,
-      cardHolder: transaction.cardHolder,
       bankDescription: transaction.bankDescription,
+    },
+  };
+  const tokenized = tokenizeTransaction(rawData);
+  const sourceHash = tokenized.sourceHash;
+
+  // Send only tokenized (PII-stripped) data to OpenAI
+  const userPrompt = buildCategorizationUserPrompt(
+    {
+      merchant: tokenized.vendorToken,
+      merchantRaw: tokenized.descriptionToken,
+      amount: tokenized.amount,
+      date: tokenized.dateMarker,
+      mcc: tokenized.mccCode || undefined,
+      currency: tokenized.currency,
+      // cardHolder is intentionally omitted (PII)
+      bankDescription: tokenized.descriptionToken,
     },
     chartOfAccounts,
     history
@@ -235,6 +275,8 @@ export async function categorizeProbabilistic(
       confidence,
       reasoning: parsed.reasoning,
       engine: 'probabilistic',
+      ruleMatchType: 'none',
+      sourceHash,
       alternatives: (parsed.alternative_codes || []).map(
         (alt: { code: string; name: string; confidence: number }) => ({
           code: alt.code,
@@ -253,6 +295,8 @@ export async function categorizeProbabilistic(
       confidence: 0,
       reasoning: `AI categorization failed: ${error instanceof Error ? error.message : 'Unknown error'}. Manual review required.`,
       engine: 'probabilistic',
+      ruleMatchType: 'none',
+      sourceHash,
       alternatives: [],
     };
   }
@@ -328,6 +372,8 @@ export async function batchCategorize(
           confidence: 0,
           reasoning: `Categorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           engine: 'probabilistic',
+          ruleMatchType: 'none',
+          sourceHash: '',
           alternatives: [],
         });
       }
