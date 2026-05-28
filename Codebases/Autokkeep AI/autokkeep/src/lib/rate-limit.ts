@@ -1,51 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRedis } from './redis';
 
-// Simple in-memory rate limiter (per-instance, resets on restart)
-// For production, use Redis-backed rate limiting
-
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
+interface RateLimitConfig {
+  /** Max requests in the window */
+  max: number;
+  /** Window size in seconds */
+  windowSeconds: number;
+  /** Key prefix for namespacing */
+  prefix?: string;
 }
 
-const store = new Map<string, RateLimitEntry>();
+/**
+ * Sliding-window rate limiter using Redis.
+ * Returns null if under limit, or a 429 NextResponse if over limit.
+ */
+export async function rateLimit(
+  request: NextRequest,
+  config: RateLimitConfig
+): Promise<NextResponse | null> {
+  const { max, windowSeconds, prefix = 'rl' } = config;
 
-// Clean up expired entries every 60 seconds
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store.entries()) {
-    if (entry.resetAt < now) store.delete(key);
+  // Use IP + path as the rate limit key
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+    || request.headers.get('x-real-ip') 
+    || 'unknown';
+  const path = new URL(request.url).pathname;
+  const key = `${prefix}:${ip}:${path}`;
+
+  try {
+    const redis = getRedis();
+    const current = await redis.incr(key);
+    
+    if (current === 1) {
+      await redis.expire(key, windowSeconds);
+    }
+
+    const remaining = Math.max(0, max - current);
+    const ttl = await redis.ttl(key);
+
+    if (current > max) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': String(max),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(ttl),
+            'Retry-After': String(ttl),
+          },
+        }
+      );
+    }
+
+    // Under limit — return null (proceed)
+    return null;
+  } catch (err) {
+    // If Redis is down, fail open (allow the request)
+    console.error('[RateLimit] Redis error, failing open:', err);
+    return null;
   }
-}, 60_000);
-
-export function rateLimit(options: {
-  maxRequests: number;
-  windowMs: number;
-}) {
-  return function checkRateLimit(
-    request: NextRequest,
-    identifier?: string
-  ): { allowed: boolean; remaining: number; resetAt: number } | null {
-    const key = identifier || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'anonymous';
-    const now = Date.now();
-    const entry = store.get(key);
-
-    if (!entry || entry.resetAt < now) {
-      store.set(key, { count: 1, resetAt: now + options.windowMs });
-      return { allowed: true, remaining: options.maxRequests - 1, resetAt: now + options.windowMs };
-    }
-
-    entry.count++;
-    if (entry.count > options.maxRequests) {
-      return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-    }
-
-    return { allowed: true, remaining: options.maxRequests - entry.count, resetAt: entry.resetAt };
-  };
 }
-
-// Pre-configured limiters for different route types
-export const apiLimiter = rateLimit({ maxRequests: 100, windowMs: 60_000 }); // 100/min
-export const authLimiter = rateLimit({ maxRequests: 10, windowMs: 60_000 });  // 10/min
-export const webhookLimiter = rateLimit({ maxRequests: 200, windowMs: 60_000 }); // 200/min
-export const aiLimiter = rateLimit({ maxRequests: 20, windowMs: 60_000 });   // 20/min
