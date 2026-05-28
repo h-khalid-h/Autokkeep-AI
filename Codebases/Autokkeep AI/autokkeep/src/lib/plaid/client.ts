@@ -213,3 +213,22 @@ export async function getInstitution(institutionId: string) {
   });
   return response.data.institution;
 }
+
+// ─── Item Removal ──────────────────────────────────────────────────────────────
+
+/**
+ * Revokes an access token and removes the Plaid Item.
+ * Should be called during account deletion for GDPR/privacy compliance.
+ * After removal, the access token is no longer valid and the user's
+ * bank connection is fully severed on Plaid's side.
+ */
+export async function removeItem(accessToken: string): Promise<boolean> {
+  try {
+    const client = getPlaidClient();
+    await client.itemRemove({ access_token: accessToken });
+    return true;
+  } catch (error) {
+    console.error('[Plaid] Failed to remove item:', error);
+    return false;
+  }
+}

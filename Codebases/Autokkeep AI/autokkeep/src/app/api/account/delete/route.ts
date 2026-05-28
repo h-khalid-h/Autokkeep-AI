@@ -43,12 +43,59 @@ export async function POST(request: NextRequest) {
               .select('id')
               .eq('org_id', membership.org_id);
 
-            // Clean up storage (receipts)
+            // Clean up storage (receipts) - list then remove
             if (entities) {
               for (const entity of entities) {
-                await (admin as any).storage
-                  .from('documents')
-                  .remove([`receipts/${entity.id}`]);
+                try {
+                  const { data: files } = await (admin as any).storage
+                    .from('documents')
+                    .list(`receipts/${entity.id}`);
+                  if (files?.length) {
+                    const filePaths = files.map((f: { name: string }) => `receipts/${entity.id}/${f.name}`);
+                    await (admin as any).storage.from('documents').remove(filePaths);
+                  }
+                } catch {
+                  // Storage cleanup is best-effort
+                }
+              }
+            }
+
+            // Revoke Plaid access tokens (privacy compliance)
+            const { data: bankConns } = await (admin as any)
+              .from('bank_connections')
+              .select('plaid_access_token')
+              .eq('org_id', membership.org_id);
+
+            if (bankConns) {
+              const { removeItem } = await import('@/lib/plaid/client');
+              for (const conn of bankConns) {
+                if (conn.plaid_access_token) {
+                  await removeItem(conn.plaid_access_token);
+                }
+              }
+            }
+
+            // Revoke ledger OAuth tokens (QBO/Xero)
+            const { data: ledgerConns } = await (admin as any)
+              .from('ledger_connections')
+              .select('provider, access_token')
+              .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
+
+            if (ledgerConns) {
+              for (const conn of ledgerConns) {
+                try {
+                  if (conn.provider === 'quickbooks' && conn.access_token) {
+                    // QBO token revocation
+                    await fetch('https://developer.api.intuit.com/v2/oauth2/tokens/revoke', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token: conn.access_token }),
+                    });
+                  }
+                  // Xero tokens auto-expire in 30 min; no revocation endpoint needed
+                } catch {
+                  // Token revocation is best-effort
+                }
               }
             }
 

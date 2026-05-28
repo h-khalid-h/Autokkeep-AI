@@ -6,7 +6,7 @@
 -- Accounting periods table
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE accounting_periods (
+CREATE TABLE IF NOT EXISTS accounting_periods (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   entity_id  uuid        NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
   period     varchar(7)  NOT NULL, -- e.g. '2025-01'
@@ -18,7 +18,7 @@ CREATE TABLE accounting_periods (
   UNIQUE (entity_id, period)
 );
 
-CREATE INDEX idx_accounting_periods_entity ON accounting_periods(entity_id);
+CREATE INDEX IF NOT EXISTS idx_accounting_periods_entity ON accounting_periods(entity_id);
 
 -- ---------------------------------------------------------------------------
 -- RLS for accounting_periods
@@ -26,11 +26,18 @@ CREATE INDEX idx_accounting_periods_entity ON accounting_periods(entity_id);
 
 ALTER TABLE accounting_periods ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "accounting_periods_select" ON accounting_periods;
 CREATE POLICY "accounting_periods_select" ON accounting_periods
   FOR SELECT USING (entity_id IN (SELECT auth_user_entity_ids()));
 
-CREATE POLICY "accounting_periods_all" ON accounting_periods
-  FOR ALL USING (entity_id IN (SELECT auth_user_entity_ids()));
+-- Restrict lock/unlock to owner/admin roles
+DROP POLICY IF EXISTS "accounting_periods_all" ON accounting_periods;
+DROP POLICY IF EXISTS "accounting_periods_modify" ON accounting_periods;
+CREATE POLICY "accounting_periods_modify" ON accounting_periods
+  FOR ALL USING (
+    entity_id IN (SELECT auth_user_entity_ids())
+    AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
+  );
 
 -- ---------------------------------------------------------------------------
 -- Trigger: prevent mutation on locked periods for journal_entries
@@ -66,6 +73,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_prevent_locked_period_je ON journal_entries;
 CREATE TRIGGER trg_prevent_locked_period_je
   BEFORE INSERT OR UPDATE OR DELETE ON journal_entries
   FOR EACH ROW
@@ -73,6 +81,7 @@ CREATE TRIGGER trg_prevent_locked_period_je
 
 -- ---------------------------------------------------------------------------
 -- Trigger: prevent mutation on locked periods for transactions
+-- (includes INSERT to prevent new imports into locked periods)
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION prevent_locked_period_txn()
@@ -103,7 +112,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_prevent_locked_period_txn ON transactions;
 CREATE TRIGGER trg_prevent_locked_period_txn
-  BEFORE UPDATE OR DELETE ON transactions
+  BEFORE INSERT OR UPDATE OR DELETE ON transactions
   FOR EACH ROW
   EXECUTE FUNCTION prevent_locked_period_txn();

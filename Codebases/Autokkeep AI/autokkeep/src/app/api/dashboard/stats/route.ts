@@ -72,65 +72,78 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch all active transactions for these entities
-    const { data: allTransactions, error: txError } = await (supabase as any)
+    // Use efficient count queries instead of fetching all rows
+    // (Supabase's default 1000-row limit would silently truncate results)
+    const baseQuery = (supabase as any)
       .from('transactions')
-      .select('id, status, confidence, amount, category_ai, merchant_name, date, updated_at')
+      .select('id', { count: 'exact', head: true })
       .in('entity_id', entityIds)
       .neq('status', 'removed')
       .neq('status', 'deleted');
 
-    if (txError) {
-      console.error('[Dashboard Stats] Query error:', txError);
-      return NextResponse.json(
-        { error: 'Failed to fetch statistics' },
-        { status: 500 }
-      );
-    }
+    // Run count queries in parallel
+    const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
+      // Total transactions
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).neq('status', 'removed').neq('status', 'deleted'),
+      // Pending review
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).in('status', ['pending', 'human_review']),
+      // Auto approved
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).in('status', ['auto_categorized', 'approved']),
+      // Synced
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).eq('status', 'synced'),
+      // High confidence (>= 90)
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).gte('confidence', 90),
+      // All categorized (has confidence)
+      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+        .in('entity_id', entityIds).not('confidence', 'is', null),
+    ]);
 
-    const transactions = allTransactions || [];
+    const totalTransactions = totalRes.count ?? 0;
+    const pendingReview = pendingRes.count ?? 0;
+    const autoApproved = autoRes.count ?? 0;
+    const synced = syncedRes.count ?? 0;
+    const highConfidence = highConfRes.count ?? 0;
+    const categorizedCount = catRes.count ?? 0;
+    const aiAccuracy = categorizedCount > 0
+      ? Math.round((highConfidence / categorizedCount) * 1000) / 10
+      : 0;
 
-    // Compute counts
-    const totalTransactions = transactions.length;
-    const pendingReview = transactions.filter(
-      (t: Record<string, any>) => t.status === 'human_review' || t.status === 'pending'
-    ).length;
-    const autoApproved = transactions.filter(
-      (t: Record<string, any>) => t.status === 'auto_categorized' || t.status === 'approved'
-    ).length;
-    const synced = transactions.filter(
-      (t: Record<string, any>) => t.status === 'synced'
-    ).length;
-
-    // AI accuracy: percentage of categorized transactions with confidence >= 90
-    const categorized = transactions.filter(
-      (t: Record<string, any>) => t.confidence !== null && t.confidence !== undefined
-    );
-    const highConfidence = categorized.filter(
-      (t: Record<string, any>) => t.confidence >= 90
-    );
-    const aiAccuracy =
-      categorized.length > 0
-        ? Math.round((highConfidence.length / categorized.length) * 1000) / 10
-        : 0;
-
-    // Monthly volume: sum of amounts for the current month
+    // Monthly volume: fetch only current month's amounts
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const monthlyVolume = transactions
-      .filter((t: Record<string, any>) => t.date >= monthStart)
+    const { data: monthTxns } = await (supabase as any)
+      .from('transactions')
+      .select('amount')
+      .in('entity_id', entityIds)
+      .neq('status', 'removed')
+      .gte('date', monthStart);
+
+    const monthlyVolume = (monthTxns || [])
       .reduce((sum: number, t: Record<string, any>) => sum + Math.abs(t.amount || 0), 0);
 
-    // Top categories: group by category_ai, count and sum
+    // Top categories: fetch category_ai and amounts (limit to 5000 for reasonable aggregation)
+    const { data: catTxns } = await (supabase as any)
+      .from('transactions')
+      .select('category_ai, amount')
+      .in('entity_id', entityIds)
+      .neq('status', 'removed')
+      .not('category_ai', 'is', null)
+      .limit(5000);
+
     const categoryMap: Record<string, { count: number; amount: number }> = {};
-    for (const t of transactions) {
-      const code = (t as Record<string, any>).category_ai;
+    for (const t of (catTxns || [])) {
+      const code = t.category_ai;
       if (!code) continue;
       if (!categoryMap[code]) {
         categoryMap[code] = { count: 0, amount: 0 };
       }
       categoryMap[code].count++;
-      categoryMap[code].amount += Math.abs((t as Record<string, any>).amount || 0);
+      categoryMap[code].amount += Math.abs(t.amount || 0);
     }
 
     const topCategories = Object.entries(categoryMap)
@@ -142,23 +155,21 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // Recent activity: last 10 transactions that were approved or auto-categorized
-    const recentActivity = transactions
-      .filter(
-        (t: Record<string, any>) =>
-          t.status === 'approved' ||
-          t.status === 'auto_categorized'
-      )
-      .sort((a: Record<string, any>, b: Record<string, any>) =>
-        (b.updated_at || b.date).localeCompare(a.updated_at || a.date)
-      )
-      .slice(0, 10)
-      .map((t: Record<string, any>) => ({
-        action: t.status === 'auto_categorized' ? 'auto_approved' : 'approved',
-        merchant: t.merchant_name,
-        amount: t.amount,
-        timestamp: t.updated_at || t.date,
-      }));
+    // Recent activity: last 10 transactions with server-side ordering
+    const { data: recentTxns } = await (supabase as any)
+      .from('transactions')
+      .select('status, merchant_name, amount, updated_at, date')
+      .in('entity_id', entityIds)
+      .in('status', ['approved', 'auto_categorized'])
+      .order('updated_at', { ascending: false })
+      .limit(10);
+
+    const recentActivity = (recentTxns || []).map((t: Record<string, any>) => ({
+      action: t.status === 'auto_categorized' ? 'auto_approved' : 'approved',
+      merchant: t.merchant_name,
+      amount: t.amount,
+      timestamp: t.updated_at || t.date,
+    }));
 
     return NextResponse.json({
       totalTransactions,

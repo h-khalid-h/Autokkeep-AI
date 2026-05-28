@@ -11,9 +11,11 @@ export type TransactionStatus =
   | 'pending'
   | 'auto_categorized'
   | 'human_review'
+  | 'categorization_failed'
   | 'approved'
   | 'synced'
-  | 'removed';
+  | 'removed'
+  | 'escrow_suspense';
 
 export type DocumentStatusType = 'found' | 'missing' | 'partial';
 
@@ -36,19 +38,18 @@ export type ActorType = 'ai' | 'human' | 'system';
 
 export type ChannelType = 'slack' | 'teams' | 'whatsapp' | 'sms';
 
-export type ReceiptStatus = 'sent' | 'responded' | 'expired';
+export type ReceiptStatus = 'sent' | 'responded' | 'expired' | 'failed';
 
 export type LedgerProvider = 'quickbooks' | 'xero';
 
 export type LedgerTypeEnum = 'quickbooks' | 'xero' | 'none';
 
 export type SubscriptionPlan =
-  | 'cpa_foundation'
-  | 'cpa_scale'
-  | 'cpa_enterprise'
-  | 'smb_basic'
+  | 'free'
+  | 'starter'
   | 'smb_growth'
-  | 'smb_premium';
+  | 'cpa_professional'
+  | 'cpa_enterprise';
 
 export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing';
 

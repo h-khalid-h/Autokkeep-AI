@@ -53,27 +53,26 @@ export async function GET(request: NextRequest) {
           connection.cursor || undefined
         );
 
-        // Process added transactions
-        for (const t of syncResult.added) {
+        // Process added transactions (batch upsert)
+        if (syncResult.added.length > 0) {
+          const addedRows = syncResult.added.map((t) => ({
+            entity_id: connection.entity_id,
+            bank_account_id: t.account_id,
+            plaid_transaction_id: t.transaction_id,
+            amount: t.amount,
+            date: t.date,
+            merchant_name: t.merchant_name || t.name,
+            merchant_raw: t.name,
+            currency: t.iso_currency_code || 'USD',
+            status: 'pending',
+          }));
           await (supabase as any)
             .from('transactions')
-            .upsert(
-              {
-                entity_id: connection.entity_id,
-                bank_account_id: t.account_id,
-                plaid_transaction_id: t.transaction_id,
-                amount: t.amount,
-                date: t.date,
-                merchant_name: t.merchant_name || t.name,
-                merchant_raw: t.name,
-                currency: t.iso_currency_code || 'USD',
-                status: 'pending',
-              },
-              { onConflict: 'plaid_transaction_id', ignoreDuplicates: true }
-            );
+            .upsert(addedRows, { onConflict: 'plaid_transaction_id', ignoreDuplicates: true });
         }
 
         // Process modified transactions — clear AI categorization for re-processing
+        // (per-row update needed due to different values per row; typically <10 modifications per sync)
         for (const t of syncResult.modified) {
           await (supabase as any)
             .from('transactions')
@@ -93,15 +92,16 @@ export async function GET(request: NextRequest) {
             .eq('entity_id', connection.entity_id);
         }
 
-        // Process removed transactions (soft delete)
-        for (const t of syncResult.removed) {
+        // Process removed transactions (batch update)
+        if (syncResult.removed.length > 0) {
+          const removedIds = syncResult.removed.map((t) => t.transaction_id);
           await (supabase as any)
             .from('transactions')
             .update({
               status: 'removed',
               updated_at: new Date().toISOString(),
             })
-            .eq('plaid_transaction_id', t.transaction_id)
+            .in('plaid_transaction_id', removedIds)
             .eq('entity_id', connection.entity_id);
         }
 
