@@ -450,7 +450,7 @@ export default function PartnersPage() {
               {[
                 {
                   q: 'Is the AI safe? Will it make errors?',
-                  a: 'Autokkeep uses a dual-engine architecture. The deterministic engine handles routine transactions with rule-based precision (zero AI hallucination risk). The contextual AI engine handles complex transactions but always flags low-confidence items for human review. Combined with human oversight, system accuracy exceeds 99.9%.',
+                  a: 'Autokkeep uses a dual-engine architecture. The deterministic engine handles routine transactions with rule-based precision (zero AI hallucination risk). The contextual AI engine handles complex transactions but always flags low-confidence items for human review. Combined with human oversight, system accuracy exceeds 95% on known merchants, approaching 99%+ with human oversight.',
                 },
                 {
                   q: 'What about data privacy and security?',

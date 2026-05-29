@@ -49,7 +49,7 @@ const values = [
   {
     icon: '📊',
     title: 'Honest About Limitations',
-    description: 'We tell you our AI accuracy is 95%+, not 99.9%. The system accuracy with human oversight is 99.9% — and we\'re transparent about the difference.',
+    description: 'Our AI categorizes 95%+ of known merchant transactions correctly. Combined with human oversight, we achieve near-perfect accuracy — and we\'re transparent about the difference.',
   },
 ];
 

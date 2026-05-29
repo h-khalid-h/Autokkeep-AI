@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
     description:
-      "Eliminate manual bookkeeping forever. AI-powered ledger management with 99.9% system accuracy.",
+      "Eliminate manual bookkeeping forever. AI-powered ledger management with 95%+ AI categorization accuracy.",
     type: "website",
     locale: "en_US",
     siteName: "Autokkeep",

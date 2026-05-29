@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 const metrics = [
-  { value: 99.9, suffix: '%', label: 'System Accuracy', sublabel: 'AI + Human-in-the-Loop' },
+  { value: 95, suffix: '%+', label: 'AI Accuracy', sublabel: 'On Known Merchants' },
   { value: 83, suffix: '%', label: 'Gross Margin', sublabel: 'Protected by rule caching' },
   { value: 4, suffix: '×', label: 'Client Capacity', sublabel: 'Per CPA accountant' },
   { value: 10, suffix: 's', label: 'Processing Time', sublabel: 'Per transaction average' },
