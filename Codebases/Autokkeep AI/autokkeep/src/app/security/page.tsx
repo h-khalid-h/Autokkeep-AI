@@ -4,7 +4,7 @@ import Footer from '@/components/landing/Footer';
 
 export const metadata: Metadata = {
   title: 'Security — Autokkeep',
-  description: 'Bank-grade security for your financial data. AES-256 encryption, TLS 1.3, Row-Level Security, immutable audit trails, and SOC 2 Type II readiness.',
+  description: 'Bank-grade security for your financial data. AES-256 encryption, TLS 1.3, Row-Level Security, immutable audit trails, and SOC 2 compliance readiness.',
 };
 
 const securityLayers = [
@@ -14,7 +14,7 @@ const securityLayers = [
     items: [
       'AES-256 encryption for all stored data',
       'TLS 1.3 for all data in transit',
-      'Hardware security modules (HSM) for key management',
+      'Managed key infrastructure via cloud providers',
       'Zero-knowledge architecture for sensitive credentials',
     ],
   },
@@ -24,8 +24,8 @@ const securityLayers = [
     items: [
       'Every database query automatically filtered by tenant ID',
       'No client can ever see another client\'s data — enforced at the database level',
-      'PostgreSQL RLS policies tested on every deployment',
-      'Logical isolation validated through automated security testing',
+      'PostgreSQL RLS policies enforced at the database level',
+      'Logical isolation enforced through database-level policies',
     ],
   },
   {
@@ -62,10 +62,10 @@ const securityLayers = [
     icon: '📊',
     title: 'Compliance & Certifications',
     items: [
-      'SOC 2 Type II — audit readiness from day one',
+      'SOC 2 Type II — controls designed for compliance readiness',
       'GAAP & IFRS compliant double-entry bookkeeping',
       'GDPR-compliant data processing for EU clients',
-      'Annual third-party penetration testing',
+      'Third-party penetration testing (planned)',
     ],
   },
 ];
@@ -235,7 +235,7 @@ export default function SecurityPage() {
                     <span style={{ fontSize: '2rem' }}>🏛️</span>
                     <h3 className="text-h4" style={{ margin: 0 }}>SOC 2 Type II Readiness</h3>
                   </div>
-                  <p className="text-body">Security controls, policies, and monitoring built to meet SOC 2 Type II requirements. Formal audit engagement planned for 2026.</p>
+                  <p className="text-body">Security architecture designed to align with SOC 2 Type II trust service criteria. Formal audit engagement on roadmap.</p>
                 </div>
                 <div className="card" style={{ padding: '32px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -275,7 +275,7 @@ export default function SecurityPage() {
                   <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
                   <div>
                     <h3 className="text-h4" style={{ marginBottom: '4px' }}>PostgreSQL with Row-Level Security</h3>
-                    <p className="text-body">16 tables, every query automatically filtered by tenant. No client can ever access another client&apos;s data — enforced at the database level.</p>
+                    <p className="text-body">20 tables, every query automatically filtered by tenant. No client can ever access another client&apos;s data — enforced at the database level.</p>
                   </div>
                 </div>
                 <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
