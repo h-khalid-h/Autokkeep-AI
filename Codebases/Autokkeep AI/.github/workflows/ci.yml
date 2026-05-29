@@ -21,6 +21,7 @@ jobs:
           cache-dependency-path: autokkeep/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
