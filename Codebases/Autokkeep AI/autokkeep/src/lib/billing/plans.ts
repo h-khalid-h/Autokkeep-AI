@@ -129,39 +129,79 @@ export async function checkPlanLimits(
     }
 
     case 'process_transaction': {
-      // Count transactions this month
-      const firstOfMonth = new Date();
-      firstOfMonth.setDate(1);
-      firstOfMonth.setHours(0, 0, 0, 0);
+      // Use Redis atomic counter to prevent race conditions on concurrent requests.
+      // The counter key resets monthly via TTL. Falls back to DB count if Redis is down.
+      let currentCount: number | null = null;
 
-      // Step 1: Get entity IDs for this org
-      const { data: orgEntities } = await supabase
-        .from('entities')
-        .select('id')
-        .eq('org_id', orgId);
-      
-      const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
-      
-      if (entityIds.length === 0) {
-        // No entities yet — allow the operation
-        break;
+      try {
+        const { getRedis } = await import('@/lib/redis');
+        const redis = getRedis();
+        
+        // Key format: billing:tx_count:{orgId}:{YYYY-MM}
+        const now = new Date();
+        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const redisKey = `billing:tx_count:${orgId}:${monthKey}`;
+        
+        // Atomic increment — returns the new count AFTER increment
+        const newCount = await redis.incr(redisKey);
+        
+        // Set expiry to end of month + 1 day buffer (only if key was just created)
+        if (newCount === 1) {
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          const ttlSeconds = Math.ceil((endOfMonth.getTime() - now.getTime()) / 1000) + 86400;
+          await redis.expire(redisKey, ttlSeconds);
+        }
+        
+        // Check limit AFTER incrementing (atomic check-and-increment)
+        if (newCount > limits.maxTransactionsPerMonth) {
+          // Decrement back since we're rejecting this request
+          await redis.decr(redisKey);
+          return {
+            allowed: false,
+            reason: `Monthly transaction limit reached (${limits.maxTransactionsPerMonth}). Upgrade your plan.`,
+            currentPlan: plan,
+            limit: limits.maxTransactionsPerMonth,
+            current: newCount - 1,
+          };
+        }
+        
+        // Counter is within limits — allow
+        currentCount = newCount;
+      } catch {
+        // Redis unavailable — fall back to DB count (original behavior)
+        console.warn('[Billing] Redis unavailable for atomic counter, falling back to DB count');
       }
 
-      // Step 2: Count transactions this month across all org entities
-      const { count } = await supabase
-        .from('transactions')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', firstOfMonth.toISOString())
-        .in('entity_id', entityIds);
+      // Fallback: DB count (subject to race condition but better than no check)
+      if (currentCount === null) {
+        const firstOfMonth = new Date();
+        firstOfMonth.setDate(1);
+        firstOfMonth.setHours(0, 0, 0, 0);
 
-      if ((count || 0) >= limits.maxTransactionsPerMonth) {
-        return {
-          allowed: false,
-          reason: `Monthly transaction limit reached (${limits.maxTransactionsPerMonth}). Upgrade your plan.`,
-          currentPlan: plan,
-          limit: limits.maxTransactionsPerMonth,
-          current: count || 0,
-        };
+        const { data: orgEntities } = await supabase
+          .from('entities')
+          .select('id')
+          .eq('org_id', orgId);
+        
+        const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+        
+        if (entityIds.length === 0) break;
+
+        const { count } = await supabase
+          .from('transactions')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', firstOfMonth.toISOString())
+          .in('entity_id', entityIds);
+
+        if ((count || 0) >= limits.maxTransactionsPerMonth) {
+          return {
+            allowed: false,
+            reason: `Monthly transaction limit reached (${limits.maxTransactionsPerMonth}). Upgrade your plan.`,
+            currentPlan: plan,
+            limit: limits.maxTransactionsPerMonth,
+            current: count || 0,
+          };
+        }
       }
       break;
     }

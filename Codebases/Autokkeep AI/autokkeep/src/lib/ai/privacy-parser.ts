@@ -17,6 +17,9 @@ const PII_PATTERNS = {
   // SSN: 123-45-6789 or 123456789
   ssn: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
   // Phone numbers (various formats)
+  // Note: may match some 10-digit reference/check numbers — acceptable tradeoff
+  // for a privacy parser where false positives (over-redaction) are preferred
+  // over false negatives (PII leaking to LLM).
   phone: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
   // Email addresses
   email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
