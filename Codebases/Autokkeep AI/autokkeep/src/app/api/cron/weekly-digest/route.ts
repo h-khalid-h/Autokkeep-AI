@@ -38,11 +38,23 @@ export async function GET(request: NextRequest) {
       const supabase = createAdminClient();
 
       for (const entity of digest.entities) {
-        // Get admin/owner users for this entity
+        // Get entity's org_id, then find admin/owner team members
+        const { data: entityRecord } = await supabase
+          .from('entities')
+          .select('org_id')
+          .eq('id', entity.entityId)
+          .single();
+
+        if (!entityRecord) {
+          console.log(`[Weekly Digest] Entity not found: ${entity.entityId}`);
+          emailResults.push({ entity: entity.entityName, success: false, error: 'Entity not found' });
+          continue;
+        }
+
         const { data: members } = await supabase
-          .from('entity_memberships')
-          .select('user_id, role, users:user_id(email)')
-          .eq('entity_id', entity.entityId)
+          .from('team_members')
+          .select('user_id, role')
+          .eq('org_id', entityRecord.org_id)
           .in('role', ['owner', 'admin']);
 
         if (!members || members.length === 0) {
@@ -52,7 +64,8 @@ export async function GET(request: NextRequest) {
         }
 
         for (const member of members) {
-          const userEmail = (member.users as unknown as { email: string })?.email;
+          const { data: { user: memberUser } } = await supabase.auth.admin.getUserById(member.user_id);
+          const userEmail = memberUser?.email;
           if (!userEmail) continue;
 
           const result = await sendDigestEmail({

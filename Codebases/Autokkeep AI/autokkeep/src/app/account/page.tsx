@@ -12,16 +12,10 @@ interface UserProfile {
   memberSince: string;
 }
 
-const MOCK_USER: UserProfile = {
-  email: 'demo@autokkeep.com',
-  fullName: 'Demo User',
-  initials: 'DU',
-  memberSince: '2024-01-15T00:00:00Z',
-};
-
 export default function AccountPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -89,10 +83,10 @@ export default function AccountPage() {
             memberSince: authUser.created_at || new Date().toISOString(),
           });
         } else {
-          setUser(MOCK_USER);
+          setError('Unable to load your profile. Please sign in again.');
         }
       } catch {
-        setUser(MOCK_USER);
+        setError('Unable to connect to the server. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -191,7 +185,36 @@ export default function AccountPage() {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-primary)',
+        }}
+      >
+        <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+            Unable to Load Account
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
+            {error || 'Please sign in to view your account settings.'}
+          </p>
+          <Link
+            href="/auth/login"
+            className="btn btn-primary"
+            style={{ display: 'inline-block', padding: '10px 24px', fontSize: '14px' }}
+          >
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -7,8 +7,9 @@ export const runtime = 'nodejs';
 /**
  * GET /api/health — Health check endpoint
  * Returns service status for monitoring, load balancers, and Easypanel.
+ * Detailed info is only exposed to authenticated requests (CRON_SECRET).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const start = Date.now();
   const checks: Record<string, { status: string; latency?: number }> = {};
 
@@ -44,15 +45,34 @@ export async function GET() {
     (c) => c.status === 'healthy'
   );
 
+  const status = overallHealthy ? 'healthy' : 'degraded';
+  const httpStatus = overallHealthy ? 200 : 503;
+
+  // Gate detailed info behind CRON_SECRET
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  const isAuthorized = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  if (isAuthorized) {
+    return NextResponse.json(
+      {
+        status,
+        version: process.env.npm_package_version || '2.0.0',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        latency: Date.now() - start,
+        checks,
+      },
+      { status: httpStatus }
+    );
+  }
+
+  // Unauthenticated: minimal response
   return NextResponse.json(
     {
-      status: overallHealthy ? 'healthy' : 'degraded',
-      version: process.env.npm_package_version || '2.0.0',
-      uptime: process.uptime(),
+      status,
       timestamp: new Date().toISOString(),
-      latency: Date.now() - start,
-      checks,
     },
-    { status: overallHealthy ? 200 : 503 }
+    { status: httpStatus }
   );
 }

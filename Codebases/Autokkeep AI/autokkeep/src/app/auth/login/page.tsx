@@ -41,7 +41,15 @@ function LoginContent() {
     if (storedRedirect) {
       sessionStorage.removeItem('autokkeep_redirect');
     }
-    router.push(storedRedirect || redirect || '/dashboard');
+
+    // Validate redirect to prevent open redirect attacks
+    const isSafeRedirect = (url: string | null): boolean =>
+      !!url && url.startsWith('/') && !url.startsWith('//');
+
+    const target = isSafeRedirect(storedRedirect) ? storedRedirect!
+      : isSafeRedirect(redirect) ? redirect!
+      : '/dashboard';
+    router.push(target);
   };
 
   return (

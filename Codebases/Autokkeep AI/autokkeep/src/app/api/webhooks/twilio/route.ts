@@ -12,7 +12,12 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-twilio-signature') || '';
     const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio`;
 
-    if (process.env.TWILIO_AUTH_TOKEN && !validateTwilioSignature(url, params, signature)) {
+    if (!process.env.TWILIO_AUTH_TOKEN) {
+      console.error('TWILIO_AUTH_TOKEN is not configured');
+      return new NextResponse('Webhook authentication not configured', { status: 500 });
+    }
+
+    if (!validateTwilioSignature(url, params, signature)) {
       return new NextResponse('Invalid signature', { status: 401 });
     }
 

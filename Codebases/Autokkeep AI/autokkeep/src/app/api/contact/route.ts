@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 // POST /api/contact — Store contact form submission
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'contact' });
+    if (limited) return limited;
+
     const body = await request.json();
     const { name, email, company, type, entityCount, message } = body;
 

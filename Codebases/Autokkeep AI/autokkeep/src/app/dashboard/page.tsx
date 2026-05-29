@@ -70,6 +70,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [reasoningExpanded, setReasoningExpanded] = React.useState(false);
+  const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
 
   // Fetch transactions from API on mount
   React.useEffect(() => {
@@ -106,6 +107,28 @@ export default function DashboardPage() {
     }
 
     fetchTransactions();
+    return () => { cancelled = true; };
+  }, [selectedEntity?.id]);
+
+  // Fetch chart of accounts
+  React.useEffect(() => {
+    if (!selectedEntity?.id) return;
+    let cancelled = false;
+
+    async function fetchChartOfAccounts() {
+      try {
+        const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity!.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setChartOfAccounts(data.accounts || data || []);
+        }
+      } catch (err) {
+        console.error('[Dashboard] Chart of accounts fetch error:', err);
+      }
+    }
+
+    fetchChartOfAccounts();
     return () => { cancelled = true; };
   }, [selectedEntity?.id]);
 
@@ -351,6 +374,7 @@ export default function DashboardPage() {
             transaction={selectedTransaction}
             onAccept={handleAccept}
             onChangeCategory={handleChangeCategory}
+            chartOfAccounts={chartOfAccounts}
           />
         </main>
       </div>

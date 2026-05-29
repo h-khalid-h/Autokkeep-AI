@@ -10,6 +10,7 @@ import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { rateLimit } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -39,6 +40,9 @@ interface PipelineSummary {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'process' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -282,15 +286,19 @@ export async function POST(request: NextRequest) {
 
       // ── Step 3 & 4: Auto-approve ≥95%, flag <95% for HITL ──────────────
 
+      // Pre-fetch document anchors for ALL transactions in batch (avoid N+1)
+      const batchTxIds = Array.from(results.keys());
+      const { data: batchDocAnchors } = await (supabase as any)
+        .from('document_anchors')
+        .select('transaction_id')
+        .in('transaction_id', batchTxIds);
+      const docAnchorSet = new Set(
+        (batchDocAnchors || []).map((d: { transaction_id: string }) => d.transaction_id)
+      );
+
       for (const [txId, result] of results) {
         // ── Composite Confidence Gate (PRD §5.1) ──
-        let hasDocument = false;
-        const { data: docAnchor } = await (supabase as any)
-          .from('document_anchors')
-          .select('id')
-          .eq('transaction_id', txId)
-          .limit(1);
-        hasDocument = (docAnchor && docAnchor.length > 0);
+        const hasDocument = docAnchorSet.has(txId);
 
         const originalTx = pendingTransactions.find((t: Record<string, any>) => t.id === txId);
         const txAmount = originalTx?.amount || 0;

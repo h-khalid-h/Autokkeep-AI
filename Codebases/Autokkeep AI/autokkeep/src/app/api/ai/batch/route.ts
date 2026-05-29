@@ -9,6 +9,7 @@ import { batchCategorize } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { generateCitationToken } from '@/lib/ai/privacy-parser';
+import { rateLimit } from '@/lib/rate-limit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -30,6 +31,9 @@ interface BatchSummary {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'ai-batch' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -183,16 +187,20 @@ export async function POST(request: NextRequest) {
     let failed = 0;
     const citationTokens: Array<{ txId: string; citationToken: string; sourceHash: string }> = [];
 
+    // ── Pre-fetch document anchors for ALL transactions in batch (avoid N+1) ──
+    const allTxIds = Array.from(results.keys());
+    const { data: allDocAnchors } = await (supabase as any)
+      .from('document_anchors')
+      .select('transaction_id')
+      .in('transaction_id', allTxIds);
+    const docAnchorSet = new Set(
+      (allDocAnchors || []).map((d: { transaction_id: string }) => d.transaction_id)
+    );
+
     for (const [txId, result] of results) {
       // ── Composite Confidence Gate (PRD §5.1) ──
-      // Check for document corroboration
-      let hasDocument = false;
-      const { data: docAnchor } = await (supabase as any)
-        .from('document_anchors')
-        .select('id')
-        .eq('transaction_id', txId)
-        .limit(1);
-      hasDocument = (docAnchor && docAnchor.length > 0);
+      // Check for document corroboration (pre-fetched above)
+      const hasDocument = docAnchorSet.has(txId);
 
       // Find the original transaction amount for triage
       const originalTx = transactions.find((t: Record<string, any>) => t.id === txId);

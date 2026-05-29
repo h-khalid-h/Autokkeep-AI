@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Transaction, chartOfAccounts } from '@/data/mockTransactions';
+import { Transaction } from '@/data/mockTransactions';
 
 interface ActionsConsoleProps {
   transaction: Transaction | null;
@@ -11,12 +11,14 @@ interface ActionsConsoleProps {
     glCode: string,
     glName: string
   ) => void;
+  chartOfAccounts?: { code: string; name: string }[];
 }
 
 const ActionsConsole: React.FC<ActionsConsoleProps> = ({
   transaction,
   onAccept,
   onChangeCategory,
+  chartOfAccounts = [],
 }) => {
   const [showCategorySearch, setShowCategorySearch] = React.useState(false);
   const [categoryQuery, setCategoryQuery] = React.useState('');

@@ -62,7 +62,7 @@ export default function GlobalError({
               lineHeight: 1.6,
             }}
           >
-            {error.message || 'An unexpected error occurred. Please try refreshing the page.'}
+            An unexpected error occurred. Please try again.
           </p>
           {error.digest && (
             <p
