@@ -137,39 +137,34 @@ export default function SettingsPage() {
       const orgId = membership.org_id;
       setUserRole(membership.role);
 
-      // 3. Fetch org details
-      const { data: org } = await (supabase as any)
-        .from('organizations')
-        .select('id, name')
-        .eq('id', orgId)
-        .single();
+      // 3-5. Fetch org, entities, and team members in parallel
+      const [orgResult, entitiesResult, membersResult] = await Promise.all([
+        (supabase as any)
+          .from('organizations')
+          .select('id, name')
+          .eq('id', orgId)
+          .single(),
+        (supabase as any)
+          .from('entities')
+          .select('id, name')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: true }),
+        (supabase as any)
+          .from('team_members')
+          .select('id, user_id, role, invited_email, accepted_at')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: true }),
+      ]);
 
-      if (org) {
-        setOrgData(org);
+      if (orgResult.data) {
+        setOrgData(orgResult.data);
       }
 
-      // 4. Fetch entities for this org
-      const { data: entitiesData } = await (supabase as any)
-        .from('entities')
-        .select('id, name')
-        .eq('org_id', orgId)
-        .order('created_at', { ascending: true });
-
-      const fetchedEntities: EntityData[] = entitiesData || [];
+      const fetchedEntities: EntityData[] = entitiesResult.data || [];
       setEntities(fetchedEntities);
 
-      // 5. Fetch team members
-      const { data: members } = await (supabase as any)
-        .from('team_members')
-        .select('id, user_id, role, invited_email, accepted_at')
-        .eq('org_id', orgId)
-        .order('created_at', { ascending: true });
-
-      if (members) {
-        // For each member with a user_id, we already know the current user's email.
-        // For others, we use invited_email. We can't query auth.users from browser client,
-        // so we mark the current user and show invited_email for others.
-        const enriched: TeamMemberData[] = members.map((m: any) => ({
+      if (membersResult.data) {
+        const enriched: TeamMemberData[] = membersResult.data.map((m: any) => ({
           id: m.id,
           user_id: m.user_id,
           role: m.role,
@@ -180,63 +175,70 @@ export default function SettingsPage() {
         setTeamMembers(enriched);
       }
 
-      // 6. Fetch subscription
-      const { data: sub } = await (supabase as any)
-        .from('subscriptions')
-        .select('plan, status, current_period_end, entity_count, transaction_count')
-        .eq('org_id', orgId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (sub) {
-        setSubscription(sub);
-      }
-
-      // 7. Fetch connection statuses for all entities
+      // 6-10. Fetch subscription, connections, and counts in parallel
       if (fetchedEntities.length > 0) {
         const entityIds = fetchedEntities.map((e: EntityData) => e.id);
 
-        const { data: bankConns } = await (supabase as any)
-          .from('bank_connections')
-          .select('id, entity_id, status')
-          .in('entity_id', entityIds)
-          .eq('status', 'active');
+        const [subResult, bankConnsResult, ledgerConnsResult, channelConnsResult, txCountResult, reviewCountResult] = await Promise.all([
+          (supabase as any)
+            .from('subscriptions')
+            .select('plan, status, current_period_end, entity_count, transaction_count')
+            .eq('org_id', orgId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single(),
+          (supabase as any)
+            .from('bank_connections')
+            .select('id, entity_id, status')
+            .in('entity_id', entityIds)
+            .eq('status', 'active'),
+          (supabase as any)
+            .from('ledger_connections')
+            .select('id, entity_id, provider, is_active')
+            .in('entity_id', entityIds)
+            .eq('is_active', true),
+          (supabase as any)
+            .from('channel_connections')
+            .select('id, entity_id, channel_type, is_active')
+            .in('entity_id', entityIds)
+            .eq('is_active', true),
+          (supabase as any)
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .in('entity_id', entityIds),
+          (supabase as any)
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .in('entity_id', entityIds)
+            .eq('status', 'human_review'),
+        ]);
 
-        const { data: ledgerConns } = await (supabase as any)
-          .from('ledger_connections')
-          .select('id, entity_id, provider, is_active')
-          .in('entity_id', entityIds)
-          .eq('is_active', true);
-
-        const { data: channelConns } = await (supabase as any)
-          .from('channel_connections')
-          .select('id, entity_id, channel_type, is_active')
-          .in('entity_id', entityIds)
-          .eq('is_active', true);
+        if (subResult.data) {
+          setSubscription(subResult.data);
+        }
 
         setConnections({
-          plaid: (bankConns && bankConns.length > 0) || false,
-          quickbooks: (ledgerConns && ledgerConns.some((c: any) => c.provider === 'quickbooks')) || false,
-          xero: (ledgerConns && ledgerConns.some((c: any) => c.provider === 'xero')) || false,
-          slack: (channelConns && channelConns.some((c: any) => c.channel_type === 'slack')) || false,
+          plaid: (bankConnsResult.data && bankConnsResult.data.length > 0) || false,
+          quickbooks: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: any) => c.provider === 'quickbooks')) || false,
+          xero: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: any) => c.provider === 'xero')) || false,
+          slack: (channelConnsResult.data && channelConnsResult.data.some((c: any) => c.channel_type === 'slack')) || false,
         });
 
-        // 8. Get real usage counts
-        const { count: txCount } = await (supabase as any)
-          .from('transactions')
-          .select('id', { count: 'exact', head: true })
-          .in('entity_id', entityIds);
+        setTransactionCount(txCountResult.count || 0);
+        setHitlCount(reviewCountResult.count || 0);
+      } else {
+        // No entities — still fetch subscription
+        const { data: sub } = await (supabase as any)
+          .from('subscriptions')
+          .select('plan, status, current_period_end, entity_count, transaction_count')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-        setTransactionCount(txCount || 0);
-
-        const { count: reviewCount } = await (supabase as any)
-          .from('transactions')
-          .select('id', { count: 'exact', head: true })
-          .in('entity_id', entityIds)
-          .eq('status', 'human_review');
-
-        setHitlCount(reviewCount || 0);
+        if (sub) {
+          setSubscription(sub);
+        }
       }
     } catch (err) {
       console.error('[Settings] Fetch error:', err);
@@ -614,6 +616,7 @@ function BillingTab({
   hitlCount: number;
 }) {
   const [loading, setLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   const planLabels: Record<string, string> = {
     cpa_foundation: 'CPA Foundation',
@@ -644,6 +647,7 @@ function BillingTab({
   const handleCheckout = async (plan: string) => {
     if (!orgId) return;
     setLoading(true);
+    setBillingError(null);
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -652,17 +656,17 @@ function BillingTab({
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Checkout failed. Please try again.');
+        setBillingError(data.error || 'Checkout failed. Please try again.');
         return;
       }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Checkout failed: no redirect URL received.');
+        setBillingError('Checkout failed: no redirect URL received.');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Checkout failed. Please check your connection and try again.');
+      setBillingError('Checkout failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -671,6 +675,7 @@ function BillingTab({
   const handlePortal = async () => {
     if (!orgId) return;
     setLoading(true);
+    setBillingError(null);
     try {
       const res = await fetch('/api/billing/portal', {
         method: 'POST',
@@ -679,17 +684,17 @@ function BillingTab({
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Failed to open billing portal.');
+        setBillingError(data.error || 'Failed to open billing portal.');
         return;
       }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Failed to open billing portal: no redirect URL received.');
+        setBillingError('Failed to open billing portal: no redirect URL received.');
       }
     } catch (error) {
       console.error('Portal error:', error);
-      alert('Failed to open billing portal. Please try again.');
+      setBillingError('Failed to open billing portal. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -707,6 +712,11 @@ function BillingTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {billingError && (
+        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--color-error, #ef4444)' }}>
+          <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {billingError}</div>
+        </div>
+      )}
       {/* Current Plan */}
       <div className="card-elevated" style={{ padding: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

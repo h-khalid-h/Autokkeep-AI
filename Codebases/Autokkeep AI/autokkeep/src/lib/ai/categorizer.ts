@@ -117,11 +117,11 @@ export function categorizeDeterministic(
 
     // Also check MCC code if specified in the rule
     if (!matched && rule.mcc_code && transaction.mcc) {
-      matched = rule.mcc_code === transaction.mcc;
+      matched = rule.mcc_code.toLowerCase() === transaction.mcc.toLowerCase();
     }
 
     if (matched) {
-      const ruleType = rule.mcc_code && transaction.mcc && rule.mcc_code === transaction.mcc
+      const ruleType = rule.mcc_code && transaction.mcc && rule.mcc_code.toLowerCase() === transaction.mcc.toLowerCase()
         ? 'mcc' as const
         : rule.match_type === 'exact'
           ? 'exact_match' as const

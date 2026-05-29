@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import NewsletterForm from '@/components/landing/NewsletterForm';
 
 export const metadata: Metadata = {
   title: 'Resources — Autokkeep',
@@ -158,21 +159,7 @@ export default function ResourcesPage() {
               <p className="text-body" style={{ marginBottom: '24px' }}>
                 Get monthly insights on AI bookkeeping, accounting industry trends, and Autokkeep product updates.
               </p>
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                maxWidth: '400px',
-                margin: '0 auto',
-              }}>
-                <input
-                  type="email"
-                  className="input"
-                  placeholder="your@email.com"
-                  aria-label="Email for newsletter"
-                  id="newsletter-email"
-                />
-                <button className="btn btn-primary">Subscribe</button>
-              </div>
+              <NewsletterForm />
             </div>
           </div>
         </section>

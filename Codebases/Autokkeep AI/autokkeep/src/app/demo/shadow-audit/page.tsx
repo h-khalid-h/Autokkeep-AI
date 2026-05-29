@@ -353,6 +353,16 @@ export default function ShadowAuditPage() {
             animation: shimmer 1.5s linear infinite;
           }
           .result-row { animation: fadeInUp 0.3s ease forwards; }
+          @media (max-width: 768px) {
+            #demo-stats-grid {
+              grid-template-columns: repeat(3, 1fr) !important;
+            }
+          }
+          @media (max-width: 480px) {
+            #demo-stats-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+            }
+          }
         `}</style>
 
         {/* Hero */}
@@ -529,7 +539,7 @@ export default function ShadowAuditPage() {
             {step === 'results' && (
               <div>
                 {/* Stats Bar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
+                <div id="demo-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
                   {[
                     { label: 'Total Transactions', value: stats.total, color: '#fff' },
                     { label: 'Exact Match', value: stats.exact, color: '#10b981' },

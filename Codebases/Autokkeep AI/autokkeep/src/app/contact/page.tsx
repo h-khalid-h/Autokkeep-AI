@@ -14,6 +14,8 @@ export default function ContactPage() {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -23,6 +25,9 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setFormError(null);
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
@@ -41,7 +46,9 @@ export default function ContactPage() {
       }
       setSubmitted(true);
     } catch {
-      alert('Something went wrong sending your message. Please try again or email us at hello@autokkeep.com.');
+      setFormError('Something went wrong sending your message. Please try again or email us at hello@autokkeep.com.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -64,6 +71,12 @@ export default function ContactPage() {
             </div>
 
             {!submitted ? (
+              <>
+              {formError && (
+                <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', borderLeft: '4px solid var(--color-error, #ef4444)', maxWidth: '560px', margin: '0 auto 16px' }}>
+                  <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {formError}</div>
+                </div>
+              )}
               <form
                 onSubmit={handleSubmit}
                 className="card-elevated"
@@ -172,8 +185,8 @@ export default function ContactPage() {
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                    Send Message
+                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={isSubmitting}>
+                    {isSubmitting ? 'Sending...' : 'Send Message'}
                   </button>
 
                   <p className="text-caption" style={{ textAlign: 'center' }}>
@@ -181,6 +194,7 @@ export default function ContactPage() {
                   </p>
                 </div>
               </form>
+              </>
             ) : (
               <div className="card-elevated" style={{
                 padding: '60px 40px',

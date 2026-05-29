@@ -39,9 +39,9 @@ export default function Navbar() {
 
       <div className={`navbar-links ${mobileOpen ? 'mobile-open' : ''}`}>
         {navLinks.map((link) => (
-          <a key={link.href} href={link.href} className="navbar-link" onClick={handleLinkClick}>
+          <Link key={link.href} href={link.href} className="navbar-link" onClick={handleLinkClick}>
             {link.label}
-          </a>
+          </Link>
         ))}
 
         {/* Show CTA buttons in mobile menu too */}

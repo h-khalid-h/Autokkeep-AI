@@ -171,7 +171,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.confidence = 100;
     } else if (newStatus) {
       // Validate allowed status transitions
-      const validStatuses = ['pending', 'human_review', 'approved'];
+      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'rejected', 'escrow_suspense', 'categorization_failed'];
       if (!validStatuses.includes(newStatus)) {
         return NextResponse.json(
           { error: `Invalid status: ${newStatus}` },

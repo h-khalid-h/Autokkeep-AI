@@ -406,6 +406,7 @@ export default function PrivacyPage() {
           paddingBottom: '96px',
           alignItems: 'start',
         }}
+        id="privacy-grid"
       >
         {/* Sidebar Nav */}
         <nav
@@ -416,6 +417,7 @@ export default function PrivacyPage() {
             flexDirection: 'column',
             gap: '4px',
           }}
+          className="privacy-sidebar"
         >
           {sections.map((section) => (
             <a
@@ -642,6 +644,19 @@ export default function PrivacyPage() {
           </div>
         </div>
       </footer>
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          #privacy-grid {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .privacy-sidebar {
+            display: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

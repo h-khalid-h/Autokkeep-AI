@@ -85,11 +85,27 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
     setSlackSent(false);
   }, []);
 
-  const handleSendSlack = React.useCallback(() => {
-    setSlackSent(true);
-    triggerToast(
-      `💬 Slack message sent to ${transaction?.cardHolder ?? 'user'}`
-    );
+  const handleSendSlack = React.useCallback(async () => {
+    if (!transaction) return;
+    try {
+      const res = await fetch('/api/channels/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: 'slack',
+          transactionId: transaction.id,
+          message: `Receipt request for ${transaction.merchant} ($${transaction.amount.toFixed(2)})`,
+        }),
+      });
+      if (res.ok) {
+        setSlackSent(true);
+        triggerToast(`💬 Slack message sent for ${transaction.merchant}`);
+      } else {
+        triggerToast('❌ Failed to send Slack message');
+      }
+    } catch {
+      triggerToast('❌ Failed to send Slack message');
+    }
     setTimeout(() => setShowSlackModal(false), 1500);
   }, [transaction, triggerToast]);
 

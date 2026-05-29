@@ -432,6 +432,7 @@ export default function TermsPage() {
           paddingBottom: '96px',
           alignItems: 'start',
         }}
+        id="terms-grid"
       >
         {/* Sidebar Nav */}
         <nav
@@ -442,6 +443,7 @@ export default function TermsPage() {
             flexDirection: 'column',
             gap: '4px',
           }}
+          className="terms-sidebar"
         >
           {sections.map((section) => (
             <a
@@ -718,6 +720,19 @@ export default function TermsPage() {
           </div>
         </div>
       </footer>
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          #terms-grid {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .terms-sidebar {
+            display: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
