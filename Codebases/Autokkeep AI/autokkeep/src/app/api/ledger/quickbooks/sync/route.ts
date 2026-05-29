@@ -7,6 +7,7 @@ import {
   refreshQBOToken,
 } from '@/lib/ledger/sync';
 import { writeAuditLog } from '@/lib/audit';
+import { encryptToken, decryptToken } from '@/lib/crypto';
 
 // POST /api/ledger/quickbooks/sync — Sync approved transactions to QuickBooks
 export async function POST(request: NextRequest) {
@@ -64,6 +65,10 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Decrypt tokens from DB
+    conn.access_token = decryptToken(conn.access_token);
+    conn.refresh_token = decryptToken(conn.refresh_token);
 
     // Get approved transactions that haven't been synced
     let query = (supabase as any)
@@ -125,8 +130,8 @@ export async function POST(request: NextRequest) {
         await (supabase as any)
           .from('ledger_connections')
           .update({
-            access_token: refreshed.accessToken,
-            refresh_token: refreshed.refreshToken,
+            access_token: encryptToken(refreshed.accessToken),
+            refresh_token: encryptToken(refreshed.refreshToken),
             token_expires_at: new Date(Date.now() + (refreshed.expiresIn || 3600) * 1000).toISOString(),
           })
           .eq('id', conn.id);
@@ -326,6 +331,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No QBO connection' }, { status: 404 });
     }
 
+    // Decrypt tokens from DB
+    conn.access_token = decryptToken(conn.access_token);
+    conn.refresh_token = decryptToken(conn.refresh_token);
+
     // Refresh token if expired (QBO tokens last 1 hour)
     let accessToken = conn.access_token;
     const tokenExpired = conn.token_expires_at && new Date(conn.token_expires_at).getTime() < Date.now();
@@ -337,8 +346,8 @@ export async function GET(request: NextRequest) {
         await (supabase as any)
           .from('ledger_connections')
           .update({
-            access_token: refreshed.accessToken,
-            refresh_token: refreshed.refreshToken,
+            access_token: encryptToken(refreshed.accessToken),
+            refresh_token: encryptToken(refreshed.refreshToken),
             token_expires_at: new Date(Date.now() + (refreshed.expiresIn || 3600) * 1000).toISOString(),
           })
           .eq('id', conn.id);

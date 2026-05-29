@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQBOAuthUrl, exchangeQBOCode, refreshQBOToken } from '@/lib/ledger/sync';
+import { encryptToken, decryptToken } from '@/lib/crypto';
 
 // GET /api/ledger/quickbooks/auth — Start QBO OAuth flow
 export async function GET(request: NextRequest) {
@@ -103,8 +104,8 @@ export async function POST(request: NextRequest) {
       {
         entity_id: entityId,
         provider: 'quickbooks',
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
+        access_token: encryptToken(tokens.accessToken),
+        refresh_token: encryptToken(tokens.refreshToken),
         realm_id: realmId,
         is_active: true,
         token_expires_at: new Date(Date.now() + tokens.expiresIn * 1000).toISOString(),
@@ -164,6 +165,10 @@ export async function getQBOAccessToken(entityId: string): Promise<{
 
   if (!conn) return null;
 
+  // Decrypt tokens from DB
+  conn.access_token = decryptToken(conn.access_token);
+  conn.refresh_token = decryptToken(conn.refresh_token);
+
   // Check if token is expired
   const expiresAt = new Date(conn.token_expires_at).getTime();
   const now = Date.now();
@@ -176,8 +181,8 @@ export async function getQBOAccessToken(entityId: string): Promise<{
       await (supabase as any)
         .from('ledger_connections')
         .update({
-          access_token: refreshed.accessToken,
-          refresh_token: refreshed.refreshToken,
+          access_token: encryptToken(refreshed.accessToken),
+          refresh_token: encryptToken(refreshed.refreshToken),
           token_expires_at: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString(),
         })
         .eq('id', conn.id);

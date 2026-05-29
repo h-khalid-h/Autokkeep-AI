@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getXeroAuthUrl, exchangeXeroCode, refreshXeroToken } from '@/lib/ledger/sync';
+import { encryptToken, decryptToken } from '@/lib/crypto';
 
 // GET /api/ledger/xero/auth — Start Xero OAuth flow
 export async function GET(request: NextRequest) {
@@ -100,8 +101,8 @@ export async function POST(request: NextRequest) {
       {
         entity_id: entityId,
         provider: 'xero',
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
+        access_token: encryptToken(tokens.accessToken),
+        refresh_token: encryptToken(tokens.refreshToken),
         tenant_id: tokens.tenantId,
         is_active: true,
         token_expires_at: new Date(Date.now() + tokens.expiresIn * 1000).toISOString(),
@@ -160,6 +161,10 @@ export async function getXeroAccessToken(entityId: string): Promise<{
 
   if (!conn) return null;
 
+  // Decrypt tokens from DB
+  conn.access_token = decryptToken(conn.access_token);
+  conn.refresh_token = decryptToken(conn.refresh_token);
+
   const expiresAt = new Date(conn.token_expires_at).getTime();
   if (expiresAt - Date.now() < 5 * 60 * 1000) {
     try {
@@ -167,8 +172,8 @@ export async function getXeroAccessToken(entityId: string): Promise<{
       await (supabase as any)
         .from('ledger_connections')
         .update({
-          access_token: refreshed.accessToken,
-          refresh_token: refreshed.refreshToken,
+          access_token: encryptToken(refreshed.accessToken),
+          refresh_token: encryptToken(refreshed.refreshToken),
           token_expires_at: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString(),
         })
         .eq('id', conn.id);
