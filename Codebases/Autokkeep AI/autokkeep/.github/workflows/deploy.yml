@@ -1,0 +1,120 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Only run one deploy at a time
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # ── CI (lint, test, build) ─────────────────────
+  ci:
+    name: Lint, Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx next lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npx next build
+
+  # ── Database Migrations ────────────────────────
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: ci
+    timeout-minutes: 5
+    # Only run on push to main (not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run migrations
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/migrate.mjs
+
+      - name: Migration status
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/migrate.mjs --status
+
+  # ── Post-Deploy Health Check ───────────────────
+  verify:
+    name: Post-Deploy Health Check
+    runs-on: ubuntu-latest
+    needs: migrate
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for EasyPanel deploy
+        run: |
+          echo "⏳ Waiting 90s for EasyPanel to detect push and rebuild..."
+          sleep 90
+
+      - name: Health check
+        run: |
+          echo "🔍 Checking app health..."
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -sf https://autokkeep.com/api/health 2>/dev/null || echo '{"status":"unreachable"}')
+            STATUS=$(echo "$RESPONSE" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+            echo "  Attempt $i: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then
+              echo "✅ App is healthy!"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "⚠️ App did not reach healthy state after 5 attempts"
+          echo "   Last response: $RESPONSE"
+          exit 1
+
+      - name: Supabase health check
+        run: |
+          echo "🔍 Checking Supabase..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://autokkeep-db.host.datac.com/rest/v1/ \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Supabase REST API is healthy (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ Supabase REST API returned HTTP $HTTP_CODE"
+            exit 1
+          fi

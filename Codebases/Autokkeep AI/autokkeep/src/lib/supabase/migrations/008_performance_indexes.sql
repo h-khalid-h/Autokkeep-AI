@@ -22,7 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_entity_merchant
 
 -- Transactions: Confidence-based queries (escrow, freeze review)
 CREATE INDEX IF NOT EXISTS idx_transactions_entity_confidence
-  ON transactions (entity_id, confidence_score)
+  ON transactions (entity_id, confidence)
   WHERE status IN ('escrow_suspense', 'human_review', 'pending');
 
 -- Audit Log: Always queried by entity + time range
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_entity_created
 
 -- Journal Entries: Queried by entity + period
 CREATE INDEX IF NOT EXISTS idx_journal_entries_entity_date
-  ON journal_entries (entity_id, date DESC);
+  ON journal_entries (entity_id, entry_date DESC);
 
 -- Document Anchors: Looked up by transaction
 CREATE INDEX IF NOT EXISTS idx_document_anchors_transaction
@@ -47,7 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_categorization_rules_entity
 
 -- Receipts: Looked up by transaction
 CREATE INDEX IF NOT EXISTS idx_receipts_transaction
-  ON receipts (transaction_id);
+  ON receipt_requests (transaction_id);
 
 -- Team Members: Auth queries check user_id + org_id
 CREATE INDEX IF NOT EXISTS idx_team_members_user_org

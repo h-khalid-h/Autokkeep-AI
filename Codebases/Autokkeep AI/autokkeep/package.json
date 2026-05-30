@@ -10,7 +10,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:status": "node scripts/migrate.mjs --status",
+    "migrate:dry-run": "node scripts/migrate.mjs --dry-run"
   },
   "dependencies": {
     "@slack/events-api": "^3.0.1",
