@@ -104,27 +104,35 @@ export async function ingestTransactions(
     }
   }
 
-  // ── 3. Reset modified transactions for AI re-categorization ───────────
+  // ── 3. Reset modified transactions for AI re-categorization (batch) ──
   if (syncResult.modified.length > 0) {
     const now = new Date().toISOString();
-    for (const t of syncResult.modified) {
-      await supabase
-        .from('transactions')
-        .update({
-          amount: t.amount,
-          date: t.date,
-          merchant_name: t.merchant_name || t.name,
-          merchant_raw: t.name,
-          category_ai: null,
-          confidence: 0,
-          ai_reasoning: null,
-          status: 'pending',
-          updated_at: now,
-        })
-        .eq('plaid_transaction_id', t.transaction_id)
-        .eq('entity_id', entityId);
+    const modifiedRecords = syncResult.modified.map((t) => ({
+      entity_id: entityId,
+      bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
+      plaid_transaction_id: t.transaction_id,
+      amount: t.amount,
+      date: t.date,
+      merchant_name: t.merchant_name || t.name,
+      merchant_raw: t.name,
+      category_ai: null,
+      confidence: 0,
+      ai_reasoning: null,
+      status: 'pending',
+      updated_at: now,
+    }));
+
+    const { error } = await supabase
+      .from('transactions')
+      .upsert(modifiedRecords, {
+        onConflict: 'plaid_transaction_id',
+      });
+
+    if (!error) {
+      result.modified = syncResult.modified.length;
+    } else {
+      console.error('[Plaid Ingest] Modified upsert error:', error.message);
     }
-    result.modified = syncResult.modified.length;
   }
 
   // ── 4. Soft-delete removed transactions (batch) ───────────────────────

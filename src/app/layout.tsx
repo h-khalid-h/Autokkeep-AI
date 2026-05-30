@@ -118,6 +118,7 @@ export default function RootLayout({
           <Analytics />
           <SpeedInsights />
         </Providers>
+        <div aria-live="polite" aria-atomic="true" className="sr-only" id="notification-live-region" />
       </body>
     </html>
   );

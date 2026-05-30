@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     // Find the bank connection for this Plaid item
     const { data: connection, error: connError } = await db
       .from('bank_connections')
-      .select('*')
+      .select('id, entity_id, plaid_item_id, plaid_access_token, cursor, institution_name, status')
       .eq('plaid_item_id', item_id)
       .single();
 

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Fetch all active bank connections
     const { data: connections, error: connError } = await db
       .from('bank_connections')
-      .select('*')
+      .select('id, entity_id, plaid_item_id, plaid_access_token, cursor, institution_name, status')
       .eq('status', 'active');
 
     if (connError) {

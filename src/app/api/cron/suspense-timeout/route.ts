@@ -15,6 +15,15 @@ import { writeAuditLog } from '@/lib/audit';
 const SUSPENSE_GL_CODE = '2900'; // Suspense/Clearing account
 const SUSPENSE_TIMEOUT_HOURS = 48;
 
+interface StaleTransaction {
+  id: string;
+  entity_id: string;
+  amount: number;
+  merchant_name: string | null;
+  date: string;
+  category_ai: string | null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
@@ -32,11 +41,13 @@ export async function GET(request: NextRequest) {
       Date.now() - SUSPENSE_TIMEOUT_HOURS * 60 * 60 * 1000
     ).toISOString();
 
-    const { data: staleTransactions, error: fetchError } = await db
+    const { data, error: fetchError } = await db
       .from('transactions')
       .select('id, entity_id, amount, merchant_name, date, category_ai')
       .eq('status', 'human_review')
       .lt('created_at', cutoffDate);
+
+    const staleTransactions = data as StaleTransaction[] | null;
 
     if (fetchError) {
       console.error('[Suspense Timeout] Failed to fetch stale transactions:', fetchError);
@@ -50,63 +61,94 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    let movedCount = 0;
-    const errors: string[] = [];
+    const now = new Date().toISOString();
+    const txnIds = staleTransactions.map((t) => t.id);
 
-    for (const txn of staleTransactions) {
-      try {
-        // 1. Move transaction to escrow_suspense
-        await db
-          .from('transactions')
-          .update({
-            status: 'escrow_suspense',
-            ai_reasoning: `Auto-moved to suspense: unresolved for >${SUSPENSE_TIMEOUT_HOURS}h. Original AI suggestion: ${txn.category_ai || 'none'}`,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', txn.id);
+    // 1. Batch update all stale transactions to escrow_suspense
+    //    Note: ai_reasoning per-transaction is set below via individual updates
+    //    since each needs a unique message. We batch the status update first.
+    const aiReasoningUpdates = staleTransactions.map((txn) =>
+      db
+        .from('transactions')
+        .update({
+          status: 'escrow_suspense',
+          ai_reasoning: `Auto-moved to suspense: unresolved for >${SUSPENSE_TIMEOUT_HOURS}h. Original AI suggestion: ${txn.category_ai || 'none'}`,
+          updated_at: now,
+        })
+        .eq('id', txn.id)
+    );
+    await Promise.all(aiReasoningUpdates);
 
-        // 2. Create a suspense journal entry (debit suspense, credit TBD)
-        const { data: journalEntry } = await db
-          .from('journal_entries')
-          .insert({
-            entity_id: txn.entity_id,
-            transaction_id: txn.id,
-            entry_date: txn.date,
-            memo: `Suspense: ${txn.merchant_name || 'Unknown'} — $${Math.abs(txn.amount).toFixed(2)} — pending CPA review`,
-            status: 'draft',
-            created_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
+    // 2. Batch insert all journal entries at once
+    const journalRecords = staleTransactions.map((txn) => ({
+      entity_id: txn.entity_id,
+      transaction_id: txn.id,
+      entry_date: txn.date,
+      memo: `Suspense: ${txn.merchant_name || 'Unknown'} — $${Math.abs(txn.amount).toFixed(2)} — pending CPA review`,
+      status: 'draft',
+      created_at: now,
+    }));
 
-        if (journalEntry) {
-          // Balanced double-entry: debit Suspense, credit the bank/cash clearing account
-          // We always credit '1010' (Cash & Bank) since the money has already left the bank.
-          // The suspense account holds the debit until a CPA classifies it.
-          const absAmount = Math.abs(txn.amount);
+    const { data: journalEntries } = await db
+      .from('journal_entries')
+      .insert(journalRecords)
+      .select('id, transaction_id');
 
-          await db
-            .from('journal_lines')
-            .insert([
-              {
-                journal_entry_id: journalEntry.id,
-                gl_code: SUSPENSE_GL_CODE,
-                debit: absAmount,
-                credit: 0,
-                description: `Suspense hold: ${txn.merchant_name || 'Unknown'}`,
-              },
-              {
-                journal_entry_id: journalEntry.id,
-                gl_code: '1010', // Cash & Bank — always use as contra
-                debit: 0,
-                credit: absAmount,
-                description: `Suspense contra: pending classification`,
-              },
-            ]);
-        }
+    // 3. Batch insert all journal lines (debit + credit pairs)
+    if (journalEntries && journalEntries.length > 0) {
+      // Build a map from transaction_id → journal_entry_id
+      const jeMap = new Map<string, string>();
+      for (const je of journalEntries) {
+        jeMap.set(je.transaction_id, je.id);
+      }
 
-        // 3. Log to audit trail
-        await writeAuditLog({
+      const journalLines: Array<{
+        journal_entry_id: string;
+        gl_code: string;
+        debit: number;
+        credit: number;
+        description: string;
+      }> = [];
+
+      for (const txn of staleTransactions) {
+        const jeId = jeMap.get(txn.id);
+        if (!jeId) continue;
+        const absAmount = Math.abs(txn.amount);
+        journalLines.push(
+          {
+            journal_entry_id: jeId,
+            gl_code: SUSPENSE_GL_CODE,
+            debit: absAmount,
+            credit: 0,
+            description: `Suspense hold: ${txn.merchant_name || 'Unknown'}`,
+          },
+          {
+            journal_entry_id: jeId,
+            gl_code: '1010', // Cash & Bank — always use as contra
+            debit: 0,
+            credit: absAmount,
+            description: `Suspense contra: pending classification`,
+          },
+        );
+      }
+
+      if (journalLines.length > 0) {
+        await db.from('journal_lines').insert(journalLines);
+      }
+    }
+
+    // 4. Build a journal entry lookup for audit details
+    const jeMapForAudit = new Map<string, string>();
+    if (journalEntries) {
+      for (const je of journalEntries) {
+        jeMapForAudit.set(je.transaction_id, je.id);
+      }
+    }
+
+    // Batch audit logs via Promise.all
+    await Promise.all(
+      staleTransactions.map((txn) =>
+        writeAuditLog({
           supabase: db,
           entityId: txn.entity_id,
           actorId: 'system',
@@ -119,18 +161,15 @@ export async function GET(request: NextRequest) {
             reason: `Unresolved for >${SUSPENSE_TIMEOUT_HOURS} hours`,
             previous_status: 'human_review',
             new_status: 'escrow_suspense',
-            journal_entry_id: journalEntry?.id || null,
+            journal_entry_id: jeMapForAudit.get(txn.id) || null,
           },
           request,
-        });
+        })
+      )
+    );
 
-        movedCount++;
-      } catch (err) {
-        const msg = `Failed to move txn ${txn.id}: ${err instanceof Error ? err.message : 'Unknown'}`;
-        errors.push(msg);
-        console.error('[Suspense Timeout]', msg);
-      }
-    }
+    const movedCount = txnIds.length;
+    const errors: string[] = [];
 
 
     return NextResponse.json({
