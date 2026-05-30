@@ -17,15 +17,25 @@ export async function GET(request: NextRequest) {
   try {
     const dbStart = Date.now();
     const supabase = createAdminClient();
-    const { error } = await (supabase as any)
-      .from('organizations')
-      .select('id', { count: 'exact', head: true })
-      .limit(1);
+    // Use a simple query that doesn't depend on any specific table
+    const { error } = await (supabase as any).rpc('version').maybeSingle();
 
-    checks.database = {
-      status: error ? 'degraded' : 'healthy',
-      latency: Date.now() - dbStart,
-    };
+    if (error) {
+      // Fallback: try a simple from() query
+      const { error: fallbackError } = await (supabase as any)
+        .from('audit_log')
+        .select('id', { count: 'exact', head: true })
+        .limit(1);
+      checks.database = {
+        status: fallbackError ? 'degraded' : 'healthy',
+        latency: Date.now() - dbStart,
+      };
+    } else {
+      checks.database = {
+        status: 'healthy',
+        latency: Date.now() - dbStart,
+      };
+    }
   } catch {
     checks.database = { status: 'unhealthy' };
   }
