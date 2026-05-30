@@ -194,7 +194,7 @@ export default function PricingSection() {
               </div>
 
               <a
-                href="#cta"
+                href={plan.price > 0 ? '#cta' : '/contact'}
                 className={`btn ${plan.featured ? 'btn-primary' : 'btn-secondary'} btn-lg`}
                 style={{ width: '100%' }}
               >

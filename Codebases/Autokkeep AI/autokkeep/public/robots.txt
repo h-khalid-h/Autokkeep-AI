@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /transactions
+Disallow: /onboarding
+Disallow: /chart-of-accounts
+Disallow: /auth/
+
+Sitemap: https://autokkeep.com/sitemap.xml

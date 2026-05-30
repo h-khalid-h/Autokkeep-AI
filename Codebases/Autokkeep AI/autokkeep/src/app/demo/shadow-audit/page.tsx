@@ -148,20 +148,20 @@ function autoDetect(headers: string[]): { dateCol: number; descCol: number; amou
 
 /* ─── Styles ─── */
 const uploadZoneStyle: React.CSSProperties = {
-  border: '2px dashed rgba(99, 102, 241, 0.4)',
+  border: '2px dashed rgba(30, 111, 255, 0.4)',
   borderRadius: '16px',
   padding: '64px 32px',
   textAlign: 'center',
   cursor: 'pointer',
   transition: 'all 0.3s ease',
-  background: 'rgba(99, 102, 241, 0.03)',
+  background: 'rgba(30, 111, 255, 0.03)',
   position: 'relative',
 };
 
 const uploadZoneHoverStyle: React.CSSProperties = {
   ...uploadZoneStyle,
-  borderColor: 'rgba(99, 102, 241, 0.8)',
-  background: 'rgba(99, 102, 241, 0.08)',
+  borderColor: 'rgba(30, 111, 255, 0.8)',
+  background: 'rgba(30, 111, 255, 0.08)',
 };
 
 const selectStyle: React.CSSProperties = {
@@ -335,8 +335,8 @@ export default function ShadowAuditPage() {
         {/* Keyframe styles */}
         <style>{`
           @keyframes pulse-border {
-            0%, 100% { border-color: rgba(99, 102, 241, 0.3); }
-            50% { border-color: rgba(99, 102, 241, 0.7); }
+            0%, 100% { border-color: rgba(30, 111, 255, 0.3); }
+            50% { border-color: rgba(30, 111, 255, 0.7); }
           }
           @keyframes shimmer {
             0% { background-position: -200% 0; }
@@ -348,7 +348,7 @@ export default function ShadowAuditPage() {
           }
           .upload-zone-idle { animation: pulse-border 2.5s ease-in-out infinite; }
           .progress-bar-fill {
-            background: linear-gradient(90deg, var(--accent-primary), #818cf8, var(--accent-primary));
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-primary));
             background-size: 200% 100%;
             animation: shimmer 1.5s linear infinite;
           }

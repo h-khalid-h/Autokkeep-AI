@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseTeamsWebhookPayload, mapTeamsChoiceToGL, sendTeamsConfirmation } from '@/lib/channels/teams';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
+import { timingSafeEqual } from 'crypto';
 
 // POST /api/channels/teams/webhook — Handle Teams adaptive card responses
 export async function POST(request: NextRequest) {
@@ -13,8 +14,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const providedSecret = request.headers.get('x-teams-secret') || request.nextUrl.searchParams.get('secret');
-    if (providedSecret !== webhookSecret) {
+    const providedSecret = request.headers.get('x-teams-secret');
+    if (!providedSecret) {
+      return NextResponse.json({ error: 'Missing webhook secret' }, { status: 401 });
+    }
+    try {
+      const isValid = timingSafeEqual(
+        Buffer.from(providedSecret),
+        Buffer.from(webhookSecret)
+      );
+      if (!isValid) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

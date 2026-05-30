@@ -1,11 +1,7 @@
 'use client';
 
-/**
- * Global error boundary — catches errors in the root layout itself.
- * Unlike error.tsx, this handles errors that occur in layout.tsx.
- * Must include its own <html> and <body> tags since the root layout
- * may have failed to render.
- */
+import { useEffect } from 'react';
+
 export default function GlobalError({
   error,
   reset,
@@ -13,102 +9,68 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Report to Sentry
+    import('@/lib/sentry').then(({ captureException }) => {
+      captureException(error, {
+        tags: { boundary: 'global-error' },
+        extra: { digest: error.digest },
+      });
+    });
+  }, [error]);
+
   return (
-    <html lang="en">
+    <html>
       <body
         style={{
-          margin: 0,
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0A0B0F',
-          color: '#fff',
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: 'hsl(222, 47%, 6%)',
+          color: 'hsl(0, 0%, 95%)',
+          fontFamily: 'Inter, -apple-system, sans-serif',
+          padding: '24px',
         }}
       >
-        <div style={{ textAlign: 'center', maxWidth: '480px', padding: '24px' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #B3F847, #8BC34A)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '24px',
-              fontWeight: 700,
-            }}
-          >
-            AK
-          </div>
-          <h1
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              marginBottom: '12px',
-            }}
-          >
+        <div
+          style={{
+            maxWidth: '480px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>
             Something went wrong
-          </h1>
+          </h2>
           <p
             style={{
+              color: 'hsl(222, 15%, 65%)',
               fontSize: '0.9375rem',
-              color: 'rgba(255, 255, 255, 0.6)',
-              marginBottom: '8px',
               lineHeight: 1.6,
+              marginBottom: '24px',
             }}
           >
-            An unexpected error occurred. Please try again.
+            An unexpected error occurred. Our team has been notified and is investigating.
           </p>
-          {error.digest && (
-            <p
-              style={{
-                fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.3)',
-                marginBottom: '24px',
-                fontFamily: 'monospace',
-              }}
-            >
-              Error ID: {error.digest}
-            </p>
-          )}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button
-              onClick={reset}
-              style={{
-                padding: '10px 24px',
-                background: 'linear-gradient(135deg, #B3F847, #8BC34A)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#000',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-            >
-              Try Again
-            </button>
-            <a
-              href="/"
-              style={{
-                padding: '10px 24px',
-                background: 'transparent',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '10px',
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontWeight: 500,
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Go Home
-            </a>
-          </div>
+          <button
+            onClick={reset}
+            style={{
+              background: 'linear-gradient(135deg, hsl(234, 89%, 64%), hsl(270, 80%, 65%))',
+              color: 'white',
+              border: 'none',
+              padding: '12px 32px',
+              borderRadius: '12px',
+              fontSize: '1rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Try Again
+          </button>
         </div>
       </body>
     </html>

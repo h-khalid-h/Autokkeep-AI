@@ -1,8 +1,23 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState, FormEvent } from 'react'
+import { useState, useMemo, FormEvent } from 'react'
 import Link from 'next/link'
+import Logo from '@/components/ui/Logo'
+
+function getPasswordStrength(password: string): { level: number; label: string; color: string } {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { level: 1, label: 'Weak', color: '#ef4444' };
+  if (score === 2) return { level: 2, label: 'Fair', color: '#f59e0b' };
+  if (score === 3) return { level: 3, label: 'Good', color: '#3b82f6' };
+  return { level: 4, label: 'Strong', color: '#10b981' };
+}
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('')
@@ -14,6 +29,17 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmed, setConfirmed] = useState(false)
+
+  const passwordRequirements = useMemo(() => [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'Contains uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'Contains lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'Contains a number', met: /[0-9]/.test(password) },
+  ], [password])
+
+  const allRequirementsMet = passwordRequirements.every((r) => r.met)
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0
+  const isFormValid = allRequirementsMet && passwordsMatch && !loading
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -67,7 +93,7 @@ export default function SignupPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0f',
+        background: 'var(--bg-primary)',
         position: 'relative',
         overflow: 'hidden',
         padding: '24px',
@@ -79,7 +105,7 @@ export default function SignupPage() {
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 50%)',
+            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30, 111, 255, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(36, 215, 210, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(30, 111, 255, 0.06) 0%, transparent 50%)',
           pointerEvents: 'none',
         }}
       />
@@ -114,23 +140,7 @@ export default function SignupPage() {
                 marginBottom: '32px',
               }}
             >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #6366f1, #10b981)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                AK
-              </div>
+              <Logo size={40} />
               <span
                 style={{
                   fontSize: '22px',
@@ -384,6 +394,78 @@ export default function SignupPage() {
                     )}
                   </button>
                 </div>
+                {/* Password strength indicator */}
+                {password.length > 0 && (
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{
+                      display: 'flex',
+                      gap: '4px',
+                      marginBottom: '6px',
+                    }}>
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          style={{
+                            flex: 1,
+                            height: '3px',
+                            borderRadius: '2px',
+                            background: level <= getPasswordStrength(password).level
+                              ? getPasswordStrength(password).color
+                              : 'rgba(255,255,255,0.08)',
+                            transition: 'background 0.2s ease',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span style={{
+                      fontSize: '12px',
+                      color: getPasswordStrength(password).color,
+                    }}>
+                      {getPasswordStrength(password).label}
+                    </span>
+                  </div>
+                )}
+                {/* Password requirements checklist */}
+                {password.length > 0 && (
+                  <ul
+                    id="signup-password-requirements"
+                    style={{
+                      listStyle: 'none',
+                      padding: 0,
+                      margin: '8px 0 0 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    {passwordRequirements.map((req) => (
+                      <li
+                        key={req.label}
+                        style={{
+                          fontSize: '0.75rem',
+                          lineHeight: 1.5,
+                          color: req.met ? 'var(--status-success)' : 'var(--text-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'color 0.2s ease',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            transition: 'color 0.2s ease',
+                          }}
+                        >
+                          {req.met ? '✓' : '✗'}
+                        </span>
+                        {req.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -471,6 +553,34 @@ export default function SignupPage() {
                     )}
                   </button>
                 </div>
+                {/* Password match indicator */}
+                {confirmPassword.length > 0 && (
+                  <div
+                    id="signup-password-match-indicator"
+                    style={{
+                      marginTop: '8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1.5,
+                      color: passwordsMatch ? 'var(--status-success)' : 'var(--status-danger)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'color 0.2s ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        lineHeight: 1,
+                        flexShrink: 0,
+                        transition: 'color 0.2s ease',
+                      }}
+                    >
+                      {passwordsMatch ? '✓' : '✗'}
+                    </span>
+                    {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
+                  </div>
+                )}
               </div>
 
               {/* Submit button */}
@@ -478,7 +588,7 @@ export default function SignupPage() {
                 id="signup-submit-button"
                 type="submit"
                 className="btn btn-primary btn-lg"
-                disabled={loading}
+                disabled={!isFormValid}
                 style={{
                   width: '100%',
                   padding: '14px',
@@ -486,8 +596,8 @@ export default function SignupPage() {
                   border: 'none',
                   fontSize: '15px',
                   fontWeight: 600,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
+                  cursor: !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: !isFormValid ? 0.7 : 1,
                   transition: 'opacity 0.2s ease, transform 0.15s ease',
                   position: 'relative',
                 }}
@@ -528,9 +638,9 @@ export default function SignupPage() {
                 lineHeight: '1.5',
               }}>
                 By creating an account, you agree to our{' '}
-                <Link href="/terms" style={{ color: '#818cf8', textDecoration: 'none' }}>Terms of Service</Link>
+                <Link href="/terms" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Terms of Service</Link>
                 {' '}and{' '}
-                <Link href="/privacy" style={{ color: '#818cf8', textDecoration: 'none' }}>Privacy Policy</Link>.
+                <Link href="/privacy" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Privacy Policy</Link>.
               </p>
             </form>
 
@@ -548,16 +658,16 @@ export default function SignupPage() {
               <Link
                 href="/auth/login"
                 style={{
-                  color: '#818cf8',
+                  color: 'var(--accent-primary)',
                   textDecoration: 'none',
                   fontWeight: 500,
                   transition: 'color 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#a5b4fc'
+                  e.currentTarget.style.color = 'var(--accent-secondary)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#818cf8'
+                  e.currentTarget.style.color = 'var(--accent-primary)'
                 }}
               >
                 Sign in
@@ -637,17 +747,17 @@ export default function SignupPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                color: '#818cf8',
+                color: 'var(--accent-primary)',
                 textDecoration: 'none',
                 fontWeight: 500,
                 fontSize: '15px',
                 transition: 'color 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#a5b4fc'
+                e.currentTarget.style.color = 'var(--accent-secondary)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#818cf8'
+                e.currentTarget.style.color = 'var(--accent-primary)'
               }}
             >
               <svg

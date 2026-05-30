@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 // ─── GET: List all chart of accounts for user's entity ──────────────────────────
 
@@ -88,6 +89,9 @@ interface CreateAccountBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'coa' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth

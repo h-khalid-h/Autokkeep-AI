@@ -8,7 +8,7 @@ import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = await rateLimit(request, { max: 2, windowSeconds: 60, prefix: 'delete' });
+    const limited = await rateLimit(request, { max: 3, windowSeconds: 60, prefix: 'account-delete' });
     if (limited) return limited;
 
     const supabase = await createServerClient();

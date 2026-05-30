@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Transaction } from '@/data/mockTransactions';
+import Logo from '@/components/ui/Logo';
 
 interface ActionsConsoleProps {
   transaction: Transaction | null;
@@ -216,9 +217,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
         {showSlackModal && (
           <div className="slack-mockup" role="dialog" aria-label="Slack message preview">
             <div className="slack-header">
-              <div className="slack-avatar" aria-hidden="true">
-                AK
-              </div>
+              <Logo size={36} />
               <span className="slack-name">Autokkeep Bot</span>
               <span className="slack-badge-bot">BOT</span>
             </div>

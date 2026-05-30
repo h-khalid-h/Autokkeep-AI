@@ -4,8 +4,10 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { syncTransactions } from '@/lib/plaid/client';
+import { ingestTransactions } from '@/lib/plaid/ingest';
+import { decryptToken } from '@/lib/crypto';
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import { writeAuditLog } from '@/lib/audit';
 
@@ -143,8 +145,15 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
-    } else if (!verificationHeader) {
-      console.warn('[Plaid Webhook] No verification header (non-production — allowing)');
+    } else {
+      // Even in non-production, validate basic payload structure
+      if (!body?.webhook_type || !body?.webhook_code || !body?.item_id) {
+        return NextResponse.json(
+          { error: 'Invalid webhook payload structure' },
+          { status: 400 }
+        );
+      }
+      console.warn('[Plaid Webhook] Verification skipped in non-production environment');
     }
 
     if (!webhook_type || !item_id) {
@@ -176,81 +185,9 @@ export async function POST(request: NextRequest) {
       case 'TRANSACTIONS.SYNC_UPDATES_AVAILABLE':
       case 'TRANSACTIONS.DEFAULT_UPDATE': {
         try {
-          const syncResult = await syncTransactions(
-            connection.plaid_access_token,
-            connection.cursor || undefined
-          );
-
-          // Insert new transactions
-          if (syncResult.added.length > 0) {
-            const transactionRecords = syncResult.added.map((t: Record<string, any>) => ({
-              entity_id: connection.entity_id,
-              bank_account_id: t.account_id,
-              plaid_transaction_id: t.transaction_id,
-              amount: t.amount,
-              date: t.date,
-              merchant_name: t.merchant_name || t.name,
-              merchant_raw: t.name,
-              currency: t.iso_currency_code || 'USD',
-              status: 'pending',
-              confidence: 0,
-            }));
-
-            const { error: upsertError } = await (supabase as any).from('transactions').upsert(transactionRecords, {
-              onConflict: 'plaid_transaction_id',
-              ignoreDuplicates: true,
-            });
-
-            if (upsertError) {
-              console.error('[Plaid Webhook] Transaction upsert failed:', upsertError);
-            }
-          }
-
-          // Handle removed transactions (batch soft delete)
-          if (syncResult.removed.length > 0) {
-            const removedIds = syncResult.removed.map((t: Record<string, any>) => t.transaction_id);
-            await (supabase as any)
-              .from('transactions')
-              .update({
-                status: 'removed',
-                updated_at: new Date().toISOString(),
-              })
-              .in('plaid_transaction_id', removedIds)
-              .eq('entity_id', connection.entity_id);
-          }
-
-          // Handle modified transactions — clear AI categorization for re-processing
-          // (per-row update needed due to different values per row)
-          for (const t of syncResult.modified) {
-            await (supabase as any)
-              .from('transactions')
-              .update({
-                amount: t.amount,
-                date: t.date,
-                merchant_name: t.merchant_name || t.name,
-                merchant_raw: t.name,
-                // Reset AI categorization so the transaction gets re-categorized
-                category_ai: null,
-                confidence: 0,
-                ai_reasoning: null,
-                status: 'pending',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('plaid_transaction_id', t.transaction_id)
-              .eq('entity_id', connection.entity_id);
-          }
-
-          // Update cursor AFTER all transaction processing
-          await (supabase as any)
-            .from('bank_connections')
-            .update({
-              cursor: syncResult.nextCursor,
-              last_synced_at: new Date().toISOString(),
-            })
-            .eq('id', connection.id);
-
+          const ingestResult = await ingestTransactions(supabase, connection);
           console.log(
-            `[Plaid Webhook] Synced: +${syncResult.added.length} ~${syncResult.modified.length} -${syncResult.removed.length}`
+            `[Plaid Webhook] Synced: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
         } catch (syncError) {
           console.error('[Plaid Webhook] Sync failed:', syncError);
@@ -295,6 +232,84 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      // ── Item Credential Issues ────────────────────────────────────────
+      case 'ITEM.PENDING_EXPIRATION': {
+        // Credentials expiring soon — flag connection for re-authentication
+        await (supabase as any)
+          .from('bank_connections')
+          .update({
+            status: 'pending_expiration',
+            error_message: 'Bank credentials expiring soon. Please re-authenticate.',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', connection.id);
+
+        console.warn(
+          `[Plaid Webhook] Credentials expiring for connection ${connection.id}`
+        );
+        break;
+      }
+
+      case 'ITEM.LOGIN_REQUIRED': {
+        // User needs to re-authenticate
+        await (supabase as any)
+          .from('bank_connections')
+          .update({
+            status: 'login_required',
+            error_message: 'Bank login required. Please re-authenticate your bank connection.',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', connection.id);
+
+        console.warn(
+          `[Plaid Webhook] Login required for connection ${connection.id}`
+        );
+        break;
+      }
+
+      case 'ITEM.USER_PERMISSION_REVOKED': {
+        // User revoked access — deactivate connection
+        await (supabase as any)
+          .from('bank_connections')
+          .update({
+            status: 'revoked',
+            error_message: 'Bank access was revoked by the account holder.',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', connection.id);
+
+        await writeAuditLog({
+          supabase,
+          entityId: connection.entity_id,
+          actorId: 'plaid',
+          actorType: 'system',
+          action: 'revoke',
+          targetType: 'bank_connection',
+          targetId: connection.id,
+          details: { event: 'USER_PERMISSION_REVOKED' },
+          request,
+        });
+
+        console.warn(
+          `[Plaid Webhook] Access revoked for connection ${connection.id}`
+        );
+        break;
+      }
+
+      // ── Historical/Initial sync notifications ─────────────────────────
+      case 'TRANSACTIONS.INITIAL_UPDATE':
+      case 'TRANSACTIONS.HISTORICAL_UPDATE': {
+        try {
+          const ingestResult = await ingestTransactions(supabase, connection);
+          console.log(
+            `[Plaid Webhook] ${webhook_code} sync: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
+          );
+        } catch (syncError) {
+          console.error(`[Plaid Webhook] ${webhook_code} sync failed:`, syncError);
+        }
+        break;
+      }
+
       default:
         console.log(
           `[Plaid Webhook] Unhandled event: ${webhook_type}.${webhook_code}`
@@ -317,6 +332,7 @@ export async function POST(request: NextRequest) {
     // Always return 200 for webhooks
     return NextResponse.json({ received: true });
   } catch (error) {
+    captureException(error, { tags: { route: 'webhooks/plaid' } });
     console.error('[Plaid Webhook] Error:', error);
     // Always return 200 for webhooks to prevent retries on our errors
     return NextResponse.json({ received: true });

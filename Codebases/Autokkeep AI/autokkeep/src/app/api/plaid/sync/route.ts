@@ -4,8 +4,10 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createServerClient } from '@/lib/supabase/server';
-import { syncTransactions } from '@/lib/plaid/client';
+import { ingestTransactions } from '@/lib/plaid/ingest';
+import { rateLimit } from '@/lib/rate-limit';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import type {
@@ -21,6 +23,9 @@ interface SyncRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'plaid-sync' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -81,160 +86,111 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sync transactions from Plaid
-    const syncResult = await syncTransactions(
-      connection.plaid_access_token,
-      connection.cursor || undefined
-    );
+    // ── 1. Sync + upsert + cursor via shared ingestion ──────────────────
+    const ingestResult = await ingestTransactions(supabase as any, connection);
 
-    // Fetch entity's chart of accounts and categorization rules
-    const { data: chartOfAccountsData } = await (supabase as any)
-      .from('chart_of_accounts')
-      .select('code, name')
-      .eq('entity_id', entity.id);
-
-    const { data: rulesData } = await (supabase as any)
-      .from('categorization_rules')
+    // ── 2. AI categorization pass on uncategorized pending transactions ──
+    const { data: pendingTxns } = await (supabase as any)
+      .from('transactions')
       .select('*')
-      .eq('entity_id', entity.id);
-
-    // Fetch historical patterns
-    const { data: historyData } = await (supabase as any)
-      .from('categorization_history')
-      .select('merchant, gl_code, gl_name, frequency, last_used')
       .eq('entity_id', entity.id)
-      .order('frequency', { ascending: false })
-      .limit(100);
+      .eq('status', 'pending')
+      .is('category_ai', null);
 
-    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
-      merchant: h.merchant,
-      glCode: h.gl_code,
-      glName: h.gl_name,
-      frequency: h.frequency,
-      lastUsed: h.last_used,
-    }));
+    const txnsToCateg = pendingTxns || [];
 
-    const coaEntries: ChartOfAccountsEntry[] = (
-      chartOfAccountsData || []
-    ).map((c: { code: string; name: string }) => ({
-      code: c.code,
-      name: c.name,
-    }));
-
-    const catRules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
-      id: r.id,
-      vendor_pattern: r.match_value,
-      mcc_code: r.mcc_code || undefined,
-      gl_code: r.gl_code,
-      gl_name: '',
-      match_type: r.rule_type || 'contains',
-      priority: r.priority || 0,
-    }));
-
-    let addedCount = 0;
-    let modifiedCount = 0;
-    let removedCount = 0;
-
-    // Process added transactions
-    for (const t of syncResult.added) {
-      const transactionInput: TransactionInput = {
-        id: t.transaction_id,
-        merchant: t.merchant_name || t.name,
-        merchantRaw: t.name,
-        amount: t.amount,
-        date: t.date,
-        mcc: undefined,
-        currency: t.iso_currency_code || 'USD',
-        bankDescription: t.name,
-      };
-
-      // Run AI categorization on each new transaction
-      const result = await categorizeTransaction(
-        transactionInput,
-        catRules,
-        coaEntries,
-        history
-      );
-
-      // ── Composite Confidence Gate (PRD §5.1) ──
-      const triage = triageTransaction(
-        result.confidence / 100,
-        result.ruleMatchType as RuleMatchType,
-        false, // new transaction, no document yet
-        t.amount || 0,
-      );
-
-      const { error: insertError } = await (supabase as any)
-        .from('transactions')
-        .upsert({
-          entity_id: entity.id,
-          bank_account_id: t.account_id,
-          plaid_transaction_id: t.transaction_id,
-          amount: t.amount,
-          date: t.date,
-          merchant_name: t.merchant_name || t.name,
-          merchant_raw: t.name,
-          currency: t.iso_currency_code || 'USD',
-          category_ai: result.glCode || null,
-          confidence: Math.round(triage.confidence.compositeScore * 100),
-          ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
-          status: triage.targetStatus,
-        }, { onConflict: 'plaid_transaction_id', ignoreDuplicates: true });
-
-      if (!insertError) addedCount++;
-    }
-
-    // Process modified transactions — clear AI categorization for re-processing
-    for (const t of syncResult.modified) {
-      const { error: updateError } = await (supabase as any)
-        .from('transactions')
-        .update({
-          amount: t.amount,
-          date: t.date,
-          merchant_name: t.merchant_name || t.name,
-          merchant_raw: t.name,
-          // Reset AI categorization so the transaction gets re-categorized
-          category_ai: null,
-          confidence: 0,
-          ai_reasoning: null,
-          status: 'pending',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('plaid_transaction_id', t.transaction_id)
+    if (txnsToCateg.length > 0) {
+      // Fetch entity's chart of accounts and categorization rules
+      const { data: chartOfAccountsData } = await (supabase as any)
+        .from('chart_of_accounts')
+        .select('code, name')
         .eq('entity_id', entity.id);
 
-      if (!updateError) modifiedCount++;
-    }
-
-    // Process removed transactions (soft delete)
-    for (const t of syncResult.removed) {
-      const { error: deleteError } = await (supabase as any)
-        .from('transactions')
-        .update({
-          status: 'removed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('plaid_transaction_id', t.transaction_id)
+      const { data: rulesData } = await (supabase as any)
+        .from('categorization_rules')
+        .select('*')
         .eq('entity_id', entity.id);
 
-      if (!deleteError) removedCount++;
-    }
+      // Fetch historical patterns
+      const { data: historyData } = await (supabase as any)
+        .from('categorization_history')
+        .select('merchant, gl_code, gl_name, frequency, last_used')
+        .eq('entity_id', entity.id)
+        .order('frequency', { ascending: false })
+        .limit(100);
 
-    // Update cursor on bank_connection
-    await (supabase as any)
-      .from('bank_connections')
-      .update({
-        cursor: syncResult.nextCursor,
-        last_synced_at: new Date().toISOString(),
-      })
-      .eq('id', connectionId);
+      const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+        merchant: h.merchant,
+        glCode: h.gl_code,
+        glName: h.gl_name,
+        frequency: h.frequency,
+        lastUsed: h.last_used,
+      }));
+
+      const coaEntries: ChartOfAccountsEntry[] = (
+        chartOfAccountsData || []
+      ).map((c: { code: string; name: string }) => ({
+        code: c.code,
+        name: c.name,
+      }));
+
+      const catRules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
+        id: r.id,
+        vendor_pattern: r.match_value,
+        mcc_code: r.mcc_code || undefined,
+        gl_code: r.gl_code,
+        gl_name: '',
+        match_type: r.rule_type || 'contains',
+        priority: r.priority || 0,
+      }));
+
+      for (const txn of txnsToCateg) {
+        const transactionInput: TransactionInput = {
+          id: txn.plaid_transaction_id,
+          merchant: txn.merchant_name,
+          merchantRaw: txn.merchant_raw,
+          amount: txn.amount,
+          date: txn.date,
+          mcc: undefined,
+          currency: txn.currency || 'USD',
+          bankDescription: txn.merchant_raw,
+        };
+
+        const result = await categorizeTransaction(
+          transactionInput,
+          catRules,
+          coaEntries,
+          history
+        );
+
+        // ── Composite Confidence Gate (PRD §5.1) ──
+        const triage = triageTransaction(
+          result.confidence / 100,
+          result.ruleMatchType as RuleMatchType,
+          false, // no document yet
+          txn.amount || 0,
+        );
+
+        await (supabase as any)
+          .from('transactions')
+          .update({
+            category_ai: result.glCode || null,
+            confidence: Math.round(triage.confidence.compositeScore * 100),
+            ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+            status: triage.targetStatus,
+          })
+          .eq('id', txn.id);
+      }
+    }
 
     return NextResponse.json({
-      added: addedCount,
-      modified: modifiedCount,
-      removed: removedCount,
+      added: ingestResult.added,
+      modified: ingestResult.modified,
+      removed: ingestResult.removed,
+      categorized: txnsToCateg.length,
     });
   } catch (error) {
+    captureException(error, { tags: { route: 'plaid/sync' } });
     console.error('[Plaid Sync] Error:', error);
     return NextResponse.json(
       { error: 'Failed to sync transactions' },

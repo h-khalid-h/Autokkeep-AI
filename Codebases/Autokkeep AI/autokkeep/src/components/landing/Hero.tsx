@@ -63,7 +63,7 @@ export default function Hero() {
             Stop{' '}
             <span className="hero-typewriter">{displayText}</span>
             <br />
-            Autokkeep is an autonomous AI agent that manages your entire ledger — from receipt capture to audit-ready financials — in real time.
+            Autokkeep automatically categorizes transactions, chases receipts, and syncs your ledger — so your books are always closed and audit-ready.
           </p>
 
           <div className="hero-ctas">
@@ -77,15 +77,15 @@ export default function Hero() {
 
           <div className="hero-trust">
             <div className="hero-trust-item">
-              <span className="hero-trust-icon">🔒</span>
-              SOC 2 Ready
+              <span className="hero-trust-icon" aria-hidden="true">🔒</span>
+              SOC 2 Architecture
             </div>
             <div className="hero-trust-item">
-              <span className="hero-trust-icon">🏦</span>
+              <span className="hero-trust-icon" aria-hidden="true">🏦</span>
               Bank-Grade Encryption
             </div>
             <div className="hero-trust-item">
-              <span className="hero-trust-icon">✓</span>
+              <span className="hero-trust-icon" aria-hidden="true">✓</span>
               GAAP Compliant
             </div>
           </div>

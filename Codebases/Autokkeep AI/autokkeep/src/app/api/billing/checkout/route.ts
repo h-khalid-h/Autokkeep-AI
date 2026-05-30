@@ -1,121 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { captureException } from '@/lib/sentry';
+import { createServerClient } from '@/lib/supabase/server';
+import { getStripeClient, PLAN_PRICES, type PlanId } from '@/lib/stripe';
+import { rateLimit } from '@/lib/rate-limit';
 
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2026-04-22.dahlia',
-  });
-}
-
-// POST /api/billing/checkout — Create Stripe Checkout session
 export async function POST(request: NextRequest) {
   try {
-    const { orgId, plan, email } = await request.json();
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'checkout' });
+    if (limited) return limited;
 
-    if (!orgId || !plan || !email) {
-      return NextResponse.json(
-        { error: 'Missing orgId, plan, or email' },
-        { status: 400 }
-      );
-    }
-
-    // Validate plan and orgId
-    const validPlans = ['starter', 'smb_growth', 'cpa_professional', 'cpa_enterprise'];
-    if (!plan || !validPlans.includes(plan)) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
-    }
-    if (!orgId || typeof orgId !== 'string') {
-      return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
-    }
-
-    // Map plan to Stripe price ID
-    const priceMap: Record<string, string | undefined> = {
-      starter: process.env.STRIPE_PRICE_ID_STARTER,
-      smb_growth: process.env.STRIPE_PRICE_ID_SMB_GROWTH,
-      cpa_professional: process.env.STRIPE_PRICE_ID_CPA_PROFESSIONAL,
-      cpa_enterprise: process.env.STRIPE_PRICE_ID_CPA_ENTERPRISE,
-    };
-
-    const priceId = priceMap[plan];
-    if (!priceId) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
-    }
-
-    const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
-
-    // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Billing is not configured. Contact support.' },
+        { status: 503 }
+      );
+    }
+
+    const body = await request.json();
+    const { planId, entityCount = 1 } = body;
+
+    if (!planId || !PLAN_PRICES[planId as PlanId]) {
+      return NextResponse.json(
+        { error: 'Invalid plan selected' },
+        { status: 400 }
+      );
+    }
+
+    const priceId = PLAN_PRICES[planId as PlanId];
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Plan pricing not configured. Contact sales.' },
+        { status: 503 }
+      );
+    }
+
+    // Get or create Stripe customer
     const { data: membership } = await (supabase as any)
       .from('team_members')
-      .select('id, org_id, role')
+      .select('org_id')
       .eq('user_id', user.id)
       .single();
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    if (membership.org_id !== orgId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    if (!['owner', 'admin'].includes(membership.role)) {
-      return NextResponse.json({ error: 'Only owners and admins can manage billing' }, { status: 403 });
-    }
 
-    // Check if org already has a Stripe customer
-    const { data: existingSub } = await (supabase as any)
-      .from('subscriptions')
-      .select('stripe_customer_id')
-      .eq('org_id', orgId)
-      .single();
+    const orgId = membership?.org_id;
 
-    let customerId = existingSub?.stripe_customer_id;
-
-    if (!customerId) {
-      // Create Stripe customer
-      const customer = await getStripe().customers.create({
-        email,
-        metadata: { org_id: orgId },
-      });
-      customerId = customer.id;
+    // Check for existing Stripe customer
+    let customerId: string | undefined;
+    if (orgId) {
+      const { data: org } = await (supabase as any)
+        .from('organizations')
+        .select('stripe_customer_id')
+        .eq('id', orgId)
+        .single();
+      customerId = org?.stripe_customer_id || undefined;
     }
 
-    // Create checkout session
-    const session = await getStripe().checkout.sessions.create({
+    // Create Checkout Session
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      customer_email: customerId ? undefined : user.email,
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?canceled=true`,
-      metadata: {
-        org_id: orgId,
-        plan,
-      },
+      line_items: [{
+        price: priceId,
+        quantity: Math.max(1, Math.min(entityCount, 100)),
+      }],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?checkout=cancelled`,
       subscription_data: {
         metadata: {
-          org_id: orgId,
-          plan,
+          org_id: orgId || '',
+          user_id: user.id,
+          plan_id: planId,
         },
+      },
+      metadata: {
+        org_id: orgId || '',
+        user_id: user.id,
       },
     });
 
-    return NextResponse.json({
-      ok: true,
-      sessionId: session.id,
-      url: session.url,
-    });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
+    captureException(error, { tags: { route: 'billing/checkout' } });
+    console.error('[Checkout] Error:', error);
     return NextResponse.json(
-      { error: 'Checkout session creation failed' },
+      { error: 'Failed to create checkout session' },
       { status: 500 }
     );
   }

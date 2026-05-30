@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, FormEvent } from 'react';
+import Logo from '@/components/ui/Logo';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function ResetPasswordPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0f',
+        background: 'var(--bg-primary)',
         position: 'relative',
         overflow: 'hidden',
         padding: '24px',
@@ -72,7 +73,7 @@ export default function ResetPasswordPage() {
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 50%)',
+            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30, 111, 255, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(36, 215, 210, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(30, 111, 255, 0.06) 0%, transparent 50%)',
           pointerEvents: 'none',
         }}
       />
@@ -119,23 +120,7 @@ export default function ResetPasswordPage() {
                 marginBottom: '32px',
               }}
             >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #6366f1, #10b981)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                AK
-              </div>
+              <Logo size={40} />
               <span
                 style={{
                   fontSize: '22px',
@@ -456,16 +441,16 @@ export default function ResetPasswordPage() {
               <Link
                 href="/auth/login"
                 style={{
-                  color: '#818cf8',
+                  color: 'var(--accent-primary)',
                   textDecoration: 'none',
                   fontWeight: 500,
                   transition: 'color 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#a5b4fc';
+                  e.currentTarget.style.color = 'var(--accent-secondary)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#818cf8';
+                  e.currentTarget.style.color = 'var(--accent-primary)';
                 }}
               >
                 Sign in

@@ -172,7 +172,7 @@ export default function CookieConsent() {
                 fontWeight: 600,
                 fontFamily: 'inherit',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 0 20px rgba(91, 95, 230, 0.2)',
+                boxShadow: '0 0 20px rgba(30, 111, 255, 0.2)',
                 whiteSpace: 'nowrap',
               }}
               onMouseEnter={(e) => {
@@ -182,7 +182,7 @@ export default function CookieConsent() {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--accent-gradient)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(91, 95, 230, 0.2)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(30, 111, 255, 0.2)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >

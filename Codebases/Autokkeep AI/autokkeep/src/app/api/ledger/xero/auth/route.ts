@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getXeroAuthUrl, exchangeXeroCode, refreshXeroToken } from '@/lib/ledger/sync';
 import { encryptToken, decryptToken } from '@/lib/crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { rateLimit } from '@/lib/rate-limit';
 
 // GET /api/ledger/xero/auth — Start Xero OAuth flow
 export async function GET(request: NextRequest) {
@@ -11,6 +13,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-auth' });
+    if (limited) return limited;
+
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
@@ -37,7 +42,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const state = Buffer.from(JSON.stringify({ entityId })).toString('base64');
+    const returnTo = request.nextUrl.searchParams.get('returnTo') || '';
+    const statePayload = Buffer.from(JSON.stringify({ entityId, ts: Date.now(), returnTo })).toString('base64');
+    const hmacSecret = process.env.CRON_SECRET;
+    if (!hmacSecret) {
+      console.error('[Xero Auth] CRON_SECRET not set — cannot sign OAuth state');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    const hmac = createHmac('sha256', hmacSecret)
+      .update(statePayload)
+      .digest('hex');
+    const state = `${statePayload}.${hmac}`;
     const authUrl = getXeroAuthUrl(state);
     return NextResponse.redirect(authUrl);
   } catch (error) {
@@ -51,6 +66,9 @@ export async function GET(request: NextRequest) {
 // POST /api/ledger/xero/auth — Exchange code for tokens
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-exchange' });
+    if (limited) return limited;
+
     const { code, state } = await request.json();
 
     if (!code) {
@@ -58,10 +76,34 @@ export async function POST(request: NextRequest) {
     }
 
     let entityId = '';
+    let returnTo = '';
     if (state) {
+      const [statePayload, signature] = state.split('.');
+      if (!statePayload || !signature) {
+        return NextResponse.json({ error: 'Invalid state parameter' }, { status: 400 });
+      }
+      const hmacSecret = process.env.CRON_SECRET;
+      if (!hmacSecret) {
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      }
+      const expectedHmac = createHmac('sha256', hmacSecret)
+        .update(statePayload)
+        .digest('hex');
       try {
-        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
+        if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedHmac))) {
+          return NextResponse.json({ error: 'Invalid state signature' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid state signature' }, { status: 400 });
+      }
+      try {
+        const decoded = JSON.parse(Buffer.from(statePayload, 'base64').toString());
         entityId = decoded.entityId;
+        returnTo = decoded.returnTo || '';
+        // Check timestamp freshness (10 min window)
+        if (decoded.ts && Date.now() - decoded.ts > 10 * 60 * 1000) {
+          return NextResponse.json({ error: 'State parameter expired' }, { status: 400 });
+        }
       } catch {
         return NextResponse.json({ error: 'Invalid state parameter' }, { status: 400 });
       }
@@ -134,6 +176,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       provider: 'xero',
       tenantId: tokens.tenantId,
+      ...(returnTo ? { returnTo } : {}),
     });
   } catch (error) {
     return NextResponse.json(

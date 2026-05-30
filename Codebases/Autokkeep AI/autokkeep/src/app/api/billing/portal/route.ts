@@ -1,66 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { createServerClient } from '@/lib/supabase/server';
+import { getStripeClient } from '@/lib/stripe';
+import { rateLimit } from '@/lib/rate-limit';
 
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2026-04-22.dahlia',
-  });
-}
-
-// POST /api/billing/portal — Create Stripe Customer Portal session
 export async function POST(request: NextRequest) {
   try {
-    const { orgId } = await request.json();
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'portal' });
+    if (limited) return limited;
 
-    if (!orgId) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
-
-    const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
-
-    // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Billing is not configured' },
+        { status: 503 }
+      );
+    }
+
+    // Get the org's Stripe customer ID
     const { data: membership } = await (supabase as any)
       .from('team_members')
-      .select('id, org_id, role')
+      .select('org_id')
       .eq('user_id', user.id)
       .single();
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    if (membership.org_id !== orgId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    if (!['owner', 'admin'].includes(membership.role)) {
-      return NextResponse.json({ error: 'Only owners and admins can manage billing' }, { status: 403 });
+
+    if (!membership?.org_id) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    const { data: sub } = await (supabase as any)
-      .from('subscriptions')
+    const { data: org } = await (supabase as any)
+      .from('organizations')
       .select('stripe_customer_id')
-      .eq('org_id', orgId)
+      .eq('id', membership.org_id)
       .single();
 
-    if (!sub?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
+    if (!org?.stripe_customer_id) {
+      return NextResponse.json(
+        { error: 'No active subscription. Please subscribe first.' },
+        { status: 404 }
+      );
     }
 
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: sub.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`,
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: org.stripe_customer_id,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
     });
 
-    return NextResponse.json({
-      ok: true,
-      url: session.url,
-    });
+    return NextResponse.json({ url: portalSession.url });
   } catch (error) {
+    console.error('[Portal] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to create billing portal' },
+      { error: 'Failed to create portal session' },
       { status: 500 }
     );
   }

@@ -5,9 +5,10 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/data/mockTransactions';
 import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
-import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
-import ActionsConsole from '@/components/dashboard/ActionsConsole';
+import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
+import DashboardStatsBar from '@/components/dashboard/DashboardStatsBar';
 import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // ─── Helpers: map API response → Transaction interface ──────────────────────
 
@@ -71,8 +72,23 @@ export default function DashboardPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [reasoningExpanded, setReasoningExpanded] = React.useState(false);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = React.useState(false);
 
-  // Fetch transactions from API on mount
+  // ─── Compute stats from transactions ────────────────────────────────────────
+  const stats = React.useMemo(() => {
+    if (isLoading) return null;
+    const total = transactions.length;
+    const pending = transactions.filter((t) => t.status === 'pending_human').length;
+    const approved = transactions.filter((t) => t.status === 'verified_human').length;
+    const rejected = 0; // No rejected status in current data model
+    const autoRate = total > 0
+      ? Math.round((transactions.filter((t) => t.status === 'verified_ai').length / total) * 100)
+      : 0;
+    return { total, pending, approved, rejected, autoRate };
+  }, [transactions, isLoading]);
+
+  // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
     let cancelled = false;
@@ -110,7 +126,7 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, [selectedEntity?.id]);
 
-  // Fetch chart of accounts
+  // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
     let cancelled = false;
@@ -139,10 +155,65 @@ export default function DashboardPage() {
     []
   );
 
-  const handleAccept = React.useCallback(
-    async (transaction: Transaction) => {
+  // ─── Batch selection handlers ───────────────────────────────────────────────
+  const handleToggleSelect = React.useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = React.useCallback((ids: string[]) => {
+    setSelectedIds(new Set(ids));
+  }, []);
+
+  const handleClearSelection = React.useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBatchAction = React.useCallback(async (action: 'approve' | 'reject') => {
+    if (selectedIds.size === 0) return;
+    setBatchLoading(true);
+    try {
+      const res = await fetch('/api/transactions/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionIds: Array.from(selectedIds),
+          action,
+          entityId: selectedEntity?.id || 'demo',
+        }),
+      });
+      if (res.ok) {
+        // Remove approved/rejected transactions from the list
+        setTransactions(prev => prev.filter(t => !selectedIds.has(t.id)));
+        setSelectedIds(new Set());
+        // Update selected transaction if it was in the batch
+        setSelectedTransaction(prev => {
+          if (prev && selectedIds.has(prev.id)) return null;
+          return prev;
+        });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || `Batch ${action} failed (${res.status})`);
+      }
+    } catch (err) {
+      console.error('Batch action failed:', err);
+      setError('Network error — batch operation failed');
+    } finally {
+      setBatchLoading(false);
+    }
+  }, [selectedIds, selectedEntity?.id]);
+
+  // ─── Single transaction actions (adapted for TransactionDetailPanel) ────────
+  const handleApproveById = React.useCallback(
+    async (id: string) => {
+      const transaction = transactions.find((t) => t.id === id);
+      if (!transaction) return;
+
       try {
-        // Call API first and wait for response
         const res = await fetch(`/api/transactions/${transaction.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -184,13 +255,62 @@ export default function DashboardPage() {
         setError('Network error — could not approve transaction');
       }
     },
-    []
+    [transactions]
   );
 
-  const handleChangeCategory = React.useCallback(
-    async (transaction: Transaction, glCode: string, glName: string) => {
+  const handleRejectById = React.useCallback(
+    async (id: string) => {
+      // Reject uses the same batch API with a single ID
+      const transaction = transactions.find((t) => t.id === id);
+      if (!transaction) return;
+
       try {
-        // Call API first and wait for response
+        const res = await fetch(`/api/transactions/${transaction.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'rejected' }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || `Failed to reject transaction (${res.status})`);
+          return;
+        }
+
+        setExitingId(transaction.id);
+
+        setTimeout(() => {
+          setTransactions((prev) => {
+            const idx = prev.findIndex((tx) => tx.id === transaction.id);
+            const next = prev.filter((tx) => tx.id !== transaction.id);
+
+            if (next.length > 0) {
+              const nextIdx = Math.min(idx, next.length - 1);
+              setSelectedTransaction(next[nextIdx]);
+            } else {
+              setSelectedTransaction(null);
+            }
+
+            return next;
+          });
+          setExitingId(null);
+        }, 300);
+      } catch (err) {
+        console.error('[Dashboard] Reject error:', err);
+        setError('Network error — could not reject transaction');
+      }
+    },
+    [transactions]
+  );
+
+  const handleChangeCategoryById = React.useCallback(
+    async (id: string, glCode: string) => {
+      const transaction = transactions.find((t) => t.id === id);
+      if (!transaction) return;
+
+      const glName = chartOfAccounts.find((a) => a.code === glCode)?.name || '';
+
+      try {
         const res = await fetch(`/api/transactions/${transaction.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -208,19 +328,12 @@ export default function DashboardPage() {
         }
 
         // API succeeded — update and animate
-        const updatedTransaction = {
-          ...transaction,
-          suggestedGLCode: glCode,
-          suggestedGLName: glName,
-        };
-
-        // Start exit animation
         setExitingId(transaction.id);
 
         setTimeout(() => {
           setTransactions((prev) => {
-            const idx = prev.findIndex((tx) => tx.id === updatedTransaction.id);
-            const next = prev.filter((tx) => tx.id !== updatedTransaction.id);
+            const idx = prev.findIndex((tx) => tx.id === transaction.id);
+            const next = prev.filter((tx) => tx.id !== transaction.id);
 
             if (next.length > 0) {
               const nextIdx = Math.min(idx, next.length - 1);
@@ -238,7 +351,7 @@ export default function DashboardPage() {
         setError('Network error — could not update transaction category');
       }
     },
-    []
+    [transactions, chartOfAccounts]
   );
 
   // ─── Keyboard shortcut handler ─────────────────────────────────────────────
@@ -247,7 +360,7 @@ export default function DashboardPage() {
       const action = (e as CustomEvent).detail?.action;
       switch (action) {
         case 'accept':
-          if (selectedTransaction) handleAccept(selectedTransaction);
+          if (selectedTransaction) handleApproveById(selectedTransaction.id);
           break;
         case 'navigate-up':
           setTransactions((prev) => {
@@ -273,13 +386,15 @@ export default function DashboardPage() {
 
     window.addEventListener('autokkeep-shortcut', handler);
     return () => window.removeEventListener('autokkeep-shortcut', handler);
-  }, [selectedTransaction, handleAccept]);
+  }, [selectedTransaction, handleApproveById]);
 
   // ─── Loading state ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
+      <ErrorBoundary componentName="Dashboard">
       <div className="dashboard-layout">
         <GlobalDashboardHeader />
+        <DashboardStatsBar stats={null} loading={true} />
         <div className="dashboard-main">
           <div
             className="flex-center"
@@ -305,14 +420,17 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </ErrorBoundary>
     );
   }
 
   // ─── Empty state (all caught up!) ───────────────────────────────────────────
   if (transactions.length === 0 && !error) {
     return (
+      <ErrorBoundary componentName="Dashboard">
       <div className="dashboard-layout">
         <GlobalDashboardHeader />
+        <DashboardStatsBar stats={stats} loading={false} />
         <div className="dashboard-main">
           <div
             className="flex-center"
@@ -331,12 +449,16 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </ErrorBoundary>
     );
   }
 
   return (
+    <ErrorBoundary componentName="Dashboard">
     <div className="dashboard-layout">
       <GlobalDashboardHeader />
+
+      <DashboardStatsBar stats={stats} loading={false} />
 
       {/* Error banner */}
       {error && (
@@ -362,24 +484,26 @@ export default function DashboardPage() {
           selectedTransaction={selectedTransaction}
           onSelectTransaction={handleSelectTransaction}
           exitingId={exitingId}
+          selectedIds={selectedIds}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          onClearSelection={handleClearSelection}
+          onBatchAction={handleBatchAction}
+          batchLoading={batchLoading}
         />
 
-        {/* Center + Bottom: Content */}
-        <main className="dashboard-content" aria-label="Transaction review area">
-          {/* Center: Context Insight */}
-          <ContextInsightCard transaction={selectedTransaction} />
-
-          {/* Bottom: Actions Console */}
-          <ActionsConsole
-            transaction={selectedTransaction}
-            onAccept={handleAccept}
-            onChangeCategory={handleChangeCategory}
-            chartOfAccounts={chartOfAccounts}
-          />
-        </main>
+        {/* Center + Bottom: Transaction Detail Panel */}
+        <TransactionDetailPanel
+          transaction={selectedTransaction}
+          onApprove={handleApproveById}
+          onReject={handleRejectById}
+          onChangeCategory={handleChangeCategoryById}
+          chartOfAccounts={chartOfAccounts}
+        />
       </div>
 
       <KeyboardShortcuts />
     </div>
+    </ErrorBoundary>
   );
 }

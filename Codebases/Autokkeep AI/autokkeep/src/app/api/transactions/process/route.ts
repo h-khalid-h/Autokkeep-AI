@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { syncTransactions } from '@/lib/plaid/client';
+import { ingestTransactions } from '@/lib/plaid/ingest';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
@@ -122,77 +122,10 @@ export async function POST(request: NextRequest) {
     if (connections && connections.length > 0) {
       for (const connection of connections) {
         try {
-          const syncResult = await syncTransactions(
-            connection.plaid_access_token,
-            connection.cursor || undefined
-          );
-
-          // Insert new transactions
-          if (syncResult.added.length > 0) {
-            const transactionRecords = syncResult.added.map((t: Record<string, any>) => ({
-              entity_id: entityId,
-              bank_account_id: t.account_id,
-              plaid_transaction_id: t.transaction_id,
-              amount: t.amount,
-              date: t.date,
-              merchant_name: t.merchant_name || t.name,
-              merchant_raw: t.name,
-              currency: t.iso_currency_code || 'USD',
-              status: 'pending',
-              confidence: 0,
-            }));
-
-            await (supabase as any).from('transactions').upsert(transactionRecords, {
-              onConflict: 'plaid_transaction_id',
-              ignoreDuplicates: true,
-            });
-            summary.sync.transactions_added += syncResult.added.length;
-          }
-
-          // Handle modified transactions — clear AI categorization for re-processing
-          for (const t of syncResult.modified) {
-            await (supabase as any)
-              .from('transactions')
-              .update({
-                amount: t.amount,
-                date: t.date,
-                merchant_name: t.merchant_name || t.name,
-                merchant_raw: t.name,
-                // Reset AI categorization so the transaction gets re-categorized
-                category_ai: null,
-                confidence: 0,
-                ai_reasoning: null,
-                status: 'pending',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('plaid_transaction_id', t.transaction_id)
-              .eq('entity_id', entityId);
-          }
-          summary.sync.transactions_modified += syncResult.modified.length;
-
-          // Handle removed transactions (batch soft delete)
-          if (syncResult.removed.length > 0) {
-            const removedIds = syncResult.removed.map((t) => t.transaction_id);
-            await (supabase as any)
-              .from('transactions')
-              .update({
-                status: 'removed',
-                updated_at: new Date().toISOString(),
-              })
-              .in('plaid_transaction_id', removedIds)
-              .eq('entity_id', entityId);
-          }
-          summary.sync.transactions_removed += syncResult.removed.length;
-
-          // Update cursor on connection
-          await (supabase as any)
-            .from('bank_connections')
-            .update({
-              cursor: syncResult.nextCursor,
-              last_synced_at: new Date().toISOString(),
-            })
-            .eq('id', connection.id);
-
+          const ingestResult = await ingestTransactions(supabase as any, connection);
+          summary.sync.transactions_added += ingestResult.added;
+          summary.sync.transactions_modified += ingestResult.modified;
+          summary.sync.transactions_removed += ingestResult.removed;
           summary.sync.connections_synced++;
         } catch (syncError) {
           const errorMsg = `Failed to sync connection ${connection.id}: ${syncError instanceof Error ? syncError.message : 'Unknown error'}`;
@@ -296,6 +229,9 @@ export async function POST(request: NextRequest) {
         (batchDocAnchors || []).map((d: { transaction_id: string }) => d.transaction_id)
       );
 
+      // Cache triage results for reuse in history learning (step 5)
+      const triageCache = new Map<string, ReturnType<typeof triageTransaction>>();
+
       for (const [txId, result] of results) {
         // ── Composite Confidence Gate (PRD §5.1) ──
         const hasDocument = docAnchorSet.has(txId);
@@ -309,6 +245,7 @@ export async function POST(request: NextRequest) {
           hasDocument,
           txAmount,
         );
+        triageCache.set(txId, triage);
 
         const targetStatus = result.confidence === 0 && !result.glCode
           ? 'categorization_failed'
@@ -349,14 +286,9 @@ export async function POST(request: NextRequest) {
       }> = [];
 
       for (const [txId, result] of results) {
-        // Use the confidence gate threshold for history learning
-        const triage = triageTransaction(
-          result.confidence / 100,
-          result.ruleMatchType as RuleMatchType,
-          false, // don't re-check docs for history
-          0, // amount irrelevant for history
-        );
-        if (triage.decision === 'auto_commit' && result.glCode) {
+        // Reuse cached triage result from step 3/4
+        const triage = triageCache.get(txId);
+        if (triage?.decision === 'auto_commit' && result.glCode) {
           const txn = pendingTransactions.find(
             (t: Record<string, any>) => t.id === txId
           );
@@ -385,9 +317,23 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Batch upsert: insert new entries (conflicts are ignored)
+        // Batch upsert: fetch existing frequencies first, then increment
         const dedupedEntries = Array.from(historyMap.values());
         const now = new Date().toISOString();
+
+        // Fetch existing frequencies for all merchants being upserted
+        const { data: existingHistory } = await (supabase as any)
+          .from('categorization_history')
+          .select('merchant, gl_code, frequency')
+          .eq('entity_id', entityId)
+          .in('merchant', dedupedEntries.map(h => h.merchant))
+          .in('gl_code', dedupedEntries.map(h => h.gl_code));
+
+        const existingFreqMap = new Map<string, number>();
+        for (const row of existingHistory || []) {
+          existingFreqMap.set(`${row.merchant}:${row.gl_code}`, row.frequency || 0);
+        }
+
         await (supabase as any)
           .from('categorization_history')
           .upsert(
@@ -396,15 +342,11 @@ export async function POST(request: NextRequest) {
               merchant: h.merchant,
               gl_code: h.gl_code,
               gl_name: h.gl_name,
-              frequency: h.count,
+              frequency: (existingFreqMap.get(`${h.merchant}:${h.gl_code}`) || 0) + h.count,
               last_used: now,
             })),
             { onConflict: 'entity_id,merchant,gl_code' }
           );
-        // Note: This overwrites frequency rather than incrementing it.
-        // For true increment, a Supabase RPC function is needed.
-        // In practice, the frequency serves as a rough signal for history-based
-        // categorization, so overwriting with the latest batch count is acceptable.
       }
 
     }

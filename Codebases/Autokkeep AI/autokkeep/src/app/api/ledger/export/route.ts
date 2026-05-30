@@ -6,9 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'ledger-export' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth

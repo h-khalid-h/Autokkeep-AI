@@ -1,48 +1,91 @@
-export default function Loading() {
+export default function DashboardLoading() {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-primary)',
-      }}
-    >
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
-            background: 'var(--accent-gradient)',
+    <div style={{
+      padding: '32px',
+      maxWidth: '1200px',
+      margin: '0 auto',
+    }}>
+      {/* Header skeleton */}
+      <div style={{ marginBottom: '32px' }}>
+        <div style={{
+          width: '200px',
+          height: '32px',
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '8px',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+        <div style={{
+          width: '300px',
+          height: '18px',
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: '6px',
+          marginTop: '8px',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+      </div>
+
+      {/* Stats cards skeleton */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px',
+        marginBottom: '32px',
+      }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <div style={{
+              width: '80px',
+              height: '14px',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              marginBottom: '12px',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
+            <div style={{
+              width: '120px',
+              height: '28px',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '6px',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Table skeleton */}
+      <div style={{
+        borderRadius: '16px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        overflow: 'hidden',
+      }}>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '18px',
-            margin: '0 auto 16px',
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }}
-        >
-          AK
-        </div>
-        <p
-          style={{
-            color: 'var(--text-secondary)',
-            fontSize: '14px',
-          }}
-        >
-          Preparing your dashboard...
-        </p>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.95); }
-          }
-        `}</style>
+            gap: '16px',
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.04)',
+          }}>
+            <div style={{ width: '140px', height: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width: '100px', height: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite', flex: 1 }} />
+            <div style={{ width: '80px', height: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width: '60px', height: '24px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          </div>
+        ))}
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }

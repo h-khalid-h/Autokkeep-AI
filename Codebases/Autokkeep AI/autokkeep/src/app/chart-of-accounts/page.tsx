@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { useEntity } from '@/lib/context/EntityContext';
+import Logo from '@/components/ui/Logo';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
@@ -524,7 +525,7 @@ export default function ChartOfAccountsPage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="dashboard-header">
         <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <div className="navbar-logo-icon">AK</div>
+          <Logo size={32} />
           <span>Auto<span className="text-gradient">kkeep</span></span>
         </Link>
         <h1 className="text-h3" style={{ margin: 0 }}>Chart of Accounts</h1>

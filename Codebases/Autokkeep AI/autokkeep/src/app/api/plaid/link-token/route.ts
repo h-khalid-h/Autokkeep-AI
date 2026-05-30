@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { createLinkToken } from '@/lib/plaid/client';
 
@@ -13,6 +14,9 @@ interface LinkTokenRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'plaid-link' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth

@@ -58,21 +58,29 @@ export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
 
   const entityDigests: EntityDigest[] = [];
 
-  // 2. For each entity, query outstanding transactions
+  // 2. Batch-fetch all outstanding transactions across all entities in a single query
+  const entityIds = (entities || []).map((e: { id: string }) => e.id);
+
+  const { data: allTransactions, error: txError } = await (supabase as any)
+    .from('transactions')
+    .select('id, entity_id, merchant_name, amount, date, status, confidence, aging_days')
+    .in('entity_id', entityIds)
+    .in('status', [...REVIEW_STATUSES])
+    .order('amount', { ascending: false });
+
+  if (txError) {
+    console.error('[Digest] Failed to query transactions:', txError);
+  }
+
+  // Group transactions by entity_id in JS
+  const byEntity = new Map<string, typeof allTransactions>();
+  for (const tx of allTransactions || []) {
+    if (!byEntity.has(tx.entity_id)) byEntity.set(tx.entity_id, []);
+    byEntity.get(tx.entity_id)!.push(tx);
+  }
+
   for (const entity of entities || []) {
-    const { data: transactions, error: txError } = await (supabase as any)
-      .from('transactions')
-      .select('id, merchant_name, amount, date, status, confidence, aging_days')
-      .eq('entity_id', entity.id)
-      .in('status', [...REVIEW_STATUSES])
-      .order('amount', { ascending: false });
-
-    if (txError) {
-      console.error(`[Digest] Failed to query transactions for entity ${entity.id}:`, txError);
-      continue;
-    }
-
-    const items: DigestItem[] = transactions || [];
+    const items: DigestItem[] = byEntity.get(entity.id) || [];
 
     if (items.length === 0) continue;
 

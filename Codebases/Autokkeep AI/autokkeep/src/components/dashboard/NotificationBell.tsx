@@ -81,7 +81,10 @@ function getMockNotifications(): Notification[] {
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const bellRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     setNotifications(getMockNotifications());
@@ -107,6 +110,51 @@ export default function NotificationBell() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Focus management when dropdown opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setFocusedIndex(0);
+    } else {
+      setFocusedIndex(-1);
+    }
+  }, [isOpen]);
+
+  // Focus the active item when focusedIndex changes
+  useEffect(() => {
+    if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
+      itemRefs.current[focusedIndex]?.focus();
+    }
+  }, [isOpen, focusedIndex]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const visibleNotifications = notifications.slice(0, 5);
+    // Include "Mark all as read" button as the last focusable item
+    const hasMarkAllButton = notifications.length > 0 && notifications.some(n => !n.read);
+    const totalItems = visibleNotifications.length + (hasMarkAllButton ? 1 : 0);
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex(prev => (prev + 1) % totalItems);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex(prev => (prev - 1 + totalItems) % totalItems);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
+          itemRefs.current[focusedIndex]?.click();
+        }
+        break;
+    }
+  }, [notifications]);
 
   return (
     <div ref={bellRef} style={{ position: 'relative' }}>
@@ -160,6 +208,9 @@ export default function NotificationBell() {
 
       {isOpen && (
         <div
+          ref={dropdownRef}
+          role="menu"
+          onKeyDown={handleKeyDown}
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
@@ -226,17 +277,22 @@ export default function NotificationBell() {
                 All caught up! No new notifications.
               </div>
             ) : (
-              notifications.slice(0, 5).map((notif) => (
+              notifications.slice(0, 5).map((notif, index) => (
                 <div
                   key={notif.id}
+                  role="menuitem"
+                  tabIndex={-1}
+                  ref={(el) => { itemRefs.current[index] = el; }}
                   style={{
                     display: 'flex',
                     gap: '12px',
                     padding: '12px 16px',
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: notif.read ? 'transparent' : 'rgba(91, 95, 230, 0.04)',
+                    background: notif.read ? 'transparent' : 'rgba(30, 111, 255, 0.04)',
                     transition: 'background 0.15s ease',
                     cursor: 'pointer',
+                    outline: focusedIndex === index ? '2px solid var(--accent-primary)' : 'none',
+                    outlineOffset: '-2px',
                   }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')
@@ -244,7 +300,7 @@ export default function NotificationBell() {
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.background = notif.read
                       ? 'transparent'
-                      : 'rgba(91, 95, 230, 0.04)')
+                      : 'rgba(30, 111, 255, 0.04)')
                   }
                 >
                   {/* Icon */}
@@ -336,6 +392,9 @@ export default function NotificationBell() {
             >
               <button
                 onClick={markAllAsRead}
+                role="menuitem"
+                tabIndex={-1}
+                ref={(el) => { itemRefs.current[notifications.slice(0, 5).length] = el as any; }}
                 style={{
                   width: '100%',
                   padding: '8px',

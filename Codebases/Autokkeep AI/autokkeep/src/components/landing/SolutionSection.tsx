@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Logo from '@/components/ui/Logo';
 
 const solutions = [
   {
@@ -85,7 +86,7 @@ export default function SolutionSection() {
 
           <div className="slack-mockup">
             <div className="slack-header">
-              <div className="slack-avatar">AK</div>
+              <Logo size={36} />
               <div>
                 <div className="slack-name">
                   Autokkeep Agent <span className="slack-badge-bot">BOT</span>

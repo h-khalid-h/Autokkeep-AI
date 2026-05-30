@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -27,13 +28,14 @@ export default function Navbar() {
     { label: 'About', href: '/about' },
     { label: 'Security', href: '/security' },
     { label: 'Resources', href: '/resources' },
+    { label: 'Blog', href: '/blog' },
     { label: 'Partners', href: '/partners' },
   ];
 
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} role="navigation" aria-label="Main navigation">
       <Link href="/" className="navbar-logo" aria-label="Autokkeep Home">
-        <div className="navbar-logo-icon">AK</div>
+        <Logo size={32} />
         <span>Auto<span className="text-gradient">kkeep</span></span>
       </Link>
 

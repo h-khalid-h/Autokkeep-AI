@@ -21,7 +21,9 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
   const [userInitials, setUserInitials] = useState(propsInitials || 'AK');
   const [userEmail, setUserEmail] = useState(propsEmail || '');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const menuRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     if (propsInitials && propsEmail) return;
@@ -66,6 +68,48 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
     }
   }, []);
 
+  // Focus management when dropdown opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setFocusedIndex(0);
+    } else {
+      setFocusedIndex(-1);
+    }
+  }, [isOpen]);
+
+  // Focus the active item when focusedIndex changes
+  useEffect(() => {
+    if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
+      itemRefs.current[focusedIndex]?.focus();
+    }
+  }, [isOpen, focusedIndex]);
+
+  const MENU_ITEM_COUNT = 4; // Settings, Account, Analytics, Sign Out
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex(prev => (prev + 1) % MENU_ITEM_COUNT);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex(prev => (prev - 1 + MENU_ITEM_COUNT) % MENU_ITEM_COUNT);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
+          itemRefs.current[focusedIndex]?.click();
+        }
+        break;
+    }
+  }, []);
+
   return (
     <div ref={menuRef} style={{ position: 'relative' }}>
       <button
@@ -82,6 +126,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
       {isOpen && (
         <div
           role="menu"
+          onKeyDown={handleKeyDown}
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
@@ -126,6 +171,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
             <a
               href="/settings"
               role="menuitem"
+              tabIndex={-1}
+              ref={(el) => { itemRefs.current[0] = el; }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -145,6 +192,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
             <a
               href="/account"
               role="menuitem"
+              tabIndex={-1}
+              ref={(el) => { itemRefs.current[1] = el; }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -164,6 +213,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
             <a
               href="/analytics"
               role="menuitem"
+              tabIndex={-1}
+              ref={(el) => { itemRefs.current[2] = el; }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -186,6 +237,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
           <div style={{ padding: '4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button
               role="menuitem"
+              tabIndex={-1}
+              ref={(el) => { itemRefs.current[3] = el; }}
               onClick={handleLogout}
               disabled={loggingOut}
               style={{

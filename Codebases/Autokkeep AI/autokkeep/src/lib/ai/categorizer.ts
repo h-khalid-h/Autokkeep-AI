@@ -102,12 +102,32 @@ export function categorizeDeterministic(
 
       case 'regex':
         try {
+          // Validate pattern length to prevent catastrophic backtracking
+          if (rule.vendor_pattern.length > 200) {
+            console.warn(`[Categorizer] Regex pattern too long (${rule.vendor_pattern.length} chars), skipping rule ${rule.id}`);
+            continue;
+          }
+          // Reject known catastrophic patterns (nested quantifiers)
+          if (/([+*]\??){2,}|\(\?[^)]*[+*]/.test(rule.vendor_pattern)) {
+            console.warn(`[Categorizer] Potentially catastrophic regex pattern detected, skipping rule ${rule.id}`);
+            continue;
+          }
           const regex = new RegExp(rule.vendor_pattern, 'i');
-          matched =
-            regex.test(transaction.merchant) ||
-            regex.test(
-              transaction.merchantRaw || transaction.bankDescription || ''
-            );
+          // Execute with a timeout guard to prevent ReDoS
+          const testInput1 = transaction.merchant;
+          const testInput2 = transaction.merchantRaw || transaction.bankDescription || '';
+          const startMs = performance.now();
+          const match1 = regex.test(testInput1);
+          if (performance.now() - startMs > 100) {
+            console.warn(`[Categorizer] Regex execution exceeded 100ms for rule ${rule.id}, skipping`);
+            continue;
+          }
+          const match2 = !match1 ? regex.test(testInput2) : false;
+          if (performance.now() - startMs > 100) {
+            console.warn(`[Categorizer] Regex execution exceeded 100ms for rule ${rule.id}, skipping`);
+            continue;
+          }
+          matched = match1 || match2;
         } catch {
           // Invalid regex pattern, skip this rule
           continue;

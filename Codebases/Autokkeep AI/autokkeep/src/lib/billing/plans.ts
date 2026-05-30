@@ -134,8 +134,9 @@ export async function checkPlanLimits(
       let currentCount: number | null = null;
 
       try {
-        const { getRedis } = await import('@/lib/redis');
-        const redis = getRedis();
+        const { getRedisClient } = await import('@/lib/redis');
+        const redis = getRedisClient();
+        if (!redis) throw new Error('Redis not configured');
         
         // Key format: billing:tx_count:{orgId}:{YYYY-MM}
         const now = new Date();

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import Logo from '@/components/ui/Logo';
 
 const LAST_UPDATED = 'May 25, 2026';
 
@@ -284,22 +285,7 @@ export default function PrivacyPage() {
             textDecoration: 'none',
           }}
         >
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '14px',
-            }}
-          >
-            AK
-          </div>
+          <Logo size={32} />
           <span
             style={{
               fontSize: '18px',
@@ -350,7 +336,7 @@ export default function PrivacyPage() {
             position: 'absolute',
             inset: 0,
             background: `
-              radial-gradient(ellipse at 50% 0%, rgba(91, 95, 230, 0.08) 0%, transparent 60%)
+              radial-gradient(ellipse at 50% 0%, rgba(30, 111, 255, 0.08) 0%, transparent 60%)
             `,
             zIndex: 0,
           }}
@@ -578,22 +564,7 @@ export default function PrivacyPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
-                background: 'var(--accent-gradient)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 900,
-                fontSize: '11px',
-              }}
-            >
-              AK
-            </div>
+            <Logo size={28} />
             <span
               style={{
                 fontSize: '14px',

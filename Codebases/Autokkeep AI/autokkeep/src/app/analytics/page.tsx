@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
+import Logo from '@/components/ui/Logo';
 
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
 
@@ -173,7 +174,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <header className="dashboard-header">
         <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <div className="navbar-logo-icon">AK</div>
+          <Logo size={32} />
           <span>Auto<span className="text-gradient">kkeep</span></span>
         </Link>
         <h1 className="text-h3" style={{ margin: 0 }}>Analytics & Reports</h1>

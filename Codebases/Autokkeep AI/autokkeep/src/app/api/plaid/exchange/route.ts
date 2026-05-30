@@ -4,9 +4,12 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
+import { rateLimit } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
+import { encryptToken } from '@/lib/crypto';
 import {
   exchangePublicToken,
   getAccounts,
@@ -18,10 +21,14 @@ interface ExchangeRequestBody {
   publicToken: string;
   entityId: string;
   institutionId?: string;
+  institutionName?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'plaid-exchange' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -81,14 +88,14 @@ export async function POST(request: NextRequest) {
     const { accessToken, itemId } = await exchangePublicToken(publicToken);
 
     // Get institution details
-    let institutionName = 'Unknown Institution';
+    let institutionName = body.institutionName || 'Unknown Institution';
     if (institutionId) {
       try {
         const institution = await getInstitution(institutionId);
         institutionName = institution.name;
       } catch {
         console.warn(
-          '[Plaid Exchange] Could not fetch institution details'
+          '[Plaid Exchange] Could not fetch institution details — using fallback name'
         );
       }
     }
@@ -99,7 +106,7 @@ export async function POST(request: NextRequest) {
       .insert({
         entity_id: entityId,
         plaid_item_id: itemId,
-        plaid_access_token: accessToken,
+        plaid_access_token: encryptToken(accessToken),
         institution_name: institutionName,
         status: 'active',
         cursor: null,
@@ -144,6 +151,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Build account ID mapping for transactions
+    const accountIdMap = new Map<string, string>();
+    if (accountRecords.length > 0) {
+      const { data: savedAccounts } = await (supabase as any)
+        .from('bank_accounts')
+        .select('id, plaid_account_id')
+        .eq('connection_id', connection.id);
+      if (savedAccounts) {
+        for (const ba of savedAccounts) {
+          accountIdMap.set(ba.plaid_account_id, ba.id);
+        }
+      }
+    }
+
     // Trigger initial transaction sync (non-fatal on failure)
     try {
       const syncResult = await syncTransactions(accessToken);
@@ -161,7 +182,7 @@ export async function POST(request: NextRequest) {
       if (syncResult.added.length > 0) {
         const transactionRecords = syncResult.added.map((t: Record<string, any>) => ({
           entity_id: entityId,
-          bank_account_id: t.account_id,
+          bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
           plaid_transaction_id: t.transaction_id,
           amount: t.amount,
           date: t.date,
@@ -210,6 +231,7 @@ export async function POST(request: NextRequest) {
       })),
     });
   } catch (error) {
+    captureException(error, { tags: { route: 'plaid/exchange' } });
     console.error('[Plaid Exchange] Error:', error);
     return NextResponse.json(
       { error: 'Failed to exchange token and setup bank connection' },

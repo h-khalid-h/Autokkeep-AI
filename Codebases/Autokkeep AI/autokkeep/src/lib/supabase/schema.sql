@@ -51,6 +51,8 @@ CREATE TYPE audit_action AS ENUM (
   'delete',
   'categorize',
   'approve',
+  'revoke',
+  'export',
   'sync',
   'login',
   'pipeline_processed',

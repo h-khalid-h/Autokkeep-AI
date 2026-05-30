@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { useEntity } from '@/lib/context/EntityContext';
+import Logo from '@/components/ui/Logo';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
@@ -233,11 +235,12 @@ export default function TransactionsPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <ErrorBoundary componentName="Transactions">
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="dashboard-header">
         <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <div className="navbar-logo-icon">AK</div>
+          <Logo size={32} />
           <span>Auto<span className="text-gradient">kkeep</span></span>
         </Link>
         <h1 className="text-h3" style={{ margin: 0 }}>Transaction History</h1>
@@ -715,5 +718,6 @@ export default function TransactionsPage() {
         }
       `}</style>
     </div>
+    </ErrorBoundary>
   );
 }

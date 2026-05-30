@@ -27,6 +27,18 @@ const PII_PATTERNS = {
   streetAddress: /\b\d{1,5}\s+(?:[A-Za-z]+\s+){1,3}(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Rd|Road|Ln|Lane|Ct|Court|Way|Pl|Place)\.?\b/gi,
   // ZIP codes (US)
   zipCode: /\b\d{5}(?:-\d{4})?\b/g,
+  // ── International PII Patterns ──────────────────────────────────────────────
+  // IBAN: 2-letter country code + 2 check digits + up to 30 alphanumeric chars
+  // e.g. GB29 NWBK 6016 1331 9268 19
+  iban: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,
+  // UK National Insurance Number: e.g. AB123456C
+  ukNino: /\b[A-Z]{2}\d{6}[A-D]\b/g,
+  // International phone numbers: e.g. +44 7911 123456
+  intlPhone: /\b\+\d{1,3}[-.\s]?\d{4,14}\b/g,
+  // Canadian Social Insurance Number: e.g. 123-456-789 or 123 456 789
+  canadianSin: /\b\d{3}[-.\s]\d{3}[-.\s]\d{3}\b/g,
+  // Australian Tax File Number: e.g. 123-456-789 or 123 456 789
+  australianTfn: /\b\d{3}[-.\s]\d{3}[-.\s]\d{3}\b/g,
 };
 
 // Names that commonly appear in card holder fields

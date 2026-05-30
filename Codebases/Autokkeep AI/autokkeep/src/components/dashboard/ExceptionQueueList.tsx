@@ -11,6 +11,13 @@ interface ExceptionQueueListProps {
   selectedTransaction: Transaction | null;
   onSelectTransaction: (transaction: Transaction) => void;
   exitingId: string | null;
+  // Batch operations
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSelectAll: (ids: string[]) => void;
+  onClearSelection: () => void;
+  onBatchAction: (action: 'approve' | 'reject') => void;
+  batchLoading: boolean;
 }
 
 const filterLabels: Record<FilterType, string> = {
@@ -25,6 +32,12 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
   selectedTransaction,
   onSelectTransaction,
   exitingId,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+  onClearSelection,
+  onBatchAction,
+  batchLoading,
 }) => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState<FilterType>('all');
@@ -75,11 +88,38 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
     return filtered;
   }, [transactions, searchQuery, activeFilter]);
 
+  const allFilteredSelected = React.useMemo(() => {
+    return (
+      filteredTransactions.length > 0 &&
+      filteredTransactions.every((tx) => selectedIds.has(tx.id))
+    );
+  }, [filteredTransactions, selectedIds]);
+
+  const handleSelectAllToggle = React.useCallback(() => {
+    if (allFilteredSelected) {
+      onClearSelection();
+    } else {
+      onSelectAll(filteredTransactions.map((tx) => tx.id));
+    }
+  }, [allFilteredSelected, onClearSelection, onSelectAll, filteredTransactions]);
+
   return (
     <aside className="dashboard-sidebar" aria-label="Exception queue">
       {/* Search */}
       <div className="dashboard-sidebar-header">
-        <div className="category-search">
+        <div className="category-search" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            checked={allFilteredSelected}
+            onChange={handleSelectAllToggle}
+            aria-label="Select all transactions"
+            title="Select all"
+            style={{
+              cursor: 'pointer',
+              accentColor: 'var(--accent-primary, var(--brand, #1E6FFF))',
+              flexShrink: 0,
+            }}
+          />
           <input
             type="search"
             className="dashboard-sidebar-search"
@@ -87,6 +127,7 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
             value={searchQuery}
             onChange={handleSearchChange}
             aria-label="Search exception queue"
+            style={{ flex: 1 }}
           />
         </div>
       </div>
@@ -144,10 +185,61 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
               isActive={selectedTransaction?.id === tx.id}
               onClick={onSelectTransaction}
               isExiting={exitingId === tx.id}
+              isSelected={selectedIds.has(tx.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))
         )}
       </div>
+
+      {/* Floating batch action bar */}
+      {selectedIds.size > 0 && (
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            background: 'rgba(30, 111, 255, 0.12)',
+            borderTop: '1px solid rgba(30, 111, 255, 0.3)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            backdropFilter: 'blur(12px)',
+          }}
+          role="toolbar"
+          aria-label="Batch actions"
+        >
+          <span
+            className="text-caption"
+            style={{ fontWeight: 600, color: 'var(--text-primary, #e2e8f0)' }}
+          >
+            {selectedIds.size} selected
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => onBatchAction('approve')}
+              disabled={batchLoading}
+              aria-label={`Approve ${selectedIds.size} transactions`}
+            >
+              {batchLoading ? '…' : '✓ Approve All'}
+            </button>
+            <button
+              className="btn btn-sm btn-ghost"
+              onClick={() => onBatchAction('reject')}
+              disabled={batchLoading}
+              aria-label={`Reject ${selectedIds.size} transactions`}
+              style={{
+                color: 'var(--danger, #ff6b6b)',
+                borderColor: 'var(--danger, #ff6b6b)',
+              }}
+            >
+              {batchLoading ? '…' : '✕ Reject All'}
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

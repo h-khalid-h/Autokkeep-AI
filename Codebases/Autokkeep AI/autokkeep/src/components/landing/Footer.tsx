@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 
 export default function Footer() {
   return (
@@ -6,9 +7,9 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <div className="footer-brand-name">
-              <div className="navbar-logo-icon">AK</div>
-              Auto<span className="text-gradient">kkeep</span>
+            <div className="footer-brand-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Logo size={28} />
+              <span>Auto<span className="text-gradient">kkeep</span></span>
             </div>
             <p className="footer-brand-desc">
               The end of the monthly close. Autonomous AI-native bookkeeping for modern businesses. Built for CPA firms and high-growth companies.

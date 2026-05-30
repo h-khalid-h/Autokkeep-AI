@@ -66,7 +66,7 @@ export default function ArchitectureSection() {
             <div className="arch-node">
               <div className="arch-node-icon" style={{
                 background: 'var(--info-subtle)',
-                border: '1px solid rgba(14, 165, 233, 0.25)',
+                border: '1px solid rgba(30, 111, 255, 0.25)',
                 color: 'var(--info)',
               }}>
                 📥

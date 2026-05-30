@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import Logo from '@/components/ui/Logo';
 
 // ---- Types ----
 
@@ -263,7 +264,7 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="dashboard-header">
         <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <div className="navbar-logo-icon">AK</div>
+          <Logo size={32} />
           <span>Auto<span className="text-gradient">kkeep</span></span>
         </Link>
         <nav style={{ display: 'flex', gap: '8px' }}>
@@ -388,6 +389,7 @@ function IntegrationsTab({
                 body: JSON.stringify({
                   publicToken,
                   entityId: primaryEntityId,
+                  institutionId: metadata?.institution?.institution_id || undefined,
                   institutionName: metadata?.institution?.name || 'Unknown',
                 }),
               });

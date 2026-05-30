@@ -381,7 +381,7 @@ export default function PartnersPage() {
                       position: 'relative',
                       overflow: 'hidden',
                       ...(tier.highlight
-                        ? { borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(99,102,241,0.12)' }
+                        ? { borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(30, 111, 255, 0.12)' }
                         : {}),
                     }}
                   >

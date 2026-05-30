@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useState, FormEvent } from 'react';
+import Logo from '@/components/ui/Logo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -40,8 +41,8 @@ export default function ForgotPasswordPage() {
           position: 'fixed',
           inset: 0,
           background: `
-            radial-gradient(ellipse at 20% 50%, rgba(91, 95, 230, 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse at 20% 50%, rgba(30, 111, 255, 0.12) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(36, 215, 210, 0.08) 0%, transparent 50%)
           `,
           zIndex: 0,
         }}
@@ -105,24 +106,7 @@ export default function ForgotPasswordPage() {
                 textDecoration: 'none',
               }}
             >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'var(--accent-gradient)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  letterSpacing: '-0.02em',
-                  flexShrink: 0,
-                }}
-              >
-                AK
-              </div>
+              <Logo size={40} />
               <span
                 className="text-gradient"
                 style={{

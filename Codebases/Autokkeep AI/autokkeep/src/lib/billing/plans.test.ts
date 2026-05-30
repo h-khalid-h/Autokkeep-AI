@@ -6,7 +6,7 @@ import type { PlanTier, PlanLimits } from './plans';
 // Mock Redis — avoid dynamic import issues
 // ============================================
 vi.mock('@/lib/redis', () => ({
-  getRedis: () => ({
+  getRedisClient: () => ({
     incr: vi.fn().mockResolvedValue(1),
     expire: vi.fn().mockResolvedValue(1),
     decr: vi.fn().mockResolvedValue(0),

@@ -41,8 +41,8 @@ interface CategorizeRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: 30 requests per minute per IP
-    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'ai' });
+    // Rate limit: 20 requests per minute per IP
+    const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'ai-categorize' });
     if (limited) return limited;
 
     const supabase = await createServerClient();

@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
 import Providers from "@/components/Providers";
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
   description:
-    "The end of the monthly close. Autokkeep is an AI-native bookkeeping engine that eliminates manual data entry with dual-engine automation — deterministic precision meets contextual AI intelligence.",
+    "The end of the monthly close. Autokkeep automatically categorizes transactions, chases receipts, and syncs your ledger — so your books are always closed and audit-ready.",
   keywords: [
     "AI bookkeeping",
     "autonomous accounting",
@@ -39,7 +41,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
     description:
-      "Eliminate manual bookkeeping forever. AI-powered ledger management with 95%+ AI categorization accuracy.",
+      "Eliminate manual bookkeeping forever. AI-powered ledger management with 90%+ AI categorization accuracy.",
     type: "website",
     locale: "en_US",
     siteName: "Autokkeep",
@@ -77,11 +79,11 @@ const jsonLd = {
   applicationCategory: "FinanceApplication",
   operatingSystem: "Web",
   description:
-    "AI-native autonomous bookkeeping engine that eliminates manual data entry with dual-engine automation.",
+    "AI-powered bookkeeping that automatically categorizes transactions, chases receipts, and syncs your ledger. Built for CPA firms and modern businesses.",
   url: "https://autokkeep.com",
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: "49",
+    lowPrice: "69",
     highPrice: "499",
     priceCurrency: "USD",
     offerCount: "6",
@@ -102,7 +104,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/images/logo.png" />
-        <meta name="theme-color" content="#0A0B0F" />
+        <meta name="theme-color" content="#071B4D" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -129,6 +131,8 @@ export default function RootLayout({
           <div id="main-content">{children}</div>
           <CookieConsent />
         </Providers>
+          <Analytics />
+          <SpeedInsights />
       </body>
     </html>
   );

@@ -1,8 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Logo from '@/components/ui/Logo';
+
+const ONBOARDING_STORAGE_KEY = 'autokkeep_onboarding_state';
+
+interface OnboardingState {
+  currentStep: OnboardingStep;
+  entityName: string;
+  currency: string;
+  fiscalYearEnd: string;
+  selectedLedger: string;
+  selectedChannel: string;
+  entityId: string | null;
+  bankConnected: boolean;
+}
 
 type OnboardingStep = 'welcome' | 'entity' | 'bank' | 'ledger' | 'channel' | 'complete';
 
@@ -34,6 +48,41 @@ export default function OnboardingPage() {
   // Bank connection state
   const [bankConnected, setBankConnected] = useState(false);
   const [bankLinkToken, setBankLinkToken] = useState<string | null>(null);
+
+  // ── Persist state to localStorage ──────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (saved) {
+        const state: OnboardingState = JSON.parse(saved);
+        if (state.currentStep) setCurrentStep(state.currentStep);
+        if (state.entityName) setEntityName(state.entityName);
+        if (state.currency) setCurrency(state.currency);
+        if (state.fiscalYearEnd) setFiscalYearEnd(state.fiscalYearEnd);
+        if (state.selectedLedger) setSelectedLedger(state.selectedLedger);
+        if (state.selectedChannel) setSelectedChannel(state.selectedChannel);
+        if (state.entityId) setEntityId(state.entityId);
+        if (state.bankConnected) setBankConnected(state.bankConnected);
+      }
+    } catch (e) {
+      console.warn('[Onboarding] Failed to restore state:', e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const state: OnboardingState = {
+      currentStep, entityName, currency, fiscalYearEnd,
+      selectedLedger, selectedChannel, entityId, bankConnected,
+    };
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }, [currentStep, entityName, currency, fiscalYearEnd, selectedLedger, selectedChannel, entityId, bankConnected]);
 
   const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
   const progress = ((currentIndex) / (STEPS.length - 1)) * 100;
@@ -227,13 +276,29 @@ export default function OnboardingPage() {
 
     try {
       if (selectedLedger === 'quickbooks') {
+        // Save onboarding state before OAuth redirect
+        const stateToSave: OnboardingState = {
+          currentStep: 'channel' as OnboardingStep, // Skip to next step on return
+          entityName, currency, fiscalYearEnd,
+          selectedLedger, selectedChannel, entityId, bankConnected,
+        };
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stateToSave));
+        localStorage.setItem('autokkeep_oauth_return', 'onboarding');
         // The GET endpoint returns a redirect, so we navigate directly
-        window.location.href = `/api/ledger/quickbooks/auth?entityId=${entityId}`;
+        window.location.href = `/api/ledger/quickbooks/auth?entityId=${entityId}&returnTo=/onboarding`;
         return;
       }
 
       if (selectedLedger === 'xero') {
-        window.location.href = `/api/ledger/xero/auth?entityId=${entityId}`;
+        // Save onboarding state before OAuth redirect
+        const stateToSave: OnboardingState = {
+          currentStep: 'channel' as OnboardingStep, // Skip to next step on return
+          entityName, currency, fiscalYearEnd,
+          selectedLedger, selectedChannel, entityId, bankConnected,
+        };
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stateToSave));
+        localStorage.setItem('autokkeep_oauth_return', 'onboarding');
+        window.location.href = `/api/ledger/xero/auth?entityId=${entityId}&returnTo=/onboarding`;
         return;
       }
 
@@ -299,12 +364,7 @@ export default function OnboardingPage() {
         borderBottom: '1px solid var(--border-primary)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '10px',
-            background: 'var(--accent-gradient)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: '14px',
-          }}>AK</div>
+          <Logo size={36} />
           <span className="text-gradient" style={{ fontSize: '18px', fontWeight: 700 }}>
             Autokkeep Setup
           </span>
@@ -580,16 +640,18 @@ export default function OnboardingPage() {
                   <button
                     key={channel.id}
                     className="card"
-                    onClick={() => setSelectedChannel(channel.id)}
-                    disabled={loading}
+                    onClick={() => channel.available && setSelectedChannel(channel.id)}
+                    disabled={loading || !channel.available}
                     style={{
                       padding: '24px',
-                      cursor: 'pointer', textAlign: 'center',
+                      cursor: channel.available ? 'pointer' : 'not-allowed',
+                      textAlign: 'center',
                       border: selectedChannel === channel.id
                         ? '2px solid var(--accent-primary)'
                         : '1px solid var(--border-primary)',
-                      transition: 'border 0.2s ease',
+                      transition: 'border 0.2s ease, opacity 0.2s ease',
                       position: 'relative',
+                      opacity: channel.available ? 1 : 0.5,
                     }}
                   >
                     {!channel.available && (
@@ -647,7 +709,10 @@ export default function OnboardingPage() {
               </div>
               <button
                 className="btn btn-primary btn-lg"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => {
+                  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+                  router.push('/dashboard');
+                }}
               >
                 Go to Dashboard →
               </button>

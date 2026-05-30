@@ -47,12 +47,45 @@ export async function createLinkToken(
 ): Promise<string> {
   const client = getPlaidClient();
 
+  const webhookUrl = process.env.PLAID_WEBHOOK_URL
+    || (process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/plaid`
+      : undefined);
+
   const response = await client.linkTokenCreate({
     user: { client_user_id: userId },
     client_name: 'Autokkeep',
     products: [Products.Transactions],
     country_codes: [CountryCode.Us],
     language: 'en',
+    ...(webhookUrl ? { webhook: webhookUrl } : {}),
+  });
+
+  return response.data.link_token;
+}
+
+/**
+ * Creates a Plaid Link token in update mode for re-authentication.
+ * Used when a user's bank credentials expire.
+ */
+export async function createUpdateLinkToken(
+  userId: string,
+  accessToken: string
+): Promise<string> {
+  const client = getPlaidClient();
+
+  const webhookUrl = process.env.PLAID_WEBHOOK_URL
+    || (process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/plaid`
+      : undefined);
+
+  const response = await client.linkTokenCreate({
+    user: { client_user_id: userId },
+    client_name: 'Autokkeep',
+    access_token: accessToken,
+    country_codes: [CountryCode.Us],
+    language: 'en',
+    ...(webhookUrl ? { webhook: webhookUrl } : {}),
   });
 
   return response.data.link_token;

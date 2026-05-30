@@ -8,10 +8,12 @@ interface TransactionCardProps {
   isActive: boolean;
   onClick: (transaction: Transaction) => void;
   isExiting?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = React.memo(
-  ({ transaction, isActive, onClick, isExiting = false }) => {
+  ({ transaction, isActive, onClick, isExiting = false, isSelected = false, onToggleSelect }) => {
     const handleClick = React.useCallback(() => {
       onClick(transaction);
     }, [onClick, transaction]);
@@ -24,6 +26,14 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
         }
       },
       [onClick, transaction]
+    );
+
+    const handleCheckboxClick = React.useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onToggleSelect?.(transaction.id);
+      },
+      [onToggleSelect, transaction.id]
     );
 
     const confidenceBadgeClass = React.useMemo(() => {
@@ -41,22 +51,38 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
 
     return (
       <article
-        className={`tx-card${isActive ? ' active' : ''}`}
+        className={`tx-card${isActive ? ' active' : ''}${isSelected ? ' selected' : ''}`}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
         aria-label={`Transaction ${transaction.merchant}, ${formattedAmount}, confidence ${transaction.confidence}%`}
         aria-selected={isActive}
-        style={
-          isExiting
-            ? {
-                animation: 'slide-out-left 0.3s var(--ease-out) forwards',
-              }
-            : undefined
-        }
+        style={{
+          ...(isExiting
+            ? { animation: 'slide-out-left 0.3s var(--ease-out) forwards' }
+            : {}),
+          ...(isSelected
+            ? { borderLeft: '3px solid var(--accent-primary, var(--brand, #1E6FFF))' }
+            : {}),
+        }}
       >
         <div className="tx-card-header">
+          {onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onClick={handleCheckboxClick}
+              onChange={() => {}} // controlled by onClick
+              aria-label={`Select ${transaction.merchant}`}
+              style={{
+                marginRight: '8px',
+                cursor: 'pointer',
+                accentColor: 'var(--accent-primary, var(--brand, #1E6FFF))',
+                flexShrink: 0,
+              }}
+            />
+          )}
           <span className="tx-card-merchant">
             <span aria-hidden="true">{transaction.icon}</span>
             {transaction.merchant}

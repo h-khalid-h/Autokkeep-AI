@@ -21,6 +21,12 @@ const AUTH_TAG_LENGTH = 16; // 128 bits
 function getEncryptionKey(): Buffer | null {
   const keyHex = process.env.TOKEN_ENCRYPTION_KEY;
   if (!keyHex) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Crypto] CRITICAL: TOKEN_ENCRYPTION_KEY is not set in production! OAuth tokens will be stored unencrypted.');
+      // In production, throw to prevent insecure token storage
+      throw new Error('TOKEN_ENCRYPTION_KEY must be set in production environment');
+    }
+    console.warn('[Crypto] TOKEN_ENCRYPTION_KEY not set — tokens will be stored as plaintext (development mode)');
     return null;
   }
   if (keyHex.length !== 64) {

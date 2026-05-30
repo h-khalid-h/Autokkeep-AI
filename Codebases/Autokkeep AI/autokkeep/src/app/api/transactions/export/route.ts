@@ -5,9 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'txn-export' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth

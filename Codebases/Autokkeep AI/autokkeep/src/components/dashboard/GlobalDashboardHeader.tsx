@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient as getSupabase } from '@/lib/supabase/client';
 import { useEntity } from '@/lib/context/EntityContext';
+import Logo from '@/components/ui/Logo';
 import UserMenu from './UserMenu';
 import NotificationBell from './NotificationBell';
 
@@ -95,9 +96,7 @@ const GlobalDashboardHeader: React.FC = () => {
     <header className="dashboard-header" role="banner">
       {/* Logo */}
       <div className="navbar-logo">
-        <div className="navbar-logo-icon" aria-hidden="true">
-          AK
-        </div>
+        <Logo size={32} />
         <span className="text-gradient">Autokkeep</span>
       </div>
 
@@ -147,8 +146,11 @@ const GlobalDashboardHeader: React.FC = () => {
 
       {/* Right section: Nav + Live status + Avatar */}
       <nav className="navbar-actions" aria-label="Dashboard actions">
+        <Link href="/portfolio" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+          📊 Portfolio
+        </Link>
         <Link href="/analytics" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
-          📊 Analytics
+          📈 Analytics
         </Link>
         <Link href="/transactions" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
           📋 History

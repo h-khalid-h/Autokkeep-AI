@@ -72,16 +72,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Use efficient count queries instead of fetching all rows
-    // (Supabase's default 1000-row limit would silently truncate results)
-    const baseQuery = (supabase as any)
-      .from('transactions')
-      .select('id', { count: 'exact', head: true })
-      .in('entity_id', entityIds)
-      .neq('status', 'removed')
-      .neq('status', 'deleted');
-
     // Run count queries in parallel
+    // Uses head:true to avoid fetching rows — only counts are returned
     const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
       // Total transactions
       (supabase as any).from('transactions').select('id', { count: 'exact', head: true })

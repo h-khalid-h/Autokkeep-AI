@@ -38,7 +38,7 @@ export default function CTASection() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'cta' }),
+        body: JSON.stringify({ name: 'Early Access Request', email, message: 'Requested early access via landing page CTA', source: 'cta' }),
       });
 
       if (!res.ok) {

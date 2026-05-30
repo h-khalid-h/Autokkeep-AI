@@ -4,8 +4,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { syncTransactions } from '@/lib/plaid/client';
+import { ingestTransactions } from '@/lib/plaid/ingest';
 import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
@@ -48,73 +49,7 @@ export async function GET(request: NextRequest) {
 
     for (const connection of connections) {
       try {
-        // Sync transactions from Plaid
-        const syncResult = await syncTransactions(
-          connection.plaid_access_token,
-          connection.cursor || undefined
-        );
-
-        // Process added transactions (batch upsert)
-        if (syncResult.added.length > 0) {
-          const addedRows = syncResult.added.map((t) => ({
-            entity_id: connection.entity_id,
-            bank_account_id: t.account_id,
-            plaid_transaction_id: t.transaction_id,
-            amount: t.amount,
-            date: t.date,
-            merchant_name: t.merchant_name || t.name,
-            merchant_raw: t.name,
-            currency: t.iso_currency_code || 'USD',
-            status: 'pending',
-          }));
-          await (supabase as any)
-            .from('transactions')
-            .upsert(addedRows, { onConflict: 'plaid_transaction_id', ignoreDuplicates: true });
-        }
-
-        // Process modified transactions — clear AI categorization for re-processing
-        // (per-row update needed due to different values per row; typically <10 modifications per sync)
-        for (const t of syncResult.modified) {
-          await (supabase as any)
-            .from('transactions')
-            .update({
-              amount: t.amount,
-              date: t.date,
-              merchant_name: t.merchant_name || t.name,
-              merchant_raw: t.name,
-              // Reset AI categorization so the transaction gets re-categorized
-              category_ai: null,
-              confidence: 0,
-              ai_reasoning: null,
-              status: 'pending',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('plaid_transaction_id', t.transaction_id)
-            .eq('entity_id', connection.entity_id);
-        }
-
-        // Process removed transactions (batch update)
-        if (syncResult.removed.length > 0) {
-          const removedIds = syncResult.removed.map((t) => t.transaction_id);
-          await (supabase as any)
-            .from('transactions')
-            .update({
-              status: 'removed',
-              updated_at: new Date().toISOString(),
-            })
-            .in('plaid_transaction_id', removedIds)
-            .eq('entity_id', connection.entity_id);
-        }
-
-        // Update cursor on bank_connection
-        await (supabase as any)
-          .from('bank_connections')
-          .update({
-            cursor: syncResult.nextCursor,
-            last_synced_at: new Date().toISOString(),
-          })
-          .eq('id', connection.id);
-
+        const result = await ingestTransactions(supabase, connection);
         syncedCount++;
       } catch (err) {
         failedCount++;
@@ -132,12 +67,17 @@ export async function GET(request: NextRequest) {
     if (connections.length > 0) {
       await writeAuditLog({
         supabase,
-        entityId: connections[0].entity_id,
+        entityId: 'system',
         actorId: 'system',
         actorType: 'system',
         action: 'sync',
         targetType: 'plaid_sync',
-        details: { synced: syncedCount, failed: failedCount, total: connections.length },
+        details: {
+          synced: syncedCount,
+          failed: failedCount,
+          total: connections.length,
+          entity_ids: [...new Set(connections.map((c: any) => c.entity_id))],
+        },
         request,
       });
     }
@@ -149,6 +89,7 @@ export async function GET(request: NextRequest) {
       errors,
     });
   } catch (error) {
+    captureException(error, { tags: { route: 'cron/plaid-sync' } });
     console.error('[Cron Plaid Sync] Error:', error);
     return NextResponse.json(
       { error: 'Cron sync failed' },

@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 const metrics = [
-  { value: 95, suffix: '%+', label: 'AI Accuracy', sublabel: 'On Known Merchants' },
+  { value: 90, suffix: '%+', label: 'AI Accuracy', sublabel: 'Validated on real transactions' },
   { value: 83, suffix: '%', label: 'Gross Margin', sublabel: 'Protected by rule caching' },
   { value: 4, suffix: '×', label: 'Client Capacity', sublabel: 'Per CPA accountant' },
   { value: 10, suffix: 's', label: 'Processing Time', sublabel: 'Per transaction average' },
 ];
 
 const trustBadges = [
-  { icon: '🔐', label: 'SOC 2 Type II Ready' },
-  { icon: '🏦', label: 'Bank-Grade AES-256 Encryption' },
-  { icon: '📋', label: 'GAAP & IFRS Compliant' },
+  { icon: '🔐', label: 'SOC 2 Architecture Ready' },
+  { icon: '🏦', label: 'AES-256-GCM Encryption' },
+  { icon: '📋', label: 'GAAP Compliant Workflows' },
   { icon: '🛡️', label: 'Immutable Audit Trail' },
-  { icon: '🔒', label: 'Zero Public LLM Data Sharing' },
+  { icon: '🔒', label: 'PII-Stripped Before AI Processing' },
 ];
 
 function AnimatedCounter({ target, suffix, duration = 2000 }: { target: number; suffix: string; duration?: number }) {
