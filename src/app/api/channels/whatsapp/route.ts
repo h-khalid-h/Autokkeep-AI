@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import {
   parseTwilioWebhook,
   parseUserResponse,
@@ -36,12 +37,13 @@ export async function POST(request: NextRequest) {
     const userResponse = parseUserResponse(message);
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Strip whatsapp: prefix for lookup
     const phoneNumber = message.from.replace('whatsapp:', '');
 
     // Find pending receipt request
-    const { data: receiptRequest } = await (supabase as any)
+    const { data: receiptRequest } = await db
       .from('receipt_requests')
       .select('id, transaction_id')
       .eq('channel_type', 'whatsapp')
@@ -64,13 +66,13 @@ export async function POST(request: NextRequest) {
     // Process response (same logic as SMS but via WhatsApp)
     switch (userResponse.type) {
       case 'business': {
-        const { data: tx } = await (supabase as any)
+        const { data: tx } = await db
           .from('transactions')
           .select('entity_id, category_ai')
           .eq('id', receiptRequest.transaction_id)
           .single();
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'approved',
@@ -79,14 +81,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', receiptRequest.transaction_id);
 
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'responded', responded_at: new Date().toISOString() })
           .eq('id', receiptRequest.id);
 
         if (tx) {
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: tx.entity_id,
             actorType: 'human',
             action: 'approve',
@@ -107,13 +109,13 @@ export async function POST(request: NextRequest) {
       }
 
       case 'personal': {
-        const { data: tx } = await (supabase as any)
+        const { data: tx } = await db
           .from('transactions')
           .select('entity_id')
           .eq('id', receiptRequest.transaction_id)
           .single();
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'approved',
@@ -122,14 +124,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', receiptRequest.transaction_id);
 
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'responded', responded_at: new Date().toISOString() })
           .eq('id', receiptRequest.id);
 
         if (tx) {
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: tx.entity_id,
             actorType: 'human',
             action: 'categorize',
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
 
       case 'receipt': {
         if (userResponse.mediaUrls.length > 0) {
-          await (supabase as any)
+          await db
             .from('receipt_requests')
             .update({
               status: 'responded',
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', receiptRequest.id);
 
-          await (supabase as any)
+          await db
             .from('transactions')
             .update({
               document_status: 'found',
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
             .eq('id', receiptRequest.transaction_id);
 
           // Audit log for receipt upload
-          const { data: receiptTx } = await (supabase as any)
+          const { data: receiptTx } = await db
             .from('transactions')
             .select('entity_id')
             .eq('id', receiptRequest.transaction_id)
@@ -178,7 +180,7 @@ export async function POST(request: NextRequest) {
 
           if (receiptTx) {
             await writeAuditLog({
-              supabase,
+              supabase: db,
               entityId: receiptTx.entity_id,
               actorType: 'human',
               action: 'receipt_upload',
@@ -221,7 +223,7 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('WhatsApp handler error:', error);
     return new NextResponse(
       `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, something went wrong. Please try again.</Message></Response>`,

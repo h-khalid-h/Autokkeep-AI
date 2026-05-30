@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient as getSupabase } from '@/lib/supabase/client';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { useEntity } from '@/lib/context/EntityContext';
 import Logo from '@/components/ui/Logo';
 import UserMenu from './UserMenu';
@@ -48,7 +49,8 @@ const GlobalDashboardHeader: React.FC = () => {
 
       try {
         const supabase = getSupabase();
-        const { data: bankConns } = await (supabase as any)
+        const db = supabase as unknown as SupabaseQueryClient;
+        const { data: bankConns } = await db
           .from('bank_connections')
           .select('id, status')
           .eq('entity_id', selectedEntity.id)

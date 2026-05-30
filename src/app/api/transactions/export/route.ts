@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -37,8 +38,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query
-    let query = (supabase as any)
+    let query = db
       .from('transactions')
       .select('*')
       .eq('entity_id', entity.id)
@@ -106,8 +109,8 @@ export async function GET(request: NextRequest) {
 
     // CSV format
     const csvHeader = 'Date,Merchant,Amount,Currency,Category (GL Code),Status,AI Confidence,AI Reasoning';
-    const csvRows = rows.map((t: Record<string, any>) => {
-      const escapeCsv = (val: string | null | undefined): string => {
+    const csvRows = rows.map((t: Record<string, unknown>) => {
+      const escapeCsv = (val: unknown): string => {
         if (val === null || val === undefined) return '';
         let str = String(val);
         // Prevent CSV formula injection — prefix dangerous starting chars
@@ -123,7 +126,7 @@ export async function GET(request: NextRequest) {
       return [
         escapeCsv(t.date),
         escapeCsv(t.merchant_name),
-        escapeCsv(String(t.amount)),
+        escapeCsv(t.amount),
         escapeCsv(t.currency || 'USD'),
         escapeCsv(t.category_ai),
         escapeCsv(t.status),

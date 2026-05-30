@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   syncJournalEntry,
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id')
       .eq('user_id', user.id)
@@ -39,19 +41,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify entity belongs to user's org
-    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
     if (!entity || entity.org_id !== membership.org_id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'sync_ledger');
+    const planCheck = await checkPlanLimits(supabase as never, membership.org_id, 'sync_ledger');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
 
-    const { data: conn } = await (supabase as any)
+    const { data: conn } = await db
       .from('ledger_connections')
       .select('*')
       .eq('entity_id', entityId)
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     conn.access_token = decryptToken(conn.access_token);
     conn.refresh_token = decryptToken(conn.refresh_token);
 
-    let query = (supabase as any)
+    let query = db
       .from('transactions')
       .select('*')
       .eq('entity_id', entityId)
@@ -87,8 +89,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Optimistic lock: claim transactions by setting status to 'syncing'
-    const txIds = transactions.map((t: any) => t.id);
-    const { data: claimed, error: claimError } = await (supabase as any)
+    const txIds = transactions.map((t: Record<string, unknown>) => t.id);
+    const { data: claimed, error: claimError } = await db
       .from('transactions')
       .update({ status: 'syncing', updated_at: new Date().toISOString() })
       .in('id', txIds)
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
       try {
         const refreshed = await refreshXeroToken(conn.refresh_token);
         accessToken = refreshed.accessToken;
-        await (supabase as any)
+        await db
           .from('ledger_connections')
           .update({
             access_token: encryptToken(refreshed.accessToken),
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
       } catch (refreshError) {
         console.error('[Xero Sync] Token refresh failed:', refreshError);
         if (tokenExpired) {
-          await (supabase as any).from('ledger_connections').update({ is_active: false }).eq('id', conn.id);
+          await db.from('ledger_connections').update({ is_active: false }).eq('id', conn.id);
           return NextResponse.json(
             { error: 'Xero token expired. Please re-authenticate.' },
             { status: 401 }
@@ -147,7 +149,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (syncResult.success) {
-          const { data: je } = await (supabase as any)
+          const { data: je } = await db
             .from('journal_entries')
             .insert({
               entity_id: entityId,
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
 
           // Create journal lines from the entry (handles expense vs income signs)
           if (je) {
-            await (supabase as any).from('journal_lines').insert(
+            await db.from('journal_lines').insert(
               entry.lines.map((line) => ({
                 journal_entry_id: je.id,
                 gl_code: line.glCode,
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          await (supabase as any)
+          await db
             .from('transactions')
             .update({ status: 'synced', updated_at: new Date().toISOString() })
             .eq('id', tx.id);
@@ -198,7 +200,7 @@ export async function POST(request: NextRequest) {
           results.failed++;
           results.errors.push(`${tx.id}: ${syncResult.error}`);
         }
-      } catch (error) {
+      } catch (_error: unknown) {
         results.failed++;
         results.errors.push(`${tx.id}: sync error`);
       }
@@ -206,20 +208,20 @@ export async function POST(request: NextRequest) {
 
     // Reset any failed transactions back to 'approved' for retry
     if (results.failed > 0) {
-      const { data: stillSyncing } = await (supabase as any)
+      const { data: stillSyncing } = await db
         .from('transactions')
         .select('id')
         .in('id', txIds)
         .eq('status', 'syncing');
       if (stillSyncing?.length) {
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({ status: 'approved', updated_at: new Date().toISOString() })
-          .in('id', stillSyncing.map((t: any) => t.id));
+          .in('id', stillSyncing.map((t: Record<string, unknown>) => t.id));
       }
     }
 
-    await (supabase as any)
+    await db
       .from('ledger_connections')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', conn.id);
@@ -237,7 +239,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, ...results });
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'Xero sync failed' },
       { status: 500 }
@@ -250,6 +252,7 @@ export async function GET(request: NextRequest) {
   try {
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -264,7 +267,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id)
@@ -275,12 +278,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify entity belongs to user's org
-    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
     if (!entity || entity.org_id !== membership.org_id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data: conn } = await (supabase as any)
+    const { data: conn } = await db
       .from('ledger_connections')
       .select('*')
       .eq('entity_id', entityId)
@@ -304,7 +307,7 @@ export async function GET(request: NextRequest) {
       try {
         const refreshed = await refreshXeroToken(conn.refresh_token);
         accessToken = refreshed.accessToken;
-        await (supabase as any)
+        await db
           .from('ledger_connections')
           .update({
             access_token: encryptToken(refreshed.accessToken),
@@ -325,7 +328,7 @@ export async function GET(request: NextRequest) {
     });
 
     for (const acc of accounts) {
-      await (supabase as any).from('chart_of_accounts').upsert(
+      await db.from('chart_of_accounts').upsert(
         {
           entity_id: entityId,
           code: acc.code,
@@ -338,7 +341,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, accounts: accounts.length });
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'Xero chart of accounts sync failed' },
       { status: 500 }

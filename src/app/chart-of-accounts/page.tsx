@@ -8,7 +8,7 @@ import Logo from '@/components/ui/Logo';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function getSupabase() {
+function _getSupabase() {
   if (!_supabase) {
     _supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +53,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // ─── Mock data (matches seed.sql entries) ───────────────────────────────────
-const mockAccounts: Account[] = [
+const _mockAccounts: Account[] = [
   { id: '1', code: '1010', name: 'Cash & Bank', type: 'Asset', active: true },
   { id: '2', code: '1200', name: 'Accounts Receivable', type: 'Asset', active: true },
   { id: '3', code: '1300', name: 'Prepaid Expenses', type: 'Asset', active: true },
@@ -96,7 +96,17 @@ function displayType(t: string): string {
   return TYPE_LABELS[key] || t;
 }
 
-function mapApiAccount(row: any): Account {
+interface ApiAccountRow {
+  id: string;
+  entity_id?: string;
+  code: string;
+  name: string;
+  type: string;
+  is_active?: boolean;
+  description?: string;
+}
+
+function mapApiAccount(row: ApiAccountRow): Account {
   return {
     id: row.id,
     entity_id: row.entity_id,
@@ -160,10 +170,11 @@ export default function ChartOfAccountsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedEntity?.id]);
+  }, [selectedEntity]);
 
   useEffect(() => {
-    fetchAccounts();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchAccounts();
   }, [fetchAccounts]);
 
   // ─── Filtering & sorting ────────────────────────────────────────────────

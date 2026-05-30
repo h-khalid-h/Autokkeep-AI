@@ -29,23 +29,6 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
   const [slackSent, setSlackSent] = React.useState(false);
   const categoryInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Keyboard shortcut: CMD+Enter to accept
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && transaction) {
-        e.preventDefault();
-        handleAccept();
-      }
-      if (e.key === 'Escape') {
-        setShowCategorySearch(false);
-        setShowSlackModal(false);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transaction]);
-
   const triggerToast = React.useCallback((message: string) => {
     setShowToast(true);
     setToastMessage(message);
@@ -61,6 +44,22 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
     setShowCategorySearch(false);
     setShowSlackModal(false);
   }, [transaction, onAccept, triggerToast]);
+
+  // Keyboard shortcut: CMD+Enter to accept
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && transaction) {
+        e.preventDefault();
+        handleAccept();
+      }
+      if (e.key === 'Escape') {
+        setShowCategorySearch(false);
+        setShowSlackModal(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [transaction, handleAccept]);
 
   const handleChangeCategoryClick = React.useCallback(() => {
     setShowCategorySearch((prev) => !prev);
@@ -117,7 +116,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
       (acc) =>
         acc.code.includes(q) || acc.name.toLowerCase().includes(q)
     );
-  }, [categoryQuery]);
+  }, [categoryQuery, chartOfAccounts]);
 
   if (!transaction) {
     return (

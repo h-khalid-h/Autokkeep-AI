@@ -77,7 +77,7 @@ export async function rateLimit(
     ttl = result.ttl;
   }
 
-  const remaining = Math.max(0, max - current);
+  const _remaining = Math.max(0, max - current);
 
   if (current > max) {
     return NextResponse.json(

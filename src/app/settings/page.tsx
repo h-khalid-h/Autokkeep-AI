@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import Logo from '@/components/ui/Logo';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ---- Types ----
 
@@ -123,7 +124,8 @@ export default function SettingsPage() {
       setUserId(user.id);
 
       // 2. Get team membership → org_id, role
-      const { data: membership, error: membershipError } = await (supabase as any)
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { data: membership, error: membershipError } = await db
         .from('team_members')
         .select('id, org_id, role')
         .eq('user_id', user.id)
@@ -140,17 +142,17 @@ export default function SettingsPage() {
 
       // 3-5. Fetch org, entities, and team members in parallel
       const [orgResult, entitiesResult, membersResult] = await Promise.all([
-        (supabase as any)
+        db
           .from('organizations')
           .select('id, name')
           .eq('id', orgId)
           .single(),
-        (supabase as any)
+        db
           .from('entities')
           .select('id, name')
           .eq('org_id', orgId)
           .order('created_at', { ascending: true }),
-        (supabase as any)
+        db
           .from('team_members')
           .select('id, user_id, role, invited_email, accepted_at')
           .eq('org_id', orgId)
@@ -165,7 +167,7 @@ export default function SettingsPage() {
       setEntities(fetchedEntities);
 
       if (membersResult.data) {
-        const enriched: TeamMemberData[] = membersResult.data.map((m: any) => ({
+        const enriched: TeamMemberData[] = membersResult.data.map((m: Record<string, unknown>) => ({
           id: m.id,
           user_id: m.user_id,
           role: m.role,
@@ -181,33 +183,33 @@ export default function SettingsPage() {
         const entityIds = fetchedEntities.map((e: EntityData) => e.id);
 
         const [subResult, bankConnsResult, ledgerConnsResult, channelConnsResult, txCountResult, reviewCountResult] = await Promise.all([
-          (supabase as any)
+          db
             .from('subscriptions')
             .select('plan, status, current_period_end, entity_count, transaction_count')
             .eq('org_id', orgId)
             .order('created_at', { ascending: false })
             .limit(1)
             .single(),
-          (supabase as any)
+          db
             .from('bank_connections')
             .select('id, entity_id, status')
             .in('entity_id', entityIds)
             .eq('status', 'active'),
-          (supabase as any)
+          db
             .from('ledger_connections')
             .select('id, entity_id, provider, is_active')
             .in('entity_id', entityIds)
             .eq('is_active', true),
-          (supabase as any)
+          db
             .from('channel_connections')
             .select('id, entity_id, channel_type, is_active')
             .in('entity_id', entityIds)
             .eq('is_active', true),
-          (supabase as any)
+          db
             .from('transactions')
             .select('id', { count: 'exact', head: true })
             .in('entity_id', entityIds),
-          (supabase as any)
+          db
             .from('transactions')
             .select('id', { count: 'exact', head: true })
             .in('entity_id', entityIds)
@@ -220,16 +222,16 @@ export default function SettingsPage() {
 
         setConnections({
           plaid: (bankConnsResult.data && bankConnsResult.data.length > 0) || false,
-          quickbooks: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: any) => c.provider === 'quickbooks')) || false,
-          xero: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: any) => c.provider === 'xero')) || false,
-          slack: (channelConnsResult.data && channelConnsResult.data.some((c: any) => c.channel_type === 'slack')) || false,
+          quickbooks: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: Record<string, unknown>) => c.provider === 'quickbooks')) || false,
+          xero: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: Record<string, unknown>) => c.provider === 'xero')) || false,
+          slack: (channelConnsResult.data && channelConnsResult.data.some((c: Record<string, unknown>) => c.channel_type === 'slack')) || false,
         });
 
         setTransactionCount(txCountResult.count || 0);
         setHitlCount(reviewCountResult.count || 0);
       } else {
         // No entities — still fetch subscription
-        const { data: sub } = await (supabase as any)
+        const { data: sub } = await db
           .from('subscriptions')
           .select('plan, status, current_period_end, entity_count, transaction_count')
           .eq('org_id', orgId)
@@ -250,7 +252,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchData();
   }, [fetchData]);
 
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
@@ -378,10 +381,11 @@ function IntegrationsTab({
       if (!res.ok) throw new Error(data.error || 'Failed to create link token');
 
       // Open Plaid Link if available
-      if (typeof window !== 'undefined' && (window as any).Plaid) {
-        const handler = (window as any).Plaid.create({
+      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
+        const PlaidLink = (window as unknown as Record<string, unknown>).Plaid as Record<string, (...args: unknown[]) => unknown>;
+        const handler = PlaidLink.create({
           token: data.link_token,
-          onSuccess: async (publicToken: string, metadata: any) => {
+          onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
             try {
               const exchangeRes = await fetch('/api/plaid/exchange', {
                 method: 'POST',
@@ -389,8 +393,8 @@ function IntegrationsTab({
                 body: JSON.stringify({
                   publicToken,
                   entityId: primaryEntityId,
-                  institutionId: metadata?.institution?.institution_id || undefined,
-                  institutionName: metadata?.institution?.name || 'Unknown',
+                  institutionId: (metadata?.institution as Record<string, unknown>)?.institution_id || undefined,
+                  institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
                 }),
               });
               if (!exchangeRes.ok) {
@@ -404,7 +408,7 @@ function IntegrationsTab({
           },
           onExit: () => setActionLoading(null),
         });
-        handler.open();
+        (handler as Record<string, unknown> & { open: () => void }).open();
       } else {
         setActionError('Plaid Link SDK not loaded. Please refresh and try again.');
       }
@@ -424,7 +428,7 @@ function IntegrationsTab({
     const path = provider === 'quickbooks'
       ? `/api/ledger/quickbooks/auth?entityId=${primaryEntityId}`
       : `/api/ledger/xero/auth?entityId=${primaryEntityId}`;
-    window.location.href = path;
+    window.location.assign(path);
   };
 
   const handleSlackConnect = () => {
@@ -433,7 +437,7 @@ function IntegrationsTab({
       return;
     }
     setActionLoading('slack');
-    window.location.href = `/api/channels/slack/install?entityId=${primaryEntityId}`;
+    window.location.assign(`/api/channels/slack/install?entityId=${primaryEntityId}`);
   };
 
   const getStatus = (key: string): 'configured' | 'available' => {
@@ -810,7 +814,8 @@ function TeamTab({
 
     try {
       const supabase = getSupabase();
-      const { error: insertError } = await (supabase as any)
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { error: insertError } = await db
         .from('team_members')
         .insert({
           org_id: orgId,
@@ -838,7 +843,8 @@ function TeamTab({
 
     try {
       const supabase = getSupabase();
-      const { error: deleteError } = await (supabase as any)
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { error: deleteError } = await db
         .from('team_members')
         .delete()
         .eq('id', memberId)

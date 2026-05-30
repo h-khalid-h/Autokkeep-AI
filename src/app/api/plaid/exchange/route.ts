@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'connect_bank');
+    const planCheck = await checkPlanLimits(supabase as never, membership.org_id, 'connect_bank');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create bank_connection record
-    const { data: connection, error: connectionError } = await (supabase as any)
+    const { data: connection, error: connectionError } = await db
       .from('bank_connections')
       .insert({
         entity_id: entityId,
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     // Get accounts and create bank_account records
     const accounts = await getAccounts(accessToken);
-    const accountRecords = accounts.map((account: Record<string, any>) => ({
+    const accountRecords = accounts.map((account) => ({
       connection_id: connection.id,
       plaid_account_id: account.account_id,
       name: account.name,
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     }));
 
     if (accountRecords.length > 0) {
-      const { error: accountsError } = await (supabase as any)
+      const { error: accountsError } = await db
         .from('bank_accounts')
         .insert(accountRecords);
 
@@ -154,7 +156,7 @@ export async function POST(request: NextRequest) {
     // Build account ID mapping for transactions
     const accountIdMap = new Map<string, string>();
     if (accountRecords.length > 0) {
-      const { data: savedAccounts } = await (supabase as any)
+      const { data: savedAccounts } = await db
         .from('bank_accounts')
         .select('id, plaid_account_id')
         .eq('connection_id', connection.id);
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
       const syncResult = await syncTransactions(accessToken);
 
       // Update cursor on the connection
-      await (supabase as any)
+      await db
         .from('bank_connections')
         .update({
           cursor: syncResult.nextCursor,
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
 
       // Insert synced transactions
       if (syncResult.added.length > 0) {
-        const transactionRecords = syncResult.added.map((t: Record<string, any>) => ({
+        const transactionRecords = syncResult.added.map((t) => ({
           entity_id: entityId,
           bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
           plaid_transaction_id: t.transaction_id,
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
           category_ai: null,
         }));
 
-        await (supabase as any).from('transactions').upsert(transactionRecords, {
+        await db.from('transactions').upsert(transactionRecords, {
           onConflict: 'plaid_transaction_id',
           ignoreDuplicates: true,
         });
@@ -222,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       connectionId: connection.id,
-      accounts: accounts.map((a: Record<string, any>) => ({
+      accounts: accounts.map((a) => ({
         id: a.account_id,
         name: a.name,
         type: a.type,

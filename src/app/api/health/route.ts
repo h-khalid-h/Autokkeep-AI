@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -17,12 +18,13 @@ export async function GET(request: NextRequest) {
   try {
     const dbStart = Date.now();
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
     // Use a simple query that doesn't depend on any specific table
-    const { error } = await (supabase as any).rpc('version').maybeSingle();
+    const { error } = await db.rpc('version').maybeSingle();
 
     if (error) {
       // Fallback: try a simple from() query
-      const { error: fallbackError } = await (supabase as any)
+      const { error: fallbackError } = await db
         .from('audit_log')
         .select('id', { count: 'exact', head: true })
         .limit(1);

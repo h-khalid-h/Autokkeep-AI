@@ -3,6 +3,7 @@ import { captureException } from '@/lib/sentry';
 import { getStripeClient } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
 
         if (orgId && customerId) {
           // Link Stripe customer to org
-          await (supabase as any)
+          await db
             .from('organizations')
             .update({
               stripe_customer_id: customerId,
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
             .eq('id', orgId);
 
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: orgId,
             actorId: 'stripe',
             actorType: 'system',
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
 
         if (orgId) {
           const status = subscription.status;
-          await (supabase as any)
+          await db
             .from('organizations')
             .update({
               subscription_status: status,
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
         const orgId = subscription.metadata?.org_id;
 
         if (orgId) {
-          await (supabase as any)
+          await db
             .from('organizations')
             .update({
               subscription_status: 'canceled',
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
             .eq('id', orgId);
 
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: orgId,
             actorId: 'stripe',
             actorType: 'system',
@@ -113,14 +115,14 @@ export async function POST(request: NextRequest) {
         console.warn(`[Stripe Webhook] Payment failed for customer ${customerId}`);
 
         // Find org by stripe_customer_id and mark as past_due
-        const { data: failedOrg } = await (supabase as any)
+        const { data: failedOrg } = await db
           .from('organizations')
           .select('id')
           .eq('stripe_customer_id', customerId)
           .single();
 
         if (failedOrg) {
-          await (supabase as any)
+          await db
             .from('organizations')
             .update({
               subscription_status: 'past_due',
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
             .eq('id', failedOrg.id);
 
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: failedOrg.id,
             actorId: 'stripe',
             actorType: 'system',

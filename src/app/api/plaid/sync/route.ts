@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { captureException } from '@/lib/sentry';
 import { createServerClient } from '@/lib/supabase/server';
 import { ingestTransactions } from '@/lib/plaid/ingest';
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch bank connection
-    const { data: connection, error: connError } = await (supabase as any)
+    const { data: connection, error: connError } = await db
       .from('bank_connections')
       .select('*')
       .eq('id', connectionId)
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', connection.entity_id)
@@ -87,10 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 1. Sync + upsert + cursor via shared ingestion ──────────────────
-    const ingestResult = await ingestTransactions(supabase as any, connection);
+    const ingestResult = await ingestTransactions(supabase, connection);
 
     // ── 2. AI categorization pass on uncategorized pending transactions ──
-    const { data: pendingTxns } = await (supabase as any)
+    const { data: pendingTxns } = await db
       .from('transactions')
       .select('*')
       .eq('entity_id', entity.id)
@@ -101,25 +103,25 @@ export async function POST(request: NextRequest) {
 
     if (txnsToCateg.length > 0) {
       // Fetch entity's chart of accounts and categorization rules
-      const { data: chartOfAccountsData } = await (supabase as any)
+      const { data: chartOfAccountsData } = await db
         .from('chart_of_accounts')
         .select('code, name')
         .eq('entity_id', entity.id);
 
-      const { data: rulesData } = await (supabase as any)
+      const { data: rulesData } = await db
         .from('categorization_rules')
         .select('*')
         .eq('entity_id', entity.id);
 
       // Fetch historical patterns
-      const { data: historyData } = await (supabase as any)
+      const { data: historyData } = await db
         .from('categorization_history')
         .select('merchant, gl_code, gl_name, frequency, last_used')
         .eq('entity_id', entity.id)
         .order('frequency', { ascending: false })
         .limit(100);
 
-      const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+      const history: HistoricalPattern[] = (historyData || []).map((h: { merchant: string; gl_code: string; gl_name: string; frequency: number; last_used: string }) => ({
         merchant: h.merchant,
         glCode: h.gl_code,
         glName: h.gl_name,
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
         name: c.name,
       }));
 
-      const catRules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => ({
+      const catRules: CategorizationRule[] = (rulesData || []).map((r: { id: string; match_value: string; mcc_code?: string; gl_code: string; rule_type?: string; priority?: number }) => ({
         id: r.id,
         vendor_pattern: r.match_value,
         mcc_code: r.mcc_code || undefined,
@@ -171,7 +173,7 @@ export async function POST(request: NextRequest) {
           txn.amount || 0,
         );
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             category_ai: result.glCode || null,

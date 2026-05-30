@@ -19,12 +19,12 @@ export default function Footer() {
           <div>
             <div className="footer-col-title">Product</div>
             <div className="footer-links">
-              <a href="/#solution" className="footer-link">How It Works</a>
-              <a href="/#architecture" className="footer-link">Architecture</a>
-              <a href="/#pricing" className="footer-link">Pricing</a>
+              <Link href="/#solution" className="footer-link">How It Works</Link>
+              <Link href="/#architecture" className="footer-link">Architecture</Link>
+              <Link href="/#pricing" className="footer-link">Pricing</Link>
               <Link href="/dashboard" className="footer-link">Live Dashboard Demo</Link>
               <Link href="/demo/shadow-audit" className="footer-link">Shadow Audit Demo</Link>
-              <a href="/#cta" className="footer-link">Request Access</a>
+              <Link href="/#cta" className="footer-link">Request Access</Link>
             </div>
           </div>
 

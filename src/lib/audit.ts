@@ -56,7 +56,7 @@ function normalizeAction(action: string): { normalized: AuditAction; wasRemapped
 }
 
 interface AuditLogEntry {
-  supabase: any;
+  supabase: { from: (table: string) => { insert: (data: Record<string, unknown>) => unknown } };
   entityId?: string;
   actorId?: string;
   actorType: 'human' | 'ai' | 'system';

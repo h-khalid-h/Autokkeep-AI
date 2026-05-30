@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions } from '@/lib/plaid/ingest';
@@ -19,9 +20,10 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Fetch all active bank connections
-    const { data: connections, error: connError } = await (supabase as any)
+    const { data: connections, error: connError } = await db
       .from('bank_connections')
       .select('*')
       .eq('status', 'active');
@@ -49,9 +51,9 @@ export async function GET(request: NextRequest) {
 
     for (const connection of connections) {
       try {
-        const result = await ingestTransactions(supabase, connection);
+        const _result = await ingestTransactions(db, connection);
         syncedCount++;
-      } catch (err) {
+      } catch (err: unknown) {
         failedCount++;
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error';
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
     // Audit log the cron run
     if (connections.length > 0) {
       await writeAuditLog({
-        supabase,
+        supabase: db,
         entityId: 'system',
         actorId: 'system',
         actorType: 'system',
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest) {
           synced: syncedCount,
           failed: failedCount,
           total: connections.length,
-          entity_ids: [...new Set(connections.map((c: any) => c.entity_id))],
+          entity_ids: [...new Set(connections.map((c: Record<string, unknown>) => c.entity_id))],
         },
         request,
       });

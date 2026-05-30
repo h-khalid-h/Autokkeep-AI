@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: connection } = await (supabase as any)
+    const { data: connection } = await db
       .from('bank_connections')
       .select('*, entity:entities!inner(org_id)')
       .eq('id', connectionId)
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark connection as disconnected
-    await (supabase as any)
+    await db
       .from('bank_connections')
       .update({
         status: 'disconnected',

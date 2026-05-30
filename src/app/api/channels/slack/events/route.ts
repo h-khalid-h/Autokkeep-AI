@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { verifySlackSignature } from '@/lib/channels/slack';
 import { writeAuditLog } from '@/lib/audit';
 
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Slack events error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
@@ -63,9 +64,10 @@ async function handleFileUpload(event: Record<string, unknown>) {
 
   const { createServerClient } = await import('@/lib/supabase/server');
   const supabase = await createServerClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
   // Find the receipt request linked to this thread
-  const { data: receiptRequest } = await (supabase as any)
+  const { data: receiptRequest } = await db
     .from('receipt_requests')
     .select('id, transaction_id')
     .eq('message_id', threadTs)
@@ -75,7 +77,7 @@ async function handleFileUpload(event: Record<string, unknown>) {
   if (!receiptRequest) return;
 
   // Update receipt request with uploaded file URL
-  await (supabase as any)
+  await db
     .from('receipt_requests')
     .update({
       status: 'responded',
@@ -85,7 +87,7 @@ async function handleFileUpload(event: Record<string, unknown>) {
     .eq('id', receiptRequest.id);
 
   // Update transaction document status
-  await (supabase as any)
+  await db
     .from('transactions')
     .update({
       document_status: 'found',
@@ -95,7 +97,7 @@ async function handleFileUpload(event: Record<string, unknown>) {
     .eq('id', receiptRequest.transaction_id);
 
   // Log to audit trail
-  const { data: tx } = await (supabase as any)
+  const { data: tx } = await db
     .from('transactions')
     .select('entity_id')
     .eq('id', receiptRequest.transaction_id)
@@ -103,7 +105,7 @@ async function handleFileUpload(event: Record<string, unknown>) {
 
   if (tx) {
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: tx.entity_id,
       actorId: (event.user as string) || 'slack_user',
       actorType: 'human',

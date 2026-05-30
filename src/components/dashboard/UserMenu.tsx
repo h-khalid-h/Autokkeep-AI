@@ -71,9 +71,10 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
   // Focus management when dropdown opens/closes
   useEffect(() => {
     if (isOpen) {
-      setFocusedIndex(0);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFocusedIndex(() => 0);
     } else {
-      setFocusedIndex(-1);
+      setFocusedIndex(() => -1);
     }
   }, [isOpen]);
 

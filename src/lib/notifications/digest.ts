@@ -4,6 +4,7 @@
 // ============================================
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // --- Types ---
 
@@ -46,9 +47,10 @@ const TOP_ITEMS_LIMIT = 5;
  */
 export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
   const supabase = createAdminClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
   // 1. Fetch all entities
-  const { data: entities, error: entityError } = await (supabase as any)
+  const { data: entities, error: entityError } = await db
     .from('entities')
     .select('id, name');
 
@@ -61,7 +63,7 @@ export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
   // 2. Batch-fetch all outstanding transactions across all entities in a single query
   const entityIds = (entities || []).map((e: { id: string }) => e.id);
 
-  const { data: allTransactions, error: txError } = await (supabase as any)
+  const { data: allTransactions, error: txError } = await db
     .from('transactions')
     .select('id, entity_id, merchant_name, amount, date, status, confidence, aging_days')
     .in('entity_id', entityIds)

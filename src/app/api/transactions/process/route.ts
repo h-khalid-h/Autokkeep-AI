@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { ingestTransactions } from '@/lib/plaid/ingest';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -64,8 +65,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -76,12 +79,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'process_transaction');
+    const planCheck = await checkPlanLimits(db, membership.org_id, 'process_transaction');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // ── Step 1: Sync from all connected banks ──────────────────────────────
 
-    const { data: connections } = await (supabase as any)
+    const { data: connections } = await db
       .from('bank_connections')
       .select('*')
       .eq('entity_id', entityId)
@@ -122,7 +125,7 @@ export async function POST(request: NextRequest) {
     if (connections && connections.length > 0) {
       for (const connection of connections) {
         try {
-          const ingestResult = await ingestTransactions(supabase as any, connection);
+          const ingestResult = await ingestTransactions(db, connection);
           summary.sync.transactions_added += ingestResult.added;
           summary.sync.transactions_modified += ingestResult.modified;
           summary.sync.transactions_removed += ingestResult.removed;
@@ -137,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     // ── Step 2: Run AI categorization on uncategorized transactions ─────────
 
-    const { data: pendingTransactions } = await (supabase as any)
+    const { data: pendingTransactions } = await db
       .from('transactions')
       .select('*')
       .eq('entity_id', entityId)
@@ -146,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     if (pendingTransactions && pendingTransactions.length > 0) {
       // Fetch chart of accounts
-      const { data: chartData } = await (supabase as any)
+      const { data: chartData } = await db
         .from('chart_of_accounts')
         .select('code, name')
         .eq('entity_id', entityId);
@@ -159,12 +162,12 @@ export async function POST(request: NextRequest) {
       );
 
       // Fetch categorization rules
-      const { data: rulesData } = await (supabase as any)
+      const { data: rulesData } = await db
         .from('categorization_rules')
         .select('*')
         .eq('entity_id', entityId);
 
-      const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+      const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, unknown>) => {
         // Look up gl_name from chart of accounts for this rule's GL code
         const coaEntry = chartOfAccounts.find(c => c.code === r.gl_code);
         return {
@@ -179,14 +182,14 @@ export async function POST(request: NextRequest) {
       });
 
       // Fetch historical patterns
-      const { data: historyData } = await (supabase as any)
+      const { data: historyData } = await db
         .from('categorization_history')
         .select('merchant, gl_code, gl_name, frequency, last_used')
         .eq('entity_id', entityId)
         .order('frequency', { ascending: false })
         .limit(100);
 
-      const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+      const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, unknown>) => ({
         merchant: h.merchant,
         glCode: h.gl_code,
         glName: h.gl_name,
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
 
       // Build transaction inputs
       const transactionInputs: TransactionInput[] = pendingTransactions.map(
-        (t: Record<string, any>) => ({
+        (t: Record<string, unknown>) => ({
           id: t.id,
           merchant: t.merchant_name,
           merchantRaw: t.merchant_raw,
@@ -221,7 +224,7 @@ export async function POST(request: NextRequest) {
 
       // Pre-fetch document anchors for ALL transactions in batch (avoid N+1)
       const batchTxIds = Array.from(results.keys());
-      const { data: batchDocAnchors } = await (supabase as any)
+      const { data: batchDocAnchors } = await db
         .from('document_anchors')
         .select('transaction_id')
         .in('transaction_id', batchTxIds);
@@ -236,7 +239,7 @@ export async function POST(request: NextRequest) {
         // ── Composite Confidence Gate (PRD §5.1) ──
         const hasDocument = docAnchorSet.has(txId);
 
-        const originalTx = pendingTransactions.find((t: Record<string, any>) => t.id === txId);
+        const originalTx = pendingTransactions.find((t: Record<string, unknown>) => t.id === txId);
         const txAmount = originalTx?.amount || 0;
 
         const triage = triageTransaction(
@@ -259,7 +262,7 @@ export async function POST(request: NextRequest) {
           summary.categorization.flagged_for_review++;
         }
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             category_ai: result.glCode || null,
@@ -290,7 +293,7 @@ export async function POST(request: NextRequest) {
         const triage = triageCache.get(txId);
         if (triage?.decision === 'auto_commit' && result.glCode) {
           const txn = pendingTransactions.find(
-            (t: Record<string, any>) => t.id === txId
+            (t: Record<string, unknown>) => t.id === txId
           );
           const merchantName = txn?.merchant_name || txn?.merchant_raw;
           if (merchantName) {
@@ -322,7 +325,7 @@ export async function POST(request: NextRequest) {
         const now = new Date().toISOString();
 
         // Fetch existing frequencies for all merchants being upserted
-        const { data: existingHistory } = await (supabase as any)
+        const { data: existingHistory } = await db
           .from('categorization_history')
           .select('merchant, gl_code, frequency')
           .eq('entity_id', entityId)
@@ -334,7 +337,7 @@ export async function POST(request: NextRequest) {
           existingFreqMap.set(`${row.merchant}:${row.gl_code}`, row.frequency || 0);
         }
 
-        await (supabase as any)
+        await db
           .from('categorization_history')
           .upsert(
             dedupedEntries.map(h => ({

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -24,6 +25,7 @@ export async function POST(
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
     const { id: transactionId } = await params;
 
     // Auth check
@@ -37,7 +39,7 @@ export async function POST(
     }
 
     // Validate transaction access
-    const { data: transaction } = await (supabase as any)
+    const { data: transaction } = await db
       .from('transactions')
       .select('id, entity_id, document_status')
       .eq('id', transactionId)
@@ -51,7 +53,7 @@ export async function POST(
     }
 
     // Verify user has access to this entity
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id')
       .eq('user_id', user.id)
@@ -61,7 +63,7 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id')
       .eq('id', transaction.entity_id)
@@ -83,7 +85,7 @@ export async function POST(
 
       if (receiptUrl && typeof receiptUrl === 'string') {
         // Direct URL attachment (e.g., from WhatsApp media URL)
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             document_url: receiptUrl,
@@ -93,7 +95,7 @@ export async function POST(
           .eq('id', transactionId);
 
         // Update any pending receipt requests
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({
             status: 'responded',
@@ -156,7 +158,7 @@ export async function POST(
     const fileName = `receipts/${transaction.entity_id}/${transactionId}/${Date.now()}.${fileExt}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const { data: uploadData, error: uploadError } = await (supabase as any)
+    const { data: uploadData, error: uploadError } = await db
       .storage.from('documents')
       .upload(fileName, fileBuffer, {
         contentType: file.type,
@@ -172,14 +174,14 @@ export async function POST(
     }
 
     // Get the public URL
-    const { data: urlData } = (supabase as any)
+    const { data: urlData } = db
       .storage.from('documents')
       .getPublicUrl(uploadData.path);
 
     const documentUrl = urlData?.publicUrl || fileName;
 
     // Update transaction
-    await (supabase as any)
+    await db
       .from('transactions')
       .update({
         document_url: documentUrl,
@@ -189,7 +191,7 @@ export async function POST(
       .eq('id', transactionId);
 
     // Update receipt requests
-    await (supabase as any)
+    await db
       .from('receipt_requests')
       .update({
         status: 'responded',

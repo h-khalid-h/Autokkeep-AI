@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
 
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
     let entityIds: string[] = [];
 
     if (entityId) {
-      const { data: entity } = await (supabase as any)
+      const { data: entity } = await db
         .from('entities')
         .select('id, org_id')
         .eq('id', entityId)
@@ -60,7 +62,7 @@ export async function GET(request: NextRequest) {
       }
       entityIds = [entity.id];
     } else {
-      const { data: orgEntities } = await (supabase as any)
+      const { data: orgEntities } = await db
         .from('entities')
         .select('id')
         .eq('org_id', membership.org_id);
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch audit logs
-    const { data: auditLogs, error: auditError, count } = await (supabase as any)
+    const { data: auditLogs, error: auditError, count } = await db
       .from('audit_log')
       .select('*', { count: 'exact' })
       .in('entity_id', entityIds)

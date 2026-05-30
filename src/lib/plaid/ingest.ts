@@ -26,6 +26,7 @@ export interface IngestResult {
 }
 
 type SupabaseClient = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 };
 
@@ -54,7 +55,7 @@ export async function ingestTransactions(
   );
 
   // Build Plaid account_id → DB bank_accounts.id mapping
-  const { data: bankAccounts } = await (supabase as any)
+  const { data: bankAccounts } = await supabase
     .from('bank_accounts')
     .select('id, plaid_account_id')
     .eq('connection_id', connection.id);
@@ -76,7 +77,7 @@ export async function ingestTransactions(
 
   // ── 2. Upsert new transactions ────────────────────────────────────────
   if (syncResult.added.length > 0) {
-    const records = syncResult.added.map((t: Record<string, any>) => ({
+    const records = syncResult.added.map((t) => ({
       entity_id: entityId,
       bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
       plaid_transaction_id: t.transaction_id,
@@ -89,7 +90,7 @@ export async function ingestTransactions(
       confidence: 0,
     }));
 
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('transactions')
       .upsert(records, {
         onConflict: 'plaid_transaction_id',
@@ -107,7 +108,7 @@ export async function ingestTransactions(
   if (syncResult.modified.length > 0) {
     const now = new Date().toISOString();
     for (const t of syncResult.modified) {
-      await (supabase as any)
+      await supabase
         .from('transactions')
         .update({
           amount: t.amount,
@@ -129,9 +130,9 @@ export async function ingestTransactions(
   // ── 4. Soft-delete removed transactions (batch) ───────────────────────
   if (syncResult.removed.length > 0) {
     const removedIds = syncResult.removed.map(
-      (t: Record<string, any>) => t.transaction_id,
+      (t) => t.transaction_id,
     );
-    await (supabase as any)
+    await supabase
       .from('transactions')
       .update({
         status: 'removed',
@@ -144,7 +145,7 @@ export async function ingestTransactions(
   }
 
   // ── 5. Update cursor on bank connection ───────────────────────────────
-  await (supabase as any)
+  await supabase
     .from('bank_connections')
     .update({
       cursor: syncResult.nextCursor,

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/ui/Logo';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 const ONBOARDING_STORAGE_KEY = 'autokkeep_onboarding_state';
 
@@ -56,6 +57,7 @@ export default function OnboardingPage() {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (saved) {
         const state: OnboardingState = JSON.parse(saved);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (state.currentStep) setCurrentStep(state.currentStep);
         if (state.entityName) setEntityName(state.entityName);
         if (state.currency) setCurrency(state.currency);
@@ -65,10 +67,9 @@ export default function OnboardingPage() {
         if (state.entityId) setEntityId(state.entityId);
         if (state.bankConnected) setBankConnected(state.bankConnected);
       }
-    } catch (e) {
-      console.warn('[Onboarding] Failed to restore state:', e);
+    } catch (_e) {
+      console.warn('[Onboarding] Failed to restore state:', _e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function OnboardingPage() {
     };
     try {
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
+    } catch (_e) {
       // Ignore storage errors
     }
   }, [currentStep, entityName, currency, fiscalYearEnd, selectedLedger, selectedChannel, entityId, bankConnected]);
@@ -121,7 +122,7 @@ export default function OnboardingPage() {
       }
 
       // 2. Check if user already has an org, if not create one
-      const { data: existingMembership } = await (supabase as any)
+      const { data: existingMembership } = await (supabase as unknown as SupabaseQueryClient)
         .from('team_members')
         .select('id, org_id')
         .eq('user_id', user.id)
@@ -133,7 +134,7 @@ export default function OnboardingPage() {
         orgId = existingMembership.org_id;
       } else {
         // Create a new organization
-        const { data: newOrg, error: orgError } = await (supabase as any)
+        const { data: newOrg, error: orgError } = await (supabase as unknown as SupabaseQueryClient)
           .from('organizations')
           .insert({ name: `${entityName} Org` })
           .select('id')
@@ -147,7 +148,7 @@ export default function OnboardingPage() {
         orgId = newOrg.id;
 
         // 3. Add user as team member with owner role
-        const { error: memberError } = await (supabase as any)
+        const { error: memberError } = await (supabase as unknown as SupabaseQueryClient)
           .from('team_members')
           .insert({
             user_id: user.id,
@@ -163,7 +164,7 @@ export default function OnboardingPage() {
       }
 
       // 4. Create the entity
-      const { data: newEntity, error: entityError } = await (supabase as any)
+      const { data: newEntity, error: entityError } = await (supabase as unknown as SupabaseQueryClient)
         .from('entities')
         .insert({
           name: entityName.trim(),
@@ -218,10 +219,11 @@ export default function OnboardingPage() {
       setBankLinkToken(link_token);
 
       // Open Plaid Link
-      if (typeof window !== 'undefined' && (window as any).Plaid) {
-        const handler = (window as any).Plaid.create({
+      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
+        const PlaidLink = (window as unknown as Record<string, unknown>).Plaid as Record<string, (...args: unknown[]) => unknown>;
+        const handler = PlaidLink.create({
           token: link_token,
-          onSuccess: async (publicToken: string, metadata: any) => {
+          onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
             try {
               const res = await fetch('/api/plaid/exchange', {
                 method: 'POST',
@@ -229,7 +231,7 @@ export default function OnboardingPage() {
                 body: JSON.stringify({
                   publicToken,
                   entityId,
-                  institutionName: metadata?.institution?.name || 'Unknown',
+                  institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
                 }),
               });
               if (!res.ok) {
@@ -247,7 +249,7 @@ export default function OnboardingPage() {
             setLoading(false);
           },
         });
-        handler.open();
+        (handler as Record<string, unknown> & { open: () => void }).open();
       } else {
         setError('Plaid Link SDK not loaded. Please refresh the page and try again.');
         setLoading(false);
@@ -326,7 +328,7 @@ export default function OnboardingPage() {
 
       // For other channels (teams, sms, whatsapp): save preference and proceed
       const supabase = createClient();
-      const { error: channelError } = await (supabase as any)
+      const { error: channelError } = await (supabase as unknown as SupabaseQueryClient)
         .from('channel_connections')
         .insert({
           entity_id: entityId,

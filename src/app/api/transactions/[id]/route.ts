@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -31,8 +32,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org membership first (prevents ID enumeration)
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Get entity IDs for this org
-    const { data: orgEntities } = await (supabase as any)
+    const { data: orgEntities } = await db
       .from('entities')
       .select('id')
       .eq('org_id', membership.org_id);
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Fetch transaction scoped to user's entities
-    const { data: transaction, error: txError } = await (supabase as any)
+    const { data: transaction, error: txError } = await db
       .from('transactions')
       .select('*')
       .eq('id', id)
@@ -109,8 +112,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Fetch existing transaction
-    const { data: existing, error: fetchError } = await (supabase as any)
+    const { data: existing, error: fetchError } = await db
       .from('transactions')
       .select('*')
       .eq('id', id)
@@ -124,7 +129,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -134,7 +139,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', existing.entity_id)
@@ -155,7 +160,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       status: newStatus,
       notes,
       receiptUrl,
-      receiptId,
+      receiptId: _receiptId,
     } = body;
 
     // Build update object
@@ -188,7 +193,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.status = newStatus;
     }
 
-    const { data: transaction, error: updateError } = await (supabase as any)
+    const { data: transaction, error: updateError } = await db
       .from('transactions')
       .update(updateData)
       .eq('id', id)
@@ -226,7 +231,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     // Update categorization history for learning when a human approves
     if (glCode && newStatus === 'approved' && existing.merchant_name) {
       const normalizedMerchant = existing.merchant_name.toLowerCase().trim();
-      const { data: existingHistory } = await (supabase as any)
+      const { data: existingHistory } = await db
         .from('categorization_history')
         .select('id, frequency')
         .eq('entity_id', existing.entity_id)
@@ -235,7 +240,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         .single();
 
       if (existingHistory) {
-        await (supabase as any)
+        await db
           .from('categorization_history')
           .update({
             frequency: existingHistory.frequency + 1,
@@ -243,7 +248,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           })
           .eq('id', existingHistory.id);
       } else {
-        await (supabase as any).from('categorization_history').insert({
+        await db.from('categorization_history').insert({
           entity_id: existing.entity_id,
           merchant: normalizedMerchant,
           gl_code: glCode,
@@ -283,8 +288,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Fetch existing transaction
-    const { data: existing, error: fetchError } = await (supabase as any)
+    const { data: existing, error: fetchError } = await db
       .from('transactions')
       .select('*')
       .eq('id', id)
@@ -298,7 +305,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -308,7 +315,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', existing.entity_id)
@@ -323,7 +330,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // Soft delete
-    const { error: deleteError } = await (supabase as any)
+    const { error: deleteError } = await db
       .from('transactions')
       .update({
         status: 'removed',

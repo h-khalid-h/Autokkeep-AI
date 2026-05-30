@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { PLAN_LIMITS, checkPlanLimits } from './plans';
-import type { PlanTier, PlanLimits } from './plans';
+import type { PlanTier } from './plans';
 
 // ============================================
 // Mock Redis — avoid dynamic import issues
@@ -16,6 +16,7 @@ vi.mock('@/lib/redis', () => ({
 // ============================================
 // Supabase mock factory
 // ============================================
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function createMockSupabase(overrides: {
   subscription?: { plan: PlanTier; status: string } | null;
   entityCount?: number;
@@ -96,6 +97,7 @@ function createMockSupabase(overrides: {
 
   return mock;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // PLAN_LIMITS constants

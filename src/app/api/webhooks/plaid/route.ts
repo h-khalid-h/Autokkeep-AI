@@ -7,9 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions } from '@/lib/plaid/ingest';
-import { decryptToken } from '@/lib/crypto';
+
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import { writeAuditLog } from '@/lib/audit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Plaid Webhook JWT Verification ─────────────────────────────────────────
 // Plaid signs webhooks with ES256 JWTs. We verify the signature using
@@ -164,9 +165,10 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Find the bank connection for this Plaid item
-    const { data: connection, error: connError } = await (supabase as any)
+    const { data: connection, error: connError } = await db
       .from('bank_connections')
       .select('*')
       .eq('plaid_item_id', item_id)
@@ -198,7 +200,7 @@ export async function POST(request: NextRequest) {
       // ── Item Errors ──────────────────────────────────────────────────────
       case 'ITEM.ERROR': {
         // Update connection status to error
-        await (supabase as any)
+        await db
           .from('bank_connections')
           .update({
             status: 'error',
@@ -210,7 +212,7 @@ export async function POST(request: NextRequest) {
 
         // Log to audit
         await writeAuditLog({
-          supabase,
+          supabase: db,
           entityId: connection.entity_id,
           actorId: 'plaid',
           actorType: 'system',
@@ -235,7 +237,7 @@ export async function POST(request: NextRequest) {
       // ── Item Credential Issues ────────────────────────────────────────
       case 'ITEM.PENDING_EXPIRATION': {
         // Credentials expiring soon — flag connection for re-authentication
-        await (supabase as any)
+        await db
           .from('bank_connections')
           .update({
             status: 'pending_expiration',
@@ -252,7 +254,7 @@ export async function POST(request: NextRequest) {
 
       case 'ITEM.LOGIN_REQUIRED': {
         // User needs to re-authenticate
-        await (supabase as any)
+        await db
           .from('bank_connections')
           .update({
             status: 'login_required',
@@ -269,7 +271,7 @@ export async function POST(request: NextRequest) {
 
       case 'ITEM.USER_PERMISSION_REVOKED': {
         // User revoked access — deactivate connection
-        await (supabase as any)
+        await db
           .from('bank_connections')
           .update({
             status: 'revoked',
@@ -279,7 +281,7 @@ export async function POST(request: NextRequest) {
           .eq('id', connection.id);
 
         await writeAuditLog({
-          supabase,
+          supabase: db,
           entityId: connection.entity_id,
           actorId: 'plaid',
           actorType: 'system',
@@ -318,7 +320,7 @@ export async function POST(request: NextRequest) {
 
     // Audit log the webhook event
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: connection?.entity_id || 'unknown',
       actorId: 'plaid',
       actorType: 'system',

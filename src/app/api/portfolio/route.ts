@@ -5,6 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { rateLimit as _rateLimit } from '@/lib/rate-limit';
 
 interface EntityStats {
   entityId: string;
@@ -26,7 +28,7 @@ interface EntityStats {
   ledgerStatus: 'connected' | 'disconnected';
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createServerClient();
 
@@ -39,8 +41,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Get user's org
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id')
       .eq('user_id', user.id)
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all entities for this org
-    const { data: entities, error: entityError } = await (supabase as any)
+    const { data: entities, error: entityError } = await db
       .from('entities')
       .select('id, name, base_currency')
       .eq('org_id', membership.org_id)
@@ -61,36 +65,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ entities: [], summary: getEmptySummary() });
     }
 
-    const entityIds = entities.map((e: any) => e.id);
+    const entityIds = entities.map((e: { id: string }) => e.id);
 
     // Batch fetch all transaction counts per entity + status
-    const { data: allTransactions } = await (supabase as any)
+    const { data: allTransactions } = await db
       .from('transactions')
       .select('entity_id, status, confidence')
       .in('entity_id', entityIds)
       .is('deleted_at', null);
 
     // Batch fetch bank connection statuses
-    const { data: bankConnections } = await (supabase as any)
+    const { data: bankConnections } = await db
       .from('bank_connections')
       .select('entity_id, status, last_synced_at')
       .in('entity_id', entityIds);
 
     // Batch fetch ledger connection statuses
-    const { data: ledgerConnections } = await (supabase as any)
+    const { data: ledgerConnections } = await db
       .from('ledger_connections')
       .select('entity_id, is_active')
       .in('entity_id', entityIds);
 
     // Build per-entity stats
-    const txByEntity = new Map<string, any[]>();
+    const txByEntity = new Map<string, Array<{ entity_id: string; status: string; confidence: number | null }>>();
     for (const tx of allTransactions || []) {
       const list = txByEntity.get(tx.entity_id) || [];
       list.push(tx);
       txByEntity.set(tx.entity_id, list);
     }
 
-    const bankByEntity = new Map<string, any>();
+    const bankByEntity = new Map<string, { entity_id: string; status: string; last_synced_at: string | null }>();
     for (const bc of bankConnections || []) {
       // Keep the most recently synced connection
       const existing = bankByEntity.get(bc.entity_id);
@@ -106,11 +110,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const entityStats: EntityStats[] = entities.map((entity: any) => {
+    const entityStats: EntityStats[] = entities.map((entity: { id: string; name: string; base_currency: string }) => {
       const txs = txByEntity.get(entity.id) || [];
       const total = txs.length;
-      const pending = txs.filter((t: any) => t.status === 'human_review' || t.status === 'pending').length;
-      const resolved = txs.filter((t: any) =>
+      const pending = txs.filter((t: { status: string }) => t.status === 'human_review' || t.status === 'pending').length;
+      const resolved = txs.filter((t: { status: string }) =>
         t.status === 'approved' || t.status === 'synced' || t.status === 'auto_categorized'
       ).length;
 

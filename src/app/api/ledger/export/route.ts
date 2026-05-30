@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
 import { rateLimit } from '@/lib/rate-limit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
 
     if (format === 'sql') {
-      const sqlDump = await exportToSQL(supabase, entityId, exportOptions);
+      const sqlDump = await exportToSQL(db, entityId, exportOptions);
       return new NextResponse(sqlDump, {
         status: 200,
         headers: {
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: CSV
-    const csv = await exportToCSV(supabase, entityId, exportOptions);
+    const csv = await exportToCSV(db, entityId, exportOptions);
     return new NextResponse(csv, {
       status: 200,
       headers: {
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename=autokkeep-journal-entries-${today}.csv`,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[Ledger Export] Error:', error);
     return NextResponse.json(
       { error: 'Failed to export journal entries' },

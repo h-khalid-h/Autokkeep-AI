@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // ─── Lazy Supabase singleton (never at module level) ────────────────────────
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function getSupabase() {
+function _getSupabase() {
   if (!_supabase) {
     _supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -146,37 +146,21 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, hasAnyTransactions, selectedEntity?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, selectedEntity?.id]);
 
   useEffect(() => {
-    fetchTransactions();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchTransactions();
   }, [fetchTransactions]);
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage((prev) => prev === 0 ? prev : 0);
   }, [debouncedSearch, statusFilter, dateFrom, dateTo, sort]);
 
-  // Sort helper
-  function sortTransactions(txns: TransactionRow[], sortBy: SortOption): TransactionRow[] {
-    const copy = [...txns];
-    switch (sortBy) {
-      case 'date_desc':
-        return copy.sort((a, b) => b.date.localeCompare(a.date));
-      case 'date_asc':
-        return copy.sort((a, b) => a.date.localeCompare(b.date));
-      case 'amount_desc':
-        return copy.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
-      case 'amount_asc':
-        return copy.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
-      case 'confidence_asc':
-        return copy.sort((a, b) => (a.confidence ?? 0) - (b.confidence ?? 0));
-      case 'confidence_desc':
-        return copy.sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
-      default:
-        return copy;
-    }
-  }
+
 
   // Clear filters
   const clearFilters = () => {

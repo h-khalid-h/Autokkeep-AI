@@ -64,7 +64,7 @@ function createRequest(body: Record<string, unknown>): NextRequest {
 /** Fluent chain builder for Supabase query mocks */
 function createChainMock(resolvedValue: { data: unknown; error?: unknown }) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  const handler = () => chain;
+  const _handler = () => chain;
 
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);

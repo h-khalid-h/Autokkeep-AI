@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import {
   verifySlackSignature,
@@ -45,11 +46,12 @@ export async function POST(request: NextRequest) {
 
       const { createServerClient } = await import('@/lib/supabase/server');
       const supabase = await createServerClient();
+      const db = supabase as unknown as SupabaseQueryClient;
 
       switch (parsed.action) {
         case 'accept': {
           // Auto-approve the transaction with AI suggestion
-          const { error } = await (supabase as any)
+          const { error } = await db
             .from('transactions')
             .update({
               status: 'approved',
@@ -61,8 +63,8 @@ export async function POST(request: NextRequest) {
           if (!error) {
             // Log to audit trail
             await writeAuditLog({
-              supabase,
-              entityId: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+              supabase: db,
+              entityId: (await db.from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
               actorId: payload.user?.id || 'slack_user',
               actorType: 'human',
               action: 'approve',
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
         }
 
         case 'categorize': {
-          const { error } = await (supabase as any)
+          const { error } = await db
             .from('transactions')
             .update({
               status: 'approved',
@@ -101,8 +103,8 @@ export async function POST(request: NextRequest) {
 
           if (!error) {
             await writeAuditLog({
-              supabase,
-              entityId: (await (supabase as any).from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
+              supabase: db,
+              entityId: (await db.from('transactions').select('entity_id').eq('id', parsed.transactionId).single()).data?.entity_id,
               actorId: payload.user?.id || 'slack_user',
               actorType: 'human',
               action: 'categorize',
@@ -130,7 +132,7 @@ export async function POST(request: NextRequest) {
         }
 
         case 'personal': {
-          await (supabase as any)
+          await db
             .from('transactions')
             .update({
               status: 'approved',
@@ -150,7 +152,7 @@ export async function POST(request: NextRequest) {
 
         case 'upload': {
           // Update receipt request status
-          await (supabase as any)
+          await db
             .from('receipt_requests')
             .update({ status: 'responded', responded_at: new Date().toISOString() })
             .eq('transaction_id', parsed.transactionId)
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Slack interaction error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

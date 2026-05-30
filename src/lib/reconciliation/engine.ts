@@ -8,6 +8,7 @@
 // to "Bank Fees & Charges" (GL 6180).
 
 import { writeAuditLog } from '@/lib/audit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export interface ReconciliationInput {
   transactionId: string;
@@ -127,7 +128,7 @@ export function analyzeVariance(
  * The supabase client must be an admin/service_role client.
  */
 export async function createFeeAdjustingEntry(
-  supabase: any,
+  supabase: SupabaseQueryClient,
   input: ReconciliationInput
 ): Promise<ReconciliationResult> {
   const variance = input.bankAmount - input.expectedAmount;

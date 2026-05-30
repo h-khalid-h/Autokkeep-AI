@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { getStripeClient, PLAN_PRICES, type PlanId } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -10,6 +11,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create Stripe customer
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id')
       .eq('user_id', user.id)
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Check for existing Stripe customer
     let customerId: string | undefined;
     if (orgId) {
-      const { data: org } = await (supabase as any)
+      const { data: org } = await db
         .from('organizations')
         .select('stripe_customer_id')
         .eq('id', orgId)

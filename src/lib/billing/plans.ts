@@ -86,7 +86,8 @@ export interface PlanCheckResult {
  * @param operation - What operation to check
  */
 export async function checkPlanLimits(
-  supabase: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: { from: (table: string) => any },
   orgId: string,
   operation: 'create_entity' | 'process_transaction' | 'connect_bank' | 'sync_ledger' | 'dispatch_channel' | 'add_team_member'
 ): Promise<PlanCheckResult> {

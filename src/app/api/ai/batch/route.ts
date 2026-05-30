@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -56,8 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch pending transactions
-    let query = (supabase as any)
+    let query = db
       .from('transactions')
       .select('*')
       .eq('entity_id', entityId)
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch chart of accounts
-    const { data: chartData } = await (supabase as any)
+    const { data: chartData } = await db
       .from('chart_of_accounts')
       .select('code, name')
       .eq('entity_id', entityId);
@@ -125,12 +126,12 @@ export async function POST(request: NextRequest) {
     );
 
     // Fetch categorization rules
-    const { data: rulesData } = await (supabase as any)
+    const { data: rulesData } = await db
       .from('categorization_rules')
       .select('*')
       .eq('entity_id', entityId);
 
-    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, unknown>) => {
       // Look up gl_name from chart of accounts for this rule's GL code
       const coaEntry = chartOfAccounts.find((c: { code: string; name: string }) => c.code === r.gl_code);
       return {
@@ -145,14 +146,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Fetch historical patterns
-    const { data: historyData } = await (supabase as any)
+    const { data: historyData } = await db
       .from('categorization_history')
       .select('merchant, gl_code, gl_name, frequency, last_used')
       .eq('entity_id', entityId)
       .order('frequency', { ascending: false })
       .limit(100);
 
-    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, unknown>) => ({
       merchant: h.merchant,
       glCode: h.gl_code,
       glName: h.gl_name,
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Build transaction inputs
-    const transactionInputs: TransactionInput[] = transactions.map((t: Record<string, any>) => ({
+    const transactionInputs: TransactionInput[] = transactions.map((t: Record<string, unknown>) => ({
       id: t.id,
       merchant: t.merchant_name,
       merchantRaw: t.merchant_raw,
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     // ── Pre-fetch document anchors for ALL transactions in batch (avoid N+1) ──
     const allTxIds = Array.from(results.keys());
-    const { data: allDocAnchors } = await (supabase as any)
+    const { data: allDocAnchors } = await db
       .from('document_anchors')
       .select('transaction_id')
       .in('transaction_id', allTxIds);
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
       const hasDocument = docAnchorSet.has(txId);
 
       // Find the original transaction amount for triage
-      const originalTx = transactions.find((t: Record<string, any>) => t.id === txId);
+      const originalTx = transactions.find((t: Record<string, unknown>) => t.id === txId);
       const txAmount = originalTx?.amount || 0;
 
       // Compute composite score and triage decision
@@ -224,7 +225,7 @@ export async function POST(request: NextRequest) {
         flaggedForReview++;
       }
 
-      await (supabase as any)
+      await db
         .from('transactions')
         .update({
           category_ai: result.glCode || null,

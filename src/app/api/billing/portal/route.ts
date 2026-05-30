@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { getStripeClient } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the org's Stripe customer ID
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id')
       .eq('user_id', user.id)
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    const { data: org } = await (supabase as any)
+    const { data: org } = await db
       .from('organizations')
       .select('stripe_customer_id')
       .eq('id', membership.org_id)

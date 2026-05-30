@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -37,8 +38,10 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
     let entityIds: string[] = [];
 
     if (entityId) {
-      const { data: entity } = await (supabase as any)
+      const { data: entity } = await db
         .from('entities')
         .select('id, org_id')
         .eq('id', entityId)
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
       }
       entityIds = [entity.id];
     } else {
-      const { data: orgEntities } = await (supabase as any)
+      const { data: orgEntities } = await db
         .from('entities')
         .select('id')
         .eq('org_id', membership.org_id);
@@ -89,7 +92,7 @@ export async function GET(request: NextRequest) {
       : 'date';
     const ascending = sortDir === 'asc';
 
-    let query = (supabase as any)
+    let query = db
       .from('transactions')
       .select('*', { count: 'exact' })
       .in('entity_id', entityIds)
@@ -203,8 +206,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -214,7 +219,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -229,7 +234,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create manual transaction
-    const { data: transaction, error: txError } = await (supabase as any)
+    const { data: transaction, error: txError } = await db
       .from('transactions')
       .insert({
         entity_id: entityId,

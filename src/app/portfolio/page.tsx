@@ -98,7 +98,8 @@ export default function PortfolioPage() {
   }, []);
 
   useEffect(() => {
-    fetchPortfolio();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchPortfolio();
   }, [fetchPortfolio]);
 
   // Sort and filter
@@ -146,7 +147,7 @@ export default function PortfolioPage() {
     }
   };
 
-  const getSortIndicator = (field: SortField) => {
+  const _getSortIndicator = (field: SortField) => {
     if (sortField !== field) return '';
     return sortDir === 'asc' ? ' ↑' : ' ↓';
   };

@@ -3,6 +3,7 @@ import { getXeroAuthUrl, exchangeXeroCode, refreshXeroToken } from '@/lib/ledger
 import { encryptToken, decryptToken } from '@/lib/crypto';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // GET /api/ledger/xero/auth — Start Xero OAuth flow
 export async function GET(request: NextRequest) {
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id)
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify entity belongs to user's org
-    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
     if (!entity || entity.org_id !== membership.org_id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     const state = `${statePayload}.${hmac}`;
     const authUrl = getXeroAuthUrl(state);
     return NextResponse.redirect(authUrl);
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'Failed to generate Xero auth URL' },
       { status: 500 }
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id)
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Verify entity belongs to user's org
     if (entityId) {
-      const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+      const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
       if (!entity || entity.org_id !== membership.org_id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     const tokens = await exchangeXeroCode(code);
 
-    const { error: dbError } = await (supabase as any).from('ledger_connections').upsert(
+    const { error: dbError } = await db.from('ledger_connections').upsert(
       {
         entity_id: entityId,
         provider: 'xero',
@@ -163,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     const { writeAuditLog } = await import('@/lib/audit');
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',
@@ -179,7 +182,7 @@ export async function POST(request: NextRequest) {
       tenantId: tokens.tenantId,
       ...(returnTo ? { returnTo } : {}),
     });
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'Xero authentication failed' },
       { status: 500 }
@@ -194,8 +197,9 @@ export async function getXeroAccessToken(entityId: string): Promise<{
 } | null> {
   const { createServerClient } = await import('@/lib/supabase/server');
   const supabase = await createServerClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
-  const { data: conn } = await (supabase as any)
+  const { data: conn } = await db
     .from('ledger_connections')
     .select('*')
     .eq('entity_id', entityId)
@@ -213,7 +217,7 @@ export async function getXeroAccessToken(entityId: string): Promise<{
   if (expiresAt - Date.now() < 5 * 60 * 1000) {
     try {
       const refreshed = await refreshXeroToken(conn.refresh_token);
-      await (supabase as any)
+      await db
         .from('ledger_connections')
         .update({
           access_token: encryptToken(refreshed.accessToken),
@@ -224,7 +228,7 @@ export async function getXeroAccessToken(entityId: string): Promise<{
 
       return { accessToken: refreshed.accessToken, tenantId: conn.tenant_id };
     } catch {
-      await (supabase as any).from('ledger_connections').update({ is_active: false }).eq('id', conn.id);
+      await db.from('ledger_connections').update({ is_active: false }).eq('id', conn.id);
       return null;
     }
   }

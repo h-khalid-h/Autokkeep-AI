@@ -3,6 +3,7 @@ import { getQBOAuthUrl, exchangeQBOCode, refreshQBOToken } from '@/lib/ledger/sy
 import { encryptToken, decryptToken } from '@/lib/crypto';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // GET /api/ledger/quickbooks/auth — Start QBO OAuth flow
 export async function GET(request: NextRequest) {
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id)
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify entity belongs to user's org
-    const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+    const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
     if (!entity || entity.org_id !== membership.org_id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest) {
     const state = `${statePayload}.${hmac}`;
     const authUrl = getQBOAuthUrl(state);
     return NextResponse.redirect(authUrl);
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'Failed to generate QuickBooks auth URL' },
       { status: 500 }
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Org membership check
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id)
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Verify entity belongs to user's org
     if (entityId) {
-      const { data: entity } = await (supabase as any).from('entities').select('org_id').eq('id', entityId).single();
+      const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
       if (!entity || entity.org_id !== membership.org_id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -142,7 +145,7 @@ export async function POST(request: NextRequest) {
     const tokens = await exchangeQBOCode(code, realmId);
 
     // Upsert ledger connection
-    const { error: dbError } = await (supabase as any).from('ledger_connections').upsert(
+    const { error: dbError } = await db.from('ledger_connections').upsert(
       {
         entity_id: entityId,
         provider: 'quickbooks',
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
     // Log to audit trail
     const { writeAuditLog } = await import('@/lib/audit');
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',
@@ -182,7 +185,7 @@ export async function POST(request: NextRequest) {
       realmId,
       ...(returnTo ? { returnTo } : {}),
     });
-  } catch (error) {
+  } catch (_error: unknown) {
     return NextResponse.json(
       { error: 'QuickBooks authentication failed' },
       { status: 500 }
@@ -197,8 +200,9 @@ export async function getQBOAccessToken(entityId: string): Promise<{
 } | null> {
   const { createServerClient } = await import('@/lib/supabase/server');
   const supabase = await createServerClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
-  const { data: conn } = await (supabase as any)
+  const { data: conn } = await db
     .from('ledger_connections')
     .select('*')
     .eq('entity_id', entityId)
@@ -221,7 +225,7 @@ export async function getQBOAccessToken(entityId: string): Promise<{
     try {
       const refreshed = await refreshQBOToken(conn.refresh_token);
 
-      await (supabase as any)
+      await db
         .from('ledger_connections')
         .update({
           access_token: encryptToken(refreshed.accessToken),
@@ -236,7 +240,7 @@ export async function getQBOAccessToken(entityId: string): Promise<{
       };
     } catch {
       // Token refresh failed — mark connection as inactive
-      await (supabase as any)
+      await db
         .from('ledger_connections')
         .update({ is_active: false })
         .eq('id', conn.id);

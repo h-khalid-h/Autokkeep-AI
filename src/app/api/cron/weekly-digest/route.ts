@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { compileWeeklyDigest } from '@/lib/notifications/digest';
 import { sendDigestEmail } from '@/lib/email/resend';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,10 +37,11 @@ export async function GET(request: NextRequest) {
 
     if (process.env.RESEND_API_KEY && digest.entities.length > 0) {
       const supabase = createAdminClient();
+      const db = supabase as unknown as SupabaseQueryClient;
 
       for (const entity of digest.entities) {
         // Get entity's org_id, then find admin/owner team members
-        const { data: entityRecord } = await supabase
+        const { data: entityRecord } = await db
           .from('entities')
           .select('org_id')
           .eq('id', entity.entityId)
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const { data: members } = await supabase
+        const { data: members } = await db
           .from('team_members')
           .select('user_id, role')
           .eq('org_id', entityRecord.org_id)

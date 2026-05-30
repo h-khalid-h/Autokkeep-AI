@@ -59,7 +59,7 @@ export function captureException(error: unknown, context?: CaptureContext): void
   if (!Sentry) return;
 
   try {
-    Sentry.withScope((scope: any) => {
+    Sentry.withScope((scope: { setTag: (k: string, v: string) => void; setExtra: (k: string, v: unknown) => void; setUser: (u: { id?: string; email?: string }) => void; setLevel: (l: string) => void }) => {
       if (context?.tags) {
         Object.entries(context.tags).forEach(([key, value]: [string, string]) =>
           scope.setTag(key, value)
@@ -97,7 +97,7 @@ export function captureMessage(message: string, context?: CaptureContext): void 
   if (!Sentry) return;
 
   try {
-    Sentry.withScope((scope: any) => {
+    Sentry.withScope((scope: { setTag: (k: string, v: string) => void; setExtra: (k: string, v: unknown) => void; setLevel: (l: string) => void }) => {
       if (context?.tags) {
         Object.entries(context.tags).forEach(([key, value]: [string, string]) =>
           scope.setTag(key, value)
@@ -122,7 +122,7 @@ export function captureMessage(message: string, context?: CaptureContext): void 
  * Wraps an API route handler with Sentry error capture.
  * Use as: export const GET = withSentryHandler(async (req) => { ... });
  */
-export function withSentryHandler<T extends (...args: any[]) => Promise<Response>>(
+export function withSentryHandler<T extends (...args: unknown[]) => Promise<Response>>(
   handler: T,
   options?: { routeName?: string }
 ): T {

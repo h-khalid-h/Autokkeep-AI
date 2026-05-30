@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
@@ -23,9 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const db = admin as unknown as SupabaseQueryClient;
 
     // 1. Find user's org memberships
-    const { data: memberships } = await (admin as any)
+    const { data: memberships } = await db
       .from('team_members')
       .select('org_id, role')
       .eq('user_id', user.id);
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
       for (const membership of memberships) {
         if (membership.role === 'owner') {
           // Check if org has other members
-          const { count } = await (admin as any)
+          const { count } = await db
             .from('team_members')
             .select('id', { count: 'exact', head: true })
             .eq('org_id', membership.org_id)
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
           if ((count ?? 0) === 0) {
             // User is sole owner — delete the entire org (cascades delete everything)
             // Get all entity IDs first for storage cleanup
-            const { data: entities } = await (admin as any)
+            const { data: entities } = await db
               .from('entities')
               .select('id')
               .eq('org_id', membership.org_id);
@@ -52,12 +54,12 @@ export async function POST(request: NextRequest) {
             if (entities) {
               for (const entity of entities) {
                 try {
-                  const { data: files } = await (admin as any).storage
+                  const { data: files } = await db.storage
                     .from('documents')
                     .list(`receipts/${entity.id}`);
                   if (files?.length) {
                     const filePaths = files.map((f: { name: string }) => `receipts/${entity.id}/${f.name}`);
-                    await (admin as any).storage.from('documents').remove(filePaths);
+                    await db.storage.from('documents').remove(filePaths);
                   }
                 } catch {
                   // Storage cleanup is best-effort
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Revoke Plaid access tokens (privacy compliance)
-            const { data: bankConns } = await (admin as any)
+            const { data: bankConns } = await db
               .from('bank_connections')
               .select('plaid_access_token')
               .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Revoke ledger OAuth tokens (QBO/Xero)
-            const { data: ledgerConns } = await (admin as any)
+            const { data: ledgerConns } = await db
               .from('ledger_connections')
               .select('provider, access_token')
               .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Cancel Stripe subscription before deleting org
-            const { data: orgSub } = await (admin as any)
+            const { data: orgSub } = await db
               .from('subscriptions')
               .select('stripe_subscription_id')
               .eq('org_id', membership.org_id)
@@ -119,13 +121,13 @@ export async function POST(request: NextRequest) {
             }
 
             // Delete org — all child tables cascade
-            await (admin as any)
+            await db
               .from('organizations')
               .delete()
               .eq('id', membership.org_id);
           } else {
             // Has other members — just remove this user's membership
-            await (admin as any)
+            await db
               .from('team_members')
               .delete()
               .eq('org_id', membership.org_id)
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Not owner — just remove membership
-          await (admin as any)
+          await db
             .from('team_members')
             .delete()
             .eq('org_id', membership.org_id)

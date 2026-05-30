@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { createLinkToken } from '@/lib/plaid/client';
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership, error: membershipError } = await (supabase as any)
+    const { data: membership, error: membershipError } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: entity, error: entityError } = await (supabase as any)
+    const { data: entity, error: entityError } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 
@@ -603,9 +604,9 @@ export default function ShadowAuditPage() {
                   <p className="text-body" style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>
                     This is just the demo. The full platform categorizes, reconciles, and closes your books — autonomously.
                   </p>
-                  <a href="/#cta" className="btn btn-primary btn-lg">
+                  <Link href="/#cta" className="btn btn-primary btn-lg">
                     Request Early Access
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}

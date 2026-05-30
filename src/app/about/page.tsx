@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 
@@ -260,8 +261,8 @@ export default function AboutPage() {
               Whether you&apos;re a CPA firm looking to scale, or a startup tired of manual bookkeeping — we&apos;d love to hear from you.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-              <a href="/#cta" className="btn btn-primary btn-lg">Request Early Access</a>
-              <a href="/contact" className="btn btn-secondary btn-lg">Get In Touch</a>
+              <Link href="/#cta" className="btn btn-primary btn-lg">Request Early Access</Link>
+              <Link href="/contact" className="btn btn-secondary btn-lg">Get In Touch</Link>
             </div>
           </div>
         </section>

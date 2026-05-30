@@ -25,7 +25,28 @@ function getTransactionIcon(merchant: string): string {
   return '🛒';
 }
 
-function buildTags(tx: any): string[] {
+interface RawTransaction {
+  id: string;
+  amount: number;
+  confidence: number;
+  merchant_name: string | null;
+  merchant_raw: string | null;
+  date: string;
+  category_human: string | null;
+  category_ai: string | null;
+  status: string;
+  ai_reasoning: string | null;
+  tags: string[] | null;
+  card_holder: string | null;
+  card_last4: string | null;
+  aging_days: number | null;
+  raw_bank_description: string | null;
+  mcc_code: string | null;
+  currency: string | null;
+  document_status: string | null;
+}
+
+function buildTags(tx: RawTransaction): string[] {
   const tags: string[] = [];
   if (tx.confidence < 50) tags.push('Low Confidence');
   if (Math.abs(tx.amount) > 1000) tags.push('High Amount');
@@ -33,7 +54,7 @@ function buildTags(tx: any): string[] {
   return tags;
 }
 
-const mapTransaction = (tx: any): Transaction => ({
+const mapTransaction = (tx: RawTransaction): Transaction => ({
   id: tx.id,
   merchant: tx.merchant_name || tx.merchant_raw || 'Unknown',
   merchantRaw: tx.merchant_raw || '',
@@ -43,8 +64,8 @@ const mapTransaction = (tx: any): Transaction => ({
   glCode: tx.category_human || tx.category_ai || '',
   glName: '',
   confidence: tx.confidence || 0,
-  status: tx.status === 'human_review' ? 'pending_human' : tx.status === 'auto_categorized' ? 'verified_ai' : 'pending_human',
-  icon: getTransactionIcon(tx.merchant_name),
+  status: (tx.status === 'human_review' ? 'pending_human' : tx.status === 'auto_categorized' ? 'verified_ai' : 'pending_human') as Transaction['status'],
+  icon: getTransactionIcon(tx.merchant_name || ''),
   tags: tx.tags && tx.tags.length > 0 ? tx.tags : buildTags(tx),
   aiReasoning: tx.ai_reasoning || 'No AI analysis available for this transaction.',
   suggestedGLCode: tx.category_ai || '6510',
@@ -57,7 +78,7 @@ const mapTransaction = (tx: any): Transaction => ({
     mcc: tx.mcc_code || '',
     currency: tx.currency || 'USD',
   },
-  documentStatus: tx.document_status || 'missing',
+  documentStatus: (tx.document_status || 'missing') as Transaction['documentStatus'],
 });
 
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
@@ -70,7 +91,7 @@ export default function DashboardPage() {
   const [exitingId, setExitingId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [reasoningExpanded, setReasoningExpanded] = React.useState(false);
+  const [_reasoningExpanded, setReasoningExpanded] = React.useState(false);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
@@ -124,7 +145,7 @@ export default function DashboardPage() {
 
     fetchTransactions();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id]);
+  }, [selectedEntity]);
 
   // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -146,7 +167,7 @@ export default function DashboardPage() {
 
     fetchChartOfAccounts();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id]);
+  }, [selectedEntity]);
 
   const handleSelectTransaction = React.useCallback(
     (transaction: Transaction) => {
@@ -205,7 +226,7 @@ export default function DashboardPage() {
     } finally {
       setBatchLoading(false);
     }
-  }, [selectedIds, selectedEntity?.id]);
+  }, [selectedIds, selectedEntity]);
 
   // ─── Single transaction actions (adapted for TransactionDetailPanel) ────────
   const handleApproveById = React.useCallback(

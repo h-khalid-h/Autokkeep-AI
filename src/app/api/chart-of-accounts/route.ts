@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -23,8 +24,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all entities for this org
-    const { data: orgEntities } = await (supabase as any)
+    const { data: orgEntities } = await db
       .from('entities')
       .select('id')
       .eq('org_id', membership.org_id);
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
       : allEntityIds;
 
     // Fetch chart of accounts
-    const { data: accounts, error: queryError } = await (supabase as any)
+    const { data: accounts, error: queryError } = await db
       .from('chart_of_accounts')
       .select('id, entity_id, code, name, type, is_active, created_at')
       .in('entity_id', entityIds)
@@ -103,6 +106,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     const body: CreateAccountBody = await request.json();
     const { code, name, type, description, active, entityId } = body;
 
@@ -114,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -127,7 +132,7 @@ export async function POST(request: NextRequest) {
     // Resolve entity_id: use provided entityId or default to first entity
     let resolvedEntityId = entityId;
     if (!resolvedEntityId) {
-      const { data: entities } = await (supabase as any)
+      const { data: entities } = await db
         .from('entities')
         .select('id')
         .eq('org_id', membership.org_id)
@@ -143,7 +148,7 @@ export async function POST(request: NextRequest) {
       resolvedEntityId = entities[0].id;
     } else {
       // Validate entity access
-      const { data: entity } = await (supabase as any)
+      const { data: entity } = await db
         .from('entities')
         .select('id, org_id')
         .eq('id', resolvedEntityId)
@@ -159,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for duplicate code
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await db
       .from('chart_of_accounts')
       .select('id')
       .eq('entity_id', resolvedEntityId)
@@ -174,7 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert new account
-    const { data: account, error: insertError } = await (supabase as any)
+    const { data: account, error: insertError } = await db
       .from('chart_of_accounts')
       .insert({
         entity_id: resolvedEntityId,
@@ -241,8 +246,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     const body: UpdateAccountBody = await request.json();
-    const { id, code, name, type, is_active, entityId } = body;
+    const { id, code, name, type, is_active, entityId: _entityId } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -252,7 +259,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -263,7 +270,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get all entities for this org to validate account ownership
-    const { data: orgEntities } = await (supabase as any)
+    const { data: orgEntities } = await db
       .from('entities')
       .select('id')
       .eq('org_id', membership.org_id);
@@ -271,7 +278,7 @@ export async function PUT(request: NextRequest) {
     const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
 
     // Verify the account belongs to an entity in this org
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await db
       .from('chart_of_accounts')
       .select('id, entity_id')
       .eq('id', id)
@@ -286,7 +293,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Build update payload
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     if (code !== undefined) updates.code = code;
     if (name !== undefined) updates.name = name;
     if (type !== undefined) updates.type = type.toLowerCase();
@@ -301,7 +308,7 @@ export async function PUT(request: NextRequest) {
 
     // Check for duplicate code if code is being changed
     if (code !== undefined) {
-      const { data: duplicate } = await (supabase as any)
+      const { data: duplicate } = await db
         .from('chart_of_accounts')
         .select('id')
         .eq('entity_id', existing.entity_id)
@@ -317,7 +324,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const { data: account, error: updateError } = await (supabase as any)
+    const { data: account, error: updateError } = await db
       .from('chart_of_accounts')
       .update(updates)
       .eq('id', id)
@@ -360,7 +367,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createServerClient();
-
+    const db = supabase as unknown as SupabaseQueryClient;
     // Validate auth
     const {
       data: { user },
@@ -381,7 +388,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -392,7 +399,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get all entities for this org
-    const { data: orgEntities } = await (supabase as any)
+    const { data: orgEntities } = await db
       .from('entities')
       .select('id')
       .eq('org_id', membership.org_id);
@@ -400,7 +407,7 @@ export async function DELETE(request: NextRequest) {
     const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
 
     // Verify the account belongs to an entity in this org
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await db
       .from('chart_of_accounts')
       .select('id, entity_id')
       .eq('id', id)
@@ -415,7 +422,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check for transactions referencing this GL account code
-    const { data: accountData } = await (supabase as any)
+    const { data: accountData } = await db
       .from('chart_of_accounts')
       .select('code')
       .eq('id', id)
@@ -424,7 +431,7 @@ export async function DELETE(request: NextRequest) {
     if (accountData?.code) {
       // Sanitize code for PostgREST filter syntax (prevent injection via dots/commas)
       const safeCode = accountData.code.replace(/[^a-zA-Z0-9_-]/g, '');
-      const { count: refCount } = await (supabase as any)
+      const { count: refCount } = await db
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', existing.entity_id)
@@ -432,7 +439,7 @@ export async function DELETE(request: NextRequest) {
 
       if (refCount && refCount > 0) {
         // Soft-delete: deactivate instead of hard delete to preserve references
-        const { error: deactivateError } = await (supabase as any)
+        const { error: deactivateError } = await db
           .from('chart_of_accounts')
           .update({ is_active: false })
           .eq('id', id);
@@ -452,7 +459,7 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    const { error: deleteError } = await (supabase as any)
+    const { error: deleteError } = await db
       .from('chart_of_accounts')
       .delete()
       .eq('id', id);

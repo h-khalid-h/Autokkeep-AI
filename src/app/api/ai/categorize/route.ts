@@ -10,6 +10,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { generateCitationToken } from '@/lib/ai/privacy-parser';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate auth
     const {
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
       .eq('id', entityId)
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch chart of accounts
-    const { data: chartData } = await (supabase as any)
+    const { data: chartData } = await db
       .from('chart_of_accounts')
       .select('code, name')
       .eq('entity_id', entityId);
@@ -120,12 +122,12 @@ export async function POST(request: NextRequest) {
     );
 
     // Fetch categorization rules
-    const { data: rulesData } = await (supabase as any)
+    const { data: rulesData } = await db
       .from('categorization_rules')
       .select('*')
       .eq('entity_id', entityId);
 
-    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {
+    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
       // Look up gl_name from chart of accounts for this rule's GL code
       const coaEntry = chartOfAccounts.find(c => c.code === r.gl_code);
       return {
@@ -140,14 +142,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Fetch historical patterns
-    const { data: historyData } = await (supabase as any)
+    const { data: historyData } = await db
       .from('categorization_history')
       .select('merchant, gl_code, gl_name, frequency, last_used')
       .eq('entity_id', entityId)
       .order('frequency', { ascending: false })
       .limit(100);
 
-    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({
+    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({  // eslint-disable-line @typescript-eslint/no-explicit-any
       merchant: h.merchant,
       glCode: h.gl_code,
       glName: h.gl_name,
@@ -186,7 +188,7 @@ export async function POST(request: NextRequest) {
     // Check for document corroboration (receipt/invoice exists for this transaction)
     let hasDocument = false;
     if (transaction.id) {
-      const { data: docAnchor } = await (supabase as any)
+      const { data: docAnchor } = await db
         .from('document_anchors')
         .select('id')
         .eq('transaction_id', transaction.id)
@@ -206,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     // Update the transaction record with triage results
     if (transaction.id) {
-      await (supabase as any)
+      await db
         .from('transactions')
         .update({
           category_ai: result.glCode || null,
@@ -221,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     // Log to audit with citation anchoring (PRD §4.1)
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',
@@ -245,9 +247,10 @@ export async function POST(request: NextRequest) {
         const { sendAlertEmail } = await import('@/lib/email/resend');
         const { createAdminClient } = await import('@/lib/supabase/admin');
         const adminSupabase = createAdminClient();
+        const adminDb = adminSupabase as unknown as SupabaseQueryClient;
 
         // Get entity admin email
-        const { data: members } = await adminSupabase
+        const { data: members } = await adminDb
           .from('entity_memberships')
           .select('user_id, role, users:user_id(email)')
           .eq('entity_id', entityId)

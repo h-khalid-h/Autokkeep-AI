@@ -21,7 +21,7 @@ export interface TransactionDetailPanelProps {
 const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
   transaction,
   onApprove,
-  onReject,
+  onReject: _onReject,
   onChangeCategory,
   chartOfAccounts = [],
   loading,
@@ -36,7 +36,7 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
   );
 
   const handleChangeCategory = React.useCallback(
-    (tx: Transaction, glCode: string, glName: string) => {
+    (tx: Transaction, glCode: string, _glName: string) => {
       onChangeCategory(tx.id, glCode);
     },
     [onChangeCategory]

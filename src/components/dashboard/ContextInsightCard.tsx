@@ -10,6 +10,41 @@ interface ContextInsightCardProps {
 const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
   transaction,
 }) => {
+  const formattedAmount = transaction
+    ? new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(transaction.amount)
+    : '';
+
+  const documentStatusBadge = React.useMemo(() => {
+    if (!transaction) return 'badge';
+    switch (transaction.documentStatus) {
+      case 'found':
+        return 'badge badge-success';
+      case 'missing':
+        return 'badge badge-destructive';
+      case 'partial':
+        return 'badge badge-warning';
+      default:
+        return 'badge';
+    }
+  }, [transaction]);
+
+  const documentStatusIcon = React.useMemo(() => {
+    if (!transaction) return '📄';
+    switch (transaction.documentStatus) {
+      case 'found':
+        return '✅';
+      case 'missing':
+        return '❌';
+      case 'partial':
+        return '⚠️';
+      default:
+        return '📄';
+    }
+  }, [transaction]);
+
   if (!transaction) {
     return (
       <div className="insight-card">
@@ -26,37 +61,6 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
       </div>
     );
   }
-
-  const formattedAmount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(transaction.amount);
-
-  const documentStatusBadge = React.useMemo(() => {
-    switch (transaction.documentStatus) {
-      case 'found':
-        return 'badge badge-success';
-      case 'missing':
-        return 'badge badge-destructive';
-      case 'partial':
-        return 'badge badge-warning';
-      default:
-        return 'badge';
-    }
-  }, [transaction.documentStatus]);
-
-  const documentStatusIcon = React.useMemo(() => {
-    switch (transaction.documentStatus) {
-      case 'found':
-        return '✅';
-      case 'missing':
-        return '❌';
-      case 'partial':
-        return '⚠️';
-      default:
-        return '📄';
-    }
-  }, [transaction.documentStatus]);
 
   return (
     <section aria-label="Transaction context insight">

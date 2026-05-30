@@ -270,6 +270,7 @@ type TableDefinition<Row, Insert = Partial<Row> & Pick<Row, never>, Update = Par
   Row: Row;
   Insert: Insert;
   Update: Update;
+  Relationships: [];
 };
 
 export interface Database {
@@ -433,5 +434,7 @@ export interface Database {
       subscription_status: SubscriptionStatus;
       team_role: TeamRole;
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }

@@ -8,6 +8,7 @@
 // Creates a journal entry to the Suspense Clearing Account for each.
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 
@@ -24,13 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Find transactions stuck in human_review for > 48 hours
     const cutoffDate = new Date(
       Date.now() - SUSPENSE_TIMEOUT_HOURS * 60 * 60 * 1000
     ).toISOString();
 
-    const { data: staleTransactions, error: fetchError } = await (supabase as any)
+    const { data: staleTransactions, error: fetchError } = await db
       .from('transactions')
       .select('id, entity_id, amount, merchant_name, date, category_ai')
       .eq('status', 'human_review')
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
     for (const txn of staleTransactions) {
       try {
         // 1. Move transaction to escrow_suspense
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'escrow_suspense',
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
           .eq('id', txn.id);
 
         // 2. Create a suspense journal entry (debit suspense, credit TBD)
-        const { data: journalEntry } = await (supabase as any)
+        const { data: journalEntry } = await db
           .from('journal_entries')
           .insert({
             entity_id: txn.entity_id,
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
           // The suspense account holds the debit until a CPA classifies it.
           const absAmount = Math.abs(txn.amount);
 
-          await (supabase as any)
+          await db
             .from('journal_lines')
             .insert([
               {
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
 
         // 3. Log to audit trail
         await writeAuditLog({
-          supabase,
+          supabase: db,
           entityId: txn.entity_id,
           actorId: 'system',
           actorType: 'system',
@@ -134,7 +136,7 @@ export async function GET(request: NextRequest) {
     if (movedCount > 0) {
       for (const txn of staleTransactions.slice(0, movedCount)) {
         await writeAuditLog({
-          supabase,
+          supabase: db,
           entityId: txn.entity_id,
           actorId: 'system',
           actorType: 'system',
@@ -152,7 +154,7 @@ export async function GET(request: NextRequest) {
       total_stale: staleTransactions.length,
       errors,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[Suspense Timeout] Error:', error);
     return NextResponse.json(
       { error: 'Suspense timeout cron failed' },

@@ -3,7 +3,7 @@
 // Accounting-compliant journal entry exports
 // ============================================
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // --- Types ---
 
@@ -67,11 +67,11 @@ function escapeSQL(val: string): string {
 // --- Query ---
 
 async function queryJournalEntries(
-  supabase: SupabaseClient,
+  supabase: SupabaseQueryClient,
   entityId: string,
   options: ExportOptions
 ): Promise<JournalEntryRow[]> {
-  let query = (supabase as any)
+  let query = supabase
     .from('journal_entries')
     .select(`
       id,
@@ -145,7 +145,7 @@ function flattenEntries(entries: JournalEntryRow[]): FlatExportRow[] {
  * Columns: Date, EntryNumber, AccountName, Description, Debit, Credit, Status
  */
 export async function exportToCSV(
-  supabase: SupabaseClient,
+  supabase: SupabaseQueryClient,
   entityId: string,
   options: ExportOptions = {}
 ): Promise<string> {
@@ -173,7 +173,7 @@ export async function exportToCSV(
  * Useful for data migration and backup.
  */
 export async function exportToSQL(
-  supabase: SupabaseClient,
+  supabase: SupabaseQueryClient,
   entityId: string,
   options: ExportOptions = {}
 ): Promise<string> {

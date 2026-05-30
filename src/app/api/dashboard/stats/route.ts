@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -26,8 +27,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org membership
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
     let entityIds: string[] = [];
 
     if (entityId) {
-      const { data: entity } = await (supabase as any)
+      const { data: entity } = await db
         .from('entities')
         .select('id, org_id')
         .eq('id', entityId)
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
       entityIds = [entity.id];
     } else {
-      const { data: orgEntities } = await (supabase as any)
+      const { data: orgEntities } = await db
         .from('entities')
         .select('id')
         .eq('org_id', membership.org_id);
@@ -80,22 +83,22 @@ export async function GET(request: NextRequest) {
     // Uses head:true to avoid fetching rows — only counts are returned
     const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
       // Total transactions
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).neq('status', 'removed'),
       // Pending review
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).in('status', ['pending', 'human_review']),
       // Auto approved
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).in('status', ['auto_categorized', 'approved']),
       // Synced
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).eq('status', 'synced'),
       // High confidence (>= 90)
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).gte('confidence', 90),
       // All categorized (has confidence)
-      (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
+      db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).not('confidence', 'is', null),
     ]);
 
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
     // Monthly volume: fetch only current month's amounts
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const { data: monthTxns } = await (supabase as any)
+    const { data: monthTxns } = await db
       .from('transactions')
       .select('amount')
       .in('entity_id', entityIds)
@@ -120,10 +123,10 @@ export async function GET(request: NextRequest) {
       .gte('date', monthStart);
 
     const monthlyVolume = (monthTxns || [])
-      .reduce((sum: number, t: Record<string, any>) => sum + Math.abs(t.amount || 0), 0);
+      .reduce((sum: number, t: Record<string, unknown>) => sum + Math.abs(Number(t.amount) || 0), 0);
 
     // Top categories: fetch category_ai and amounts (limit to 5000 for reasonable aggregation)
-    const { data: catTxns } = await (supabase as any)
+    const { data: catTxns } = await db
       .from('transactions')
       .select('category_ai, amount')
       .in('entity_id', entityIds)
@@ -152,7 +155,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 10);
 
     // Recent activity: last 10 transactions with server-side ordering
-    const { data: recentTxns } = await (supabase as any)
+    const { data: recentTxns } = await db
       .from('transactions')
       .select('status, merchant_name, amount, updated_at, date')
       .in('entity_id', entityIds)
@@ -160,7 +163,7 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .limit(10);
 
-    const recentActivity = (recentTxns || []).map((t: Record<string, any>) => ({
+    const recentActivity = (recentTxns || []).map((t: Record<string, unknown>) => ({
       action: t.status === 'auto_categorized' ? 'auto_approved' : 'approved',
       merchant: t.merchant_name,
       amount: t.amount,

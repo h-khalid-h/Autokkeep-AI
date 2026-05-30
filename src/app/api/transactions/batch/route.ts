@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -30,8 +31,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'entityId is required' }, { status: 400 });
     }
 
+    const db = supabase as unknown as SupabaseQueryClient;
+
     // Validate org access
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id')
       .eq('id', entityId)
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     // Batch update all selected transactions
-    const { data: updated, error: updateError } = await (supabase as any)
+    const { data: updated, error: updateError } = await db
       .from('transactions')
       .update({
         status: newStatus,

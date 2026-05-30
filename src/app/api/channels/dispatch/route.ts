@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -17,13 +18,14 @@ export async function POST(request: NextRequest) {
 
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { data: membership } = await (supabase as any)
+    const { data: membership } = await db
       .from('team_members')
       .select('id, org_id')
       .eq('user_id', user.id)
@@ -43,13 +45,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as any, membership.org_id, 'dispatch_channel');
+    const planCheck = await checkPlanLimits(db, membership.org_id, 'dispatch_channel');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
 
     // Verify entity belongs to the user's org
-    const { data: entity } = await (supabase as any)
+    const { data: entity } = await db
       .from('entities')
       .select('id')
       .eq('id', entityId)
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the transaction
-    const { data: tx, error: txError } = await (supabase as any)
+    const { data: tx, error: txError } = await db
       .from('transactions')
       .select('*')
       .eq('id', transactionId)
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get connected channels for this entity
-    const { data: channels, error: channelsError } = await (supabase as any)
+    const { data: channels, error: channelsError } = await db
       .from('channel_connections')
       .select('*')
       .eq('entity_id', entityId)
@@ -99,10 +101,10 @@ export async function POST(request: NextRequest) {
     };
 
     // Map channels to connection format
-    const connections: ChannelConnection[] = channels.map((ch: Record<string, any>) => ({
-      channelType: ch.channel_type,
-      channelId: ch.channel_id,
-      accessToken: ch.access_token || undefined,
+    const connections: ChannelConnection[] = channels.map((ch: Record<string, unknown>) => ({
+      channelType: ch.channel_type as string,
+      channelId: ch.channel_id as string,
+      accessToken: (ch.access_token as string) || undefined,
     }));
 
     let result: { success: boolean; channel: string; messageId?: string; error?: string };
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
       result = await dispatchWithFallback(connections, context, preferredChannel);
 
       // Create receipt request record
-      await (supabase as any).from('receipt_requests').insert({
+      await db.from('receipt_requests').insert({
         transaction_id: transactionId,
         channel_type: result.channel,
         channel_user_id: connections.find((c) => c.channelType === result.channel)?.channelId || '',
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
       const connection = connections[0];
       result = await dispatchReceiptRequest(connection, context);
 
-      await (supabase as any).from('receipt_requests').insert({
+      await db.from('receipt_requests').insert({
         transaction_id: transactionId,
         channel_type: result.channel,
         channel_user_id: connection.channelId,
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
 
       // Log to audit trail
       await writeAuditLog({
-        supabase,
+        supabase: db,
         entityId,
         actorType: 'system',
         action: 'create',
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
         error: result.error,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Channel dispatch error:', error);
     return NextResponse.json(
       { error: 'Receipt dispatch failed' },

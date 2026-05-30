@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import {
   parseTwilioWebhook,
   parseUserResponse,
-  extractTransactionRef,
+  extractTransactionRef as _extractTransactionRef,
   validateTwilioSignature,
 } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -31,9 +32,10 @@ export async function POST(request: NextRequest) {
     const userResponse = parseUserResponse(message);
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     // Find pending receipt request from this phone number
-    const { data: receiptRequest } = await (supabase as any)
+    const { data: receiptRequest } = await db
       .from('receipt_requests')
       .select('id, transaction_id')
       .eq('channel_type', 'sms')
@@ -58,13 +60,13 @@ export async function POST(request: NextRequest) {
     switch (userResponse.type) {
       case 'business': {
         // Accept AI category
-        const { data: tx } = await (supabase as any)
+        const { data: tx } = await db
           .from('transactions')
           .select('entity_id, category_ai')
           .eq('id', receiptRequest.transaction_id)
           .single();
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'approved',
@@ -73,14 +75,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', receiptRequest.transaction_id);
 
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'responded', responded_at: new Date().toISOString() })
           .eq('id', receiptRequest.id);
 
         if (tx) {
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: tx.entity_id,
             action: 'approve',
             targetType: 'transaction',
@@ -101,13 +103,13 @@ export async function POST(request: NextRequest) {
       }
 
       case 'personal': {
-        const { data: tx } = await (supabase as any)
+        const { data: tx } = await db
           .from('transactions')
           .select('entity_id')
           .eq('id', receiptRequest.transaction_id)
           .single();
 
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'approved',
@@ -116,14 +118,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', receiptRequest.transaction_id);
 
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'responded', responded_at: new Date().toISOString() })
           .eq('id', receiptRequest.id);
 
         if (tx) {
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId: tx.entity_id,
             action: 'categorize',
             targetType: 'transaction',
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
       case 'receipt': {
         if (userResponse.mediaUrls.length > 0) {
           // Receipt image uploaded
-          await (supabase as any)
+          await db
             .from('receipt_requests')
             .update({
               status: 'responded',
@@ -155,7 +157,7 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', receiptRequest.id);
 
-          await (supabase as any)
+          await db
             .from('transactions')
             .update({
               document_status: 'found',
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
             .eq('id', receiptRequest.transaction_id);
 
           // Audit log for receipt upload
-          const { data: receiptTx } = await (supabase as any)
+          const { data: receiptTx } = await db
             .from('transactions')
             .select('entity_id')
             .eq('id', receiptRequest.transaction_id)
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
 
           if (receiptTx) {
             await writeAuditLog({
-              supabase,
+              supabase: db,
               entityId: receiptTx.entity_id,
               action: 'receipt_upload',
               targetType: 'transaction',
@@ -215,7 +217,7 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('SMS handler error:', error);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

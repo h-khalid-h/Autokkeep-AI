@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseTwilioWebhook, validateTwilioSignature } from '@/lib/channels/twilio';
+import { validateTwilioSignature } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // POST /api/webhooks/twilio — Handle Twilio status callbacks
 export async function POST(request: NextRequest) {
@@ -27,10 +28,11 @@ export async function POST(request: NextRequest) {
     // Log delivery status
     if (messageStatus && messageSid) {
       const supabase = createAdminClient();
+      const db = supabase as unknown as SupabaseQueryClient;
 
       // Update receipt request delivery status if applicable
       if (messageStatus === 'delivered' || messageStatus === 'read') {
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'sent' })
           .eq('message_id', messageSid);
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
 
       if (messageStatus === 'failed' || messageStatus === 'undelivered') {
         console.error(`Twilio message ${messageSid} failed: ${params.ErrorCode} - ${params.ErrorMessage}`);
-        await (supabase as any)
+        await db
           .from('receipt_requests')
           .update({ status: 'failed' })
           .eq('message_id', messageSid);

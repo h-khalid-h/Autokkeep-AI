@@ -21,29 +21,21 @@ export default function AccountPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Preferences state — persisted to localStorage
-  const [theme, setThemeRaw] = useState<'dark' | 'light' | 'system'>('dark');
-  const [notifPrefs, setNotifPrefsRaw] = useState({
-    email: true,
-    slack: false,
-    sms: false,
-  });
-
-  // Load saved preferences on mount
-  useEffect(() => {
+  // Preferences state — persisted to localStorage (lazy initialization)
+  const [theme, setThemeRaw] = useState<'dark' | 'light' | 'system'>(() => {
     try {
-      const savedTheme = localStorage.getItem('autokkeep-theme');
-      if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system') {
-        setThemeRaw(savedTheme);
-      }
-      const savedNotifs = localStorage.getItem('autokkeep-notif-prefs');
-      if (savedNotifs) {
-        setNotifPrefsRaw(JSON.parse(savedNotifs));
-      }
-    } catch {
-      // localStorage unavailable
-    }
-  }, []);
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('autokkeep-theme') : null;
+      if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
+    } catch {}
+    return 'dark';
+  });
+  const [notifPrefs, setNotifPrefsRaw] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('autokkeep-notif-prefs') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { email: true, slack: false, sms: false };
+  });
 
   // Wrap setters to persist
   const setTheme = useCallback((t: 'dark' | 'light' | 'system') => {
@@ -53,7 +45,7 @@ export default function AccountPage() {
 
   const setNotifPrefs: React.Dispatch<React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>> = useCallback(
     (action: React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>) => {
-      setNotifPrefsRaw((prev) => {
+      setNotifPrefsRaw((prev: { email: boolean; slack: boolean; sms: boolean }) => {
         const next = typeof action === 'function' ? action(prev) : action;
         try { localStorage.setItem('autokkeep-notif-prefs', JSON.stringify(next)); } catch {}
         return next;

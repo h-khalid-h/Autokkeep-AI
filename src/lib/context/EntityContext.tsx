@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createClient as getSupabase } from '@/lib/supabase/client';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,8 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const { data: membership } = await (supabase as any)
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { data: membership } = await db
         .from('team_members')
         .select('org_id')
         .eq('user_id', user.id)
@@ -58,7 +60,7 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const { data: entityData } = await (supabase as any)
+      const { data: entityData } = await db
         .from('entities')
         .select('id, name, currency')
         .eq('org_id', membership.org_id)
@@ -81,7 +83,8 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    loadEntities();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadEntities();
   }, [loadEntities]);
 
   const setSelectedEntityId = useCallback(

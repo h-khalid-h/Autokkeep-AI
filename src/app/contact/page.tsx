@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 
@@ -209,8 +210,8 @@ export default function ContactPage() {
                   Thank you, {formState.name}. Our team will review your message and get back to you at {formState.email} within 24 hours.
                 </p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                  <a href="/" className="btn btn-secondary">Back to Home</a>
-                  <a href="/dashboard" className="btn btn-primary">Try Dashboard Demo</a>
+                  <Link href="/" className="btn btn-secondary">Back to Home</Link>
+                  <Link href="/dashboard" className="btn btn-primary">Try Dashboard Demo</Link>
                 </div>
               </div>
             )}

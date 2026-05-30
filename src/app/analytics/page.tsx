@@ -26,6 +26,19 @@ interface AnalyticsData {
 
 
 
+interface RawTxn {
+  date: string;
+  status: string;
+  category_human: string | null;
+  category_ai: string | null;
+  confidence: number | null;
+  amount: number;
+  merchant_name: string | null;
+  merchant_raw: string | null;
+  ai_reasoning: string | null;
+  document_status: string | null;
+}
+
 const EMPTY_RANGE: AnalyticsData = {
   totalTransactions: 0, autoApproved: 0, humanReviewed: 0, pending: 0,
   accuracy: 0, avgProcessingTime: 0, receiptsCaptured: 0, receiptsMissing: 0, syncedToLedger: 0,
@@ -75,15 +88,15 @@ export default function AnalyticsPage() {
 
         for (const [range, days] of Object.entries(ranges) as [TimeRange, number][]) {
           const cutoff = new Date(now - days * 86400000).toISOString();
-          const filtered = txns.filter((tx: any) => tx.date >= cutoff.slice(0, 10));
+          const filtered = txns.filter((tx: RawTxn) => tx.date >= cutoff.slice(0, 10));
 
           if (filtered.length === 0) continue;
 
-          const autoApproved = filtered.filter((t: any) => t.status === 'auto_categorized' || t.status === 'approved').length;
-          const humanReviewed = filtered.filter((t: any) => t.status === 'approved' && t.category_human).length;
-          const pending = filtered.filter((t: any) => t.status === 'pending' || t.status === 'human_review').length;
-          const synced = filtered.filter((t: any) => t.status === 'synced').length;
-          const highConf = filtered.filter((t: any) => (t.confidence || 0) >= 80).length;
+          const autoApproved = filtered.filter((t: RawTxn) => t.status === 'auto_categorized' || t.status === 'approved').length;
+          const humanReviewed = filtered.filter((t: RawTxn) => t.status === 'approved' && t.category_human).length;
+          const pending = filtered.filter((t: RawTxn) => t.status === 'pending' || t.status === 'human_review').length;
+          const synced = filtered.filter((t: RawTxn) => t.status === 'synced').length;
+          const highConf = filtered.filter((t: RawTxn) => (t.confidence || 0) >= 80).length;
 
           // Build category aggregation
           const catMap = new Map<string, { count: number; amount: number }>();
@@ -99,9 +112,9 @@ export default function AnalyticsPage() {
 
           // Build exceptions
           const exceptions = filtered
-            .filter((t: any) => (t.confidence || 0) < 85 && t.status !== 'synced')
+            .filter((t: RawTxn) => (t.confidence || 0) < 85 && t.status !== 'synced')
             .slice(0, 3)
-            .map((t: any) => ({
+            .map((t: RawTxn) => ({
               merchant: t.merchant_name || t.merchant_raw || 'Unknown',
               amount: Math.abs(t.amount),
               confidence: t.confidence || 0,
@@ -115,8 +128,8 @@ export default function AnalyticsPage() {
             pending,
             accuracy: filtered.length > 0 ? Math.round((highConf / filtered.length) * 1000) / 10 : 0,
             avgProcessingTime: 0, // Not tracked per-transaction
-            receiptsCaptured: filtered.filter((t: any) => t.document_status === 'found').length,
-            receiptsMissing: filtered.filter((t: any) => t.document_status === 'missing' || !t.document_status).length,
+            receiptsCaptured: filtered.filter((t: RawTxn) => t.document_status === 'found').length,
+            receiptsMissing: filtered.filter((t: RawTxn) => t.document_status === 'missing' || !t.document_status).length,
             syncedToLedger: synced,
             dailyVolume: (() => {
               // Compute real daily volume from transactions
@@ -157,7 +170,7 @@ export default function AnalyticsPage() {
     }
 
     fetchAnalytics();
-  }, [selectedEntity?.id]);
+  }, [selectedEntity]);
 
   const data = analyticsData[timeRange];
 

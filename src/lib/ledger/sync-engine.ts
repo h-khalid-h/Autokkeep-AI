@@ -9,6 +9,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -52,8 +53,9 @@ async function getUnsyncedEntries(
   entityId: string,
 ): Promise<JournalEntryForSync[]> {
   const supabase = createAdminClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
-  const { data: entries, error } = await supabase
+  const { data: entries, error } = await db
     .from('journal_entries')
     .select(`
       id,
@@ -99,8 +101,9 @@ async function getUnsyncedEntries(
  */
 async function getLedgerConnection(entityId: string) {
   const supabase = createAdminClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
-  const { data } = await supabase
+  const { data } = await db
     .from('ledger_connections')
     .select('*')
     .eq('entity_id', entityId)
@@ -119,8 +122,9 @@ async function markEntriesSynced(
   provider: string,
 ): Promise<void> {
   const supabase = createAdminClient();
+  const db = supabase as unknown as SupabaseQueryClient;
 
-  await supabase
+  await db
     .from('journal_entries')
     .update({
       ledger_sync_id: syncId,
@@ -199,10 +203,11 @@ async function syncBatchToProvider(
  */
 export async function runNightlySync(): Promise<SyncResult[]> {
   const supabase = createAdminClient();
+  const db = supabase as unknown as SupabaseQueryClient;
   const results: SyncResult[] = [];
 
   // Get all entities with active ledger connections
-  const { data: connections } = await supabase
+  const { data: connections } = await db
     .from('ledger_connections')
     .select('entity_id, provider, entities(name)')
     .eq('is_active', true);
@@ -275,7 +280,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     });
 
     // Update last_synced_at on the connection
-    await supabase
+    await db
       .from('ledger_connections')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('entity_id', entityId)

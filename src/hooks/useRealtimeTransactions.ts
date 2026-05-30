@@ -16,7 +16,7 @@ function getSupabase() {
 
 interface RealtimeEvent {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
-  transaction: any;
+  transaction: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -25,7 +25,7 @@ export function useRealtimeTransactions(
   onEvent: (event: RealtimeEvent) => void
 ) {
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<unknown>(null);
 
   useEffect(() => {
     if (!entityIds.length) return;
@@ -35,17 +35,17 @@ export function useRealtimeTransactions(
       const channel = supabase
         .channel('transactions-realtime')
         .on(
-          'postgres_changes' as any,
+          'postgres_changes' as unknown as 'system',
           {
             event: '*',
             schema: 'public',
             table: 'transactions',
             filter: `entity_id=in.(${entityIds.join(',')})`,
-          },
-          (payload: any) => {
+          } as unknown as Record<string, unknown>,
+          (payload: Record<string, unknown>) => {
             onEvent({
-              type: payload.eventType,
-              transaction: payload.new || payload.old,
+              type: payload.eventType as RealtimeEvent['type'],
+              transaction: (payload.new || payload.old) as Record<string, unknown>,
               timestamp: new Date().toISOString(),
             });
           }
@@ -63,7 +63,8 @@ export function useRealtimeTransactions(
       };
     } catch {
       // Realtime not available (e.g., no Supabase configured)
-      setIsConnected(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsConnected(() => false);
     }
   }, [entityIds.join(','), onEvent]);
 

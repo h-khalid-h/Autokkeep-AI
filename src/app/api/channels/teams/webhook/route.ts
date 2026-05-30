@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { parseTeamsWebhookPayload, mapTeamsChoiceToGL, sendTeamsConfirmation } from '@/lib/channels/teams';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
@@ -38,10 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
 
     if (parsed.categoryChoice === 'personal') {
       // Mark as personal/excluded
-      await (supabase as any)
+      await db
         .from('transactions')
         .update({
           status: 'approved',
@@ -57,13 +59,13 @@ export async function POST(request: NextRequest) {
       }
     } else if (parsed.categoryChoice === 'accept') {
       // Accept AI suggestion
-      const { data: tx } = await (supabase as any)
+      const { data: tx } = await db
         .from('transactions')
         .select('category_ai')
         .eq('id', parsed.transactionId)
         .single();
 
-      await (supabase as any)
+      await db
         .from('transactions')
         .update({
           status: 'approved',
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
       // Map choice to GL code
       const gl = mapTeamsChoiceToGL(parsed.categoryChoice);
       if (gl) {
-        await (supabase as any)
+        await db
           .from('transactions')
           .update({
             status: 'approved',
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit trail
-    const { data: tx } = await (supabase as any)
+    const { data: tx } = await db
       .from('transactions')
       .select('entity_id')
       .eq('id', parsed.transactionId)
@@ -116,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (tx) {
       await writeAuditLog({
-        supabase,
+        supabase: db,
         entityId: tx.entity_id,
         actorType: 'human',
         action: 'categorize',
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Teams webhook error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
