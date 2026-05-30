@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { rateLimit as _rateLimit } from '@/lib/rate-limit';
+import { rateLimit } from '@/lib/rate-limit';
 
 interface EntityStats {
   entityId: string;
@@ -28,8 +28,11 @@ interface EntityStats {
   ledgerStatus: 'connected' | 'disconnected';
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'portfolio' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Auth check

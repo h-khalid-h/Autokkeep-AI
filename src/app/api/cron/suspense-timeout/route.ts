@@ -132,22 +132,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Audit log the cron run
-    if (movedCount > 0) {
-      for (const txn of staleTransactions.slice(0, movedCount)) {
-        await writeAuditLog({
-          supabase: db,
-          entityId: txn.entity_id,
-          actorId: 'system',
-          actorType: 'system',
-          action: 'update',
-          targetType: 'transaction',
-          targetId: txn.id,
-          details: { from_status: 'human_review', to_status: 'escrow_suspense', reason: '48h_timeout' },
-          request,
-        });
-      }
-    }
 
     return NextResponse.json({
       moved: movedCount,

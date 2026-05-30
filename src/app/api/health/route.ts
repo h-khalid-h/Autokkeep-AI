@@ -52,9 +52,30 @@ export async function GET(request: NextRequest) {
     status: missingEnvVars.length === 0 ? 'healthy' : 'degraded',
   };
 
-  // 3. Overall status
+  // 3. Redis connectivity
+  try {
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl) {
+      const redisStart = Date.now();
+      const { default: Redis } = await import('ioredis');
+      const redis = new Redis(redisUrl, { connectTimeout: 3000 });
+      await redis.ping();
+      checks.redis = {
+        status: 'connected',
+        latency: Date.now() - redisStart,
+      };
+      await redis.quit();
+    } else {
+      checks.redis = { status: 'not_configured' };
+    }
+  } catch {
+    checks.redis = { status: 'disconnected' };
+  }
+
+  // 4. Overall status
+  const healthyStatuses = ['healthy', 'connected', 'not_configured'];
   const overallHealthy = Object.values(checks).every(
-    (c) => c.status === 'healthy'
+    (c) => healthyStatuses.includes(c.status)
   );
 
   const status = overallHealthy ? 'healthy' : 'degraded';

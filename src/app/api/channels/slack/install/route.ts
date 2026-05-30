@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { exchangeSlackCode, getSlackInstallUrl } from '@/lib/channels/slack';
+import { encryptToken } from '@/lib/crypto';
 
 // GET /api/channels/slack/install — Redirect to Slack OAuth
 export async function GET(request: NextRequest) {
@@ -90,11 +91,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    if (!result.accessToken) {
+      return NextResponse.json({ error: 'Slack did not return an access token' }, { status: 400 });
+    }
+
     const { error: dbError } = await db.from('channel_connections').insert({
       entity_id: entityId,
       channel_type: 'slack',
       channel_id: result.teamId,
-      access_token: result.accessToken,
+      access_token: encryptToken(result.accessToken),
       workspace_name: result.teamName,
       is_active: true,
     });

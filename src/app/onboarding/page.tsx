@@ -136,7 +136,7 @@ export default function OnboardingPage() {
         // Create a new organization
         const { data: newOrg, error: orgError } = await (supabase as unknown as SupabaseQueryClient)
           .from('organizations')
-          .insert({ name: `${entityName} Org` })
+          .insert({ name: `${entityName} Org`, slug: `${entityName} Org`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''), owner_id: user.id })
           .select('id')
           .single();
 
@@ -168,8 +168,8 @@ export default function OnboardingPage() {
         .from('entities')
         .insert({
           name: entityName.trim(),
-          currency,
-          fiscal_year_end: parseInt(fiscalYearEnd, 10),
+          base_currency: currency,
+          fiscal_year_end: fiscalYearEnd,
           org_id: orgId,
         })
         .select('id')

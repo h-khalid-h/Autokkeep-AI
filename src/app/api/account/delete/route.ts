@@ -6,6 +6,7 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
 
 export async function POST(request: NextRequest) {
   try {
@@ -169,6 +170,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Account Delete] Error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Account deletion failed' }, { status: 500 });
   }
 }

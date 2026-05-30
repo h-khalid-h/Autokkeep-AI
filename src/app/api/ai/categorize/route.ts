@@ -249,13 +249,19 @@ export async function POST(request: NextRequest) {
         const adminSupabase = createAdminClient();
         const adminDb = adminSupabase as unknown as SupabaseQueryClient;
 
-        // Get entity admin email
-        const { data: members } = await adminDb
-          .from('entity_memberships')
+        // Get entity admin email via team_members (org-level membership)
+        const { data: entityOrg } = await adminDb
+          .from('entities')
+          .select('org_id')
+          .eq('id', entityId)
+          .single();
+
+        const { data: members } = entityOrg ? await adminDb
+          .from('team_members')
           .select('user_id, role, users:user_id(email)')
-          .eq('entity_id', entityId)
+          .eq('org_id', entityOrg.org_id)
           .in('role', ['owner', 'admin'])
-          .limit(1);
+          .limit(1) : { data: null };
 
         const adminEmail = (members?.[0]?.users as unknown as { email: string })?.email;
         if (adminEmail) {

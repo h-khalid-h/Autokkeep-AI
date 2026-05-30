@@ -8,6 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
 
 // ─── GET: List transactions with filtering ─────────────────────────────────────
 
@@ -206,6 +207,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      return NextResponse.json(
+        { error: 'amount must be a valid number' },
+        { status: 400 }
+      );
+    }
+
+    if (amount === 0) {
+      return NextResponse.json(
+        { error: 'amount must not be zero' },
+        { status: 400 }
+      );
+    }
+
+    if (!date || isNaN(new Date(date).getTime())) {
+      return NextResponse.json(
+        { error: 'date must be a valid date string' },
+        { status: 400 }
+      );
+    }
+
     const db = supabase as unknown as SupabaseQueryClient;
 
     // Validate entity access
@@ -276,6 +298,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ transaction }, { status: 201 });
   } catch (error) {
     console.error('[Transactions] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to create transaction' },
       { status: 500 }

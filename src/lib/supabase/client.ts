@@ -6,11 +6,9 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    // Return a mock-like client that won't crash in demo mode
-    console.warn('[Supabase] Missing env vars — running in demo mode');
-    return createBrowserClient<Database>(
-      'https://placeholder.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
+    throw new Error(
+      'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY. '
+      + 'Set these in your .env.local file or deployment environment.'
     );
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
+import { decryptToken } from '@/lib/crypto';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   dispatchReceiptRequest,
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     const connections: ChannelConnection[] = channels.map((ch: Record<string, unknown>) => ({
       channelType: ch.channel_type as string,
       channelId: ch.channel_id as string,
-      accessToken: (ch.access_token as string) || undefined,
+      accessToken: ch.access_token ? decryptToken(ch.access_token as string) : undefined,
     }));
 
     let result: { success: boolean; channel: string; messageId?: string; error?: string };

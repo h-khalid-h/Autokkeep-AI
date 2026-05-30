@@ -121,11 +121,15 @@ CREATE TYPE team_role AS ENUM (
 -- 2.1  organizations
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 CREATE TABLE organizations (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text        NOT NULL,
-  slug       text        UNIQUE NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  owner_id   uuid        REFERENCES auth.users(id)
+  id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                text        NOT NULL,
+  slug                text        UNIQUE NOT NULL,
+  stripe_customer_id  text,
+  plan                text        DEFAULT 'free',
+  subscription_status text        DEFAULT 'inactive',
+  created_at          timestamptz DEFAULT now(),
+  updated_at          timestamptz DEFAULT now(),
+  owner_id            uuid        REFERENCES auth.users(id)
 );
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,6 +217,7 @@ CREATE TABLE transactions (
   confidence           decimal(5,2),
   status               transaction_status   DEFAULT 'pending',
   ai_reasoning         text,
+  gl_name              text,
   document_status      document_status_type DEFAULT 'missing',
   document_url         text,
   card_holder          text,
@@ -222,6 +227,9 @@ CREATE TABLE transactions (
   currency             varchar(3)           DEFAULT 'USD',
   tags                 text[],
   aging_days           int                  DEFAULT 0,
+  deleted_at           timestamptz,
+  deleted_by           uuid,
+  updated_by           uuid,
   created_at           timestamptz          DEFAULT now(),
   updated_at           timestamptz          DEFAULT now()
 );

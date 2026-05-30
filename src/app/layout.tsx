@@ -111,24 +111,9 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <a href="#main-content" className="skip-to-content">Skip to main content</a>
         <Providers>
-          {/* Skip to main content — accessibility */}
-          <a
-            href="#main-content"
-            className="skip-to-content"
-            style={{
-              position: 'absolute',
-              left: '-9999px',
-              top: 'auto',
-              width: '1px',
-              height: '1px',
-              overflow: 'hidden',
-              zIndex: 9999,
-            }}
-          >
-            Skip to main content
-          </a>
-          <div id="main-content">{children}</div>
+          <main id="main-content">{children}</main>
           <CookieConsent />
           <Analytics />
           <SpeedInsights />

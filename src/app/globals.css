@@ -2698,6 +2698,17 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Accessibility ────────────────────────────────────────────────────────── */
 
+/* Skip-to-content link — hidden until focused */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
 /* Skip-to-content link — visible on focus */
 .skip-to-content:focus {
   position: fixed !important;

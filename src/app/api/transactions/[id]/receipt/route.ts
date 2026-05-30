@@ -84,6 +84,22 @@ export async function POST(
       const receiptUrl = body.receipt_url as string;
 
       if (receiptUrl && typeof receiptUrl === 'string') {
+        // Validate URL: must be https and a well-formed URL
+        try {
+          const parsed = new URL(receiptUrl);
+          if (parsed.protocol !== 'https:') {
+            return NextResponse.json(
+              { error: 'receipt_url must use https://' },
+              { status: 400 }
+            );
+          }
+        } catch {
+          return NextResponse.json(
+            { error: 'receipt_url is not a valid URL' },
+            { status: 400 }
+          );
+        }
+
         // Direct URL attachment (e.g., from WhatsApp media URL)
         await db
           .from('transactions')
@@ -154,7 +170,15 @@ export async function POST(
     }
 
     // Upload to Supabase Storage
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    // Derive extension from MIME type, not user-supplied filename
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/heic': 'heic',
+      'application/pdf': 'pdf',
+    };
+    const fileExt = mimeToExt[file.type] || 'bin';
     const fileName = `receipts/${transaction.entity_id}/${transactionId}/${Date.now()}.${fileExt}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 

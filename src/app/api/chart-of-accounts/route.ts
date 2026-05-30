@@ -8,6 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
 
 // ─── GET: List all chart of accounts for user's entity ──────────────────────────
 
@@ -215,6 +216,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ account }, { status: 201 });
   } catch (error) {
     console.error('[ChartOfAccounts] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to create account' },
       { status: 500 }

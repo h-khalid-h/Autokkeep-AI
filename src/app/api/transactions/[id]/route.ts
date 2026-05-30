@@ -8,6 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -367,6 +368,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Transaction Delete] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to delete transaction' },
       { status: 500 }
