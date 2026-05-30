@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     const { webhook_type, webhook_code, item_id } = body;
 
-    console.log(
+    console.info(
       `[Plaid Webhook] Received: ${webhook_type}.${webhook_code} for item ${item_id}`
     );
 
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       case 'TRANSACTIONS.DEFAULT_UPDATE': {
         try {
           const ingestResult = await ingestTransactions(supabase, connection);
-          console.log(
+          console.info(
             `[Plaid Webhook] Synced: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
         } catch (syncError) {
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
       case 'TRANSACTIONS.HISTORICAL_UPDATE': {
         try {
           const ingestResult = await ingestTransactions(supabase, connection);
-          console.log(
+          console.info(
             `[Plaid Webhook] ${webhook_code} sync: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
         } catch (syncError) {
@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(
+        console.info(
           `[Plaid Webhook] Unhandled event: ${webhook_type}.${webhook_code}`
         );
     }

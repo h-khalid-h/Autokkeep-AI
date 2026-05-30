@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
 
         case 'app_mention': {
           // Handle @autokkeep mentions
-          console.log('App mentioned:', event.text);
           break;
         }
       }

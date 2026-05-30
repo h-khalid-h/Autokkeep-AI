@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`[Stripe Webhook] Unhandled event: ${event.type}`);
+        console.info(`[Stripe Webhook] Unhandled event: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });

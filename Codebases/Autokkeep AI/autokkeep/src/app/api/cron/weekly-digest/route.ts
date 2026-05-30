@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const digest = await compileWeeklyDigest();
 
     // Log digest summary
-    console.log('[Weekly Digest] Generated:', JSON.stringify({
+    console.info('[Weekly Digest] Generated:', JSON.stringify({
       generatedAt: digest.generatedAt,
       totalEntities: digest.totalEntities,
       totalItems: digest.totalItems,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (!entityRecord) {
-          console.log(`[Weekly Digest] Entity not found: ${entity.entityId}`);
+          console.warn(`[Weekly Digest] Entity not found: ${entity.entityId}`);
           emailResults.push({ entity: entity.entityName, success: false, error: 'Entity not found' });
           continue;
         }
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
           .in('role', ['owner', 'admin']);
 
         if (!members || members.length === 0) {
-          console.log(`[Weekly Digest] No admin users for entity ${entity.entityName}`);
+          console.warn(`[Weekly Digest] No admin users for entity ${entity.entityName}`);
           emailResults.push({ entity: entity.entityName, success: false, error: 'No admin users' });
           continue;
         }
@@ -93,11 +93,11 @@ export async function GET(request: NextRequest) {
             error: result.error,
           });
 
-          console.log(`[Weekly Digest] Email to ${userEmail}: ${result.success ? '✅ sent' : `❌ ${result.error}`}`);
+          console.info(`[Weekly Digest] Email to ${userEmail}: ${result.success ? '✅ sent' : `❌ ${result.error}`}`);
         }
       }
     } else if (!process.env.RESEND_API_KEY) {
-      console.log('[Weekly Digest] RESEND_API_KEY not configured, skipping email delivery');
+      console.info('[Weekly Digest] RESEND_API_KEY not configured, skipping email delivery');
     }
 
     return NextResponse.json({

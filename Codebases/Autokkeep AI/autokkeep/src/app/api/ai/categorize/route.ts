@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
             approveUrl: `${appUrl}/transactions?action=approve&id=${transaction.id}`,
             rejectUrl: `${appUrl}/transactions?action=reject&id=${transaction.id}`,
           });
-          console.log(`[AI Categorize] Alert email sent to ${adminEmail} for $${transaction.amount} transaction`);
+          console.info(`[AI Categorize] Alert email sent to ${adminEmail} for $${transaction.amount} transaction`);
         }
       } catch (alertError) {
         // Don't fail the categorization if alert dispatch fails
