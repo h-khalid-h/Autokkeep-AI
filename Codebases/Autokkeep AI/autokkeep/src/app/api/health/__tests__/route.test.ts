@@ -4,8 +4,10 @@ import { NextRequest } from 'next/server';
 // ─── Mocks ──────────────────────────────────────────────────────────────────────
 
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 const mockAdminSupabase = {
   from: mockFrom,
+  rpc: mockRpc,
 };
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -31,6 +33,13 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown; count
   return chain;
 }
 
+/** Fluent chain builder for rpc() calls */
+function createRpcMock(resolvedValue: { data?: unknown; error?: unknown }) {
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+  chain.maybeSingle = vi.fn().mockResolvedValue(resolvedValue);
+  return chain;
+}
+
 // ─── Tests ──────────────────────────────────────────────────────────────────────
 
 const { GET } = await import('../route');
@@ -44,9 +53,9 @@ describe('GET /api/health', () => {
   });
 
   it('should return 200 with status info when database is healthy', async () => {
-    // Mock a successful database check
-    const dbChain = createChainMock({ data: null, error: null });
-    mockFrom.mockReturnValue(dbChain);
+    // Mock rpc('version') success
+    const rpcChain = createRpcMock({ data: null, error: null });
+    mockRpc.mockReturnValue(rpcChain);
 
     const req = createRequest();
     const res = await GET(req);
@@ -58,8 +67,8 @@ describe('GET /api/health', () => {
   });
 
   it('should return minimal response for unauthenticated requests', async () => {
-    const dbChain = createChainMock({ data: null, error: null });
-    mockFrom.mockReturnValue(dbChain);
+    const rpcChain = createRpcMock({ data: null, error: null });
+    mockRpc.mockReturnValue(rpcChain);
 
     const req = createRequest();
     const res = await GET(req);
@@ -75,8 +84,9 @@ describe('GET /api/health', () => {
   it('should return detailed response for authenticated requests', async () => {
     process.env.CRON_SECRET = 'test-secret';
 
-    const dbChain = createChainMock({ data: null, error: null });
-    mockFrom.mockReturnValue(dbChain);
+    // Mock rpc('version') success
+    const rpcChain = createRpcMock({ data: null, error: null });
+    mockRpc.mockReturnValue(rpcChain);
 
     const req = createRequest({ authorization: 'Bearer test-secret' });
     const res = await GET(req);
@@ -93,7 +103,10 @@ describe('GET /api/health', () => {
   });
 
   it('should return 503 when database is unhealthy', async () => {
-    // Mock a failed database check
+    // Mock rpc('version') failure, then from('audit_log') fallback also fails
+    const rpcChain = createRpcMock({ data: null, error: { message: 'RPC failed' } });
+    mockRpc.mockReturnValue(rpcChain);
+
     const dbChain = createChainMock({ data: null, error: { message: 'Connection failed' } });
     mockFrom.mockReturnValue(dbChain);
 
@@ -110,8 +123,8 @@ describe('GET /api/health', () => {
     // Remove required env vars
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    const dbChain = createChainMock({ data: null, error: null });
-    mockFrom.mockReturnValue(dbChain);
+    const rpcChain = createRpcMock({ data: null, error: null });
+    mockRpc.mockReturnValue(rpcChain);
 
     const req = createRequest();
     const res = await GET(req);
@@ -121,3 +134,4 @@ describe('GET /api/health', () => {
     expect(json.status).toBe('degraded');
   });
 });
+

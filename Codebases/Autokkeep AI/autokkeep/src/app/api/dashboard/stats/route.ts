@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
       // Total transactions
       (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).neq('status', 'removed').neq('status', 'deleted'),
+        .in('entity_id', entityIds).neq('status', 'removed'),
       // Pending review
       (supabase as any).from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).in('status', ['pending', 'human_review']),

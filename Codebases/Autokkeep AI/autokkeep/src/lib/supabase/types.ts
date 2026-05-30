@@ -11,9 +11,9 @@ export type TransactionStatus =
   | 'pending'
   | 'auto_categorized'
   | 'human_review'
-  | 'categorization_failed' // TypeScript-only — not in DB schema (transaction_status enum)
+  | 'categorization_failed'
   | 'approved'
-  | 'syncing' // TypeScript-only — not in DB schema (transaction_status enum)
+  | 'syncing'
   | 'synced'
   | 'removed'
   | 'escrow_suspense';
