@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
@@ -11,6 +12,9 @@ import {
 // POST /api/channels/dispatch — Send receipt request via connected channels
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'dispatch' });
+    if (limited) return limited;
+
     const { transactionId, entityId, preferredChannel } = await request.json();
 
     if (!transactionId || !entityId) {

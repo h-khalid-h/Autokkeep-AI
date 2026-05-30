@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -19,6 +20,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'receipt-upload' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
     const { id: transactionId } = await params;
 

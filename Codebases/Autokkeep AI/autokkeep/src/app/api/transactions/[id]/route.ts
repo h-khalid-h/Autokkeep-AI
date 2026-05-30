@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -15,6 +16,9 @@ interface RouteContext {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
+    const limited = await rateLimit(request, { max: 60, windowSeconds: 60, prefix: 'txn-get' });
+    if (limited) return limited;
+
     const { id } = await context.params;
     const supabase = await createServerClient();
 
@@ -27,21 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch transaction
-    const { data: transaction, error: txError } = await (supabase as any)
-      .from('transactions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (txError || !transaction) {
-      return NextResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      );
-    }
-
-    // Validate entity access
+    // Validate org membership first (prevents ID enumeration)
     const { data: membership } = await (supabase as any)
       .from('team_members')
       .select('id, org_id')
@@ -52,17 +42,32 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: entity } = await (supabase as any)
+    // Get entity IDs for this org
+    const { data: orgEntities } = await (supabase as any)
       .from('entities')
-      .select('id, org_id')
-      .eq('id', transaction.entity_id)
-      .eq('org_id', membership.org_id)
+      .select('id')
+      .eq('org_id', membership.org_id);
+
+    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+    if (entityIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Fetch transaction scoped to user's entities
+    const { data: transaction, error: txError } = await (supabase as any)
+      .from('transactions')
+      .select('*')
+      .eq('id', id)
+      .in('entity_id', entityIds)
       .single();
 
-    if (!entity) {
+    if (txError || !transaction) {
       return NextResponse.json(
-        { error: 'Entity access denied' },
-        { status: 403 }
+        { error: 'Transaction not found' },
+        { status: 404 }
       );
     }
 
@@ -89,6 +94,9 @@ interface UpdateTransactionBody {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'txn-update' });
+    if (limited) return limited;
+
     const { id } = await context.params;
     const supabase = await createServerClient();
 
@@ -157,8 +165,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     };
 
     if (glCode !== undefined) {
-      updateData.category_ai = glCode;
-      // If a human is setting the category, also store it as the human-approved category
+      // Store as the human-approved category (category_ai is set by the AI pipeline only)
       updateData.category_human = glCode;
     }
     if (glName !== undefined) updateData.gl_name = glName;
@@ -171,7 +178,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.confidence = 100;
     } else if (newStatus) {
       // Validate allowed status transitions
-      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'rejected', 'escrow_suspense', 'categorization_failed'];
+      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'escrow_suspense', 'categorization_failed'];
       if (!validStatuses.includes(newStatus)) {
         return NextResponse.json(
           { error: `Invalid status: ${newStatus}` },
@@ -261,6 +268,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'txn-delete' });
+    if (limited) return limited;
+
     const { id } = await context.params;
     const supabase = await createServerClient();
 
@@ -316,7 +326,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { error: deleteError } = await (supabase as any)
       .from('transactions')
       .update({
-        status: 'deleted',
+        status: 'removed',
         deleted_at: new Date().toISOString(),
         deleted_by: user.id,
         updated_at: new Date().toISOString(),

@@ -1,11 +1,21 @@
+# *
 User-agent: *
 Allow: /
-Disallow: /api/
+
+# *
+User-agent: *
 Disallow: /dashboard
 Disallow: /settings
-Disallow: /transactions
+Disallow: /analytics
 Disallow: /onboarding
+Disallow: /transactions
 Disallow: /chart-of-accounts
-Disallow: /auth/
+Disallow: /account
+Disallow: /api
+Disallow: /auth/callback
 
+# Host
+Host: https://autokkeep.com
+
+# Sitemaps
 Sitemap: https://autokkeep.com/sitemap.xml

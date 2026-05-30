@@ -422,11 +422,13 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (accountData?.code) {
+      // Sanitize code for PostgREST filter syntax (prevent injection via dots/commas)
+      const safeCode = accountData.code.replace(/[^a-zA-Z0-9_-]/g, '');
       const { count: refCount } = await (supabase as any)
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', existing.entity_id)
-        .or(`category_ai.eq.${accountData.code},category_human.eq.${accountData.code}`);
+        .or(`category_ai.eq.${safeCode},category_human.eq.${safeCode}`);
 
       if (refCount && refCount > 0) {
         // Soft-delete: deactivate instead of hard delete to preserve references

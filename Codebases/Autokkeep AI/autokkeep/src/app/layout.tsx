@@ -130,9 +130,9 @@ export default function RootLayout({
           </a>
           <div id="main-content">{children}</div>
           <CookieConsent />
-        </Providers>
           <Analytics />
           <SpeedInsights />
+        </Providers>
       </body>
     </html>
   );

@@ -6,11 +6,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 // ─── GET: List transactions with filtering ─────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 60, windowSeconds: 60, prefix: 'txn-list' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
     const confidenceMin = searchParams.get('confidenceMin');
     const confidenceMax = searchParams.get('confidenceMax');
     const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Validate org membership
@@ -175,6 +179,9 @@ interface CreateTransactionBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'txn-create' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
 
     // Validate auth

@@ -111,6 +111,35 @@ export async function POST(request: NextRequest) {
         const invoice = event.data.object;
         const customerId = invoice.customer as string;
         console.warn(`[Stripe Webhook] Payment failed for customer ${customerId}`);
+
+        // Find org by stripe_customer_id and mark as past_due
+        const { data: failedOrg } = await (supabase as any)
+          .from('organizations')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (failedOrg) {
+          await (supabase as any)
+            .from('organizations')
+            .update({
+              subscription_status: 'past_due',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', failedOrg.id);
+
+          await writeAuditLog({
+            supabase,
+            entityId: failedOrg.id,
+            actorId: 'stripe',
+            actorType: 'system',
+            action: 'update',
+            targetType: 'subscription',
+            targetId: customerId,
+            details: { event: event.type, status: 'past_due' },
+            request,
+          });
+        }
         break;
       }
 

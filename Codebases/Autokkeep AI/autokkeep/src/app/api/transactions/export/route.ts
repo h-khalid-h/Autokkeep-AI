@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
       .eq('entity_id', entity.id)
       .neq('status', 'removed')
       .neq('status', 'deleted')
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .limit(10000); // Safety cap to prevent OOM
 
     if (status) {
       const statuses = status.split(',').map((s: string) => s.trim());
