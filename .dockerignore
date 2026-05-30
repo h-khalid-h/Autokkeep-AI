@@ -4,12 +4,4 @@ node_modules
 .gitignore
 *.md
 .env*
-.gemini
 .agents
-Desktop
-Documents
-Downloads
-Library
-Movies
-Music
-Pictures
