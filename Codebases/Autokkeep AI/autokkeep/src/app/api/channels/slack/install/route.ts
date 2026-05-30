@@ -49,12 +49,6 @@ export async function GET(request: NextRequest) {
 // POST /api/channels/slack/install — Handle callback with code
 export async function POST(request: NextRequest) {
   try {
-    const { code, entityId } = await request.json();
-
-    if (!code || !entityId) {
-      return NextResponse.json({ error: 'Missing code or entityId' }, { status: 400 });
-    }
-
     // Auth check
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
@@ -62,6 +56,12 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { code, entityId } = await request.json();
+
+    if (!code || !entityId) {
+      return NextResponse.json({ error: 'Missing code or entityId' }, { status: 400 });
     }
 
     // Org membership check

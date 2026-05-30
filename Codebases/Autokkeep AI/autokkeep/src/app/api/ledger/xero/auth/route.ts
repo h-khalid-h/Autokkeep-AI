@@ -6,12 +6,6 @@ import { rateLimit } from '@/lib/rate-limit';
 
 // GET /api/ledger/xero/auth — Start Xero OAuth flow
 export async function GET(request: NextRequest) {
-  const entityId = request.nextUrl.searchParams.get('entityId');
-
-  if (!entityId) {
-    return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-  }
-
   try {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-auth' });
     if (limited) return limited;
@@ -19,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
-    // Auth check
+    // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,6 +28,13 @@ export async function GET(request: NextRequest) {
 
     if (!membership) {
       return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Now validate input
+    const entityId = request.nextUrl.searchParams.get('entityId');
+
+    if (!entityId) {
+      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
     }
 
     // Verify entity belongs to user's org

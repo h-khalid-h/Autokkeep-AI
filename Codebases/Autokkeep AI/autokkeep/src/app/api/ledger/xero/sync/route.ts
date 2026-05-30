@@ -12,16 +12,10 @@ import { encryptToken, decryptToken } from '@/lib/crypto';
 // POST /api/ledger/xero/sync — Sync approved transactions to Xero
 export async function POST(request: NextRequest) {
   try {
-    const { entityId, transactionIds } = await request.json();
-
-    if (!entityId) {
-      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-    }
-
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
-    // Auth check
+    // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,6 +29,13 @@ export async function POST(request: NextRequest) {
       .single();
     if (!membership) {
       return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
+    }
+
+    // Parse and validate input
+    const { entityId, transactionIds } = await request.json();
+
+    if (!entityId) {
+      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
     }
 
     // Verify entity belongs to user's org
@@ -247,18 +248,19 @@ export async function POST(request: NextRequest) {
 // GET /api/ledger/xero/sync — Sync Chart of Accounts from Xero
 export async function GET(request: NextRequest) {
   try {
-    const entityId = request.nextUrl.searchParams.get('entityId');
-    if (!entityId) {
-      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-    }
-
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
-    // Auth check
+    // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Now validate input
+    const entityId = request.nextUrl.searchParams.get('entityId');
+    if (!entityId) {
+      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
     }
 
     // Org membership check

@@ -15,19 +15,10 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'dispatch' });
     if (limited) return limited;
 
-    const { transactionId, entityId, preferredChannel } = await request.json();
-
-    if (!transactionId || !entityId) {
-      return NextResponse.json(
-        { error: 'Missing transactionId or entityId' },
-        { status: 400 }
-      );
-    }
-
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
 
-    // Auth check
+    // Auth check first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -39,6 +30,16 @@ export async function POST(request: NextRequest) {
       .single();
     if (!membership) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Parse and validate input
+    const { transactionId, entityId, preferredChannel } = await request.json();
+
+    if (!transactionId || !entityId) {
+      return NextResponse.json(
+        { error: 'Missing transactionId or entityId' },
+        { status: 400 }
+      );
     }
 
     // Enforce plan limits
