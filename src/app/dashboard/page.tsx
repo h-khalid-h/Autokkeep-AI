@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
-import { Transaction } from '@/data/mockTransactions';
+import { Transaction } from '@/lib/types/transaction';
 import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';

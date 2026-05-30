@@ -63,6 +63,11 @@ export async function POST(request: NextRequest) {
       customerId = org?.stripe_customer_id || undefined;
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      return NextResponse.json({ error: 'Server configuration error: APP_URL not set' }, { status: 500 });
+    }
+
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -72,8 +77,8 @@ export async function POST(request: NextRequest) {
         price: priceId,
         quantity: Math.max(1, Math.min(entityCount, 100)),
       }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?checkout=cancelled`,
+      success_url: `${appUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pricing?checkout=cancelled`,
       subscription_data: {
         metadata: {
           org_id: orgId || '',

@@ -213,7 +213,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     .eq('is_active', true);
 
   if (!connections || connections.length === 0) {
-    console.log('[Sync Engine] No active ledger connections found.');
+    console.info('[Sync Engine] No active ledger connections found.');
     return [];
   }
 
@@ -223,7 +223,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     const entities = conn.entities as unknown as { name: string } | { name: string }[] | null;
     const entityName = Array.isArray(entities) ? entities[0]?.name : entities?.name || entityId;
 
-    console.log(`[Sync Engine] Processing entity: ${entityName} (${provider})`);
+    console.info(`[Sync Engine] Processing entity: ${entityName} (${provider})`);
 
     const entries = await getUnsyncedEntries(entityId);
 

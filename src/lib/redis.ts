@@ -33,7 +33,7 @@ function createRedisClient(): RedisInstance {
     });
 
     client.on('connect', () => {
-      console.log('[Redis] Connected');
+      console.info('[Redis] Connected');
     });
 
     return client;

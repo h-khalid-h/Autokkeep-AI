@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Transaction } from '@/data/mockTransactions';
+import { Transaction } from '@/lib/types/transaction';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
 import ActionsConsole from '@/components/dashboard/ActionsConsole';
 
