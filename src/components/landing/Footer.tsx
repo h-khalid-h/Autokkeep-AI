@@ -19,14 +19,14 @@ export default function Footer() {
           <div>
             <div className="footer-col-title">Product</div>
             <div className="footer-links">
-              <Link href="/#solution" className="footer-link">How It Works</Link>
-              <Link href="/#architecture" className="footer-link">Architecture</Link>
-              <Link href="/pricing" className="footer-link">Pricing</Link>
-              <Link href="/changelog" className="footer-link">Changelog</Link>
-              <Link href="/status" className="footer-link">System Status</Link>
-              <Link href="/dashboard" className="footer-link">Live Dashboard Demo</Link>
-              <Link href="/demo/shadow-audit" className="footer-link">Shadow Audit Demo</Link>
-              <Link href="/#cta" className="footer-link">Request Access</Link>
+              <Link href="/#solution" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>How It Works</Link>
+              <Link href="/#architecture" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Architecture</Link>
+              <Link href="/pricing" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Pricing</Link>
+              <Link href="/changelog" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Changelog</Link>
+              <Link href="/status" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>System Status</Link>
+              <Link href="/dashboard" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Live Dashboard Demo</Link>
+              <Link href="/demo/shadow-audit" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Shadow Audit Demo</Link>
+              <Link href="/#cta" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Request Access</Link>
             </div>
           </div>
 
@@ -52,7 +52,7 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} Autokkeep, Inc. All rights reserved.</span>
-          <span>Built with precision. Powered by AI.</span>
+          <span>Built with precision. <span className="text-gradient">Powered by AI.</span></span>
         </div>
       </div>
     </footer>

@@ -48,10 +48,10 @@ function formatNumber(n: number): string {
 // ─── Status Color Map ───────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: '#f59e0b',
-  approved: '#10b981',
-  auto_categorized: '#3b82f6',
-  human_review: '#ef4444',
+  pending: 'var(--warning)',
+  approved: 'var(--success)',
+  auto_categorized: 'var(--accent-primary)',
+  human_review: 'var(--destructive)',
   synced: '#8b5cf6',
 };
 
@@ -64,7 +64,7 @@ function Skeleton({ width, height = '20px' }: { width?: string; height?: string 
         width: width || '100%',
         height,
         borderRadius: '6px',
-        background: 'var(--bg-tertiary, #2a2a2a)',
+        background: 'var(--bg-elevated)',
         animation: 'pulse 1.5s ease-in-out infinite',
       }}
     />
@@ -85,17 +85,27 @@ function KPICard({
   loading: boolean;
 }) {
   return (
-    <div className="card-elevated" style={{ padding: '24px' }}>
+    <div className="card-elevated" style={{ padding: 'var(--space-6)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div className="text-caption" style={{ marginBottom: '8px' }}>{label}</div>
+          <div className="text-caption" style={{ marginBottom: 'var(--space-2)' }}>{label}</div>
           {loading ? (
             <Skeleton width="80px" height="32px" />
           ) : (
-            <div className="text-h3" style={{ fontSize: '1.75rem' }}>{value}</div>
+            <div className="text-h3" style={{ fontSize: '1.75rem', color: 'var(--text-primary)' }}>{value}</div>
           )}
         </div>
-        <div style={{ fontSize: '1.75rem', opacity: 0.6 }}>{icon}</div>
+        <div style={{
+          fontSize: '1.75rem',
+          opacity: 0.6,
+          width: '44px',
+          height: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 'var(--radius-lg)',
+          background: 'var(--accent-subtle)',
+        }}>{icon}</div>
       </div>
     </div>
   );
@@ -121,7 +131,7 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
         borderRadius: '12px',
         overflow: 'hidden',
         marginBottom: '16px',
-        background: 'var(--bg-tertiary, #2a2a2a)',
+        background: 'var(--bg-elevated)',
       }}>
         {Object.entries(byStatus).map(([status, count]) => {
           const pct = total > 0 ? (count / total) * 100 : 0;
@@ -254,9 +264,9 @@ export default function AdminDashboardPage() {
           <div className="card" style={{
             padding: '16px',
             marginBottom: '24px',
-            borderLeft: '4px solid var(--color-error, #ef4444)',
+            borderLeft: '4px solid var(--destructive)',
           }}>
-            <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>
+            <div className="text-body" style={{ color: 'var(--destructive)' }}>
               ⚠️ {error}
             </div>
           </div>
@@ -460,11 +470,11 @@ function OrganizationsTab() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#10b981';
-      case 'trialing': return '#3b82f6';
-      case 'past_due': return '#f59e0b';
-      case 'canceled': return '#ef4444';
-      default: return '#6b7280';
+      case 'active': return 'var(--success)';
+      case 'trialing': return 'var(--accent-primary)';
+      case 'past_due': return 'var(--warning)';
+      case 'canceled': return 'var(--destructive)';
+      default: return 'var(--text-tertiary)';
     }
   };
 
@@ -475,19 +485,11 @@ function OrganizationsTab() {
         <span style={{ fontSize: '1.2rem' }}>🔍</span>
         <input
           type="text"
+          className="input"
           placeholder="Search organizations..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            flex: 1,
-            background: 'var(--bg-tertiary, #1a1a1a)',
-            border: '1px solid var(--border, #333)',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-            outline: 'none',
-          }}
+          style={{ flex: 1 }}
         />
         <div className="text-caption">
           {pagination.total} total
@@ -555,7 +557,7 @@ function OrganizationsTab() {
                   <div style={{
                     padding: '4px 10px',
                     borderRadius: '12px',
-                    background: 'var(--bg-tertiary, #2a2a2a)',
+                    background: 'var(--bg-elevated)',
                     fontSize: '12px',
                     fontWeight: 600,
                     textTransform: 'capitalize',
@@ -803,10 +805,10 @@ function SystemTab() {
                         fontSize: '12px',
                         fontFamily: 'var(--font-mono, monospace)',
                         background: v.set
-                          ? 'rgba(16, 185, 129, 0.12)'
-                          : 'rgba(239, 68, 68, 0.12)',
-                        color: v.set ? '#10b981' : '#ef4444',
-                        border: `1px solid ${v.set ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                          ? 'var(--success-subtle)'
+                          : 'var(--destructive-subtle)',
+                        color: v.set ? 'var(--success)' : 'var(--destructive)',
+                        border: `1px solid ${v.set ? 'var(--success-border)' : 'var(--destructive-border)'}`,
                       }}
                     >
                       {v.set ? '✓' : '✗'} {v.name}

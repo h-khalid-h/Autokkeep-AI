@@ -519,8 +519,8 @@ export default function DashboardPage() {
               style={{
                 width: '40px',
                 height: '40px',
-                border: '3px solid var(--surface-3)',
-                borderTopColor: 'var(--brand)',
+                border: '3px solid var(--bg-hover)',
+                borderTopColor: 'var(--accent-primary)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
               }}

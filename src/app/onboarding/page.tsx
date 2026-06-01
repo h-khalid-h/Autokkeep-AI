@@ -545,7 +545,7 @@ export default function OnboardingPage() {
               borderRadius: '8px',
               background: 'rgba(239, 68, 68, 0.1)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: 'var(--status-error, #ef4444)',
+              color: 'var(--destructive)',
               fontSize: '14px',
               display: 'flex',
               alignItems: 'center',

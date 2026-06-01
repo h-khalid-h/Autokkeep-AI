@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
           <div
             style={{
               background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
+              border: '1px solid var(--border-primary)',
               borderRadius: '12px',
               padding: '32px',
               textAlign: 'center',

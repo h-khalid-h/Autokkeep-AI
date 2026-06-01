@@ -85,19 +85,19 @@ export default function KeyboardShortcuts() {
         aria-label="Show keyboard shortcuts"
         style={{
           position: 'fixed',
-          bottom: '20px',
-          right: '20px',
+          bottom: 'var(--space-5)',
+          right: 'var(--space-5)',
           zIndex: 9998,
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '8px 14px',
-          borderRadius: '20px',
-          border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-          background: 'var(--surface-2, rgba(30,30,30,0.85))',
+          gap: 'var(--space-2)',
+          padding: 'var(--space-2) var(--space-4)',
+          borderRadius: 'var(--radius-full)',
+          border: '1px solid var(--border-primary)',
+          background: 'var(--bg-elevated)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          color: 'var(--text-secondary, #999)',
+          color: 'var(--text-secondary)',
           fontSize: '12px',
           fontWeight: 500,
           cursor: 'pointer',
@@ -107,12 +107,15 @@ export default function KeyboardShortcuts() {
         onMouseEnter={(e) => {
           (e.currentTarget as HTMLButtonElement).style.opacity = '1';
           (e.currentTarget as HTMLButtonElement).style.borderColor =
-            'var(--brand, #6C5CE7)';
+            'var(--accent-primary)';
+          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+            '0 0 16px rgba(var(--accent-glow-rgb), 0.2)';
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLButtonElement).style.opacity = '0.7';
           (e.currentTarget as HTMLButtonElement).style.borderColor =
-            'var(--border-subtle, rgba(255,255,255,0.08))';
+            'var(--border-primary)';
+          (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
         }}
       >
         <span
@@ -122,11 +125,12 @@ export default function KeyboardShortcuts() {
             justifyContent: 'center',
             width: '20px',
             height: '20px',
-            borderRadius: '6px',
-            background: 'var(--surface-3, rgba(255,255,255,0.06))',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border-secondary)',
             fontSize: '12px',
             fontWeight: 700,
-            color: 'var(--text-primary, #fff)',
+            color: 'var(--text-primary)',
           }}
         >
           ?
@@ -147,7 +151,7 @@ export default function KeyboardShortcuts() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(0, 0, 0, 0.5)',
+            background: 'rgba(0, 0, 0, 0.6)',
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
           }}
@@ -157,13 +161,13 @@ export default function KeyboardShortcuts() {
             style={{
               width: '420px',
               maxWidth: '90vw',
-              borderRadius: '16px',
-              border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-              background: 'var(--surface-1, rgba(25,25,35,0.95))',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-secondary)',
+              background: 'var(--bg-secondary)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              padding: '24px',
-              boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+              padding: 'var(--space-6)',
+              boxShadow: '0 24px 48px rgba(0,0,0,0.5), 0 0 40px rgba(var(--accent-glow-rgb), 0.08)',
             }}
           >
             {/* Header */}
@@ -172,7 +176,7 @@ export default function KeyboardShortcuts() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px',
+                marginBottom: 'var(--space-5)',
               }}
             >
               <h3
@@ -180,7 +184,7 @@ export default function KeyboardShortcuts() {
                   margin: 0,
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: 'var(--text-primary, #fff)',
+                  color: 'var(--text-primary)',
                 }}
               >
                 ⌨️ Keyboard Shortcuts
@@ -191,7 +195,7 @@ export default function KeyboardShortcuts() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--text-secondary, #999)',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontSize: '18px',
                   padding: '4px',
@@ -211,9 +215,9 @@ export default function KeyboardShortcuts() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: 'var(--surface-2, rgba(255,255,255,0.03))',
+                    padding: 'var(--space-3) var(--space-3)',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-glass)',
                   }}
                 >
                   <span
@@ -229,16 +233,19 @@ export default function KeyboardShortcuts() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          minWidth: '28px',
-                          height: '28px',
+                          minWidth: '30px',
+                          height: '30px',
                           padding: '0 8px',
-                          borderRadius: '6px',
-                          background: 'var(--surface-3, rgba(255,255,255,0.08))',
-                          border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)',
+                          border: '1px solid var(--border-secondary)',
+                          borderBottom: '2px solid var(--border-secondary)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
                           fontSize: '12px',
                           fontWeight: 600,
-                          fontFamily: 'inherit',
-                          color: 'var(--text-primary, #fff)',
+                          fontFamily: 'var(--font-mono)',
+                          color: 'var(--accent-secondary)',
+                          letterSpacing: '0.02em',
                         }}
                       >
                         {k.trim()}
@@ -248,7 +255,7 @@ export default function KeyboardShortcuts() {
                   <span
                     style={{
                       fontSize: '13px',
-                      color: 'var(--text-secondary, #999)',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     {s.action}
@@ -260,10 +267,10 @@ export default function KeyboardShortcuts() {
             {/* Footer hint */}
             <p
               style={{
-                marginTop: '16px',
+                marginTop: 'var(--space-4)',
                 marginBottom: 0,
                 fontSize: '11px',
-                color: 'var(--text-tertiary, #666)',
+                color: 'var(--text-tertiary)',
                 textAlign: 'center',
               }}
             >

@@ -124,7 +124,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/images/logo.png" />
-        <meta name="theme-color" content="#071B4D" />
+        <meta name="theme-color" content="#040916" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

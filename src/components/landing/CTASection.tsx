@@ -83,7 +83,7 @@ export default function CTASection() {
               </button>
             </form>
             {submitError && (
-              <p style={{ color: 'var(--error, #ef4444)', fontSize: '0.875rem', marginTop: '8px', textAlign: 'center' }}>
+              <p style={{ color: 'var(--destructive)', fontSize: '0.875rem', marginTop: '8px', textAlign: 'center' }}>
                 {submitError}
               </p>
             )}

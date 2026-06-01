@@ -38,7 +38,7 @@ function Skeleton({ width, height = '20px' }: { width?: string; height?: string 
         width: width || '100%',
         height,
         borderRadius: '6px',
-        background: 'var(--bg-tertiary, #2a2a2a)',
+        background: 'var(--bg-elevated)',
         animation: 'pulse 1.5s ease-in-out infinite',
       }}
     />
@@ -97,11 +97,11 @@ export default function AdminOrganizationsPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#10b981';
-      case 'trialing': return '#3b82f6';
-      case 'past_due': return '#f59e0b';
-      case 'canceled': return '#ef4444';
-      default: return '#6b7280';
+      case 'active': return 'var(--success)';
+      case 'trialing': return 'var(--accent-primary)';
+      case 'past_due': return 'var(--warning)';
+      case 'canceled': return 'var(--destructive)';
+      default: return 'var(--text-tertiary)';
     }
   };
 
@@ -132,19 +132,11 @@ export default function AdminOrganizationsPage() {
             <span style={{ fontSize: '1.2rem' }}>🔍</span>
             <input
               type="text"
+              className="input"
               placeholder="Search organizations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'var(--bg-tertiary, #1a1a1a)',
-                border: '1px solid var(--border, #333)',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                outline: 'none',
-              }}
+              style={{ flex: 1 }}
             />
             <div className="text-caption">
               {pagination.total} total
@@ -212,7 +204,7 @@ export default function AdminOrganizationsPage() {
                       <div style={{
                         padding: '4px 10px',
                         borderRadius: '12px',
-                        background: 'var(--bg-tertiary, #2a2a2a)',
+                        background: 'var(--bg-elevated)',
                         fontSize: '12px',
                         fontWeight: 600,
                         textTransform: 'capitalize',

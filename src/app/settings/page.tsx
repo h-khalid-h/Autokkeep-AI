@@ -54,7 +54,7 @@ function Skeleton({ width, height = '20px' }: { width?: string; height?: string 
         width: width || '100%',
         height,
         borderRadius: '6px',
-        background: 'var(--bg-tertiary, #2a2a2a)',
+        background: 'var(--bg-elevated)',
         animation: 'pulse 1.5s ease-in-out infinite',
       }}
     />
@@ -285,8 +285,8 @@ export default function SettingsPage() {
         </h1>
 
         {error && (
-          <div className="card" style={{ padding: '16px', marginBottom: '24px', borderLeft: '4px solid var(--color-error, #ef4444)' }}>
-            <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {error}</div>
+          <div className="card" style={{ padding: '16px', marginBottom: '24px', borderLeft: '4px solid var(--destructive)' }}>
+            <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {error}</div>
           </div>
         )}
 
@@ -585,8 +585,8 @@ function IntegrationsTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {actionError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--color-error, #ef4444)' }}>
-          <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {actionError}</div>
+        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
+          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {actionError}</div>
         </div>
       )}
 
@@ -761,8 +761,8 @@ function BillingTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {billingError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--color-error, #ef4444)' }}>
-          <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {billingError}</div>
+        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
+          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {billingError}</div>
         </div>
       )}
       {/* Current Plan */}
@@ -931,8 +931,8 @@ function TeamTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {actionError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--color-error, #ef4444)' }}>
-          <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {actionError}</div>
+        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
+          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {actionError}</div>
         </div>
       )}
 
@@ -1184,13 +1184,13 @@ function LocalizationTab({
           className="card"
           style={{
             padding: '12px 16px',
-            borderLeft: `4px solid ${saveResult.type === 'success' ? 'var(--success, #22c55e)' : 'var(--color-error, #ef4444)'}`,
+            borderLeft: `4px solid ${saveResult.type === 'success' ? 'var(--success)' : 'var(--destructive)'}`,
           }}
         >
           <div
             className="text-body"
             style={{
-              color: saveResult.type === 'success' ? 'var(--success, #22c55e)' : 'var(--color-error, #ef4444)',
+              color: saveResult.type === 'success' ? 'var(--success)' : 'var(--destructive)',
             }}
           >
             {saveResult.type === 'success' ? '✅' : '⚠️'} {saveResult.message}

@@ -50,29 +50,36 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
           style={{
             width: '100%',
             flexDirection: 'column',
-            gap: 'var(--space-4)',
-            padding: 'var(--space-10)',
+            gap: 'var(--space-5)',
+            padding: 'var(--space-16)',
           }}
         >
           <div
             className="loading-spinner"
             style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid var(--surface-3)',
-              borderTopColor: 'var(--brand)',
+              width: '36px',
+              height: '36px',
+              border: '3px solid var(--border-primary)',
+              borderTopColor: 'var(--accent-primary)',
               borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }}
           />
-          <p className="text-caption">Loading details…</p>
+          <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>Loading details…</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="dashboard-content" aria-label="Transaction review area">
+    <main
+      className="dashboard-content"
+      aria-label="Transaction review area"
+      style={{
+        gap: 'var(--space-6)',
+        padding: 'var(--space-8)',
+      }}
+    >
       {/* Center: Context Insight */}
       <ContextInsightCard transaction={transaction} />
 

@@ -1344,6 +1344,13 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-glass);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.arch-step:hover {
+  transform: translateY(-2px) scale(1.01);
+  border-color: rgba(var(--accent-glow-rgb), 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .arch-step-number {
@@ -1392,6 +1399,13 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-glass);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.cpa-metric:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--accent-glow-rgb), 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpa-metric-value {
@@ -1613,6 +1627,13 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-glass);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.metric-card:hover {
+  transform: scale(1.02);
+  border-color: rgba(var(--accent-glow-rgb), 0.2);
+  box-shadow: var(--shadow-glow);
 }
 
 .metric-value {
@@ -1652,6 +1673,12 @@ h1, h2, h3, h4, h5, h6 {
   gap: var(--space-3);
   color: var(--text-tertiary);
   font-size: 0.875rem;
+  transition: color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.trust-badge:hover {
+  color: var(--text-secondary);
+  transform: translateY(-2px);
 }
 
 .trust-badge-icon {
@@ -1763,11 +1790,13 @@ h1, h2, h3, h4, h5, h6 {
 .footer-link {
   font-size: 0.875rem;
   color: var(--text-secondary);
-  transition: color var(--duration-fast) var(--ease-out);
+  transition: color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+  display: inline-block;
 }
 
 .footer-link:hover {
   color: var(--text-primary);
+  transform: translateX(3px);
 }
 
 .footer-bottom {

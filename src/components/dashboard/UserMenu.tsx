@@ -248,7 +248,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
                 gap: '10px',
                 padding: '10px 12px',
                 borderRadius: '8px',
-                color: 'var(--status-danger, #ef4444)',
+                color: 'var(--destructive)',
                 fontSize: '13px',
                 width: '100%',
                 border: 'none',

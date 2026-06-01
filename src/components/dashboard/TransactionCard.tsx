@@ -75,7 +75,7 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
               style={{
                 marginRight: '8px',
                 cursor: 'pointer',
-                accentColor: 'var(--accent-primary, var(--brand, #1E6FFF))',
+                accentColor: 'var(--accent-primary)',
                 flexShrink: 0,
               }}
             />
