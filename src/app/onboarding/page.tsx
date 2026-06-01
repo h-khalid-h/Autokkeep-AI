@@ -733,7 +733,7 @@ export default function OnboardingPage() {
                 {bankConnected ? (
                   <>
                     <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
-                    <p className="text-body" style={{ marginBottom: '8px', color: 'var(--status-success)' }}>
+                    <p className="text-body" style={{ marginBottom: '8px', color: 'var(--success)' }}>
                       Bank account connected successfully!
                     </p>
                     <p className="text-caption">
@@ -821,7 +821,7 @@ export default function OnboardingPage() {
                       <div className="text-caption">{ledger.desc}</div>
                     </div>
                     {selectedLedger === ledger.id && (
-                      <span style={{ marginLeft: 'auto', color: 'var(--status-success)' }}>✓</span>
+                      <span style={{ marginLeft: 'auto', color: 'var(--success)' }}>✓</span>
                     )}
                   </button>
                 ))}
@@ -906,7 +906,7 @@ export default function OnboardingPage() {
                     <div className="text-h4">{channel.name}</div>
                     <div className="text-caption">{channel.desc}</div>
                     {selectedChannel === channel.id && (
-                      <div style={{ color: 'var(--status-success)', marginTop: '8px' }}>✓ Selected</div>
+                      <div style={{ color: 'var(--success)', marginTop: '8px' }}>✓ Selected</div>
                     )}
                   </button>
                 ))}

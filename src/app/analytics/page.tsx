@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
             <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px' }}>
               {data.totalTransactions.toLocaleString()}
             </div>
-            <div className="text-caption" style={{ color: 'var(--status-success)' }}>
+            <div className="text-caption" style={{ color: 'var(--success)' }}>
               {data.syncedToLedger} synced to ledger
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function AnalyticsPage() {
             <div className="text-caption">AI Accuracy</div>
             <div className="stat-value" style={{
               fontSize: '2rem', margin: '8px 0 4px',
-              color: data.accuracy >= 95 ? 'var(--status-success)' : data.accuracy >= 90 ? 'var(--status-warning)' : 'var(--status-danger)',
+              color: data.accuracy >= 95 ? 'var(--success)' : data.accuracy >= 90 ? 'var(--warning)' : 'var(--destructive)',
             }}>
               {data.accuracy}%
             </div>
@@ -295,9 +295,9 @@ export default function AnalyticsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {[
               { label: 'Imported', value: data.totalTransactions, color: 'var(--accent-primary)' },
-              { label: 'Auto-Approved', value: data.autoApproved, color: 'var(--status-success)' },
-              { label: 'Human-Reviewed', value: data.humanReviewed, color: 'var(--status-warning)' },
-              { label: 'Pending', value: data.pending, color: 'var(--status-danger)' },
+              { label: 'Auto-Approved', value: data.autoApproved, color: 'var(--success)' },
+              { label: 'Human-Reviewed', value: data.humanReviewed, color: 'var(--warning)' },
+              { label: 'Pending', value: data.pending, color: 'var(--destructive)' },
             ].map((stage, i) => (
               <div key={stage.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
