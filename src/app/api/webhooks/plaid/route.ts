@@ -191,6 +191,14 @@ export async function POST(request: NextRequest) {
           console.info(
             `[Plaid Webhook] Synced: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
+
+          // Fire-and-forget: trigger auto-categorization for new transactions
+          if (ingestResult.added > 0) {
+            fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cron/auto-categorize`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            }).catch(() => { /* non-blocking */ });
+          }
         } catch (syncError) {
           console.error('[Plaid Webhook] Sync failed:', syncError);
         }
@@ -306,6 +314,14 @@ export async function POST(request: NextRequest) {
           console.info(
             `[Plaid Webhook] ${webhook_code} sync: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
+
+          // Fire-and-forget: trigger auto-categorization for new transactions
+          if (ingestResult.added > 0) {
+            fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cron/auto-categorize`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            }).catch(() => { /* non-blocking */ });
+          }
         } catch (syncError) {
           console.error(`[Plaid Webhook] ${webhook_code} sync failed:`, syncError);
         }
