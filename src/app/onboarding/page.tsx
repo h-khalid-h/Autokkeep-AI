@@ -494,14 +494,15 @@ export default function OnboardingPage() {
           aria-label={`Onboarding progress: step ${currentIndex + 1} of ${STEPS.length}`}
           style={{
             height: '4px', borderRadius: '2px',
-            background: 'var(--bg-tertiary)', overflow: 'hidden',
+            background: 'rgba(255, 255, 255, 0.05)', overflow: 'hidden',
           }}
         >
           <div style={{
             height: '100%', borderRadius: '2px',
             background: 'var(--accent-gradient)',
             width: `${progress}%`,
-            transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: '0 0 10px rgba(0, 245, 255, 0.5)',
           }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
@@ -517,8 +518,9 @@ export default function OnboardingPage() {
             >
               <span style={{ fontSize: '14px' }}>{step.icon}</span>
               <span className="text-caption" style={{
-                fontWeight: i === currentIndex ? 600 : 400,
+                fontWeight: i === currentIndex ? 700 : 400,
                 color: i === currentIndex ? 'var(--text-primary)' : 'var(--text-secondary)',
+                textShadow: i === currentIndex ? '0 0 10px rgba(1, 95, 253, 0.3)' : 'none',
               }}>{step.title}</span>
             </div>
           ))}
@@ -799,10 +801,18 @@ export default function OnboardingPage() {
                       padding: '20px',
                       display: 'flex', alignItems: 'center', gap: '16px',
                       cursor: 'pointer', textAlign: 'left', width: '100%',
-                      border: selectedLedger === ledger.id
-                        ? '2px solid var(--accent-primary)'
-                        : '1px solid var(--border-primary)',
-                      transition: 'border 0.2s ease',
+                      border: '1px solid transparent',
+                      borderColor: selectedLedger === ledger.id
+                        ? 'var(--accent-secondary)'
+                        : 'var(--border-primary)',
+                      boxShadow: selectedLedger === ledger.id
+                        ? '0 0 20px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(1, 95, 253, 0.1)'
+                        : 'none',
+                      background: selectedLedger === ledger.id
+                        ? 'rgba(1, 95, 253, 0.04)'
+                        : 'var(--bg-glass)',
+                      transform: selectedLedger === ledger.id ? 'translateY(-1px)' : 'none',
+                      transition: 'all var(--duration-normal) var(--ease-out)',
                     }}
                   >
                     <span style={{ fontSize: '2rem' }}>{ledger.icon}</span>
@@ -869,10 +879,18 @@ export default function OnboardingPage() {
                       padding: '24px',
                       cursor: channel.available ? 'pointer' : 'not-allowed',
                       textAlign: 'center',
-                      border: selectedChannel === channel.id
-                        ? '2px solid var(--accent-primary)'
-                        : '1px solid var(--border-primary)',
-                      transition: 'border 0.2s ease, opacity 0.2s ease',
+                      border: '1px solid transparent',
+                      borderColor: selectedChannel === channel.id
+                        ? 'var(--accent-secondary)'
+                        : 'var(--border-primary)',
+                      boxShadow: selectedChannel === channel.id
+                        ? '0 0 20px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(1, 95, 253, 0.1)'
+                        : 'none',
+                      background: selectedChannel === channel.id
+                        ? 'rgba(1, 95, 253, 0.04)'
+                        : 'var(--bg-glass)',
+                      transform: selectedChannel === channel.id ? 'translateY(-1px)' : 'none',
+                      transition: 'all var(--duration-normal) var(--ease-out), opacity var(--duration-normal) var(--ease-out)',
                       position: 'relative',
                       opacity: channel.available ? 1 : 0.5,
                     }}

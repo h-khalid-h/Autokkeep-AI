@@ -260,18 +260,26 @@
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
   max-width: 680px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1.6;
 }
 
 .insights-message-user .insights-message-bubble {
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+  border: 1px solid rgba(var(--accent-glow-rgb), 0.3);
   color: white;
   border-bottom-right-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .insights-message-assistant .insights-message-bubble {
-  background: var(--bg-surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--accent-secondary);
   border-bottom-left-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .insights-message-content p {

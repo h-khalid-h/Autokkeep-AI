@@ -11,6 +11,12 @@ Disallow: /onboarding
 Disallow: /transactions
 Disallow: /chart-of-accounts
 Disallow: /account
+Disallow: /admin
+Disallow: /close
+Disallow: /health
+Disallow: /insights
+Disallow: /portfolio
+Disallow: /tax
 Disallow: /api
 Disallow: /auth/callback
 

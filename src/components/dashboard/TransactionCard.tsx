@@ -58,14 +58,11 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
         tabIndex={0}
         aria-label={`Transaction ${transaction.merchant}, ${formattedAmount}, confidence ${transaction.confidence}%`}
         aria-selected={isActive}
-        style={{
-          ...(isExiting
+        style={
+          isExiting
             ? { animation: 'slide-out-left 0.3s var(--ease-out) forwards' }
-            : {}),
-          ...(isSelected
-            ? { borderLeft: '3px solid var(--accent-primary, var(--brand, #1E6FFF))' }
-            : {}),
-        }}
+            : {}
+        }
       >
         <div className="tx-card-header">
           {onToggleSelect && (
