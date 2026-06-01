@@ -57,6 +57,8 @@ function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      timeout: 30_000, // 30 second timeout
+      maxRetries: 2,
     });
   }
   return openaiClient;
@@ -255,6 +257,7 @@ export async function generateMonthlyNarrative(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
+    .neq('status', 'removed')
     .gte('date', currentRange.start)
     .lte('date', currentRange.end)
     .order('date', { ascending: true })
@@ -264,6 +267,7 @@ export async function generateMonthlyNarrative(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
+    .neq('status', 'removed')
     .gte('date', previousRange.start)
     .lte('date', previousRange.end)
     .order('date', { ascending: true })
@@ -416,14 +420,12 @@ export async function generateMonthlyNarrative(
       .from('financial_narratives')
       .upsert({
         entity_id: entityId,
-        year,
-        month,
         period_start: currentRange.start,
         period_end: currentRange.end,
-        narrative_data: narrative,
+        narrative: JSON.stringify(narrative),
         generated_at: narrative.generatedAt,
       }, {
-        onConflict: 'entity_id,year,month',
+        onConflict: 'entity_id,period_start,period_end',
       });
   } catch (error) {
     // Storage failure should not break the response

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
-import { getStripeClient } from '@/lib/stripe';
+import { getStripeClient, PLAN_DB_NAMES } from '@/lib/stripe';
+import type { PlanId } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+
+// Idempotency guard: track recently processed Stripe event IDs
+const processedEventIds = new Set<string>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +32,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // Idempotency: skip if we've already processed this event
+    if (processedEventIds.has(event.id)) {
+      console.info(`[Stripe Webhook] Duplicate event ${event.id} — skipping`);
+      return NextResponse.json({ received: true });
+    }
+    processedEventIds.add(event.id);
+    // Prevent unbounded memory growth
+    if (processedEventIds.size > 1000) {
+      const oldest = processedEventIds.values().next().value;
+      if (oldest) processedEventIds.delete(oldest);
+    }
+
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;
 
@@ -43,7 +59,7 @@ export async function POST(request: NextRequest) {
             .from('organizations')
             .update({
               stripe_customer_id: customerId,
-              plan: session.metadata?.plan_id || 'starter',
+              plan: PLAN_DB_NAMES[session.metadata?.plan_id as PlanId] || session.metadata?.plan_id || 'starter',
               updated_at: new Date().toISOString(),
             })
             .eq('id', orgId);
@@ -51,7 +67,7 @@ export async function POST(request: NextRequest) {
           await writeAuditLog({
             supabase: db,
             entityId: orgId,
-            actorId: 'stripe',
+            actorId: '00000000-0000-0000-0000-000000000000',
             actorType: 'system',
             action: 'create',
             targetType: 'subscription',
@@ -65,7 +81,17 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        const orgId = subscription.metadata?.org_id;
+        let orgId = subscription.metadata?.org_id;
+
+        // Fallback: look up org by stripe_customer_id if metadata is missing
+        if (!orgId && subscription.customer) {
+          const { data: org } = await db
+            .from('organizations')
+            .select('id')
+            .eq('stripe_customer_id', subscription.customer as string)
+            .single();
+          orgId = org?.id;
+        }
 
         if (orgId) {
           const status = subscription.status;
@@ -82,7 +108,17 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        const orgId = subscription.metadata?.org_id;
+        let orgId = subscription.metadata?.org_id;
+
+        // Fallback: look up org by stripe_customer_id if metadata is missing
+        if (!orgId && subscription.customer) {
+          const { data: org } = await db
+            .from('organizations')
+            .select('id')
+            .eq('stripe_customer_id', subscription.customer as string)
+            .single();
+          orgId = org?.id;
+        }
 
         if (orgId) {
           await db
@@ -97,7 +133,7 @@ export async function POST(request: NextRequest) {
           await writeAuditLog({
             supabase: db,
             entityId: orgId,
-            actorId: 'stripe',
+            actorId: '00000000-0000-0000-0000-000000000000',
             actorType: 'system',
             action: 'delete',
             targetType: 'subscription',
@@ -133,7 +169,7 @@ export async function POST(request: NextRequest) {
           await writeAuditLog({
             supabase: db,
             entityId: failedOrg.id,
-            actorId: 'stripe',
+            actorId: '00000000-0000-0000-0000-000000000000',
             actorType: 'system',
             action: 'update',
             targetType: 'subscription',

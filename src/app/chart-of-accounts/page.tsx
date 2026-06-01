@@ -2,21 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
 import { useEntity } from '@/lib/context/EntityContext';
 import Logo from '@/components/ui/Logo';
-
-// ─── Lazy Supabase singleton (never at module level) ────────────────────────
-let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function _getSupabase() {
-  if (!_supabase) {
-    _supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-  }
-  return _supabase;
-}
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Account {
@@ -239,6 +227,7 @@ export default function ChartOfAccountsPage() {
             code: formCode.trim(),
             name: formName.trim(),
             type: formType,
+            description: formDescription,
             is_active: formActive,
           }),
         });
@@ -283,6 +272,7 @@ export default function ChartOfAccountsPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            entityId: selectedEntity?.id,
             code: formCode.trim(),
             name: formName.trim(),
             type: formType,
@@ -299,16 +289,10 @@ export default function ChartOfAccountsPage() {
         }
 
         if (!res.ok) {
-          // Fallback: add locally
-          const newAccount: Account = {
-            id: `local-${Date.now()}`,
-            code: formCode.trim(),
-            name: formName.trim(),
-            type: formType,
-            active: formActive,
-            description: formDescription,
-          };
-          setAccounts(prev => [...prev, newAccount]);
+          const data = await res.json().catch(() => ({}));
+          setFormError(data.error || 'Failed to create account. Please try again.');
+          setIsSaving(false);
+          return;
         } else {
           const data = await res.json();
           if (data.account) {
@@ -319,17 +303,7 @@ export default function ChartOfAccountsPage() {
         }
         closeModal();
       } catch {
-        // Fallback: add locally
-        const newAccount: Account = {
-          id: `local-${Date.now()}`,
-          code: formCode.trim(),
-          name: formName.trim(),
-          type: formType,
-          active: formActive,
-          description: formDescription,
-        };
-        setAccounts(prev => [...prev, newAccount]);
-        closeModal();
+        setFormError('Network error — could not create account. Please try again.');
       } finally {
         setIsSaving(false);
       }
@@ -486,6 +460,7 @@ export default function ChartOfAccountsPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              entityId: selectedEntity?.id,
               code,
               name,
               type: displayType(type),
@@ -498,6 +473,7 @@ export default function ChartOfAccountsPage() {
             if (data.account) {
               importedAccounts.push(mapApiAccount(data.account));
             } else {
+              // No account returned but success — re-fetch will pick it up
               importedAccounts.push({
                 id: `import-${Date.now()}-${i}`,
                 code,
@@ -508,25 +484,11 @@ export default function ChartOfAccountsPage() {
             }
           } else {
             failedImports++;
-            // Fallback: add locally even if API fails
-            importedAccounts.push({
-              id: `import-${Date.now()}-${i}`,
-              code,
-              name,
-              type: displayType(type),
-              active: true,
-            });
+            // Do NOT create phantom local accounts on API failure
           }
         } catch {
           failedImports++;
-          // Fallback: add locally on network error
-          importedAccounts.push({
-            id: `import-${Date.now()}-${i}`,
-            code,
-            name,
-            type: displayType(type),
-            active: true,
-          });
+          // Do NOT create phantom local accounts on network error
         }
       }
 
@@ -534,7 +496,7 @@ export default function ChartOfAccountsPage() {
         setAccounts(prev => [...prev, ...importedAccounts]);
       }
       if (failedImports > 0) {
-        setError(`${failedImports} account(s) could not be saved to the server and were added locally.`);
+        setError(`${failedImports} account(s) could not be saved to the server. Please try importing them again.`);
       }
     };
     reader.readAsText(file);
@@ -568,6 +530,7 @@ export default function ChartOfAccountsPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <ErrorBoundary>
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="dashboard-header">
@@ -1102,5 +1065,6 @@ export default function ChartOfAccountsPage() {
         }
       `}</style>
     </div>
+    </ErrorBoundary>
   );
 }

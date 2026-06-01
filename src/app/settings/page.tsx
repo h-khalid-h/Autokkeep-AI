@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/ui/Logo';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
@@ -42,19 +42,6 @@ interface ConnectionStatus {
   quickbooks: boolean;
   xero: boolean;
   slack: boolean;
-}
-
-// ---- Supabase client (lazy singleton — avoids SSG prerender crash) ----
-
-let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-  }
-  return _supabase;
 }
 
 
@@ -112,7 +99,7 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       setError(null);
-      const supabase = getSupabase();
+      const supabase = createClient();
       // 1. Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -871,7 +858,7 @@ function TeamTab({
     setActionError(null);
 
     try {
-      const supabase = getSupabase();
+      const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       const { error: insertError } = await db
         .from('team_members')
@@ -912,7 +899,7 @@ function TeamTab({
     setActionError(null);
 
     try {
-      const supabase = getSupabase();
+      const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       const { error: deleteError } = await db
         .from('team_members')
@@ -979,7 +966,7 @@ function TeamTab({
           </button>
         </form>
         <p className="text-caption" style={{ marginTop: '8px' }}>
-          💡 Unlimited seats — all plans include unlimited team members at no extra cost.
+          💡 {userRole === 'owner' || userRole === 'admin' ? 'Seat limits vary by plan: Starter (3 seats), Growth (10 seats), Pro (unlimited).' : 'Contact your admin for seat availability.'}
         </p>
       </div>
 
@@ -1125,7 +1112,7 @@ function LocalizationTab({
 
     const loadSettings = async () => {
       try {
-        const supabase = getSupabase();
+        const supabase = createClient();
         const db = supabase as unknown as SupabaseQueryClient;
         const { data: entityData } = await db
           .from('entities')
@@ -1154,7 +1141,7 @@ function LocalizationTab({
     setSaveResult(null);
 
     try {
-      const supabase = getSupabase();
+      const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       const { error: updateError } = await db
         .from('entities')

@@ -5,6 +5,8 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
+const ALLOWED_RETURN_PATHS = ['/dashboard', '/onboarding', '/settings'];
+
 // GET /api/ledger/quickbooks/auth — Start QBO OAuth flow
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +46,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const returnTo = request.nextUrl.searchParams.get('returnTo') || '';
+    const returnToParam = request.nextUrl.searchParams.get('returnTo');
+    const returnTo = returnToParam && ALLOWED_RETURN_PATHS.includes(returnToParam) ? returnToParam : '';
     const statePayload = Buffer.from(JSON.stringify({ entityId, ts: Date.now(), returnTo })).toString('base64');
     const hmacSecret = process.env.CRON_SECRET;
     if (!hmacSecret) {
@@ -102,7 +105,8 @@ export async function POST(request: NextRequest) {
       try {
         const decoded = JSON.parse(Buffer.from(statePayload, 'base64').toString());
         entityId = decoded.entityId;
-        returnTo = decoded.returnTo || '';
+        const rawReturnTo = decoded.returnTo || '';
+        returnTo = rawReturnTo && ALLOWED_RETURN_PATHS.includes(rawReturnTo) ? rawReturnTo : '';
         // Check timestamp freshness (10 min window)
         if (decoded.ts && Date.now() - decoded.ts > 10 * 60 * 1000) {
           return NextResponse.json({ error: 'State parameter expired' }, { status: 400 });

@@ -55,7 +55,7 @@ interface BankConnectionRow {
 // ─── Check Implementations ─────────────────────────────────────────────────
 
 function reconciliationCheck(
-  transactions: TransactionRow[],
+  allTransactions: TransactionRow[],
   bankAccounts: BankAccountRow[]
 ): CloseCheck {
   if (bankAccounts.length === 0) {
@@ -66,8 +66,8 @@ function reconciliationCheck(
     };
   }
 
-  // Sum transaction amounts for the period
-  const bookBalance = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  // Sum ALL transaction amounts to get cumulative book balance (comparable to bank balance)
+  const bookBalance = allTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
   // Sum bank account balances
   const bankBalance = bankAccounts.reduce(
@@ -415,9 +415,23 @@ export async function runMonthEndClose(
     // Historical data is optional
   }
 
+  // Fetch ALL transactions for reconciliation (cumulative book balance vs bank balance)
+  let allTransactions: TransactionRow[] = [];
+  try {
+    const { data: allTxns } = await supabase
+      .from('transactions')
+      .select('id, amount, date, merchant_name, category_ai, category_human, status, document_status')
+      .eq('entity_id', entityId)
+      .neq('status', 'removed');
+    allTransactions = (allTxns || []) as TransactionRow[];
+  } catch {
+    // Non-fatal — reconciliation will use period transactions as fallback
+    allTransactions = txns;
+  }
+
   // Run all checks
   const checks: CloseCheck[] = [
-    reconciliationCheck(txns, bankAccounts),
+    reconciliationCheck(allTransactions, bankAccounts),
     missingReceiptCheck(txns),
     uncategorizedCheck(txns),
     expenseReviewCheck(txns, historicalAvg),

@@ -17,6 +17,7 @@ interface EntityContextValue {
   selectedEntity: EntityItem | null;
   setSelectedEntityId: (id: string) => void;
   isLoading: boolean;
+  error: string | null;
   refresh: () => void;
 }
 
@@ -25,6 +26,7 @@ const EntityContext = createContext<EntityContextValue>({
   selectedEntity: null,
   setSelectedEntityId: () => {},
   isLoading: true,
+  error: null,
   refresh: () => {},
 });
 
@@ -38,9 +40,11 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
   const [entities, setEntities] = useState<EntityItem[]>([]);
   const [selectedEntity, setSelectedEntity] = useState<EntityItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadEntities = useCallback(async () => {
     try {
+      setError(null);
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -81,8 +85,8 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         : null;
       const saved = savedId ? items.find((e) => e.id === savedId) : null;
       setSelectedEntity(saved || items[0] || null);
-    } catch {
-      // Graceful fallback
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load entities');
     } finally {
       setIsLoading(false);
     }
@@ -113,6 +117,7 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         selectedEntity,
         setSelectedEntityId,
         isLoading,
+        error,
         refresh: loadEntities,
       }}
     >

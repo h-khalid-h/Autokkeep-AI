@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ accounts: accounts || [] });
   } catch (error) {
     console.error('[ChartOfAccounts] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to fetch chart of accounts' },
       { status: 500 }
@@ -357,6 +358,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ account });
   } catch (error) {
     console.error('[ChartOfAccounts] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to update account' },
       { status: 500 }
@@ -490,6 +492,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[ChartOfAccounts] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to delete account' },
       { status: 500 }

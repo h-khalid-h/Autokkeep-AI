@@ -50,7 +50,7 @@ export type LedgerProvider = 'quickbooks' | 'xero';
 
 export type LedgerTypeEnum = 'quickbooks' | 'xero' | 'none';
 
-export type SubscriptionPlan = 'starter' | 'growth' | 'pro';
+export type SubscriptionPlan = 'free' | 'starter' | 'smb_growth' | 'cpa_professional' | 'cpa_enterprise';
 
 export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing';
 
@@ -62,7 +62,11 @@ export interface Organization {
   id: string;
   name: string;
   slug: string;
+  stripe_customer_id: string | null;
+  plan: string;
+  subscription_status: string;
   created_at: string;
+  updated_at: string;
   owner_id: string;
 }
 
@@ -74,6 +78,9 @@ export interface Entity {
   tax_id: string | null;
   fiscal_year_end: string | null;
   base_currency: string;
+  locale: string;
+  timezone: string;
+  country: string;
   created_at: string;
 }
 
@@ -89,6 +96,7 @@ export interface BankConnection {
   error_message: string | null;
   last_synced_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface BankAccount {
@@ -130,6 +138,7 @@ export interface Transaction {
   confidence: number | null;
   status: TransactionStatus;
   ai_reasoning: string | null;
+  gl_name: string | null;
   document_status: DocumentStatusType;
   document_url: string | null;
   card_holder: string | null;
@@ -137,8 +146,14 @@ export interface Transaction {
   mcc_code: string | null;
   raw_bank_description: string | null;
   currency: string;
+  base_currency: string;
+  exchange_rate: number;
+  converted_amount: number | null;
   tags: string[] | null;
   aging_days: number;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -186,6 +201,8 @@ export interface AuditLogEntry {
   actor_id: string | null;
   actor_type: ActorType;
   details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 
@@ -257,6 +274,41 @@ export interface CategorizationHistory {
   gl_name: string | null;
   frequency: number;
   last_used: string;
+  created_at: string;
+}
+
+// --- Platform Transformation Tables ---
+
+export interface AiConversation {
+  id: string;
+  entity_id: string;
+  user_id: string;
+  title: string | null;
+  messages: Record<string, unknown>[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinancialNarrative {
+  id: string;
+  entity_id: string;
+  period_start: string;
+  period_end: string;
+  narrative: Record<string, unknown>;
+  generated_at: string;
+  created_at: string;
+}
+
+export interface HealthAlert {
+  id: string;
+  entity_id: string;
+  alert_type: string;
+  severity: string;
+  title: string;
+  description: string;
+  data: Record<string, unknown> | null;
+  is_read: boolean;
+  is_dismissed: boolean;
   created_at: string;
 }
 
@@ -412,6 +464,36 @@ export interface Database {
           last_used?: string;
         },
         Partial<Omit<CategorizationHistory, 'id'>>
+      >;
+      ai_conversations: TableDefinition<
+        AiConversation,
+        Omit<AiConversation, 'id' | 'created_at' | 'updated_at' | 'messages'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          messages?: Record<string, unknown>[];
+        },
+        Partial<Omit<AiConversation, 'id'>>
+      >;
+      financial_narratives: TableDefinition<
+        FinancialNarrative,
+        Omit<FinancialNarrative, 'id' | 'created_at' | 'generated_at'> & {
+          id?: string;
+          created_at?: string;
+          generated_at?: string;
+        },
+        Partial<Omit<FinancialNarrative, 'id'>>
+      >;
+      health_alerts: TableDefinition<
+        HealthAlert,
+        Omit<HealthAlert, 'id' | 'created_at' | 'severity' | 'is_read' | 'is_dismissed'> & {
+          id?: string;
+          created_at?: string;
+          severity?: string;
+          is_read?: boolean;
+          is_dismissed?: boolean;
+        },
+        Partial<Omit<HealthAlert, 'id'>>
       >;
     };
     Enums: {

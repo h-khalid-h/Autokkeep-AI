@@ -15,6 +15,10 @@ import { formatCurrency } from '@/lib/currency/converter';
 import { sendSMS, sendWhatsApp } from './twilio';
 import { writeAuditLog } from '@/lib/audit';
 
+// Module-level idempotency guard (E9)
+let lastRunTimestamp = 0;
+const MIN_RUN_INTERVAL_MS = 60_000; // 1 minute between runs
+
 // ============================================
 // Configuration
 // ============================================
@@ -296,6 +300,14 @@ export async function runReceiptChase(
   supabase: SupabaseQueryClient,
   config: ChaseConfig = DEFAULT_CONFIG
 ): Promise<ChaseReport> {
+  // E9: Idempotency guard — skip if another run started within the last 60s
+  const now = Date.now();
+  if (now - lastRunTimestamp < MIN_RUN_INTERVAL_MS) {
+    console.info('[Chase Agent] Skipping — another run started within the last 60s');
+    return { entityId, totalChased: 0, byChannel: {}, skipped: 0, errors: [], timestamp: new Date().toISOString() };
+  }
+  lastRunTimestamp = now;
+
   const report: ChaseReport = {
     entityId,
     totalChased: 0,
@@ -465,7 +477,44 @@ export async function runReceiptChase(
       }
     }
 
-    // ── Step 6: Send chase messages per cardholder group ─────────────────
+    // ── Step 6: TOCTOU guard — re-check transaction statuses before sending ──
+    // E8: Between the initial query and now, transactions may have been resolved
+    // (e.g., receipt uploaded, status changed). Re-query to avoid duplicate chases.
+    const allGroupTxIds = Array.from(cardholderGroups.values()).flatMap(g => g.transactions.map(tx => tx.id));
+    if (allGroupTxIds.length > 0) {
+      const { data: freshStatuses } = await supabase
+        .from('transactions')
+        .select('id, document_status, status')
+        .in('id', allGroupTxIds);
+
+      const resolvedIds = new Set(
+        (freshStatuses || [])
+          .filter((tx: { id: string; document_status: string; status: string }) =>
+            tx.document_status !== 'missing' || tx.status !== 'approved'
+          )
+          .map((tx: { id: string }) => tx.id)
+      );
+
+      if (resolvedIds.size > 0) {
+        for (const group of cardholderGroups.values()) {
+          group.transactions = group.transactions.filter(tx => {
+            if (resolvedIds.has(tx.id)) {
+              report.skipped++;
+              return false;
+            }
+            return true;
+          });
+        }
+        // Remove groups with no remaining transactions
+        for (const [key, group] of cardholderGroups.entries()) {
+          if (group.transactions.length === 0) {
+            cardholderGroups.delete(key);
+          }
+        }
+      }
+    }
+
+    // ── Step 7: Send chase messages per cardholder group ─────────────────
     for (const group of cardholderGroups.values()) {
       try {
         const result = await sendChaseForGroup(group, supabase, availableConnections);
@@ -485,7 +534,7 @@ export async function runReceiptChase(
       }
     }
 
-    // ── Step 7: Audit log the chase run ─────────────────────────────────
+    // ── Step 8: Audit log the chase run ─────────────────────────────────
     await writeAuditLog({
       supabase,
       entityId,

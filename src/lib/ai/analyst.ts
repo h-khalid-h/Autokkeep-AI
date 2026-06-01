@@ -65,6 +65,8 @@ function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      timeout: 30_000, // 30 second timeout
+      maxRetries: 2,
     });
   }
   return openaiClient;
@@ -101,6 +103,7 @@ async function fetchFinancialContext(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency')
     .eq('entity_id', entityId)
+    .neq('status', 'removed')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: false })

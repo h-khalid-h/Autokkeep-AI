@@ -58,13 +58,23 @@ export async function POST(request: NextRequest) {
     const newStatus = action === 'approve' ? 'approved' : 'removed';
     const now = new Date().toISOString();
 
+    // Build update payload with action-specific fields
+    const updatePayload: Record<string, unknown> = {
+      status: newStatus,
+      updated_at: now,
+    };
+    if (action === 'reject') {
+      updatePayload.deleted_at = now;
+      updatePayload.deleted_by = user.id;
+    }
+    if (action === 'approve') {
+      updatePayload.confidence = 100;
+    }
+
     // Batch update all selected transactions
     const { data: updated, error: updateError } = await db
       .from('transactions')
-      .update({
-        status: newStatus,
-        updated_at: now,
-      })
+      .update(updatePayload)
       .in('id', transactionIds)
       .eq('entity_id', entityId)
       .select('id');

@@ -13,7 +13,7 @@ interface MockTransactionRow {
   date: string;
   category_ai: string | null;
   category_human: string | null;
-  receipt_url: string | null;
+  document_url: string | null;
   status: string;
 }
 
@@ -62,7 +62,7 @@ function makeTx(overrides: Partial<MockTransactionRow> = {}): MockTransactionRow
     date: '2025-06-15',
     category_human: '6200',
     category_ai: 'Software',
-    receipt_url: 'https://storage.example.com/receipt.pdf',
+    document_url: 'https://storage.example.com/receipt.pdf',
     status: 'approved',
     ...overrides,
   };
@@ -222,7 +222,7 @@ describe('analyzeTaxReadiness', () => {
   describe('missing receipt detection', () => {
     it('detects missing receipts for deductible expenses >= $25', async () => {
       const tx = makeTx({
-        receipt_url: null,
+        document_url: null,
         amount: -100,
         category_human: '6200',
       });
@@ -236,7 +236,7 @@ describe('analyzeTaxReadiness', () => {
 
     it('does not flag missing receipts for expenses under $25', async () => {
       const tx = makeTx({
-        receipt_url: null,
+        document_url: null,
         amount: -15,
         category_human: '6200',
       });
@@ -249,7 +249,7 @@ describe('analyzeTaxReadiness', () => {
 
     it('does not flag expenses that have receipts', async () => {
       const tx = makeTx({
-        receipt_url: 'https://storage.example.com/receipt.pdf',
+        document_url: 'https://storage.example.com/receipt.pdf',
         amount: -500,
         category_human: '6200',
       });
@@ -264,7 +264,7 @@ describe('analyzeTaxReadiness', () => {
       const transactions = Array.from({ length: 60 }, (_, i) =>
         makeTx({
           id: `tx-${i}`,
-          receipt_url: null,
+          document_url: null,
           amount: -100,
           category_human: '6200',
         })
@@ -313,7 +313,7 @@ describe('analyzeTaxReadiness', () => {
       const transactions = Array.from({ length: 50 }, (_, i) =>
         makeTx({
           id: `tx-${i}`,
-          receipt_url: 'https://storage.example.com/receipt.pdf',
+          document_url: 'https://storage.example.com/receipt.pdf',
           category_human: '6200',
           amount: -100,
         })
@@ -329,7 +329,7 @@ describe('analyzeTaxReadiness', () => {
       const withReceipts = Array.from({ length: 25 }, (_, i) =>
         makeTx({
           id: `tx-with-${i}`,
-          receipt_url: 'https://example.com/receipt.pdf',
+          document_url: 'https://example.com/receipt.pdf',
           category_human: '6200',
           amount: -100,
         })
@@ -337,7 +337,7 @@ describe('analyzeTaxReadiness', () => {
       const withoutReceipts = Array.from({ length: 25 }, (_, i) =>
         makeTx({
           id: `tx-without-${i}`,
-          receipt_url: null,
+          document_url: null,
           category_human: '6200',
           amount: -100,
         })
@@ -354,7 +354,7 @@ describe('analyzeTaxReadiness', () => {
       const transactions = Array.from({ length: 50 }, (_, i) =>
         makeTx({
           id: `tx-${i}`,
-          receipt_url: 'https://example.com/receipt.pdf',
+          document_url: 'https://example.com/receipt.pdf',
           category_human: null,
           category_ai: null,
           merchant_name: 'Unknown',
@@ -372,7 +372,7 @@ describe('analyzeTaxReadiness', () => {
 
   describe('recommendations', () => {
     it('recommends uploading missing receipts', async () => {
-      const tx = makeTx({ receipt_url: null, amount: -100, category_human: '6200' });
+      const tx = makeTx({ document_url: null, amount: -100, category_human: '6200' });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -387,7 +387,7 @@ describe('analyzeTaxReadiness', () => {
       const transactions = Array.from({ length: 50 }, (_, i) =>
         makeTx({
           id: `tx-${i}`,
-          receipt_url: 'https://example.com/receipt.pdf',
+          document_url: 'https://example.com/receipt.pdf',
           category_human: '6200',
           amount: -100,
         })

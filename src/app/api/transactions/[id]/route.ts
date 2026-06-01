@@ -176,7 +176,24 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
     if (glName !== undefined) updateData.gl_name = glName;
     if (notes !== undefined) updateData.description = notes;
-    if (receiptUrl !== undefined) updateData.document_url = receiptUrl;
+    if (receiptUrl !== undefined) {
+      // Validate URL format (must be HTTPS)
+      try {
+        const url = new URL(receiptUrl);
+        if (url.protocol !== 'https:') {
+          return NextResponse.json(
+            { error: 'Receipt URL must use HTTPS protocol' },
+            { status: 400 }
+          );
+        }
+        updateData.document_url = receiptUrl;
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid receipt URL format' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Handle status changes — approval sets confidence to 100
     if (newStatus === 'approved') {

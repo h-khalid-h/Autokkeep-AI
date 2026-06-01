@@ -174,6 +174,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limit: 30 requests per minute per IP
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'ai-chat-get' });
+    if (limited) return limited;
+
     const supabase = await createServerClient();
     const db = supabase as unknown as SupabaseQueryClient;
 
@@ -224,6 +228,22 @@ export async function GET(request: NextRequest) {
 
     // If a specific conversation ID is requested, return its messages
     if (conversationId) {
+      // Verify the conversation belongs to this entity and user (IDOR prevention)
+      const { data: conversation } = await db
+        .from('ai_conversations')
+        .select('id')
+        .eq('id', conversationId)
+        .eq('entity_id', entityId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!conversation) {
+        return NextResponse.json(
+          { error: 'Conversation not found' },
+          { status: 404 }
+        );
+      }
+
       const { data: messages } = await db
         .from('ai_conversation_messages')
         .select('id, role, content, data_citations, suggested_follow_ups, confidence, created_at')

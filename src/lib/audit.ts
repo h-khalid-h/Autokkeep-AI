@@ -79,8 +79,8 @@ interface AuditLogEntry {
  */
 export async function writeAuditLog({
   supabase,
-  entityId = 'system',
-  actorId = 'system',
+  entityId = '00000000-0000-0000-0000-000000000000',
+  actorId = '00000000-0000-0000-0000-000000000000',
   actorType,
   action,
   targetType,

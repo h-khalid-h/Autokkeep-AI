@@ -31,12 +31,15 @@ const CURRENCY_CONFIG: Record<string, { symbol: string; locale: string; decimals
  * Format a monetary amount with proper locale and currency symbol.
  * Uses Intl.NumberFormat for locale-aware display.
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  const config = CURRENCY_CONFIG[currency.toUpperCase()];
+export function formatCurrency(amount: number, currency?: string | null): string {
+  // E11: Guard against empty/undefined currency which causes Intl.NumberFormat RangeError
+  const safeCurrency = currency && currency.trim() ? currency.trim().toUpperCase() : 'USD';
+
+  const config = CURRENCY_CONFIG[safeCurrency];
   if (config) {
     return new Intl.NumberFormat(config.locale, {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: safeCurrency,
       minimumFractionDigits: config.decimals,
       maximumFractionDigits: config.decimals,
     }).format(amount);
@@ -44,7 +47,7 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
   // Fallback for unknown currencies
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency.toUpperCase(),
+    currency: safeCurrency,
   }).format(amount);
 }
 

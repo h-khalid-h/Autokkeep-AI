@@ -171,6 +171,11 @@ export default function OnboardingPage() {
   // ── Step 1: Create entity in Supabase ──────────────────────────────────
   const handleCreateEntity = async () => {
     if (!entityName.trim()) return;
+    // C14: Prevent duplicate entity creation if we already have one
+    if (entityId) {
+      goNext();
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -198,9 +203,13 @@ export default function OnboardingPage() {
         orgId = existingMembership.org_id;
       } else {
         // Create a new organization
+        // E16: Append random suffix to slug to prevent collisions
+        const baseSlug = `${entityName} Org`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const uniqueSuffix = Math.random().toString(36).substring(2, 8);
+        const slug = `${baseSlug}-${uniqueSuffix}`;
         const { data: newOrg, error: orgError } = await (supabase as unknown as SupabaseQueryClient)
           .from('organizations')
-          .insert({ name: `${entityName} Org`, slug: `${entityName} Org`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''), owner_id: user.id })
+          .insert({ name: `${entityName} Org`, slug, owner_id: user.id })
           .select('id')
           .single();
 

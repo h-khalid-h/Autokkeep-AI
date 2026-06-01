@@ -343,19 +343,8 @@ CREATE POLICY "audit_log_insert" ON audit_log
     entity_id IN (SELECT auth_user_entity_ids())
   );
 
-DROP POLICY IF EXISTS "audit_log_update" ON audit_log;
-CREATE POLICY "audit_log_update" ON audit_log
-  FOR UPDATE USING (
-    entity_id IN (SELECT auth_user_entity_ids())
-    AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
-  );
-
-DROP POLICY IF EXISTS "audit_log_delete" ON audit_log;
-CREATE POLICY "audit_log_delete" ON audit_log
-  FOR DELETE USING (
-    entity_id IN (SELECT auth_user_entity_ids())
-    AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
-  );
+-- Audit log is IMMUTABLE: no UPDATE or DELETE policies
+-- This is required for SOC 2 / SOX compliance
 
 
 -- ===========================================================================

@@ -35,3 +35,10 @@ export const PLAN_PRICES = {
 } as const;
 
 export type PlanId = keyof typeof PLAN_PRICES;
+
+// Map Stripe plan IDs to SQL subscription_plan enum values
+export const PLAN_DB_NAMES: Record<PlanId, string> = {
+  starter_monthly: 'starter',
+  growth_monthly: 'smb_growth',
+  pro_monthly: 'cpa_professional',
+} as const;

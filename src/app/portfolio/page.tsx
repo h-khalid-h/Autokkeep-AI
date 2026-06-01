@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -73,6 +74,7 @@ function getLedgerStatusBadge(status: EntityStats['ledgerStatus']): { label: str
 
 export default function PortfolioPage() {
   const { setSelectedEntityId } = useEntity();
+  const router = useRouter();
   const [entities, setEntities] = useState<EntityStats[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,13 +149,9 @@ export default function PortfolioPage() {
     }
   };
 
-  const _getSortIndicator = (field: SortField) => {
-    if (sortField !== field) return '';
-    return sortDir === 'asc' ? ' ↑' : ' ↓';
-  };
-
   const handleEntityClick = (entityId: string) => {
     setSelectedEntityId(entityId);
+    router.push('/dashboard');
   };
 
   // ─── Loading state ──────────────────────────────────────────────────────────

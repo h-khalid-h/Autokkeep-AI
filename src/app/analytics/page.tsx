@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
 import Logo from '@/components/ui/Logo';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
 
@@ -82,7 +83,7 @@ export default function AnalyticsPage() {
 
         const now = Date.now();
         const ranges: Record<TimeRange, number> = {
-          '7d': 7, '30d': 30, '90d': 90, 'ytd': 365,
+          '7d': 7, '30d': 30, '90d': 90, 'ytd': Math.max(1, Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000)),
         };
 
         const updated = { ...EMPTY_DATA };
@@ -184,6 +185,7 @@ export default function AnalyticsPage() {
   const maxVolume = Math.max(...data.dailyVolume, 1);
 
   return (
+    <ErrorBoundary>
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       {/* Header */}
       <header className="dashboard-header">
@@ -266,11 +268,11 @@ export default function AnalyticsPage() {
 
           <div className="card-elevated" style={{ padding: '24px' }}>
             <div className="text-caption">Avg Processing Time</div>
-            <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px' }}>
-              {data.avgProcessingTime}s
+            <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px', color: 'var(--text-secondary)' }}>
+              N/A
             </div>
-            <div className="text-caption" style={{ color: 'var(--status-success)' }}>
-              Target: &lt;10s ✓
+            <div className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
+              Not yet tracked
             </div>
           </div>
 
@@ -432,5 +434,6 @@ export default function AnalyticsPage() {
         </div>
       </main>
     </div>
+    </ErrorBoundary>
   );
 }

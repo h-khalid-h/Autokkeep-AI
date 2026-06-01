@@ -27,7 +27,7 @@ interface TransactionRow {
   date: string;
   category_ai: string | null;
   category_human: string | null;
-  receipt_url: string | null;
+  document_url: string | null;
   status: string;
 }
 
@@ -125,7 +125,6 @@ const TAX_CATEGORIES: TaxCategory[] = [
 
 function categorizeTransaction(tx: TransactionRow): { category: string; deductible: boolean } {
   const glCode = tx.category_human || tx.category_ai || '';
-  const glLabel = (tx.category_ai || '').toLowerCase();
   const merchant = (tx.merchant_name || '').toLowerCase();
 
   // 1. Try GL code prefix matching first (most reliable)
@@ -138,7 +137,7 @@ function categorizeTransaction(tx: TransactionRow): { category: string; deductib
   }
 
   // 2. Fall back to keyword matching on GL label and merchant name
-  const searchText = `${glLabel} ${merchant}`;
+  const searchText = merchant;
   for (const cat of TAX_CATEGORIES) {
     for (const keyword of cat.keywords) {
       if (searchText.includes(keyword)) {
@@ -170,9 +169,9 @@ export async function analyzeTaxReadiness(
 
   const { data: transactions, error } = await db
     .from('transactions')
-    .select('id, merchant_name, amount, date, category_ai, category_human, receipt_url, status')
+    .select('id, merchant_name, amount, date, category_ai, category_human, document_url, status')
     .eq('entity_id', entityId)
-    .in('status', ['approved', 'auto_approved', 'synced'])
+    .in('status', ['approved', 'auto_categorized', 'synced'])
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: false });
@@ -186,7 +185,7 @@ export async function analyzeTaxReadiness(
 
   // Filter to expense transactions (negative amounts or positive debits)
   // In many systems expenses are stored as positive amounts
-  const expenses = txList.filter((tx: TransactionRow) => Math.abs(tx.amount) > 0);
+  const expenses = txList.filter((tx: TransactionRow) => tx.amount < 0);
 
   // Categorize each transaction
   const categoryMap = new Map<string, { amount: number; count: number; deductible: boolean }>();
@@ -215,7 +214,7 @@ export async function analyzeTaxReadiness(
     }
 
     // Track receipt compliance
-    const hasReceipt = !!tx.receipt_url;
+    const hasReceipt = !!tx.document_url;
     if (hasReceipt) {
       totalWithReceipts++;
       if (deductible) deductibleWithReceipts++;

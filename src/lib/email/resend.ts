@@ -7,6 +7,13 @@
  */
 
 import { Resend } from 'resend';
+import { formatCurrency } from '@/lib/currency/converter';
+
+// ─── HTML Sanitization ──────────────────────────────────────────────────────────
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // Lazy-init singleton
 let _resend: Resend | null = null;
@@ -35,6 +42,7 @@ export interface DigestEmailData {
   totalValue: number;
   escrowCount: number;
   reviewCount: number;
+  currency?: string;
   topItems: Array<{
     merchantName: string;
     amount: number;
@@ -51,6 +59,7 @@ export interface AlertEmailData {
   reasoning: string;
   approveUrl: string;
   rejectUrl: string;
+  currency?: string;
 }
 
 // ─── Send Functions ─────────────────────────────────────────────────────────────
@@ -65,8 +74,8 @@ export async function sendDigestEmail(data: DigestEmailData): Promise<{ success:
     const topItemsHtml = data.topItems
       .map(item => `
         <tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${item.merchantName}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${Math.abs(item.amount).toFixed(2)}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.merchantName)}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(Math.abs(item.amount), data.currency || 'USD')}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">
             <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${item.status === 'escrow_suspense' ? '#fef3c7' : '#fecaca'}; color: ${item.status === 'escrow_suspense' ? '#92400e' : '#991b1b'};">
               ${item.status === 'escrow_suspense' ? 'Escrow' : 'Review'}
@@ -92,7 +101,7 @@ export async function sendDigestEmail(data: DigestEmailData): Promise<{ success:
             <!-- Header -->
             <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 24px 32px; color: white;">
               <h1 style="margin: 0; font-size: 20px; font-weight: 600;">📊 Weekly Digest</h1>
-              <p style="margin: 4px 0 0; opacity: 0.8; font-size: 14px;">${data.entityName} — Week of ${data.digestDate}</p>
+              <p style="margin: 4px 0 0; opacity: 0.8; font-size: 14px;">${escapeHtml(data.entityName)} — Week of ${data.digestDate}</p>
             </div>
 
             <!-- Summary Cards -->
@@ -180,7 +189,7 @@ export async function sendAlertEmail(data: AlertEmailData): Promise<{ success: b
     const { data: result, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: data.to,
-      subject: `⚠️ Review Required: $${Math.abs(data.amount).toFixed(2)} — ${data.merchantName}`,
+      subject: `⚠️ Review Required: ${formatCurrency(Math.abs(data.amount), data.currency || 'USD')} — ${escapeHtml(data.merchantName)}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -201,8 +210,8 @@ export async function sendAlertEmail(data: AlertEmailData): Promise<{ success: b
             <div style="padding: 24px;">
               <!-- Transaction Details -->
               <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                <div style="font-size: 24px; font-weight: 700; color: #1e293b;">$${Math.abs(data.amount).toFixed(2)}</div>
-                <div style="font-size: 15px; color: #374151; margin-top: 4px;">${data.merchantName}</div>
+                <div style="font-size: 24px; font-weight: 700; color: #1e293b;">${formatCurrency(Math.abs(data.amount), data.currency || 'USD')}</div>
+                <div style="font-size: 15px; color: #374151; margin-top: 4px;">${escapeHtml(data.merchantName)}</div>
               </div>
 
               <!-- Risk Badge -->

@@ -73,8 +73,8 @@ export function decryptToken(ciphertext: string): string {
 
   const key = getEncryptionKey();
   if (!key) {
-    console.warn('[Crypto] Cannot decrypt token: TOKEN_ENCRYPTION_KEY not set');
-    return ciphertext;
+    // Don't return the encrypted blob — it would be useless and could leak
+    throw new Error('Cannot decrypt token: TOKEN_ENCRYPTION_KEY not set');
   }
 
   const packed = Buffer.from(ciphertext.slice(4), 'base64');

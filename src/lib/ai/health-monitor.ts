@@ -196,7 +196,7 @@ function checkDuplicatePayments(
       const otherVendor = (other.merchant_name || '').toLowerCase().trim();
       if (
         otherVendor === vendor &&
-        Math.abs(tx.amount) === Math.abs(other.amount)
+        Math.round(Math.abs(tx.amount) * 100) === Math.round(Math.abs(other.amount) * 100)
       ) {
         const key = `${tx.id}-${other.id}`;
         const reverseKey = `${other.id}-${tx.id}`;
@@ -257,6 +257,7 @@ function checkSubscriptionWaste(
 
     // Check if amounts are within 10% tolerance of average
     const avg = data.amounts.reduce((s, a) => s + a, 0) / data.amounts.length;
+    if (avg === 0) continue; // Skip if average is zero
     const allSimilar = data.amounts.every(
       (a) => Math.abs(a - avg) / avg < 0.10
     );
@@ -550,30 +551,45 @@ export async function runHealthCheck(
       .eq('is_dismissed', false)
       .lt('created_at', oneDayAgo.toISOString());
 
-    // Insert new alerts
+    // Insert new alerts (with deduplication — skip if a matching alert_type already exists and is active)
     if (alerts.length > 0) {
-      const rows = alerts.map((alert) => ({
-        entity_id: alert.entityId,
-        alert_type: alert.alertType,
-        severity: alert.severity,
-        title: alert.title,
-        description: alert.description,
-        data: alert.data,
-        is_read: false,
-        is_dismissed: false,
-      }));
-
-      const { data: inserted, error: insertError } = await supabase
+      // Fetch existing active alerts to deduplicate
+      const { data: existingAlerts } = await supabase
         .from('health_alerts')
-        .insert(rows)
-        .select('id');
+        .select('alert_type')
+        .eq('entity_id', entityId)
+        .eq('is_dismissed', false);
 
-      if (insertError) {
-        console.error('[HealthMonitor] Failed to insert alerts:', insertError);
-      } else if (inserted) {
-        // Attach IDs back to the alerts
-        for (let i = 0; i < inserted.length && i < alerts.length; i++) {
-          alerts[i].id = (inserted[i] as { id: string }).id;
+      const existingTypes = new Set(
+        (existingAlerts || []).map((a: { alert_type: string }) => a.alert_type)
+      );
+
+      const newAlerts = alerts.filter(a => !existingTypes.has(a.alertType));
+
+      if (newAlerts.length > 0) {
+        const rows = newAlerts.map((alert) => ({
+          entity_id: alert.entityId,
+          alert_type: alert.alertType,
+          severity: alert.severity,
+          title: alert.title,
+          description: alert.description,
+          data: alert.data,
+          is_read: false,
+          is_dismissed: false,
+        }));
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('health_alerts')
+          .insert(rows)
+          .select('id');
+
+        if (insertError) {
+          console.error('[HealthMonitor] Failed to insert alerts:', insertError);
+        } else if (inserted) {
+          // Attach IDs back to the alerts
+          for (let i = 0; i < inserted.length && i < newAlerts.length; i++) {
+            newAlerts[i].id = (inserted[i] as { id: string }).id;
+          }
         }
       }
     }
