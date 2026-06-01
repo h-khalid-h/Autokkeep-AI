@@ -24,7 +24,7 @@ const sections = [
       },
       {
         subtitle: 'Financial Data',
-        text: 'To provide bookkeeping services, we access your financial data through secure integrations, including bank transactions, invoices, receipts, and accounting records. This data is essential for our core service functionality.',
+        text: 'To provide our financial operations services, we access your financial data through secure integrations, including bank transactions, invoices, receipts, and accounting records. This data is essential for our core service functionality.',
       },
       {
         subtitle: 'Automatically Collected Data',
@@ -45,7 +45,7 @@ const sections = [
     content: [
       {
         subtitle: 'Service Delivery',
-        text: 'We use your financial data to perform automated bookkeeping, categorize transactions, generate reports, reconcile accounts, and provide AI-driven financial insights.',
+        text: 'We use your financial data to perform automated transaction categorization, generate reports, reconcile accounts, monitor financial health, and provide AI-driven financial insights.',
       },
       {
         subtitle: 'Service Improvement',
@@ -54,6 +54,14 @@ const sections = [
       {
         subtitle: 'Communication',
         text: 'We use your contact information to send service notifications, billing updates, security alerts, and — with your consent — product updates and educational content.',
+      },
+      {
+        subtitle: 'AI Chat Conversations',
+        text: 'When you use the AI Financial Analyst chat feature, your conversation history is stored to maintain context across sessions and improve response quality. This data is associated with your account and entity. You can delete conversation history at any time through the Insights page.',
+      },
+      {
+        subtitle: 'Financial Health Alerts',
+        text: 'Our AI Health Monitoring system generates alerts about anomalies, duplicate payments, and cash flow changes. These alerts and their associated metadata are stored in your account to provide historical tracking and audit trails.',
       },
     ],
   },
@@ -77,7 +85,7 @@ const sections = [
       },
       {
         subtitle: 'OpenAI',
-        text: 'We use OpenAI\'s API to power our AI bookkeeping features, including transaction categorization and financial insights. Data sent to OpenAI is processed per their API data usage policy and is not used to train their models.',
+        text: 'We use OpenAI\'s API to power our AI financial operations features, including transaction categorization, financial health monitoring, and conversational financial insights. Data sent to OpenAI is processed per their API data usage policy and is not used to train their models.',
       },
     ],
   },

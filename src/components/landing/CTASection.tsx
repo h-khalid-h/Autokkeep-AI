@@ -38,7 +38,7 @@ export default function CTASection() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Early Access Request', email, message: 'Requested early access via landing page CTA', source: 'cta' }),
+        body: JSON.stringify({ name: 'Free Trial Request', email, message: 'Requested free trial via landing page CTA', source: 'cta' }),
       });
 
       if (!res.ok) {
@@ -58,34 +58,51 @@ export default function CTASection() {
     <section className="cta-section section" id="cta" ref={sectionRef}>
       <div className="container">
         <h2 className="cta-title animate-on-scroll">
-          Join the <span className="text-gradient">Autonomous Future</span> of Finance
+          Stop Guessing. <span className="text-gradient">Start Understanding.</span>
         </h2>
         <p className="cta-subtitle animate-on-scroll delay-1">
-          Limited early access for CPA firms and high-growth startups. Be among the first 50 firms to eliminate manual bookkeeping forever.
+          Join thousands of small businesses that finally understand their finances. Get started in minutes — no accounting knowledge required.
         </p>
 
         {!submitted ? (
-          <form className="cta-form animate-on-scroll delay-2" onSubmit={handleSubmit}>
-            <input
-              type="email"
-              className="input input-lg"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={submitting}
-              aria-label="Email address"
-              id="cta-email-input"
-            />
-            <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Request Access'}
-            </button>
+          <div className="animate-on-scroll delay-2">
+            <form className="cta-form" onSubmit={handleSubmit}>
+              <input
+                type="email"
+                className="input input-lg"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={submitting}
+                aria-label="Email address"
+                id="cta-email-input"
+              />
+              <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Start Free'}
+              </button>
+            </form>
             {submitError && (
-              <p style={{ color: 'var(--error, #ef4444)', fontSize: '0.875rem', marginTop: '8px' }}>
+              <p style={{ color: 'var(--error, #ef4444)', fontSize: '0.875rem', marginTop: '8px', textAlign: 'center' }}>
                 {submitError}
               </p>
             )}
-          </form>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '24px',
+              marginTop: '16px',
+              flexWrap: 'wrap',
+            }}>
+              <a
+                href="/contact"
+                className="btn btn-secondary"
+                style={{ fontSize: '0.875rem' }}
+              >
+                Schedule a Demo
+              </a>
+            </div>
+          </div>
         ) : (
           <div className="animate-on-scroll" style={{
             padding: '24px 32px',
@@ -97,16 +114,16 @@ export default function CTASection() {
             animation: 'slide-up-fade 0.3s ease forwards',
           }}>
             <p style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--success)', marginBottom: '4px' }}>
-              ✓ You&apos;re on the list!
+              ✓ You&apos;re in!
             </p>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              We&apos;ll reach out within 48 hours to schedule your personalized data audit demo.
+              Check your inbox — we&apos;ve sent you a link to set up your account and connect your first bank. Your 14-day free trial starts now.
             </p>
           </div>
         )}
 
         <p className="cta-note animate-on-scroll delay-3">
-          No credit card required · Free 60-day pilot · 3 entities included
+          No credit card required · 14-day free trial · Cancel anytime
         </p>
       </div>
     </section>

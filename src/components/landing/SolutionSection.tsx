@@ -5,28 +5,51 @@ import Logo from '@/components/ui/Logo';
 
 const solutions = [
   {
-    icon: '💬',
-    title: 'Zero-Chase Receipt Agent',
-    description: 'The moment a corporate card is swiped, Autokkeep pings the employee via Slack, Teams, or WhatsApp with a sandboxed interactive card. Receipts are captured at the point of sale — no chasing, no nagging, no delays.',
-    tag: 'Eliminates 95% of receipt chasing',
+    icon: '🤖',
+    title: 'AI Bookkeeping',
+    description: 'Bank sync, categorization, receipt matching — all automatic. Connect your accounts once, and Autokkeep continuously keeps your books accurate and up-to-date without any manual effort.',
+    tag: 'Eliminates manual data entry',
   },
   {
-    icon: '🧠',
-    title: 'Dual-Engine AI Categorization',
-    description: 'Recurring transactions hit our deterministic engine — zero AI cost, 100% accuracy. Novel expenses route through our fine-tuned financial LLM with confidence scoring. The AI proposes; your rules decide.',
-    tag: '60% of transactions at zero AI cost',
+    icon: '💬',
+    title: 'AI Financial Analyst',
+    description: 'Ask any question about your finances in plain English. "Why are expenses up?" "Am I profitable this quarter?" Get instant, data-backed answers without waiting for your accountant.',
+    tag: 'Answers in seconds, not days',
+  },
+  {
+    icon: '🛡️',
+    title: 'Financial Health Monitoring',
+    description: 'AI watches for anomalies, duplicate payments, unusual charges, and cash flow issues 24/7. Get proactive alerts before small problems become expensive surprises.',
+    tag: 'Real-time anomaly detection',
   },
   {
     icon: '📊',
-    title: 'Continuous Operational Close',
-    description: 'Cash, expenses, and vendor bills reconcile in real-time. Your P&L and cash flow are accurate to the hour. Period-end accruals get a structured review wizard — honest about what needs human judgment.',
-    tag: 'Real-time financial clarity',
+    title: 'AI Month-End Close',
+    description: 'Reconciliation, missing receipt detection, and profitability summaries — automated. What used to take weeks now happens continuously, with a clean review ready when you need it.',
+    tag: 'Continuous close, not monthly panic',
+  },
+  {
+    icon: '📋',
+    title: 'Tax Readiness',
+    description: 'Automatic deduction detection, expense organization by tax category, and a complete audit trail. When tax season arrives, you\'re already prepared — no scrambling required.',
+    tag: 'Always audit-ready',
+  },
+];
+
+const chatMessages = [
+  {
+    role: 'user' as const,
+    text: 'Why are expenses higher this month?',
+  },
+  {
+    role: 'assistant' as const,
+    text: 'Software expenses increased $640 (42%) due to 3 new subscriptions: Figma ($45/mo), Linear ($10/mo), and Vercel Pro ($20/mo). Your total software spend is now $2,167/mo — the highest in 6 months. Want me to break down all subscription costs? 📊',
   },
 ];
 
 export default function SolutionSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showResponse, setShowResponse] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -54,18 +77,18 @@ export default function SolutionSection() {
             <span>🚀</span> The Solution
           </div>
           <h2 className="section-title animate-on-scroll delay-1">
-            A System of <span className="text-gradient">Action</span>, Not Record
+            Your Complete AI <span className="text-gradient">Finance Team</span>
           </h2>
           <p className="section-subtitle animate-on-scroll delay-2">
-            Autokkeep doesn&apos;t wait for you to tell it what to do. It actively hunts down missing data, categorizes with context, and keeps your ledger permanently audit-ready.
+            Five intelligent modules working together to give you financial clarity, control, and confidence — without the complexity.
           </p>
         </div>
 
-        <div className="solution-grid">
+        <div className="solution-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
           {solutions.map((solution, index) => (
             <div
               key={solution.title}
-              className={`solution-card animate-on-scroll delay-${index + 1}`}
+              className={`solution-card animate-on-scroll delay-${Math.min(index + 1, 4)}`}
             >
               <div className="solution-icon">{solution.icon}</div>
               <h3 className="solution-title">{solution.title}</h3>
@@ -77,11 +100,11 @@ export default function SolutionSection() {
           ))}
         </div>
 
-        {/* Slack Mockup */}
+        {/* AI Chat Mockup */}
         <div className="animate-on-scroll delay-2">
           <div className="section-header" style={{ marginBottom: '32px' }}>
             <h3 className="text-h3">See It In Action</h3>
-            <p className="section-subtitle">How Autokkeep captures receipts without the chase</p>
+            <p className="section-subtitle">Ask your finances anything — get instant, intelligent answers</p>
           </div>
 
           <div className="slack-mockup">
@@ -89,56 +112,71 @@ export default function SolutionSection() {
               <Logo size={36} />
               <div>
                 <div className="slack-name">
-                  Autokkeep Agent <span className="slack-badge-bot">BOT</span>
+                  Autokkeep AI <span className="slack-badge-bot">AI</span>
                 </div>
-                <div className="text-caption">#expenses</div>
+                <div className="text-caption">Financial Assistant</div>
               </div>
             </div>
             <div className="slack-body">
-              <div className="slack-message">
-                Hey <strong>@Sarah</strong> 👋 — detected a <strong>$42.50</strong> transaction at <strong>Blue Bottle Coffee</strong> on your card ending in 7712.
-              </div>
-              <div className="slack-options">
-                <button
-                  className={`slack-option ${selectedOption === 0 ? 'selected' : ''}`}
-                  onClick={() => setSelectedOption(0)}
-                  aria-label="Categorize as Client Meeting"
-                >
-                  <span className="slack-option-radio" />
-                  <span>☕ Client Meeting → <em>Business Meals & Entertainment</em></span>
-                </button>
-                <button
-                  className={`slack-option ${selectedOption === 1 ? 'selected' : ''}`}
-                  onClick={() => setSelectedOption(1)}
-                  aria-label="Categorize as Team Lunch"
-                >
-                  <span className="slack-option-radio" />
-                  <span>🍕 Team Lunch → <em>Employee Welfare</em></span>
-                </button>
-                <button
-                  className={`slack-option ${selectedOption === 2 ? 'selected' : ''}`}
-                  onClick={() => setSelectedOption(2)}
-                  aria-label="Upload receipt"
-                >
-                  <span className="slack-option-radio" />
-                  <span>📎 Upload Receipt — <em>Drop file here</em></span>
-                </button>
-              </div>
-              {selectedOption !== null && (
+              {/* User message */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginBottom: '16px',
+              }}>
                 <div style={{
-                  marginTop: '16px',
                   padding: '12px 16px',
-                  background: 'rgba(34, 197, 94, 0.08)',
-                  border: '1px solid rgba(34, 197, 94, 0.2)',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  color: 'hsl(142, 71%, 45%)',
+                  background: 'var(--accent-primary)',
+                  borderRadius: '16px 16px 4px 16px',
+                  fontSize: '0.9375rem',
+                  color: '#fff',
+                  maxWidth: '80%',
+                }}>
+                  {chatMessages[0].text}
+                </div>
+              </div>
+
+              {/* AI response */}
+              {!showResponse ? (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <button
+                    onClick={() => setShowResponse(true)}
+                    style={{
+                      padding: '12px 20px',
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '16px 16px 16px 4px',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    aria-label="Show AI response"
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>🤖</span>
+                    Click to see Autokkeep&apos;s response...
+                  </button>
+                </div>
+              ) : (
+                <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  justifyContent: 'flex-start',
                   animation: 'slide-up-fade 0.3s ease forwards',
                 }}>
-                  <span>✓</span> Got it! Transaction categorized and matched to bank feed. No further action needed.
+                  <div style={{
+                    padding: '16px 20px',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '16px 16px 16px 4px',
+                    fontSize: '0.9375rem',
+                    color: 'var(--text-primary)',
+                    maxWidth: '85%',
+                    lineHeight: 1.6,
+                  }}>
+                    {chatMessages[1].text}
+                  </div>
                 </div>
               )}
             </div>

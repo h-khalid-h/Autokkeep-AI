@@ -42,6 +42,66 @@ export async function POST(request: NextRequest) {
     // Strip whatsapp: prefix for lookup
     const phoneNumber = message.from.replace('whatsapp:', '');
 
+    // ── Handle opt-out keywords ─────────────────────────────────────────
+    const bodyLower = message.body.toLowerCase().trim();
+    if (['stop', 'unsubscribe', 'opt out', 'optout', 'quit'].includes(bodyLower)) {
+      // Find the entity associated with this phone number
+      const { data: lastRequest } = await db
+        .from('receipt_requests')
+        .select('transaction_id')
+        .eq('channel_type', 'whatsapp')
+        .eq('channel_user_id', phoneNumber)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      let entityId = 'unknown';
+      if (lastRequest) {
+        const { data: tx } = await db
+          .from('transactions')
+          .select('entity_id')
+          .eq('id', lastRequest.transaction_id)
+          .single();
+        if (tx) entityId = tx.entity_id;
+      }
+
+      await db.from('chase_opt_outs').upsert(
+        {
+          phone_number: phoneNumber,
+          entity_id: entityId,
+          opted_out: true,
+          opted_out_at: new Date().toISOString(),
+          channel_type: 'whatsapp',
+        },
+        { onConflict: 'phone_number,entity_id' }
+      );
+
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>You've been unsubscribed from Autokkeep receipt reminders. Reply "start" to re-subscribe.</Message>
+</Response>`;
+      return new NextResponse(twiml, {
+        headers: { 'Content-Type': 'application/xml' },
+      });
+    }
+
+    // ── Handle re-subscribe ─────────────────────────────────────────────
+    if (['start', 'subscribe', 'opt in', 'optin', 'resume'].includes(bodyLower)) {
+      await db
+        .from('chase_opt_outs')
+        .update({ opted_out: false, opted_out_at: null })
+        .eq('phone_number', phoneNumber)
+        .eq('channel_type', 'whatsapp');
+
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Welcome back! You'll receive receipt reminders from Autokkeep again.</Message>
+</Response>`;
+      return new NextResponse(twiml, {
+        headers: { 'Content-Type': 'application/xml' },
+      });
+    }
+
     // Find pending receipt request
     const { data: receiptRequest } = await db
       .from('receipt_requests')
@@ -153,6 +213,7 @@ export async function POST(request: NextRequest) {
 
       case 'receipt': {
         if (userResponse.mediaUrls.length > 0) {
+          // Mark this request as responded
           await db
             .from('receipt_requests')
             .update({
@@ -161,6 +222,17 @@ export async function POST(request: NextRequest) {
               responded_at: new Date().toISOString(),
             })
             .eq('id', receiptRequest.id);
+
+          // Close out any other pending chase requests for this transaction
+          await db
+            .from('receipt_requests')
+            .update({
+              status: 'responded',
+              responded_at: new Date().toISOString(),
+            })
+            .eq('transaction_id', receiptRequest.transaction_id)
+            .eq('status', 'sent')
+            .neq('id', receiptRequest.id);
 
           await db
             .from('transactions')

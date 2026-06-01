@@ -10,6 +10,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { syncJournalEntry, type JournalEntryData } from './sync';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -171,17 +172,42 @@ async function syncBatchToProvider(
   const failed: string[] = [];
   const errors: string[] = [];
 
+  const credentials = {
+    accessToken: _connection.access_token as string,
+    realmId: _connection.realm_id as string | undefined,
+    tenantId: _connection.tenant_id as string | undefined,
+  };
+
   for (const entry of entries) {
     try {
-      // Attempt sync via the ledger adapter
-      // When QBO/Xero adapters are fully configured, this will call their APIs.
-      // For now, we mark entries for manual review / CSV export.
-      await withRetry(async () => {
-        // TODO: Implement actual API sync when QBO/Xero OAuth is configured
-        // This stub enables the fallback-to-CSV-export path (PRD §3.3)
-        throw new Error(`${provider} adapter not yet configured — use CSV export`);
+      // Build JournalEntryData from the internal entry format
+      const entryData: JournalEntryData = {
+        date: entry.entry_date,
+        memo: entry.memo || `Autokkeep sync: ${entry.id}`,
+        lines: entry.lines.map((line) => ({
+          glCode: line.gl_code,
+          glName: '',
+          debit: line.debit,
+          credit: line.credit,
+          description: line.description || '',
+        })),
+      };
+
+      // Attempt sync via the real ledger adapter
+      const result = await withRetry(async () => {
+        const syncResult = await syncJournalEntry(provider, credentials, entryData);
+        if (!syncResult.success) {
+          throw new Error(syncResult.error || `${provider} sync failed`);
+        }
+        return syncResult;
       });
-      synced.push(entry.id);
+
+      if (result.success) {
+        synced.push(entry.id);
+      } else {
+        errors.push(`Entry ${entry.id}: ${result.error}`);
+        failed.push(entry.id);
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       errors.push(`Entry ${entry.id}: ${msg}`);

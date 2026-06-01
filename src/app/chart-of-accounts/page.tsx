@@ -52,39 +52,6 @@ const TYPE_LABELS: Record<string, string> = {
   cogs: 'COGS',
 };
 
-// ─── Mock data (matches seed.sql entries) ───────────────────────────────────
-const _mockAccounts: Account[] = [
-  { id: '1', code: '1010', name: 'Cash & Bank', type: 'Asset', active: true },
-  { id: '2', code: '1200', name: 'Accounts Receivable', type: 'Asset', active: true },
-  { id: '3', code: '1300', name: 'Prepaid Expenses', type: 'Asset', active: true },
-  { id: '4', code: '2010', name: 'Accounts Payable', type: 'Liability', active: true },
-  { id: '5', code: '2100', name: 'Credit Card Payable', type: 'Liability', active: true },
-  { id: '6', code: '4010', name: 'Revenue - Services', type: 'Revenue', active: true },
-  { id: '7', code: '4020', name: 'Revenue - Products', type: 'Revenue', active: true },
-  { id: '8', code: '5010', name: 'Cost of Services', type: 'COGS', active: true },
-  { id: '9', code: '6010', name: 'Payroll & Wages', type: 'Expense', active: true },
-  { id: '10', code: '6020', name: 'Employee Benefits', type: 'Expense', active: true },
-  { id: '11', code: '6030', name: 'Rent & Facilities', type: 'Expense', active: true },
-  { id: '12', code: '6040', name: 'Utilities', type: 'Expense', active: true },
-  { id: '13', code: '6050', name: 'Insurance', type: 'Expense', active: true },
-  { id: '14', code: '6060', name: 'Professional Services', type: 'Expense', active: true },
-  { id: '15', code: '6070', name: 'Marketing & Advertising', type: 'Expense', active: true },
-  { id: '16', code: '6080', name: 'Travel & Entertainment', type: 'Expense', active: true },
-  { id: '17', code: '6090', name: 'Office Supplies', type: 'Expense', active: true },
-  { id: '18', code: '6100', name: 'Shipping & Delivery', type: 'Expense', active: true },
-  { id: '19', code: '6110', name: 'Software & SaaS', type: 'Expense', active: true },
-  { id: '20', code: '6120', name: 'Hardware & Equipment', type: 'Expense', active: true },
-  { id: '21', code: '6130', name: 'Cloud & Hosting', type: 'Expense', active: true },
-  { id: '22', code: '6140', name: 'Communication & Phone', type: 'Expense', active: true },
-  { id: '23', code: '6150', name: 'Training & Education', type: 'Expense', active: true },
-  { id: '24', code: '6160', name: 'Meals & Entertainment', type: 'Expense', active: true },
-  { id: '25', code: '6170', name: 'Vehicle & Transportation', type: 'Expense', active: true },
-  { id: '26', code: '6180', name: 'Bank Fees & Charges', type: 'Expense', active: true },
-  { id: '27', code: '6190', name: 'Taxes & Licenses', type: 'Expense', active: true },
-  { id: '28', code: '6200', name: 'Depreciation', type: 'Expense', active: true },
-  { id: '29', code: '6210', name: 'Miscellaneous', type: 'Expense', active: true },
-  { id: '30', code: '6220', name: 'R&D Expense', type: 'Expense', active: true },
-];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function normalizeType(t: string): string {
@@ -454,9 +421,33 @@ export default function ChartOfAccountsPage() {
     }
   };
 
-  const bulkDeactivate = () => {
-    setAccounts(prev => prev.map(a => selectedIds.has(a.id) ? { ...a, active: false } : a));
+  const bulkDeactivate = async () => {
+    const idsToDeactivate = Array.from(selectedIds);
+    const failed: string[] = [];
+
+    await Promise.all(
+      idsToDeactivate.map(async (id) => {
+        try {
+          const res = await fetch('/api/chart-of-accounts', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, is_active: false }),
+          });
+          if (!res.ok) failed.push(id);
+        } catch {
+          failed.push(id);
+        }
+      })
+    );
+
+    // Only deactivate successfully updated accounts in state
+    const deactivatedIds = new Set(idsToDeactivate.filter(id => !failed.includes(id)));
+    setAccounts(prev => prev.map(a => deactivatedIds.has(a.id) ? { ...a, active: false } : a));
     setSelectedIds(new Set());
+
+    if (failed.length > 0) {
+      setError(`Failed to deactivate ${failed.length} account(s). Please try again.`);
+    }
   };
 
   // ─── CSV Import ─────────────────────────────────────────────────────────
@@ -464,7 +455,7 @@ export default function ChartOfAccountsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       const lines = text.split('\n').filter(l => l.trim());
       if (lines.length < 2) return; // need header + at least 1 row
@@ -477,8 +468,9 @@ export default function ChartOfAccountsPage() {
 
       if (codeIdx === -1 || nameIdx === -1) return;
 
-      const imported: Account[] = [];
       const existingCodes = new Set(accounts.map(a => a.code));
+      const importedAccounts: Account[] = [];
+      let failedImports = 0;
 
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
@@ -488,17 +480,61 @@ export default function ChartOfAccountsPage() {
         if (!code || !name) continue;
         if (existingCodes.has(code)) continue; // skip duplicates
         existingCodes.add(code);
-        imported.push({
-          id: `import-${Date.now()}-${i}`,
-          code,
-          name,
-          type: displayType(type),
-          active: true,
-        });
+
+        try {
+          const res = await fetch('/api/chart-of-accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code,
+              name,
+              type: displayType(type),
+              active: true,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.account) {
+              importedAccounts.push(mapApiAccount(data.account));
+            } else {
+              importedAccounts.push({
+                id: `import-${Date.now()}-${i}`,
+                code,
+                name,
+                type: displayType(type),
+                active: true,
+              });
+            }
+          } else {
+            failedImports++;
+            // Fallback: add locally even if API fails
+            importedAccounts.push({
+              id: `import-${Date.now()}-${i}`,
+              code,
+              name,
+              type: displayType(type),
+              active: true,
+            });
+          }
+        } catch {
+          failedImports++;
+          // Fallback: add locally on network error
+          importedAccounts.push({
+            id: `import-${Date.now()}-${i}`,
+            code,
+            name,
+            type: displayType(type),
+            active: true,
+          });
+        }
       }
 
-      if (imported.length > 0) {
-        setAccounts(prev => [...prev, ...imported]);
+      if (importedAccounts.length > 0) {
+        setAccounts(prev => [...prev, ...importedAccounts]);
+      }
+      if (failedImports > 0) {
+        setError(`${failedImports} account(s) could not be saved to the server and were added locally.`);
       }
     };
     reader.readAsText(file);

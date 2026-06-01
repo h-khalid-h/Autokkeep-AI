@@ -4,36 +4,36 @@ import { useEffect, useRef } from 'react';
 
 const problems = [
   {
-    icon: '📬',
-    metric: '3+ hrs/week',
-    title: 'The Receipt Chase',
-    description: 'Finance teams waste hours pinging employees for missing receipts and invoices. Every corporate card swipe triggers a multi-week game of telephone that nobody wants to play.',
+    icon: '💸',
+    metric: 'No visibility',
+    title: '"I don\'t know where my money goes"',
+    description: 'You\'re too busy running your business to sit down and categorize every transaction. Hundreds of expenses pile up each month with no clear picture of where your revenue actually goes.',
   },
   {
     icon: '📅',
-    metric: '15 days',
-    title: 'The Close Delay',
-    description: 'Books are closed weeks after the month ends. Leaders make strategic decisions using financial data that\'s already expired — flying blind with stale numbers.',
+    metric: 'Weeks behind',
+    title: '"My books are always behind"',
+    description: 'Monthly close takes weeks. By the time your financials are ready, the data is stale — and you\'re making decisions based on numbers that no longer reflect reality.',
   },
   {
-    icon: '⚙️',
-    metric: '60% break rate',
-    title: 'Rule-Based Fragility',
-    description: 'Traditional "if/then" bank rules break the moment a vendor changes their invoice format, amount varies, or a transaction doesn\'t match perfectly. Constant maintenance.',
+    icon: '🤷',
+    metric: 'Wait for answers',
+    title: '"I can\'t answer basic finance questions"',
+    description: '"Are we profitable this quarter?" "What\'s our biggest expense?" Simple questions that require calling your accountant, waiting days, and paying for time you shouldn\'t need.',
   },
   {
-    icon: '🔍',
-    metric: 'Zero context',
-    title: 'The Context Gap',
-    description: 'Software knows where money was spent, but never why. A $1,200 charge to "TX-CORP-98821" could be anything. Human intervention is always required for edge cases.',
+    icon: '🚨',
+    metric: 'Zero warning',
+    title: '"I\'m surprised by cash flow problems"',
+    description: 'Duplicate payments, unexpected charges, and cash crunches hit you out of nowhere. Without real-time visibility, every financial surprise is a stressful one.',
   },
 ];
 
 const stats = [
-  { value: '$4.6B+', label: 'Unbillable CPA labor annually' },
-  { value: '300K', label: 'Accountants left the profession' },
-  { value: '73 days', label: 'Average time to fill CPA roles' },
-  { value: '30%', label: 'Decline in CPA exam candidates' },
+  { value: '67%', label: 'of small businesses don\'t understand their financial statements' },
+  { value: '82%', label: 'of business failures cite cash flow problems' },
+  { value: '10hrs', label: 'wasted per month on manual bookkeeping' },
+  { value: '15+ days', label: 'average month-end close delay' },
 ];
 
 export default function ProblemSection() {
@@ -65,10 +65,10 @@ export default function ProblemSection() {
             <span>⚠️</span> The Problem
           </div>
           <h2 className="section-title animate-on-scroll delay-1">
-            Why Today&apos;s Bookkeeping <span className="text-gradient">is Broken</span>
+            Small Business Finances Are <span className="text-gradient">Flying Blind</span>
           </h2>
           <p className="section-subtitle animate-on-scroll delay-2">
-            Despite cloud accounting software, businesses are still trapped in a loop of manual pain points that cost billions annually.
+            You started a business to build something great — not to become a part-time bookkeeper. Yet here you are, drowning in receipts and spreadsheets.
           </p>
         </div>
 

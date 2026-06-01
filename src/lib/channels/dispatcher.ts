@@ -6,6 +6,8 @@
 import { sendSlackReceiptRequest, type ReceiptRequestPayload } from './slack';
 import { sendTeamsMessage, type TeamsAdaptiveCardPayload } from './teams';
 import { sendSMS, sendWhatsApp, buildReceiptRequestMessage, type ReceiptRequestContext } from './twilio';
+import { buildSlackCard, buildSMSCard, type TransactionData, type ConfidenceBreakdown } from '@/lib/notifications/micro-card';
+import { formatCurrency } from '@/lib/currency/converter';
 
 export type ChannelType = 'slack' | 'teams' | 'whatsapp' | 'sms';
 
@@ -33,6 +35,7 @@ export interface TransactionContext {
   suggestedCategory?: string;
   suggestedGLCode?: string;
   confidence?: number;
+  currency?: string;
 }
 
 // ============================================
@@ -102,6 +105,50 @@ async function dispatchSlack(
   connection: ChannelConnection,
   context: TransactionContext
 ): Promise<DispatchResult> {
+  // When confidence data is available, use the micro-card builder for richer alerts
+  if (context.confidence !== undefined) {
+    const txnData: TransactionData = {
+      id: context.transactionId,
+      merchant_name: context.merchantName,
+      amount: context.amount,
+      date: context.date,
+      category_ai: context.suggestedCategory || null,
+      entity_id: '',
+      description: null,
+    };
+    const confidenceBreakdown: ConfidenceBreakdown = {
+      overall: (context.confidence ?? 0) / 100,
+      merchant_match: (context.confidence ?? 0) / 100,
+      mcc_match: (context.confidence ?? 0) / 100,
+      historical_pattern: (context.confidence ?? 0) / 100,
+      amount_anomaly: (context.confidence ?? 0) / 100,
+    };
+    const blocks = buildSlackCard(txnData, confidenceBreakdown);
+
+    try {
+      const { getSlackClient } = await import('./slack');
+      const client = getSlackClient(connection.accessToken);
+      const result = await client.chat.postMessage({
+        channel: connection.channelId,
+        text: `Transaction review: ${context.merchantName} for ${formatCurrency(context.amount, context.currency || 'USD')}`,
+        blocks,
+        unfurl_links: false,
+      });
+      return {
+        success: result.ok ?? false,
+        channel: 'slack',
+        messageId: result.ts,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        channel: 'slack',
+        error: error instanceof Error ? error.message : 'Slack dispatch failed',
+      };
+    }
+  }
+
+  // Fallback to standard receipt request payload
   const payload: ReceiptRequestPayload = {
     transactionId: context.transactionId,
     merchantName: context.merchantName,
@@ -201,16 +248,38 @@ async function dispatchSMS(
   connection: ChannelConnection,
   context: TransactionContext
 ): Promise<DispatchResult> {
-  const receiptContext: ReceiptRequestContext = {
-    transactionId: context.transactionId,
-    merchantName: context.merchantName,
-    amount: context.amount,
-    date: context.date,
-    cardLast4: context.cardLast4,
-    cardHolder: context.cardHolder,
-  };
+  let message: string;
 
-  const message = buildReceiptRequestMessage(receiptContext);
+  // When confidence data is available, use the micro-card builder for richer SMS
+  if (context.confidence !== undefined) {
+    const txnData: TransactionData = {
+      id: context.transactionId,
+      merchant_name: context.merchantName,
+      amount: context.amount,
+      date: context.date,
+      category_ai: context.suggestedCategory || null,
+      entity_id: '',
+      description: null,
+    };
+    const confidenceBreakdown: ConfidenceBreakdown = {
+      overall: (context.confidence ?? 0) / 100,
+      merchant_match: (context.confidence ?? 0) / 100,
+      mcc_match: (context.confidence ?? 0) / 100,
+      historical_pattern: (context.confidence ?? 0) / 100,
+      amount_anomaly: (context.confidence ?? 0) / 100,
+    };
+    message = buildSMSCard(txnData, confidenceBreakdown);
+  } else {
+    const receiptContext: ReceiptRequestContext = {
+      transactionId: context.transactionId,
+      merchantName: context.merchantName,
+      amount: context.amount,
+      date: context.date,
+      cardLast4: context.cardLast4,
+      cardHolder: context.cardHolder,
+    };
+    message = buildReceiptRequestMessage(receiptContext);
+  }
 
   try {
     const result = await sendSMS({

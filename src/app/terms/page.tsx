@@ -20,7 +20,7 @@ const sections = [
     content: [
       {
         subtitle: 'Platform Overview',
-        text: 'Autokkeep is an AI-powered bookkeeping platform that automates financial record-keeping, transaction categorization, bank reconciliation, and reporting for businesses. Our service combines machine learning with deterministic accounting rules to deliver accurate financial management.',
+        text: 'Autokkeep is an AI-powered financial operations platform that automates transaction categorization, bank reconciliation, financial health monitoring, and reporting for businesses. Our service combines machine learning with deterministic accounting rules to deliver accurate financial management.',
       },
       {
         subtitle: 'Service Availability',
@@ -109,7 +109,7 @@ const sections = [
       },
       {
         subtitle: 'Financial Oversight',
-        text: 'While Autokkeep provides automated bookkeeping, you remain responsible for the accuracy and completeness of your financial records. We recommend periodic review by a qualified accountant or CPA, particularly for tax filings and regulatory compliance.',
+        text: 'While Autokkeep provides automated financial operations, you remain responsible for the accuracy and completeness of your financial records. We recommend periodic review by a qualified accountant or CPA, particularly for tax filings and regulatory compliance.',
       },
     ],
   },
@@ -160,7 +160,7 @@ const sections = [
       },
       {
         subtitle: 'License to Use',
-        text: 'By using the platform, you grant Autokkeep a limited, non-exclusive license to process your data solely for the purpose of providing the bookkeeping service. This license terminates when you delete your data or close your account.',
+        text: 'By using the platform, you grant Autokkeep a limited, non-exclusive license to process your data solely for the purpose of providing the financial operations service. This license terminates when you delete your data or close your account.',
       },
       {
         subtitle: 'Our Intellectual Property',

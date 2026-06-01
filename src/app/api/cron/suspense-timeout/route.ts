@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       entity_id: txn.entity_id,
       transaction_id: txn.id,
       entry_date: txn.date,
-      memo: `Suspense: ${txn.merchant_name || 'Unknown'} — $${Math.abs(txn.amount).toFixed(2)} — pending CPA review`,
+      memo: `Suspense: ${txn.merchant_name || 'Unknown'} — pending review`,
       status: 'draft',
       created_at: now,
     }));

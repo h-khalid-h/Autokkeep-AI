@@ -3,18 +3,17 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 const metrics = [
-  { value: 90, suffix: '%+', label: 'AI Accuracy', sublabel: 'Validated on real transactions' },
-  { value: 83, suffix: '%', label: 'Gross Margin', sublabel: 'Protected by rule caching' },
-  { value: 4, suffix: '×', label: 'Client Capacity', sublabel: 'Per CPA accountant' },
-  { value: 10, suffix: 's', label: 'Processing Time', sublabel: 'Per transaction average' },
+  { value: 95, suffix: '%+', label: 'AI Accuracy', sublabel: 'On known merchants' },
+  { value: 10, suffix: 'hrs/mo', label: 'Time Saved', sublabel: 'Average per business' },
+  { value: 24, suffix: 'hrs', label: 'Close Time', sublabel: 'Month-end close' },
+  { value: 60, suffix: '%', label: 'Cost Savings', sublabel: 'vs traditional bookkeeping' },
 ];
 
 const trustBadges = [
-  { icon: '🔐', label: 'SOC 2 Architecture Ready' },
-  { icon: '🏦', label: 'AES-256-GCM Encryption' },
-  { icon: '📋', label: 'GAAP Compliant Workflows' },
-  { icon: '🛡️', label: 'Immutable Audit Trail' },
-  { icon: '🔒', label: 'PII-Stripped Before AI Processing' },
+  { icon: '🏦', label: 'Bank-Grade Encryption' },
+  { icon: '🔐', label: 'SOC 2 Ready' },
+  { icon: '🌍', label: 'Multi-Currency' },
+  { icon: '📋', label: 'GAAP Compliant' },
 ];
 
 function AnimatedCounter({ target, suffix, duration = 2000 }: { target: number; suffix: string; duration?: number }) {
@@ -62,7 +61,7 @@ function AnimatedCounter({ target, suffix, duration = 2000 }: { target: number; 
 
   return (
     <div ref={ref} className="metric-value">
-      {target >= 10 ? Math.round(count) : count}{suffix}
+      {suffix === 'hrs' ? '<' : ''}{target >= 10 ? Math.round(count) : count}{suffix}
     </div>
   );
 }
@@ -96,7 +95,7 @@ export default function MetricsSection() {
             <span>📊</span> By The Numbers
           </div>
           <h2 className="section-title animate-on-scroll delay-1">
-            Built for <span className="text-gradient">Venture-Scale</span> Margins
+            Results That <span className="text-gradient">Speak for Themselves</span>
           </h2>
         </div>
 

@@ -62,11 +62,17 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
 
       const { data: entityData } = await db
         .from('entities')
-        .select('id, name, currency')
+        .select('id, name, base_currency')
         .eq('org_id', membership.org_id)
         .order('created_at', { ascending: true });
 
-      const items: EntityItem[] = entityData || [];
+      const items: EntityItem[] = (entityData || []).map(
+        (e: { id: string; name: string; base_currency?: string }) => ({
+          id: e.id,
+          name: e.name,
+          currency: e.base_currency || 'USD',
+        })
+      );
       setEntities(items);
 
       // Restore previous selection from localStorage

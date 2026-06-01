@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { PLAN_LIMITS, checkPlanLimits } from './plans';
+import { PLANS, checkPlanLimits } from './plans';
 import type { PlanTier } from './plans';
 
 // ============================================
@@ -26,7 +26,7 @@ function createMockSupabase(overrides: {
   entities?: { id: string }[];
 } = {}) {
   const {
-    subscription = { plan: 'free' as PlanTier, status: 'active' },
+    subscription = { plan: 'starter' as PlanTier, status: 'active' },
     entityCount = 0,
     transactionCount = 0,
     bankConnectionCount = 0,
@@ -100,67 +100,78 @@ function createMockSupabase(overrides: {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
-// PLAN_LIMITS constants
+// PLANS constants
 // ============================================
-describe('PLAN_LIMITS', () => {
-  it('has all 5 tiers defined', () => {
-    const tiers: PlanTier[] = ['free', 'starter', 'smb_growth', 'cpa_professional', 'cpa_enterprise'];
+describe('PLANS', () => {
+  it('has all 3 tiers defined', () => {
+    const tiers: PlanTier[] = ['starter', 'growth', 'pro'];
     tiers.forEach(tier => {
-      expect(PLAN_LIMITS[tier]).toBeDefined();
+      expect(PLANS[tier]).toBeDefined();
     });
   });
 
-  it('free tier has strictest limits', () => {
-    const free = PLAN_LIMITS.free;
-    expect(free.maxEntities).toBe(1);
-    expect(free.maxTransactionsPerMonth).toBe(50);
-    expect(free.maxBankConnections).toBe(1);
-    expect(free.maxTeamMembers).toBe(1);
-    expect(free.ledgerSyncEnabled).toBe(false);
-    expect(free.channelDispatchEnabled).toBe(false);
-    expect(free.receiptChaseEnabled).toBe(false);
+  it('starter tier has the most restrictive limits', () => {
+    const starter = PLANS.starter.limits;
+    expect(starter.entities).toBe(1);
+    expect(starter.transactionsPerMonth).toBe(500);
+    expect(starter.bankConnections).toBe(2);
+    expect(starter.teamMembers).toBe(3);
+    expect(starter.features.ledgerSync).toBe(true);
+    expect(starter.features.channels).toBe(true);
+    expect(starter.features.receiptChase).toBe(true);
+    expect(starter.features.aiAnalyst).toBe(false);
+    expect(starter.features.healthMonitoring).toBe(false);
+    expect(starter.features.monthEndClose).toBe(false);
+    expect(starter.features.narrativeEngine).toBe(false);
   });
 
-  it('enterprise tier has unlimited resources', () => {
-    const ent = PLAN_LIMITS.cpa_enterprise;
-    expect(ent.maxEntities).toBe(999999);
-    expect(ent.maxTransactionsPerMonth).toBe(999999);
-    expect(ent.maxBankConnections).toBe(999999);
-    expect(ent.maxTeamMembers).toBe(999999);
-    expect(ent.ledgerSyncEnabled).toBe(true);
-    expect(ent.channelDispatchEnabled).toBe(true);
-    expect(ent.receiptChaseEnabled).toBe(true);
+  it('pro tier has unlimited resources', () => {
+    const pro = PLANS.pro.limits;
+    expect(pro.entities).toBe(-1); // unlimited
+    expect(pro.transactionsPerMonth).toBe(10000);
+    expect(pro.bankConnections).toBe(-1);
+    expect(pro.teamMembers).toBe(-1);
+    expect(pro.features.ledgerSync).toBe(true);
+    expect(pro.features.channels).toBe(true);
+    expect(pro.features.receiptChase).toBe(true);
+    expect(pro.features.aiAnalyst).toBe(true);
+    expect(pro.features.narrativeEngine).toBe(true);
   });
 
   it('tiers have monotonically increasing limits', () => {
-    const orderedTiers: PlanTier[] = ['free', 'starter', 'smb_growth', 'cpa_professional', 'cpa_enterprise'];
+    const orderedTiers: PlanTier[] = ['starter', 'growth', 'pro'];
     for (let i = 1; i < orderedTiers.length; i++) {
-      const prev = PLAN_LIMITS[orderedTiers[i - 1]];
-      const curr = PLAN_LIMITS[orderedTiers[i]];
-      expect(curr.maxEntities).toBeGreaterThanOrEqual(prev.maxEntities);
-      expect(curr.maxTransactionsPerMonth).toBeGreaterThanOrEqual(prev.maxTransactionsPerMonth);
-      expect(curr.maxBankConnections).toBeGreaterThanOrEqual(prev.maxBankConnections);
-      expect(curr.maxTeamMembers).toBeGreaterThanOrEqual(prev.maxTeamMembers);
+      const prev = PLANS[orderedTiers[i - 1]].limits;
+      const curr = PLANS[orderedTiers[i]].limits;
+      // For -1 (unlimited), treat as Infinity for comparison
+      const resolve = (v: number) => (v === -1 ? Infinity : v);
+      expect(resolve(curr.entities)).toBeGreaterThanOrEqual(resolve(prev.entities));
+      expect(resolve(curr.transactionsPerMonth)).toBeGreaterThanOrEqual(resolve(prev.transactionsPerMonth));
+      expect(resolve(curr.bankConnections)).toBeGreaterThanOrEqual(resolve(prev.bankConnections));
+      expect(resolve(curr.teamMembers)).toBeGreaterThanOrEqual(resolve(prev.teamMembers));
     }
   });
 
-  it('all tiers have AI categorization enabled', () => {
-    Object.values(PLAN_LIMITS).forEach(limits => {
-      expect(limits.aiCategorizationEnabled).toBe(true);
+  it('growth tier enables AI features but not narrative engine', () => {
+    const growth = PLANS.growth.limits;
+    expect(growth.features.aiAnalyst).toBe(true);
+    expect(growth.features.healthMonitoring).toBe(true);
+    expect(growth.features.monthEndClose).toBe(true);
+    expect(growth.features.taxReadiness).toBe(true);
+    expect(growth.features.narrativeEngine).toBe(false);
+  });
+
+  it('all tiers have ledger sync and channels enabled', () => {
+    Object.values(PLANS).forEach(plan => {
+      expect(plan.limits.features.ledgerSync).toBe(true);
+      expect(plan.limits.features.channels).toBe(true);
     });
   });
 
-  it('starter enables ledger sync and channel dispatch', () => {
-    expect(PLAN_LIMITS.starter.ledgerSyncEnabled).toBe(true);
-    expect(PLAN_LIMITS.starter.channelDispatchEnabled).toBe(true);
-    expect(PLAN_LIMITS.starter.receiptChaseEnabled).toBe(false);
-  });
-
-  it('smb_growth enables all features', () => {
-    const growth = PLAN_LIMITS.smb_growth;
-    expect(growth.ledgerSyncEnabled).toBe(true);
-    expect(growth.channelDispatchEnabled).toBe(true);
-    expect(growth.receiptChaseEnabled).toBe(true);
+  it('plans have correct prices', () => {
+    expect(PLANS.starter.price).toBe(29);
+    expect(PLANS.growth.price).toBe(99);
+    expect(PLANS.pro.price).toBe(299);
   });
 });
 
@@ -168,28 +179,26 @@ describe('PLAN_LIMITS', () => {
 // Feature flag operations (no DB count needed)
 // ============================================
 describe('checkPlanLimits — feature flags', () => {
-  it('blocks ledger sync on free plan', async () => {
-    const supabase = createMockSupabase({ subscription: { plan: 'free', status: 'active' } });
-    const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain('Ledger sync');
-  });
-
   it('allows ledger sync on starter plan', async () => {
     const supabase = createMockSupabase({ subscription: { plan: 'starter', status: 'active' } });
     const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
     expect(result.allowed).toBe(true);
   });
 
-  it('blocks channel dispatch on free plan', async () => {
-    const supabase = createMockSupabase({ subscription: { plan: 'free', status: 'active' } });
-    const result = await checkPlanLimits(supabase, 'org-1', 'dispatch_channel');
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain('Channel dispatch');
+  it('allows ledger sync on growth plan', async () => {
+    const supabase = createMockSupabase({ subscription: { plan: 'growth', status: 'active' } });
+    const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
+    expect(result.allowed).toBe(true);
   });
 
   it('allows channel dispatch on starter plan', async () => {
     const supabase = createMockSupabase({ subscription: { plan: 'starter', status: 'active' } });
+    const result = await checkPlanLimits(supabase, 'org-1', 'dispatch_channel');
+    expect(result.allowed).toBe(true);
+  });
+
+  it('allows channel dispatch on pro plan', async () => {
+    const supabase = createMockSupabase({ subscription: { plan: 'pro', status: 'active' } });
     const result = await checkPlanLimits(supabase, 'org-1', 'dispatch_channel');
     expect(result.allowed).toBe(true);
   });
@@ -199,11 +208,11 @@ describe('checkPlanLimits — feature flags', () => {
 // Subscription status
 // ============================================
 describe('checkPlanLimits — subscription status', () => {
-  it('defaults to free plan when no subscription', async () => {
+  it('defaults to starter plan when no subscription', async () => {
     const supabase = createMockSupabase({ subscription: null });
     const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
-    expect(result.currentPlan).toBe('free');
-    expect(result.allowed).toBe(false); // free doesn't have ledger sync
+    expect(result.currentPlan).toBe('starter');
+    expect(result.allowed).toBe(true); // starter has ledger sync
   });
 
   it('blocks operations for cancelled subscriptions', async () => {
@@ -214,14 +223,14 @@ describe('checkPlanLimits — subscription status', () => {
   });
 
   it('blocks operations for past_due subscriptions', async () => {
-    const supabase = createMockSupabase({ subscription: { plan: 'smb_growth', status: 'past_due' } });
+    const supabase = createMockSupabase({ subscription: { plan: 'growth', status: 'past_due' } });
     const result = await checkPlanLimits(supabase, 'org-1', 'create_entity');
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain('past_due');
   });
 
   it('allows operations for trialing subscriptions', async () => {
-    const supabase = createMockSupabase({ subscription: { plan: 'smb_growth', status: 'trialing' } });
+    const supabase = createMockSupabase({ subscription: { plan: 'growth', status: 'trialing' } });
     const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
     expect(result.allowed).toBe(true);
   });

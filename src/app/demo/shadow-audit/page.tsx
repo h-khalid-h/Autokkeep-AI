@@ -602,7 +602,7 @@ export default function ShadowAuditPage() {
                     Like what you see?
                   </h3>
                   <p className="text-body" style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>
-                    This is just the demo. The full platform categorizes, reconciles, and closes your books — autonomously.
+                    This is just the demo. The full platform categorizes, reconciles, and closes your books — automatically.
                   </p>
                   <Link href="/#cta" className="btn btn-primary btn-lg">
                     Request Early Access

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { useEntity } from '@/lib/context/EntityContext';
+import { formatCurrency } from '@/lib/currency/converter';
 import Logo from '@/components/ui/Logo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -62,8 +63,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
+// formatCurrency is imported from @/lib/currency/converter
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr + 'T00:00:00');
@@ -79,6 +79,8 @@ const getConfidenceColor = (conf: number) => {
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
   const { selectedEntity } = useEntity();
+  const entityCurrency = selectedEntity?.currency || 'USD';
+  const fmtCurrency = (amount: number) => formatCurrency(amount, entityCurrency);
 
   // Data state
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
@@ -335,7 +337,7 @@ export default function TransactionsPage() {
                 fontFamily: 'var(--font-mono)',
                 color: totalAmount < 0 ? 'var(--destructive)' : 'var(--text-primary)',
               }}>
-                {formatCurrency(totalAmount)}
+                {fmtCurrency(totalAmount)}
               </div>
             </div>
             <div className="card-elevated" style={{ padding: '16px 20px' }}>
@@ -504,7 +506,7 @@ export default function TransactionsPage() {
                             whiteSpace: 'nowrap',
                             color: isNegative ? 'var(--destructive)' : 'var(--success)',
                           }}>
-                            {isNegative ? '−' : '+'}{formatCurrency(Math.abs(tx.amount))}
+                            {isNegative ? '−' : '+'}{fmtCurrency(Math.abs(tx.amount))}
                           </td>
 
                           {/* Category (GL Code) */}
@@ -630,14 +632,14 @@ export default function TransactionsPage() {
                                       borderRadius: '9999px',
                                       fontSize: '0.7rem',
                                       fontWeight: 600,
-                                      ...(tx.document_status === 'attached'
+                                      ...(tx.document_status === 'found'
                                         ? { color: 'var(--success)', background: 'var(--success-subtle)', border: '1px solid var(--success-border)' }
-                                        : tx.document_status === 'pending'
+                                        : tx.document_status === 'partial'
                                         ? { color: 'var(--warning)', background: 'var(--warning-subtle)', border: '1px solid var(--warning-border)' }
                                         : { color: 'var(--destructive)', background: 'var(--destructive-subtle)', border: '1px solid var(--destructive-border)' }
                                       ),
                                     }}>
-                                      {tx.document_status === 'attached' ? '✅ Attached' : tx.document_status === 'pending' ? '⏳ Pending' : '❌ Missing'}
+                                      {tx.document_status === 'found' ? '✅ Attached' : tx.document_status === 'partial' ? '⏳ Partial' : '❌ Missing'}
                                     </span>
                                   </div>
                                   {tx.description && (

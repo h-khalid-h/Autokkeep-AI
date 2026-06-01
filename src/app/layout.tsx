@@ -19,18 +19,19 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
+  title: "Autokkeep — AI Financial Operations for Small Business",
   description:
-    "The end of the monthly close. Autokkeep automatically categorizes transactions, chases receipts, and syncs your ledger — so your books are always closed and audit-ready.",
+    "Understand your business finances without understanding accounting. Autokkeep automatically categorizes transactions, monitors financial health, and delivers AI-powered insights.",
   keywords: [
-    "AI bookkeeping",
-    "autonomous accounting",
+    "AI financial operations",
+    "automated bookkeeping",
     "automated ledger",
-    "CPA automation",
+    "small business finance",
     "real-time financials",
     "continuous close",
     "receipt automation",
     "GL categorization",
+    "financial operations",
   ],
   manifest: "/manifest.json",
   appleWebApp: {
@@ -39,9 +40,9 @@ export const metadata: Metadata = {
     title: "Autokkeep",
   },
   openGraph: {
-    title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
+    title: "Autokkeep — AI Financial Operations for Small Business",
     description:
-      "Eliminate manual bookkeeping forever. AI-powered ledger management with 90%+ AI categorization accuracy.",
+      "Understand your finances without understanding accounting. AI-powered financial management with 95%+ categorization accuracy.",
     type: "website",
     locale: "en_US",
     siteName: "Autokkeep",
@@ -51,15 +52,15 @@ export const metadata: Metadata = {
         url: "https://autokkeep.com/images/og-image.png",
         width: 1024,
         height: 1024,
-        alt: "Autokkeep — Autonomous Bookkeeping Dashboard",
+        alt: "Autokkeep — AI Financial Operations Dashboard",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Autokkeep — Autonomous Bookkeeping for Modern Finance",
+    title: "Autokkeep — AI Financial Operations for Small Business",
     description:
-      "The end of the monthly close. AI-native bookkeeping for modern businesses.",
+      "Understand your business finances without understanding accounting. AI-powered financial intelligence.",
     images: ["https://autokkeep.com/images/og-image.png"],
   },
   robots: {
@@ -74,25 +75,45 @@ export const metadata: Metadata = {
 // JSON-LD Structured Data for SEO
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Autokkeep",
-  applicationCategory: "FinanceApplication",
-  operatingSystem: "Web",
-  description:
-    "AI-powered bookkeeping that automatically categorizes transactions, chases receipts, and syncs your ledger. Built for CPA firms and modern businesses.",
-  url: "https://autokkeep.com",
-  offers: {
-    "@type": "AggregateOffer",
-    lowPrice: "69",
-    highPrice: "499",
-    priceCurrency: "USD",
-    offerCount: "6",
-  },
-  creator: {
-    "@type": "Organization",
-    name: "Autokkeep",
-    url: "https://autokkeep.com",
-  },
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "Autokkeep",
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      description:
+        "AI-powered financial operations that automatically categorizes transactions, monitors financial health, and delivers actionable insights. Built for small businesses.",
+      url: "https://autokkeep.com",
+      offers: {
+        "@type": "AggregateOffer",
+        lowPrice: "29",
+        highPrice: "299",
+        priceCurrency: "USD",
+        offerCount: "3",
+      },
+      creator: {
+        "@id": "https://autokkeep.com/#organization",
+      },
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://autokkeep.com/#organization",
+      name: "Autokkeep",
+      url: "https://autokkeep.com",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://autokkeep.com/images/logo.png",
+      },
+      description:
+        "The AI Financial Operations Platform for Small Businesses. Understand your business finances without understanding accounting.",
+      foundingDate: "2024",
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: "support@autokkeep.com",
+      },
+    },
+  ],
 };
 
 export default function RootLayout({

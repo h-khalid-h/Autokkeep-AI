@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import Logo from '@/components/ui/Logo';
@@ -8,7 +8,7 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ---- Types ----
 
-type SettingsTab = 'integrations' | 'billing' | 'team';
+type SettingsTab = 'integrations' | 'billing' | 'team' | 'localization';
 
 interface OrgData {
   id: string;
@@ -260,6 +260,7 @@ export default function SettingsPage() {
     { id: 'integrations', label: 'Integrations', icon: '🔌' },
     { id: 'billing', label: 'Billing', icon: '💳' },
     { id: 'team', label: 'Team', icon: '👥' },
+    { id: 'localization', label: 'Localization', icon: '🌍' },
   ];
 
   return (
@@ -329,6 +330,12 @@ export default function SettingsPage() {
             userRole={userRole}
             teamMembers={teamMembers}
             onRefresh={fetchData}
+          />
+        )}
+        {activeTab === 'localization' && (
+          <LocalizationTab
+            loading={loading}
+            entities={entities}
           />
         )}
       </main>
@@ -440,6 +447,54 @@ function IntegrationsTab({
     window.location.assign(`/api/channels/slack/install?entityId=${primaryEntityId}`);
   };
 
+  const handleTeamsConnect = async () => {
+    if (!primaryEntityId) {
+      setActionError('No entity found. Please create an entity first.');
+      return;
+    }
+    setActionLoading('teams');
+    setActionError(null);
+    try {
+      const webhookUrl = prompt('Enter your Microsoft Teams Incoming Webhook URL:');
+      if (!webhookUrl) {
+        setActionLoading(null);
+        return;
+      }
+      const res = await fetch('/api/channels/teams/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId: primaryEntityId, webhookUrl }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to configure Teams');
+      }
+      onRefresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to configure Teams');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleWhatsAppConnect = () => {
+    if (!primaryEntityId) {
+      setActionError('No entity found. Please create an entity first.');
+      return;
+    }
+    setActionLoading('whatsapp');
+    window.location.assign(`/api/channels/whatsapp/setup?entityId=${primaryEntityId}`);
+  };
+
+  const handleSMSConnect = () => {
+    if (!primaryEntityId) {
+      setActionError('No entity found. Please create an entity first.');
+      return;
+    }
+    setActionLoading('sms');
+    window.location.assign(`/api/channels/sms/setup?entityId=${primaryEntityId}`);
+  };
+
   const getStatus = (key: string): 'configured' | 'available' => {
     if (key === 'Plaid') return connections.plaid ? 'configured' : 'available';
     if (key === 'QuickBooks Online') return connections.quickbooks ? 'configured' : 'available';
@@ -453,6 +508,9 @@ function IntegrationsTab({
     if (key === 'QuickBooks Online') return () => handleLedgerConnect('quickbooks');
     if (key === 'Xero') return () => handleLedgerConnect('xero');
     if (key === 'Slack') return handleSlackConnect;
+    if (key === 'Microsoft Teams') return handleTeamsConnect;
+    if (key === 'WhatsApp') return handleWhatsAppConnect;
+    if (key === 'SMS') return handleSMSConnect;
     return undefined;
   };
 
@@ -625,12 +683,9 @@ function BillingTab({
   const [billingError, setBillingError] = useState<string | null>(null);
 
   const planLabels: Record<string, string> = {
-    cpa_foundation: 'CPA Foundation',
-    cpa_scale: 'CPA Scale',
-    cpa_enterprise: 'CPA Enterprise',
-    smb_basic: 'SMB Basic',
-    smb_growth: 'SMB Growth',
-    smb_premium: 'SMB Premium',
+    starter: 'Starter',
+    growth: 'Growth',
+    pro: 'Pro',
   };
 
   const statusLabels: Record<string, string> = {
@@ -658,7 +713,7 @@ function BillingTab({
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId, plan, email: userEmail }),
+        body: JSON.stringify({ planId: `${plan}_monthly`, email: userEmail }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -761,11 +816,14 @@ function BillingTab({
         <div className="text-h4" style={{ marginBottom: '8px' }}>Ready to Scale?</div>
         <div className="text-body" style={{ marginBottom: '16px' }}>Upgrade to unlock unlimited entities and advanced features.</div>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => handleCheckout('smb_basic')} disabled={loading}>
-            SMB Basic — $249/mo
+          <button className="btn btn-secondary btn-sm" onClick={() => handleCheckout('starter')} disabled={loading}>
+            Starter — $29/mo
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => handleCheckout('smb_growth')} disabled={loading}>
-            SMB Growth — $499/mo
+          <button className="btn btn-primary btn-sm" onClick={() => handleCheckout('growth')} disabled={loading}>
+            Growth — $99/mo
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => handleCheckout('pro')} disabled={loading}>
+            Pro — $299/mo
           </button>
         </div>
       </div>
@@ -825,6 +883,18 @@ function TeamTab({
 
       if (insertError) {
         throw new Error(insertError.message);
+      }
+
+      // Send invite email via Resend (fire-and-forget)
+      try {
+        await fetch('/api/team/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), role }),
+        });
+      } catch {
+        // Email delivery failure is non-blocking
+        console.warn('[Settings] Invite email could not be sent');
       }
 
       setEmail('');
@@ -961,6 +1031,298 @@ function TeamTab({
               No team members found.
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// LOCALIZATION TAB
+// ============================================
+
+const SUPPORTED_COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'IN', name: 'India' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CH', name: 'Switzerland' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'KE', name: 'Kenya' },
+];
+
+const SUPPORTED_TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern Time (ET) — New York' },
+  { value: 'America/Chicago', label: 'Central Time (CT) — Chicago' },
+  { value: 'America/Denver', label: 'Mountain Time (MT) — Denver' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT) — Los Angeles' },
+  { value: 'America/Toronto', label: 'Eastern Time (ET) — Toronto' },
+  { value: 'Europe/London', label: 'GMT — London' },
+  { value: 'Europe/Berlin', label: 'CET — Berlin' },
+  { value: 'Europe/Paris', label: 'CET — Paris' },
+  { value: 'Europe/Amsterdam', label: 'CET — Amsterdam' },
+  { value: 'Europe/Zurich', label: 'CET — Zurich' },
+  { value: 'Asia/Dubai', label: 'GST — Dubai' },
+  { value: 'Asia/Riyadh', label: 'AST — Riyadh' },
+  { value: 'Africa/Cairo', label: 'EET — Cairo' },
+  { value: 'Asia/Kolkata', label: 'IST — Mumbai' },
+  { value: 'Asia/Tokyo', label: 'JST — Tokyo' },
+  { value: 'Asia/Singapore', label: 'SGT — Singapore' },
+  { value: 'Australia/Sydney', label: 'AEST — Sydney' },
+  { value: 'Pacific/Auckland', label: 'NZST — Auckland' },
+  { value: 'America/Sao_Paulo', label: 'BRT — São Paulo' },
+  { value: 'America/Mexico_City', label: 'CST — Mexico City' },
+  { value: 'Africa/Johannesburg', label: 'SAST — Johannesburg' },
+  { value: 'Africa/Lagos', label: 'WAT — Lagos' },
+  { value: 'Africa/Nairobi', label: 'EAT — Nairobi' },
+];
+
+const SUPPORTED_CURRENCIES = [
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
+  { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼' },
+  { code: 'EGP', name: 'Egyptian Pound', symbol: 'ج.م' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'CA$' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+  { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+];
+
+function LocalizationTab({
+  loading: pageLoading,
+  entities,
+}: {
+  loading: boolean;
+  entities: EntityData[];
+}) {
+  const [selectedEntityId, setSelectedEntityId] = useState(entities.length > 0 ? entities[0].id : '');
+  const [baseCurrency, setBaseCurrency] = useState('USD');
+  const [country, setCountry] = useState('US');
+  const [timezone, setTimezone] = useState('America/New_York');
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Load current settings when entity changes
+  useEffect(() => {
+    if (!selectedEntityId) return;
+
+    const loadSettings = async () => {
+      try {
+        const supabase = getSupabase();
+        const db = supabase as unknown as SupabaseQueryClient;
+        const { data: entityData } = await db
+          .from('entities')
+          .select('id, base_currency, country, timezone')
+          .eq('id', selectedEntityId)
+          .single();
+
+        if (entityData) {
+          if (entityData.base_currency) setBaseCurrency(entityData.base_currency);
+          if (entityData.country) setCountry(entityData.country);
+          if (entityData.timezone) setTimezone(entityData.timezone);
+        }
+      } catch (err) {
+        console.warn('[Settings/Localization] Failed to load settings:', err);
+      }
+    };
+
+    loadSettings();
+  }, [selectedEntityId]);
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedEntityId) return;
+
+    setSaving(true);
+    setSaveResult(null);
+
+    try {
+      const supabase = getSupabase();
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { error: updateError } = await db
+        .from('entities')
+        .update({
+          base_currency: baseCurrency,
+          country: country,
+          timezone: timezone,
+        })
+        .eq('id', selectedEntityId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setSaveResult({ type: 'success', message: 'Localization settings saved successfully!' });
+    } catch (err) {
+      console.error('[Settings/Localization] Save error:', err);
+      setSaveResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to save settings',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (pageLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {saveResult && (
+        <div
+          className="card"
+          style={{
+            padding: '12px 16px',
+            borderLeft: `4px solid ${saveResult.type === 'success' ? 'var(--success, #22c55e)' : 'var(--color-error, #ef4444)'}`,
+          }}
+        >
+          <div
+            className="text-body"
+            style={{
+              color: saveResult.type === 'success' ? 'var(--success, #22c55e)' : 'var(--color-error, #ef4444)',
+            }}
+          >
+            {saveResult.type === 'success' ? '✅' : '⚠️'} {saveResult.message}
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: '24px' }}>
+        <div className="text-h4" style={{ marginBottom: '8px' }}>Regional Settings</div>
+        <p className="text-caption" style={{ marginBottom: '24px' }}>
+          Configure currency, country, and timezone for accurate financial reporting and localization.
+        </p>
+
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Entity Selector (if multiple entities) */}
+          {entities.length > 1 && (
+            <div>
+              <label htmlFor="locale-entity" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                Entity
+              </label>
+              <select
+                id="locale-entity"
+                className="input"
+                value={selectedEntityId}
+                onChange={(e) => setSelectedEntityId(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                {entities.map((entity) => (
+                  <option key={entity.id} value={entity.id} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                    {entity.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Base Currency */}
+          <div>
+            <label htmlFor="base-currency" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              Base Currency
+            </label>
+            <select
+              id="base-currency"
+              className="input"
+              value={baseCurrency}
+              onChange={(e) => setBaseCurrency(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              {SUPPORTED_CURRENCIES.map((curr) => (
+                <option key={curr.code} value={curr.code} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                  {curr.symbol} {curr.code} — {curr.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-caption" style={{ marginTop: '4px' }}>
+              All monetary values will be displayed in this currency. Multi-currency transactions will be converted automatically.
+            </p>
+          </div>
+
+          {/* Country */}
+          <div>
+            <label htmlFor="country" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              Country
+            </label>
+            <select
+              id="country"
+              className="input"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              {SUPPORTED_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+            <p className="text-caption" style={{ marginTop: '4px' }}>
+              Determines tax rules, date formats, and regulatory compliance defaults.
+            </p>
+          </div>
+
+          {/* Timezone */}
+          <div>
+            <label htmlFor="timezone" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              Timezone
+            </label>
+            <select
+              id="timezone"
+              className="input"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              {SUPPORTED_TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-caption" style={{ marginTop: '4px' }}>
+              Used for transaction timestamps, report generation times, and scheduled jobs.
+            </p>
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={saving || !selectedEntityId} style={{ alignSelf: 'flex-start', marginTop: '8px' }}>
+            {saving ? 'Saving…' : 'Save Localization Settings'}
+          </button>
+        </form>
+      </div>
+
+      {/* Info card */}
+      <div className="card-accent" style={{ padding: '20px 24px' }}>
+        <div className="text-h4" style={{ marginBottom: '8px' }}>💡 About Localization</div>
+        <div className="text-body" style={{ lineHeight: 1.7 }}>
+          Localization settings affect how financial data is displayed across the platform.
+          Changing the base currency will not retroactively convert existing transactions — it sets
+          the default for new transactions and report formatting. Multi-currency support automatically
+          converts foreign currency transactions at the exchange rate at the time of import.
         </div>
       </div>
     </div>

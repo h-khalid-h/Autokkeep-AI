@@ -1,4 +1,5 @@
 import Twilio from 'twilio';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ============================================
 // TWILIO CLIENT (SMS + WhatsApp)
@@ -110,13 +111,11 @@ export interface ReceiptRequestContext {
   cardLast4: string;
   cardHolder: string;
   transactionId: string;
+  currency?: string;
 }
 
 export function buildReceiptRequestMessage(context: ReceiptRequestContext): string {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(context.amount);
+  const formattedAmount = formatCurrency(context.amount, context.currency || 'USD');
 
   return [
     `👋 Hey ${context.cardHolder}!`,

@@ -3,69 +3,93 @@
 // Checks subscription limits before operations
 // ============================================
 
-export type PlanTier = 'free' | 'starter' | 'smb_growth' | 'cpa_professional' | 'cpa_enterprise';
+export type PlanTier = 'starter' | 'growth' | 'pro';
 
-export interface PlanLimits {
-  maxEntities: number;
-  maxTransactionsPerMonth: number;
-  maxBankConnections: number;
-  maxTeamMembers: number;
-  aiCategorizationEnabled: boolean;
-  ledgerSyncEnabled: boolean;
-  channelDispatchEnabled: boolean;
-  receiptChaseEnabled: boolean;
+export interface PlanFeatures {
+  aiAnalyst: boolean;
+  healthMonitoring: boolean;
+  monthEndClose: boolean;
+  taxReadiness: boolean;
+  narrativeEngine: boolean;
+  ledgerSync: boolean;
+  channels: boolean;
+  receiptChase: boolean;
 }
 
-export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  free: {
-    maxEntities: 1,
-    maxTransactionsPerMonth: 50,
-    maxBankConnections: 1,
-    maxTeamMembers: 1,
-    aiCategorizationEnabled: true,
-    ledgerSyncEnabled: false,
-    channelDispatchEnabled: false,
-    receiptChaseEnabled: false,
-  },
+export interface PlanLimits {
+  entities: number;           // -1 = unlimited
+  transactionsPerMonth: number;
+  bankConnections: number;    // -1 = unlimited
+  teamMembers: number;        // -1 = unlimited
+  features: PlanFeatures;
+}
+
+export interface PlanDefinition {
+  name: string;
+  price: number;
+  limits: PlanLimits;
+}
+
+export const PLANS: Record<PlanTier, PlanDefinition> = {
   starter: {
-    maxEntities: 1,
-    maxTransactionsPerMonth: 200,
-    maxBankConnections: 2,
-    maxTeamMembers: 2,
-    aiCategorizationEnabled: true,
-    ledgerSyncEnabled: true,
-    channelDispatchEnabled: true,
-    receiptChaseEnabled: false,
+    name: 'Starter',
+    price: 29,
+    limits: {
+      entities: 1,
+      transactionsPerMonth: 500,
+      bankConnections: 2,
+      teamMembers: 3,
+      features: {
+        aiAnalyst: false,
+        healthMonitoring: false,
+        monthEndClose: false,
+        taxReadiness: false,
+        narrativeEngine: false,
+        ledgerSync: true,
+        channels: true,
+        receiptChase: true,
+      },
+    },
   },
-  smb_growth: {
-    maxEntities: 3,
-    maxTransactionsPerMonth: 1000,
-    maxBankConnections: 10,
-    maxTeamMembers: 5,
-    aiCategorizationEnabled: true,
-    ledgerSyncEnabled: true,
-    channelDispatchEnabled: true,
-    receiptChaseEnabled: true,
+  growth: {
+    name: 'Growth',
+    price: 99,
+    limits: {
+      entities: 3,
+      transactionsPerMonth: 2500,
+      bankConnections: 10,
+      teamMembers: 10,
+      features: {
+        aiAnalyst: true,
+        healthMonitoring: true,
+        monthEndClose: true,
+        taxReadiness: true,
+        narrativeEngine: false,
+        ledgerSync: true,
+        channels: true,
+        receiptChase: true,
+      },
+    },
   },
-  cpa_professional: {
-    maxEntities: 15,
-    maxTransactionsPerMonth: 5000,
-    maxBankConnections: 50,
-    maxTeamMembers: 10,
-    aiCategorizationEnabled: true,
-    ledgerSyncEnabled: true,
-    channelDispatchEnabled: true,
-    receiptChaseEnabled: true,
-  },
-  cpa_enterprise: {
-    maxEntities: 999999,
-    maxTransactionsPerMonth: 999999,
-    maxBankConnections: 999999,
-    maxTeamMembers: 999999,
-    aiCategorizationEnabled: true,
-    ledgerSyncEnabled: true,
-    channelDispatchEnabled: true,
-    receiptChaseEnabled: true,
+  pro: {
+    name: 'Pro',
+    price: 299,
+    limits: {
+      entities: -1, // unlimited
+      transactionsPerMonth: 10000,
+      bankConnections: -1,
+      teamMembers: -1,
+      features: {
+        aiAnalyst: true,
+        healthMonitoring: true,
+        monthEndClose: true,
+        taxReadiness: true,
+        narrativeEngine: true,
+        ledgerSync: true,
+        channels: true,
+        receiptChase: true,
+      },
+    },
   },
 };
 
@@ -80,8 +104,8 @@ export interface PlanCheckResult {
 /**
  * Check if an org's subscription allows a specific operation.
  * Call this from API routes before performing billable operations.
- * 
- * @param supabase - Supabase client (already typed as any in routes)
+ *
+ * @param supabase - Supabase client
  * @param orgId - Organization ID
  * @param operation - What operation to check
  */
@@ -98,8 +122,9 @@ export async function checkPlanLimits(
     .eq('org_id', orgId)
     .single();
 
-  const plan: PlanTier = sub?.plan || 'free';
-  const limits = PLAN_LIMITS[plan];
+  const plan: PlanTier = sub?.plan || 'starter';
+  const planDef = PLANS[plan];
+  const limits = planDef.limits;
 
   // Check subscription is active
   if (sub && sub.status !== 'active' && sub.status !== 'trialing') {
@@ -112,17 +137,19 @@ export async function checkPlanLimits(
 
   switch (operation) {
     case 'create_entity': {
+      if (limits.entities === -1) break; // unlimited
+
       const { count } = await supabase
         .from('entities')
         .select('id', { count: 'exact', head: true })
         .eq('org_id', orgId);
-      
-      if ((count || 0) >= limits.maxEntities) {
+
+      if ((count || 0) >= limits.entities) {
         return {
           allowed: false,
-          reason: `Your ${plan} plan allows ${limits.maxEntities} entity(s). Upgrade to add more.`,
+          reason: `Your ${planDef.name} plan allows ${limits.entities} entity(s). Upgrade to add more.`,
           currentPlan: plan,
-          limit: limits.maxEntities,
+          limit: limits.entities,
           current: count || 0,
         };
       }
@@ -138,35 +165,35 @@ export async function checkPlanLimits(
         const { getRedisClient } = await import('@/lib/redis');
         const redis = getRedisClient();
         if (!redis) throw new Error('Redis not configured');
-        
+
         // Key format: billing:tx_count:{orgId}:{YYYY-MM}
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const redisKey = `billing:tx_count:${orgId}:${monthKey}`;
-        
+
         // Atomic increment — returns the new count AFTER increment
         const newCount = await redis.incr(redisKey);
-        
+
         // Set expiry to end of month + 1 day buffer (only if key was just created)
         if (newCount === 1) {
           const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
           const ttlSeconds = Math.ceil((endOfMonth.getTime() - now.getTime()) / 1000) + 86400;
           await redis.expire(redisKey, ttlSeconds);
         }
-        
+
         // Check limit AFTER incrementing (atomic check-and-increment)
-        if (newCount > limits.maxTransactionsPerMonth) {
+        if (newCount > limits.transactionsPerMonth) {
           // Decrement back since we're rejecting this request
           await redis.decr(redisKey);
           return {
             allowed: false,
-            reason: `Monthly transaction limit reached (${limits.maxTransactionsPerMonth}). Upgrade your plan.`,
+            reason: `Monthly transaction limit reached (${limits.transactionsPerMonth}). Upgrade your plan.`,
             currentPlan: plan,
-            limit: limits.maxTransactionsPerMonth,
+            limit: limits.transactionsPerMonth,
             current: newCount - 1,
           };
         }
-        
+
         // Counter is within limits — allow
         currentCount = newCount;
       } catch {
@@ -184,9 +211,9 @@ export async function checkPlanLimits(
           .from('entities')
           .select('id')
           .eq('org_id', orgId);
-        
+
         const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
-        
+
         if (entityIds.length === 0) break;
 
         const { count } = await supabase
@@ -195,12 +222,12 @@ export async function checkPlanLimits(
           .gte('created_at', firstOfMonth.toISOString())
           .in('entity_id', entityIds);
 
-        if ((count || 0) >= limits.maxTransactionsPerMonth) {
+        if ((count || 0) >= limits.transactionsPerMonth) {
           return {
             allowed: false,
-            reason: `Monthly transaction limit reached (${limits.maxTransactionsPerMonth}). Upgrade your plan.`,
+            reason: `Monthly transaction limit reached (${limits.transactionsPerMonth}). Upgrade your plan.`,
             currentPlan: plan,
-            limit: limits.maxTransactionsPerMonth,
+            limit: limits.transactionsPerMonth,
             current: count || 0,
           };
         }
@@ -209,14 +236,16 @@ export async function checkPlanLimits(
     }
 
     case 'connect_bank': {
+      if (limits.bankConnections === -1) break; // unlimited
+
       // Step 1: Get entity IDs for this org
       const { data: bankEntities } = await supabase
         .from('entities')
         .select('id')
         .eq('org_id', orgId);
-      
+
       const bankEntityIds = (bankEntities || []).map((e: { id: string }) => e.id);
-      
+
       if (bankEntityIds.length === 0) {
         break;
       }
@@ -228,12 +257,12 @@ export async function checkPlanLimits(
         .eq('status', 'active')
         .in('entity_id', bankEntityIds);
 
-      if ((count || 0) >= limits.maxBankConnections) {
+      if ((count || 0) >= limits.bankConnections) {
         return {
           allowed: false,
-          reason: `Your ${plan} plan allows ${limits.maxBankConnections} bank connection(s).`,
+          reason: `Your ${planDef.name} plan allows ${limits.bankConnections} bank connection(s).`,
           currentPlan: plan,
-          limit: limits.maxBankConnections,
+          limit: limits.bankConnections,
           current: count || 0,
         };
       }
@@ -241,7 +270,7 @@ export async function checkPlanLimits(
     }
 
     case 'sync_ledger': {
-      if (!limits.ledgerSyncEnabled) {
+      if (!limits.features.ledgerSync) {
         return {
           allowed: false,
           reason: 'Ledger sync is not available on your current plan. Upgrade to enable QuickBooks/Xero sync.',
@@ -252,7 +281,7 @@ export async function checkPlanLimits(
     }
 
     case 'dispatch_channel': {
-      if (!limits.channelDispatchEnabled) {
+      if (!limits.features.channels) {
         return {
           allowed: false,
           reason: 'Channel dispatch (Slack, SMS, etc.) is not available on your current plan.',
@@ -263,17 +292,19 @@ export async function checkPlanLimits(
     }
 
     case 'add_team_member': {
+      if (limits.teamMembers === -1) break; // unlimited
+
       const { count } = await supabase
         .from('team_members')
         .select('id', { count: 'exact', head: true })
         .eq('org_id', orgId);
 
-      if ((count || 0) >= limits.maxTeamMembers) {
+      if ((count || 0) >= limits.teamMembers) {
         return {
           allowed: false,
-          reason: `Your ${plan} plan allows ${limits.maxTeamMembers} team member(s).`,
+          reason: `Your ${planDef.name} plan allows ${limits.teamMembers} team member(s).`,
           currentPlan: plan,
-          limit: limits.maxTeamMembers,
+          limit: limits.teamMembers,
           current: count || 0,
         };
       }

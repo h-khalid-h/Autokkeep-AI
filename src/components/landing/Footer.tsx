@@ -12,7 +12,7 @@ export default function Footer() {
               <span>Auto<span className="text-gradient">kkeep</span></span>
             </div>
             <p className="footer-brand-desc">
-              The end of the monthly close. Autonomous AI-native bookkeeping for modern businesses. Built for CPA firms and high-growth companies.
+              Understand your business finances without understanding accounting. AI-powered financial operations for small businesses.
             </p>
           </div>
 
@@ -21,7 +21,7 @@ export default function Footer() {
             <div className="footer-links">
               <Link href="/#solution" className="footer-link">How It Works</Link>
               <Link href="/#architecture" className="footer-link">Architecture</Link>
-              <Link href="/#pricing" className="footer-link">Pricing</Link>
+              <Link href="/pricing" className="footer-link">Pricing</Link>
               <Link href="/dashboard" className="footer-link">Live Dashboard Demo</Link>
               <Link href="/demo/shadow-audit" className="footer-link">Shadow Audit Demo</Link>
               <Link href="/#cta" className="footer-link">Request Access</Link>

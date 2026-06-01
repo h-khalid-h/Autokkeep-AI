@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 
 const typewriterPhrases = [
-  'chasing receipts for 3 hours.',
-  'closing books 15 days late.',
-  'guessing expense categories.',
-  'manual data entry errors.',
-  'month-end reconciliation chaos.',
+  'categorizing transactions manually.',
+  'waiting weeks for your books.',
+  'guessing where your money went.',
+  'being surprised by cash flow issues.',
+  'paying for answers you should have.',
 ];
 
 export default function Hero() {
@@ -50,25 +50,29 @@ export default function Hero() {
         <div className="hero-text">
           <div className="hero-eyebrow">
             <span style={{ fontSize: '0.75rem' }}>⚡</span>
-            AI-Native Bookkeeping Engine
+            AI Financial Operations Platform
           </div>
 
           <h1 className="hero-title">
-            The end of the
+            Your AI
             <br />
-            <span className="text-gradient">monthly close.</span>
+            <span className="text-gradient">Financial Operator.</span>
           </h1>
 
           <p className="hero-subtitle">
             Stop{' '}
             <span className="hero-typewriter">{displayText}</span>
             <br />
-            Autokkeep automatically categorizes transactions, chases receipts, and syncs your ledger — so your books are always closed and audit-ready.
+            Autokkeep automatically organizes transactions, keeps your books updated, explains financial activity, and helps you make smarter business decisions.
+          </p>
+
+          <p className="hero-subtitle" style={{ fontSize: '0.9375rem', opacity: 0.8, marginTop: '-8px' }}>
+            Connect your accounts once. Let AI handle the bookkeeping while you focus on growing your business.
           </p>
 
           <div className="hero-ctas">
             <a href="#cta" className="btn btn-primary btn-lg">
-              Request Early Access
+              Start Free
             </a>
             <a href="#solution" className="btn btn-secondary btn-lg">
               See How It Works →
@@ -77,12 +81,12 @@ export default function Hero() {
 
           <div className="hero-trust">
             <div className="hero-trust-item">
-              <span className="hero-trust-icon" aria-hidden="true">🔒</span>
-              SOC 2 Architecture
-            </div>
-            <div className="hero-trust-item">
               <span className="hero-trust-icon" aria-hidden="true">🏦</span>
               Bank-Grade Encryption
+            </div>
+            <div className="hero-trust-item">
+              <span className="hero-trust-icon" aria-hidden="true">🔒</span>
+              SOC 2 Ready
             </div>
             <div className="hero-trust-item">
               <span className="hero-trust-icon" aria-hidden="true">✓</span>
@@ -95,7 +99,7 @@ export default function Hero() {
           <div className="hero-dashboard-preview">
             <Image
               src="/images/hero-dashboard.png"
-              alt="Autokkeep autonomous bookkeeping dashboard showing real-time P&L, cash flow chart, and transaction categorization"
+              alt="Autokkeep AI financial operations dashboard showing real-time insights, cash flow monitoring, and automated bookkeeping"
               width={600}
               height={600}
               priority
@@ -110,13 +114,13 @@ export default function Hero() {
           </div>
 
           <div className="hero-float-card hero-float-card-2">
-            <span className="badge badge-warning">⚠ 42%</span>
-            <span>Unknown vendor — Flagged</span>
+            <span className="badge badge-info">📊</span>
+            <span>Revenue up 12% vs last month</span>
           </div>
 
           <div className="hero-float-card hero-float-card-3">
-            <span className="badge badge-info">↻</span>
-            <span>Receipt captured via Slack</span>
+            <span className="badge badge-warning">⚠️</span>
+            <span>Duplicate payment detected</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/lib/types/transaction';
 import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
@@ -80,6 +81,93 @@ const mapTransaction = (tx: RawTransaction): Transaction => ({
   },
   documentStatus: (tx.document_status || 'missing') as Transaction['documentStatus'],
 });
+
+// ─── Quick Access Module Cards ──────────────────────────────────────────────
+
+const MODULE_CARDS = [
+  {
+    icon: '🧠',
+    title: 'AI Analyst',
+    description: 'Ask anything about your finances',
+    href: '/insights',
+    cta: '→ Open',
+  },
+  {
+    icon: '💚',
+    title: 'Health',
+    description: 'Monitor financial health alerts',
+    href: '/health',
+    cta: '→ View',
+  },
+  {
+    icon: '📅',
+    title: 'Month-End Close',
+    description: 'Track close progress & readiness',
+    href: '/close',
+    cta: '→ Review',
+  },
+  {
+    icon: '📋',
+    title: 'Tax',
+    description: 'AI-powered tax readiness analysis',
+    href: '/tax',
+    cta: '→ Check',
+  },
+];
+
+function ModuleQuickAccess() {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '16px',
+      padding: '0 var(--space-5, 20px)',
+      marginBottom: '16px',
+    }}>
+      {MODULE_CARDS.map((card) => (
+        <Link
+          key={card.href}
+          href={card.href}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <div
+            className="card-elevated"
+            style={{
+              padding: '20px',
+              cursor: 'pointer',
+              transition: 'transform 150ms ease, box-shadow 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+            }}
+          >
+            <div style={{ fontSize: '1.75rem', marginBottom: '8px' }}>{card.icon}</div>
+            <div className="text-h4" style={{ marginBottom: '4px' }}>{card.title}</div>
+            <div className="text-caption" style={{ marginBottom: '12px', lineHeight: 1.4 }}>
+              {card.description}
+            </div>
+            <div className="text-caption" style={{
+              color: 'var(--accent-primary)',
+              fontWeight: 600,
+            }}>
+              {card.cta}
+            </div>
+          </div>
+        </Link>
+      ))}
+      <style>{`
+        @media (max-width: 768px) {
+          div[style*="grid-template-columns: repeat(4"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
 
@@ -195,7 +283,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleBatchAction = React.useCallback(async (action: 'approve' | 'reject') => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0 || !selectedEntity?.id) return;
     setBatchLoading(true);
     try {
       const res = await fetch('/api/transactions/batch', {
@@ -204,7 +292,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           transactionIds: Array.from(selectedIds),
           action,
-          entityId: selectedEntity?.id || 'demo',
+          entityId: selectedEntity.id,
         }),
       });
       if (res.ok) {
@@ -452,6 +540,7 @@ export default function DashboardPage() {
       <div className="dashboard-layout">
         <GlobalDashboardHeader />
         <DashboardStatsBar stats={stats} loading={false} />
+        <ModuleQuickAccess />
         <div className="dashboard-main">
           <div
             className="flex-center"
@@ -480,6 +569,8 @@ export default function DashboardPage() {
       <GlobalDashboardHeader />
 
       <DashboardStatsBar stats={stats} loading={false} />
+
+      <ModuleQuickAccess />
 
       {/* Error banner */}
       {error && (

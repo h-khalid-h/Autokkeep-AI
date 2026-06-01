@@ -10,7 +10,7 @@ export default function ContactPage() {
     name: '',
     email: '',
     company: '',
-    type: 'cpa',
+    type: 'smb',
     entities: '',
     message: '',
   });
@@ -67,7 +67,7 @@ export default function ContactPage() {
                 Let&apos;s <span className="text-gradient">Talk</span>
               </h1>
               <p className="section-subtitle">
-                Whether you&apos;re a CPA firm exploring automation, a startup founder tired of spreadsheets, or an investor evaluating the space — we&apos;d love to connect.
+                Whether you're a small business owner looking for financial clarity, an accounting professional exploring automation, or a startup founder tired of spreadsheets — we'd love to connect.
               </p>
             </div>
 
@@ -125,7 +125,7 @@ export default function ContactPage() {
                       name="company"
                       type="text"
                       className="input"
-                      placeholder="Smith & Partners CPA"
+                      placeholder="Acme Corp"
                       value={formState.company}
                       onChange={handleChange}
                       required
@@ -144,9 +144,9 @@ export default function ContactPage() {
                         value={formState.type}
                         onChange={handleChange}
                       >
-                        <option value="cpa">CPA / Accounting Firm</option>
+                        <option value="smb">Small Business Owner</option>
                         <option value="startup">Startup Founder</option>
-                        <option value="smb">SMB Owner</option>
+                        <option value="cpa">CPA / Accounting Firm</option>
                         <option value="investor">Investor</option>
                         <option value="partner">Potential Partner</option>
                         <option value="other">Other</option>
@@ -177,7 +177,7 @@ export default function ContactPage() {
                       id="contact-message"
                       name="message"
                       className="input"
-                      placeholder="Tell us about your current bookkeeping workflow and what you're looking for..."
+                      placeholder="Tell us about your current financial workflow and what you're looking for..."
                       value={formState.message}
                       onChange={handleChange}
                       required

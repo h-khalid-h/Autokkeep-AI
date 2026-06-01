@@ -143,6 +143,9 @@ CREATE TABLE entities (
   tax_id          text,
   fiscal_year_end varchar(5),
   base_currency   varchar(3)  DEFAULT 'USD',
+  locale          varchar(10) DEFAULT 'en-US',
+  timezone        varchar(50) DEFAULT 'UTC',
+  country         varchar(2)  DEFAULT 'US',
   created_at      timestamptz DEFAULT now()
 );
 
@@ -225,6 +228,9 @@ CREATE TABLE transactions (
   mcc_code             varchar(10),
   raw_bank_description text,
   currency             varchar(3)           DEFAULT 'USD',
+  base_currency        varchar(3)           DEFAULT 'USD',
+  exchange_rate        decimal(12,6)        DEFAULT 1.0,
+  converted_amount     decimal(15,2),
   tags                 text[],
   aging_days           int                  DEFAULT 0,
   deleted_at           timestamptz,
@@ -527,10 +533,79 @@ CREATE CONSTRAINT TRIGGER trg_validate_journal_balance
 CREATE INDEX idx_categorization_history_entity_id ON categorization_history(entity_id);
 CREATE INDEX idx_categorization_history_merchant ON categorization_history(entity_id, merchant);
 
+
+-- ---------------------------------------------------------------------------
+-- 6. PLATFORM TRANSFORMATION TABLES
+-- ---------------------------------------------------------------------------
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- 6.1 ai_conversations (AI Financial Analyst chat)
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CREATE TABLE ai_conversations (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id   uuid        NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+  user_id     uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title       text,
+  messages    jsonb       DEFAULT '[]'::jsonb,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_ai_conversations_entity ON ai_conversations(entity_id);
+CREATE INDEX idx_ai_conversations_user   ON ai_conversations(user_id);
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- 6.2 financial_narratives (monthly AI-generated reports)
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CREATE TABLE financial_narratives (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id     uuid        NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+  period_start  date        NOT NULL,
+  period_end    date        NOT NULL,
+  narrative     jsonb       NOT NULL,
+  generated_at  timestamptz DEFAULT now(),
+  created_at    timestamptz DEFAULT now(),
+
+  UNIQUE (entity_id, period_start, period_end)
+);
+
+CREATE INDEX idx_financial_narratives_entity ON financial_narratives(entity_id);
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- 6.3 health_alerts (anomaly detection & financial health)
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CREATE TABLE health_alerts (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id    uuid        NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+  alert_type   text        NOT NULL,
+  severity     text        NOT NULL DEFAULT 'info',
+  title        text        NOT NULL,
+  description  text        NOT NULL,
+  data         jsonb,
+  is_read      boolean     DEFAULT false,
+  is_dismissed boolean     DEFAULT false,
+  created_at   timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_health_alerts_entity ON health_alerts(entity_id);
+CREATE INDEX idx_health_alerts_unread ON health_alerts(entity_id, is_read) WHERE NOT is_read;
+
+
+-- ---------------------------------------------------------------------------
+-- 7. TRIGGERS FOR NEW TABLES
+-- ---------------------------------------------------------------------------
+
+CREATE TRIGGER trg_ai_conversations_updated_at
+  BEFORE UPDATE ON ai_conversations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+
 -- ---------------------------------------------------------------------------
 -- MIGRATIONS (run in order after initial schema)
 -- ---------------------------------------------------------------------------
 -- See src/lib/supabase/migrations/ for:
---   001_rls_policies.sql     — Row-Level Security for all tables
---   002_period_locking.sql   — Accounting period locking + mutation prevention
---   003_escrow_suspense.sql  — Add escrow_suspense transaction status
+--   001_rls_policies.sql              — Row-Level Security for all tables
+--   002_period_locking.sql            — Accounting period locking + mutation prevention
+--   003_escrow_suspense.sql           — Add escrow_suspense transaction status
+--   011_platform_transformation.sql   — Multi-currency, localization, AI tables

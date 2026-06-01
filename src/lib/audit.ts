@@ -17,12 +17,16 @@ export type AuditAction =
   | 'export'
   | 'sync'
   | 'login'
+  | 'connect'
+  | 'disconnect'
+  | 'receipt_upload'
   | 'pipeline_processed'
   | 'webhook_received';
 
 const VALID_ACTIONS: Set<string> = new Set([
   'create', 'update', 'delete', 'categorize', 'approve', 'revoke',
-  'export', 'sync', 'login', 'pipeline_processed', 'webhook_received',
+  'export', 'sync', 'login', 'connect', 'disconnect', 'receipt_upload',
+  'pipeline_processed', 'webhook_received',
 ]);
 
 /**

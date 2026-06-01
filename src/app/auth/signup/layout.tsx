@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Sign Up — Autokkeep',
-  description: 'Create your Autokkeep account. Start automating your bookkeeping with AI-powered transaction categorization.',
+  description: 'Create your Autokkeep account. Start understanding your business finances with AI-powered financial operations.',
 };
 
 export default function SignupLayout({ children }: { children: React.ReactNode }) {

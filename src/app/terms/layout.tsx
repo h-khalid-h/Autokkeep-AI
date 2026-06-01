@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Terms of Service — Autokkeep',
   description:
-    'Read the Autokkeep Terms of Service. Learn about our AI-powered bookkeeping platform policies, user responsibilities, billing, data ownership, and more.',
+    'Read the Autokkeep Terms of Service. Learn about our AI-powered financial operations platform policies, user responsibilities, billing, data ownership, and more.',
   openGraph: {
     title: 'Terms of Service — Autokkeep',
     description:

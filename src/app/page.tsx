@@ -3,7 +3,7 @@ import Hero from '@/components/landing/Hero';
 import ProblemSection from '@/components/landing/ProblemSection';
 import SolutionSection from '@/components/landing/SolutionSection';
 import ArchitectureSection from '@/components/landing/ArchitectureSection';
-import CPASection from '@/components/landing/CPASection';
+import BusinessOwnerSection from '@/components/landing/BusinessOwnerSection';
 import PricingSection from '@/components/landing/PricingSection';
 import MetricsSection from '@/components/landing/MetricsSection';
 import CTASection from '@/components/landing/CTASection';
@@ -18,7 +18,7 @@ export default function Home() {
         <ProblemSection />
         <SolutionSection />
         <ArchitectureSection />
-        <CPASection />
+        <BusinessOwnerSection />
         <PricingSection />
         <MetricsSection />
         <CTASection />

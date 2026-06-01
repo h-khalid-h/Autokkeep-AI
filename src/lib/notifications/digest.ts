@@ -1,6 +1,6 @@
 // ============================================
 // WEEKLY DIGEST COMPILER
-// Summarizes outstanding items for CPA review
+// Summarizes outstanding items for team review
 // ============================================
 
 import { createAdminClient } from '@/lib/supabase/admin';

@@ -3,6 +3,8 @@
 // High-risk transaction alerts for Slack & SMS
 // ============================================
 
+import { formatCurrency } from '@/lib/currency/converter';
+
 // --- Types ---
 
 export interface TransactionData {
@@ -13,6 +15,7 @@ export interface TransactionData {
   category_ai: string | null;
   entity_id: string;
   description: string | null;
+  currency?: string;
 }
 
 export interface ConfidenceBreakdown {
@@ -50,13 +53,6 @@ const LOW_CONFIDENCE_THRESHOLD = 0.95;
 
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL || 'https://app.autokkeep.com';
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(Math.abs(amount));
 }
 
 function getRiskLevel(amount: number, confidence: number): 'high' | 'medium' | 'low' {
@@ -112,7 +108,7 @@ export function buildSlackCard(
         },
         {
           type: 'mrkdwn',
-          text: `*Amount:*\n${formatCurrency(transaction.amount)}`,
+          text: `*Amount:*\n${formatCurrency(transaction.amount, transaction.currency)}`,
         },
         {
           type: 'mrkdwn',
@@ -190,7 +186,7 @@ export function buildSMSCard(
 
   const lines = [
     `${riskSymbol}AUTOKKEEP REVIEW${riskSymbol}`,
-    `${transaction.merchant_name || 'Unknown'} — ${formatCurrency(transaction.amount)}`,
+    `${transaction.merchant_name || 'Unknown'} — ${formatCurrency(transaction.amount, transaction.currency)}`,
     `Date: ${transaction.date}`,
     `AI Cat: ${transaction.category_ai || 'N/A'}`,
     `Confidence: ${(confidence.overall * 100).toFixed(0)}%`,

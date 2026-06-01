@@ -5,10 +5,42 @@ import NewsletterForm from '@/components/landing/NewsletterForm';
 
 export const metadata: Metadata = {
   title: 'Resources — Autokkeep',
-  description: 'Articles, guides, and insights on AI-powered bookkeeping, autonomous accounting, and the future of financial operations.',
+  description: 'Articles, guides, and insights for small businesses, startups, and accounting professionals on AI-powered financial operations, automated bookkeeping, and financial intelligence.',
 };
 
 const articles = [
+  {
+    date: 'May 2026',
+    category: 'For Business Owners',
+    title: '5 Financial Metrics Every Small Business Should Track Weekly',
+    excerpt: 'Understanding revenue growth, cash runway, expense ratios, outstanding receivables, and burn rate isn\'t just for CFOs. These five metrics give SMB owners a real-time pulse on business health — and take minutes to review when automated.',
+    readTime: '5 min read',
+    featured: false,
+  },
+  {
+    date: 'May 2026',
+    category: 'For Startups',
+    title: 'How AI is Replacing the $2,000/month Bookkeeper',
+    excerpt: 'Startups are switching from manual bookkeeping to AI-powered financial operations — and saving thousands per month. Here\'s why founders who automate early build better financial habits and cleaner books from day one.',
+    readTime: '6 min read',
+    featured: false,
+  },
+  {
+    date: 'April 2026',
+    category: 'For Ecommerce',
+    title: 'Multi-Currency Bookkeeping: What Every Global Seller Needs to Know',
+    excerpt: 'Managing transactions across USD, EUR, GBP, and beyond without spreadsheet chaos is a real challenge for growing ecommerce businesses. Learn how automated reconciliation keeps your books clean across every currency.',
+    readTime: '5 min read',
+    featured: false,
+  },
+  {
+    date: 'April 2026',
+    category: 'Financial Ops',
+    title: 'The Month-End Close Checklist: From 15 Days to 24 Hours',
+    excerpt: 'The monthly close is the most dreaded ritual in finance. AI-powered close automation eliminates the scramble by continuously reconciling transactions, flagging anomalies, and preparing reports in real time.',
+    readTime: '7 min read',
+    featured: false,
+  },
   {
     date: 'May 2026',
     category: 'Industry Analysis',
@@ -82,10 +114,10 @@ export default function ResourcesPage() {
                 <span>📚</span> Resources
               </div>
               <h1 className="section-title">
-                Insights on <span className="text-gradient">Autonomous Finance</span>
+                Insights on <span className="text-gradient">AI Financial Operations</span>
               </h1>
               <p className="section-subtitle">
-                Deep dives into AI bookkeeping, accounting industry trends, and the technology behind Autokkeep.
+                Guides for small businesses, startups, and accounting professionals on AI financial operations, automated bookkeeping, and the technology behind Autokkeep.
               </p>
             </div>
 
@@ -157,7 +189,7 @@ export default function ResourcesPage() {
                 Stay in the Loop
               </h3>
               <p className="text-body" style={{ marginBottom: '24px' }}>
-                Get monthly insights on AI bookkeeping, accounting industry trends, and Autokkeep product updates.
+                Get monthly insights on AI financial operations, accounting industry trends, and Autokkeep product updates.
               </p>
               <NewsletterForm />
             </div>

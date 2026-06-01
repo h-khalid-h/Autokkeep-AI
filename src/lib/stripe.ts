@@ -27,10 +27,11 @@ export function getStripeClient(): Stripe | null {
   return stripeInstance;
 }
 
-// Plan price IDs (set these in env vars or Stripe Dashboard)
+// Plan price IDs — must match Stripe Dashboard price IDs
 export const PLAN_PRICES = {
   starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || '',
-  professional_monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || '',
+  growth_monthly: process.env.STRIPE_PRICE_GROWTH_MONTHLY || '',
+  pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
 } as const;
 
 export type PlanId = keyof typeof PLAN_PRICES;

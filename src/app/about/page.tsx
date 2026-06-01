@@ -5,14 +5,14 @@ import Footer from '@/components/landing/Footer';
 
 export const metadata: Metadata = {
   title: 'About — Autokkeep',
-  description: 'Meet the team behind Autokkeep. We\'re building the future of autonomous bookkeeping — eliminating manual data entry with dual-engine AI technology.',
+  description: 'Meet the team behind Autokkeep. We\'re building the AI Financial Operations Platform for small businesses — helping you understand your finances, not just automate your bookkeeping.',
 };
 
 const timeline = [
   {
     year: '2024',
     title: 'The Problem Discovered',
-    description: 'After watching CPA firms lose $4.6B annually to manual bookkeeping tasks, we realized the industry was ripe for autonomous AI-driven disruption.',
+    description: 'After watching small businesses lose billions annually to manual financial tasks, we realized the industry was ripe for AI-driven transformation.',
   },
   {
     year: '2025',
@@ -27,7 +27,7 @@ const timeline = [
   {
     year: 'Next',
     title: 'Scaling the Vision',
-    description: 'SOC 2 Type II certification, multi-currency support, and expansion to 500+ CPA firm partnerships across North America.',
+    description: 'SOC 2 Type II certification, multi-currency support, and expansion to thousands of small businesses across North America.',
   },
 ];
 
@@ -67,11 +67,11 @@ export default function AboutPage() {
                 <span>🏢</span> About Autokkeep
               </div>
               <h1 className="text-display" style={{ marginBottom: '24px' }}>
-                The ultimate user experience for bookkeeping is{' '}
-                <span className="text-gradient">no experience at all.</span>
+                The AI Financial Operations Platform for{' '}
+                <span className="text-gradient">Small Businesses.</span>
               </h1>
               <p className="section-subtitle" style={{ maxWidth: '700px' }}>
-                We&apos;re building an autonomous financial intelligence layer that works silently in the background — classifying, reconciling, and closing books in real time. The only time you see Autokkeep is when it genuinely needs your input.
+                We&apos;re building an AI-powered financial intelligence platform that helps small businesses truly understand their finances — not just automate data entry. Autokkeep classifies, reconciles, and delivers actionable insights so you can make smarter decisions.
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function AboutPage() {
                   Why We Exist
                 </h2>
                 <p className="text-body-lg" style={{ marginBottom: '16px' }}>
-                  300,000 accountants have left the profession. CPA exam candidates have declined 30%+. Finance roles take 73 days to fill. The accounting talent crisis isn&apos;t coming — it&apos;s here.
+                  Small businesses spend 120+ hours per year on bookkeeping. 40% of SMBs say financial management is their biggest challenge. Meanwhile, 300,000 accountants have left the profession.
                 </p>
                 <p className="text-body">
                   Meanwhile, AI capabilities have reached a point where 95%+ of routine bookkeeping tasks can be automated with human-level accuracy. The question isn&apos;t &quot;should we automate bookkeeping?&quot; — it&apos;s &quot;why hasn&apos;t someone done it properly yet?&quot;
@@ -233,7 +233,7 @@ export default function AboutPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-primary)', paddingBottom: '8px', marginBottom: '8px' }}>
                 <span>AI Engine</span>
-                <span style={{ color: 'var(--accent-primary)' }}>OpenAI / Claude API</span>
+                <span style={{ color: 'var(--accent-primary)' }}>OpenAI API</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-primary)', paddingBottom: '8px', marginBottom: '8px' }}>
                 <span>Auth</span>
@@ -258,7 +258,7 @@ export default function AboutPage() {
               Ready to <span className="text-gradient">Join Us</span>?
             </h2>
             <p className="cta-subtitle">
-              Whether you&apos;re a CPA firm looking to scale, or a startup tired of manual bookkeeping — we&apos;d love to hear from you.
+              Whether you&apos;re a growing startup, an established SMB, or a firm looking to scale — we&apos;d love to hear from you.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <Link href="/#cta" className="btn btn-primary btn-lg">Request Early Access</Link>

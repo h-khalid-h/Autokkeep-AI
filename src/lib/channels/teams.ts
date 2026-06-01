@@ -2,6 +2,8 @@
 // MICROSOFT TEAMS INTEGRATION
 // ============================================
 
+import { formatCurrency } from '@/lib/currency/converter';
+
 export interface TeamsAdaptiveCardPayload {
   transactionId: string;
   merchantName: string;
@@ -12,6 +14,7 @@ export interface TeamsAdaptiveCardPayload {
   suggestedCategory?: string;
   suggestedGLCode?: string;
   confidence?: number;
+  currency?: string;
 }
 
 // ============================================
@@ -19,10 +22,7 @@ export interface TeamsAdaptiveCardPayload {
 // ============================================
 
 export function buildTeamsAdaptiveCard(payload: TeamsAdaptiveCardPayload) {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(payload.amount);
+  const formattedAmount = formatCurrency(payload.amount, payload.currency || 'USD');
 
   const confidenceColor = (payload.confidence ?? 0) >= 75 ? 'good' : 'attention';
 

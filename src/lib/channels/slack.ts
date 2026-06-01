@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/web-api';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ============================================
 // SLACK CLIENT
@@ -37,13 +38,11 @@ export interface ReceiptRequestPayload {
   suggestedCategory?: string;
   suggestedGLCode?: string;
   confidence?: number;
+  currency?: string;
 }
 
 export function buildReceiptRequestBlocks(payload: ReceiptRequestPayload) {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(payload.amount);
+  const formattedAmount = formatCurrency(payload.amount, payload.currency || 'USD');
 
   const confidenceEmoji = (payload.confidence ?? 0) >= 75 ? '🟡' : '🔴';
 
@@ -171,7 +170,7 @@ export async function sendSlackReceiptRequest(
   try {
     const result = await client.chat.postMessage({
       channel: channelOrUserId,
-      text: `💳 Transaction requires input: ${payload.merchantName} for ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payload.amount)}`,
+      text: `💳 Transaction requires input: ${payload.merchantName} for ${formatCurrency(payload.amount, payload.currency || 'USD')}`,
       blocks,
       unfurl_links: false,
     });

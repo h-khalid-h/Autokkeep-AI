@@ -34,6 +34,7 @@ export type AuditAction =
   | 'export'
   | 'connect'
   | 'disconnect'
+  | 'receipt_upload'
   | 'sync'
   | 'login'
   | 'pipeline_processed'
@@ -49,12 +50,7 @@ export type LedgerProvider = 'quickbooks' | 'xero';
 
 export type LedgerTypeEnum = 'quickbooks' | 'xero' | 'none';
 
-export type SubscriptionPlan =
-  | 'free'
-  | 'starter'
-  | 'smb_growth'
-  | 'cpa_professional'
-  | 'cpa_enterprise';
+export type SubscriptionPlan = 'starter' | 'growth' | 'pro';
 
 export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing';
 

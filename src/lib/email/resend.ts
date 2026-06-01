@@ -144,7 +144,7 @@ export async function sendDigestEmail(data: DigestEmailData): Promise<{ success:
             <!-- Footer -->
             <div style="padding: 16px 32px; background: #f8fafc; border-top: 1px solid #e5e7eb; text-align: center;">
               <p style="margin: 0; font-size: 11px; color: #9ca3af;">
-                Autokkeep OS — Agentic Financial Operating System<br>
+                Autokkeep — AI Financial Operations Platform<br>
                 This digest was auto-generated. No action needed if all items look correct.
               </p>
             </div>

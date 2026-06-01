@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { blogPosts } from '@/data/blogPosts';
 
 export const metadata: Metadata = {
-  title: 'Blog | Autokkeep — AI Bookkeeping Insights for CPA Firms',
-  description: 'Expert insights on AI bookkeeping automation, CPA firm efficiency, and the future of accounting technology.',
+  title: 'Blog | Autokkeep — AI Financial Operations Insights',
+  description: 'Expert insights on AI-powered financial operations, small business automation, and the future of accounting technology.',
 };
 
 export default function BlogPage() {
@@ -30,7 +30,7 @@ export default function BlogPage() {
           marginBottom: '48px',
           lineHeight: 1.6,
         }}>
-          Insights on AI bookkeeping, CPA firm automation, and the future of accounting.
+          Insights on AI financial operations, small business automation, and the future of accounting.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

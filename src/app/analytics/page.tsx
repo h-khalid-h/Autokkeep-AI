@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
+import { formatCurrency } from '@/lib/currency/converter';
 import Logo from '@/components/ui/Logo';
 
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
@@ -173,9 +174,9 @@ export default function AnalyticsPage() {
   }, [selectedEntity]);
 
   const data = analyticsData[timeRange];
+  const entityCurrency = selectedEntity?.currency || 'USD';
 
-  const formatCurrency = (n: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+  const fmtCurrency = (n: number) => formatCurrency(n, entityCurrency);
 
   const autoRate = data.totalTransactions > 0
     ? ((data.autoApproved / data.totalTransactions) * 100).toFixed(1)
@@ -358,7 +359,7 @@ export default function AnalyticsPage() {
                       {i + 1}. {cat.name}
                     </span>
                     <span className="text-caption" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {formatCurrency(cat.amount)}
+                      {fmtCurrency(cat.amount)}
                     </span>
                   </div>
                   <div style={{
@@ -400,7 +401,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <span className="text-body" style={{ fontFamily: 'var(--font-mono)' }}>
-                    {formatCurrency(ex.amount)}
+                    {fmtCurrency(ex.amount)}
                   </span>
                   <span className={`badge ${ex.confidence >= 80 ? 'badge-warning' : 'badge-danger'}`}>
                     {ex.confidence}%

@@ -235,7 +235,7 @@ export async function POST(
       targetType: 'transaction',
       targetId: transactionId,
       details: {
-        action: 'receipt_uploaded',
+        action: 'receipt_upload',
         source: 'file',
         file_name: file.name,
         file_type: file.type,

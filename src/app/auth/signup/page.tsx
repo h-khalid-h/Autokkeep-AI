@@ -176,7 +176,7 @@ export default function SignupPage() {
                 marginBottom: '32px',
               }}
             >
-              Start automating your bookkeeping
+              Start understanding your finances
             </p>
 
             {/* Error toast */}

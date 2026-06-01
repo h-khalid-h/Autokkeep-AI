@@ -123,7 +123,7 @@ export default function PartnersPage() {
         <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)', textAlign: 'center' }}>
           <div className="container">
             <Anim>
-              <span className="section-label">🦾 For CPA Firms</span>
+              <span className="section-label">🦾 Built for Accounting Professionals</span>
             </Anim>
 
             <Anim delay={100}>
@@ -134,15 +134,49 @@ export default function PartnersPage() {
 
             <Anim delay={200}>
               <p className="text-body-lg" style={{ maxWidth: 720, margin: '24px auto 0', color: s.textSec }}>
-                Stop losing talent. Stop turning away clients. Autokkeep lets your existing team handle 4x the client load
+                Autokkeep helps accounting firms serve more clients with AI-powered automation.
+                Stop losing talent. Stop turning away clients. Let your existing team handle 4x the client load
                 — with AI doing the heavy lifting and your CPAs providing the strategic oversight.
               </p>
             </Anim>
 
             <Anim delay={300} style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 40, flexWrap: 'wrap' }}>
-              <a href="#partner-cta" className="btn btn-primary btn-lg">Start Free 60-Day Pilot</a>
+              <a href="#partner-cta" className="btn btn-primary btn-lg">Become a Partner</a>
               <a href="/demo/shadow-audit" className="btn btn-secondary btn-lg">See Shadow Audit Demo</a>
             </Anim>
+          </div>
+        </section>
+
+        {/* ───────────────── 1b  KEY BENEFITS ───────────────── */}
+        <section className="section-sm">
+          <div className="container">
+            <div className="section-header">
+              <Anim><span className="section-label">✨ Why CPAs Choose Autokkeep</span></Anim>
+              <Anim delay={100}>
+                <h2 className="section-title">
+                  Transform Your <span className="text-gradient">Practice</span>
+                </h2>
+              </Anim>
+            </div>
+
+            <div className="grid-3" style={{ marginTop: 48 }}>
+              {[
+                { icon: '🚀', title: 'Serve 3x More Clients', body: 'Without adding staff. AI handles routine bookkeeping so your team focuses on advisory work that drives revenue.' },
+                { icon: '🤖', title: 'Automated Bookkeeping', body: 'Free your team from data entry. AI categorizes, reconciles, and posts transactions automatically — 95%+ accuracy.' },
+                { icon: '🏢', title: 'Multi-Entity Portfolio', body: 'Manage all your clients from a single dashboard. Portfolio-wide analytics, alerts, and reporting across every entity.' },
+                { icon: '🛡️', title: 'AI Catches Errors First', body: 'Dual-engine architecture flags anomalies, duplicate payments, and suspicious transactions before you review.' },
+                { icon: '⚡', title: 'Month-End in Hours', body: 'Close in hours, not days. Automated reconciliation, receipt auditing, and readiness scoring streamline every close.' },
+                { icon: '💰', title: 'Value-Based Pricing', body: 'Move from hourly billing to flat monthly fees. Your cost per entity drops while margins increase dramatically.' },
+              ].map((benefit, i) => (
+                <Anim key={i} delay={i * 100}>
+                  <div className="card" style={{ padding: '32px 24px', height: '100%' }}>
+                    <span style={{ fontSize: '2rem', display: 'block', marginBottom: 12 }}>{benefit.icon}</span>
+                    <h3 className="text-h4" style={{ marginBottom: 8 }}>{benefit.title}</h3>
+                    <p className="text-body" style={{ color: s.textSec, margin: 0 }}>{benefit.body}</p>
+                  </div>
+                </Anim>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -198,7 +232,7 @@ export default function PartnersPage() {
             <div className="grid-3" style={{ marginTop: 48 }}>
               {[
                 { num: '01', title: 'Onboard Your Clients', body: 'Connect bank feeds via Plaid. Map chart of accounts. Set approval workflows. 48 hours, not 48 days.' },
-                { num: '02', title: 'AI Handles Daily Bookkeeping', body: 'Transactions are auto-categorized, reconciled, and posted in real-time. The dual-engine architecture handles 95%+ autonomously.' },
+                { num: '02', title: 'AI Handles Daily Bookkeeping', body: 'Transactions are auto-categorized, reconciled, and posted in real-time. The dual-engine architecture handles 95%+ automatically.' },
                 { num: '03', title: 'CPAs Review Exceptions', body: 'Your team focuses only on the 5% that needs human judgment. Review flagged items, approve batches, and provide strategic advisory — the work they actually enjoy.' },
               ].map((step, i) => (
                 <Anim key={i} delay={i * 140}>
@@ -346,7 +380,7 @@ export default function PartnersPage() {
                   name: 'Foundation',
                   price: '$89',
                   unit: '/entity/mo',
-                  desc: 'For firms getting started with AI bookkeeping',
+                  desc: 'For firms getting started with AI financial operations',
                   features: ['Up to 25 entities', 'Full dual-engine AI', 'Standard integrations', 'Email support', 'Monthly reporting'],
                   cta: 'Get Started',
                   highlight: false,
@@ -532,6 +566,11 @@ export default function PartnersPage() {
             <Anim delay={100}>
               <p className="cta-subtitle">
                 No credit card required. Full platform access. Dedicated onboarding support.
+              </p>
+            </Anim>
+            <Anim delay={150}>
+              <p className="text-body" style={{ color: s.textSec, maxWidth: 600, margin: '0 auto 16px', fontSize: '1.05rem' }}>
+                Join the growing network of accounting firms transforming their practice with AI.
               </p>
             </Anim>
 

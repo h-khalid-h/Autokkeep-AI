@@ -1,6 +1,6 @@
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GET /api/cron/weekly-digest — Compile & Send Weekly CPA Digest
+// GET /api/cron/weekly-digest — Compile & Send Weekly Financial Digest
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //
 // PRD §4.2: Runs weekly (Fridays 4PM UTC).
