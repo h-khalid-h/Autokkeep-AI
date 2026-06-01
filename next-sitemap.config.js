@@ -10,6 +10,12 @@ module.exports = {
     '/transactions*',
     '/chart-of-accounts*',
     '/account*',
+    '/admin*',
+    '/close*',
+    '/health*',
+    '/insights*',
+    '/portfolio*',
+    '/tax*',
     '/api/*',
     '/auth/callback',
     '/auth/reset-password',
@@ -17,7 +23,7 @@ module.exports = {
   robotsTxtOptions: {
     policies: [
       { userAgent: '*', allow: '/' },
-      { userAgent: '*', disallow: ['/dashboard', '/settings', '/analytics', '/onboarding', '/transactions', '/chart-of-accounts', '/account', '/api', '/auth/callback'] },
+      { userAgent: '*', disallow: ['/dashboard', '/settings', '/analytics', '/onboarding', '/transactions', '/chart-of-accounts', '/account', '/admin', '/close', '/health', '/insights', '/portfolio', '/tax', '/api', '/auth/callback'] },
     ],
   },
 };
