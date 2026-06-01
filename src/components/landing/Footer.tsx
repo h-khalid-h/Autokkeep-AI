@@ -22,6 +22,8 @@ export default function Footer() {
               <Link href="/#solution" className="footer-link">How It Works</Link>
               <Link href="/#architecture" className="footer-link">Architecture</Link>
               <Link href="/pricing" className="footer-link">Pricing</Link>
+              <Link href="/changelog" className="footer-link">Changelog</Link>
+              <Link href="/status" className="footer-link">System Status</Link>
               <Link href="/dashboard" className="footer-link">Live Dashboard Demo</Link>
               <Link href="/demo/shadow-audit" className="footer-link">Shadow Audit Demo</Link>
               <Link href="/#cta" className="footer-link">Request Access</Link>

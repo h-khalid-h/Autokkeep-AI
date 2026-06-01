@@ -2,23 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
 import Logo from '@/components/ui/Logo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-// ─── Lazy Supabase singleton (never at module level) ────────────────────────
-let _supabase: ReturnType<typeof createBrowserClient> | null = null;
-function _getSupabase() {
-  if (!_supabase) {
-    _supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-  }
-  return _supabase;
-}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface TransactionRow {
