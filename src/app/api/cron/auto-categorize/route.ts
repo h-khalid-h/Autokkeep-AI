@@ -238,3 +238,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Vercel crons send GET — delegate to POST handler
+export async function GET(request: NextRequest) {
+  return POST(request);
+}

@@ -14,6 +14,7 @@ const protectedRoutes = [
   '/insights',
   '/portfolio',
   '/tax',
+  '/admin',
 ];
 const authRoutes = ['/auth/login', '/auth/signup'];
 
