@@ -9,6 +9,21 @@ export const metadata: Metadata = {
 
 const changelogEntries = [
   {
+    version: 'v2.2.0',
+    date: 'June 1, 2026',
+    dateISO: '2026-06-01',
+    changes: [
+      '🏗️ EasyPanel deployment refinement — self-hosted Docker optimization',
+      '🤖 Auto-categorization cron: transactions categorized every 15 minutes',
+      '🔄 Ledger auto-push: approved transactions sync to QuickBooks/Xero every 30 min',
+      '🔑 OAuth token refresh cron prevents silent authentication failures',
+      '🌍 Compliance plugins for 5 regions: Estonia, Qatar, Hong Kong, Japan, India',
+      '👨‍💼 Admin dashboard with organization management and system health',
+      '📧 Enhanced email templates: bank sync alerts, token expiry, month-end reminders',
+      '🔒 CSP fix for self-hosted Supabase on EasyPanel',
+    ],
+  },
+  {
     version: 'v2.1.0',
     date: 'June 1, 2026',
     dateISO: '2026-06-01',

@@ -1,6 +1,6 @@
 {
   "name": "autokkeep",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,8 +19,6 @@
     "@slack/web-api": "^7.16.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
-    "@vercel/analytics": "^2.0.1",
-    "@vercel/speed-insights": "^2.0.0",
     "ioredis": "^5.11.0",
     "jose": "^6.2.3",
     "next": "16.2.6",
