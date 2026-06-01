@@ -1,29 +1,52 @@
-# Autokkeep Cron Jobs
+# Autokkeep Cron Sidecar
 
-## Required Cron Jobs
+Lightweight Alpine container that triggers Autokkeep's cron API endpoints on schedule.
 
-These must be configured in your deployment platform (EasyPanel, Vercel, or external cron service):
+EasyPanel does **not** have a native cron feature, so this container runs as a sidecar service within the `autokkeep-ai` project.
+
+## EasyPanel Service Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Service Name** | `autokkeep-cron` |
+| **Source** | GitHub → `h-khalid-h/Autokkeep-AI` → `main` |
+| **Source Path** | `/docker/cron` |
+| **Build Method** | Dockerfile |
+| **Dockerfile Path** | `Dockerfile` |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `APP_URL` | Internal URL of the main app (e.g., `http://autokkeep-ai_autokkeep-app:3000`) |
+| `CRON_SECRET` | Must match the `CRON_SECRET` on the main app service |
+
+## Cron Schedule (7 jobs)
 
 | Job | Endpoint | Schedule | Description |
 |-----|----------|----------|-------------|
-| Plaid Sync | `POST /api/cron/plaid-sync` | Every 4 hours (`0 */4 * * *`) | Syncs new transactions from all connected banks |
-| Suspense Timeout | `POST /api/cron/suspense-timeout` | Every 4 hours (`30 */4 * * *`) | Auto-escalates stale escrow_suspense items |
-| Weekly Digest | `POST /api/cron/weekly-digest` | Monday 8am UTC (`0 8 * * 1`) | Sends weekly summary email to admins |
+| Auto-categorize | `auto-categorize` | `*/15 * * * *` | Categorize pending transactions via AI |
+| Ledger sync | `ledger-sync` | `*/30 * * * *` | Push approved txns to QBO/Xero |
+| Plaid sync | `plaid-sync` | `0 */4 * * *` | Sync bank transactions via Plaid |
+| Suspense timeout | `suspense-timeout` | `30 */4 * * *` | Escalate stale escrow_suspense items |
+| Token refresh | `token-refresh` | `0 */6 * * *` | Refresh expiring OAuth tokens |
+| Receipt chase | `receipt-chase` | `0 10 * * 1-5` | Chase missing receipts (weekdays 10am UTC) |
+| Weekly digest | `weekly-digest` | `0 16 * * 5` | Send weekly summary email (Fridays 4pm UTC) |
 
 ## Authentication
 
 All cron endpoints require the `Authorization: Bearer {CRON_SECRET}` header.
 
-## Example: curl
+## Testing
 
 ```bash
-curl -X POST https://autokkeep.com/api/cron/plaid-sync \
-  -H "Authorization: Bearer $CRON_SECRET"
+# Test a single endpoint manually
+docker exec autokkeep-cron /usr/local/bin/trigger.sh plaid-sync
 ```
 
-## EasyPanel Setup
+## Debugging
 
-EasyPanel doesn't support native cron. Use one of:
-1. **External cron service**: cron-job.org (free), EasyCron, or a simple VPS crontab
-2. **Docker cron sidecar**: Add a lightweight cron container to the docker-compose
-3. **Vercel Cron**: If using Vercel as deployment target, crons are defined in vercel.json
+```bash
+# View cron logs inside the container
+docker exec autokkeep-cron cat /var/log/cron.log
+```

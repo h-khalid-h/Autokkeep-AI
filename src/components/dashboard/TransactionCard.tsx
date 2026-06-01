@@ -57,7 +57,7 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
         role="button"
         tabIndex={0}
         aria-label={`Transaction ${transaction.merchant}, ${formattedAmount}, confidence ${transaction.confidence}%`}
-        aria-selected={isActive}
+        data-active={isActive}
         style={
           isExiting
             ? { animation: 'slide-out-left 0.3s var(--ease-out) forwards' }

@@ -135,25 +135,45 @@ EasyPanel will show the container as healthy/unhealthy based on this.
 
 ## Cron Jobs
 
-Autokkeep has 7 automated cron jobs. On EasyPanel, configure these via **EasyPanel's Cron Jobs** feature or use the system crontab on the VPS.
+EasyPanel does **not** have a native cron feature. Autokkeep uses a lightweight **cron sidecar container** (`autokkeep-cron`) within the EasyPanel project to trigger scheduled tasks via HTTP.
 
-### Option A: EasyPanel Cron Jobs (Recommended)
+### EasyPanel Service: `autokkeep-cron`
 
-In EasyPanel → Cron Jobs, add these HTTP triggers:
+In EasyPanel → Project `autokkeep-ai`, add a service:
 
-| Schedule | Method | URL | Header |
-|----------|--------|-----|--------|
-| `*/15 * * * *` | GET | `https://autokkeep.com/api/cron/auto-categorize` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `*/30 * * * *` | GET | `https://autokkeep.com/api/cron/ledger-sync` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `0 */4 * * *` | GET | `https://autokkeep.com/api/cron/plaid-sync` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `30 */4 * * *` | GET | `https://autokkeep.com/api/cron/suspense-timeout` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `0 */6 * * *` | GET | `https://autokkeep.com/api/cron/token-refresh` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `0 10 * * 1-5` | GET | `https://autokkeep.com/api/cron/receipt-chase` | `Authorization: Bearer YOUR_CRON_SECRET` |
-| `0 16 * * 5` | GET | `https://autokkeep.com/api/cron/weekly-digest` | `Authorization: Bearer YOUR_CRON_SECRET` |
+| Setting | Value |
+|---------|-------|
+| **Service Name** | `autokkeep-cron` |
+| **Source** | Same GitHub repo (`h-khalid-h/Autokkeep-AI`, branch `main`) |
+| **Source Path** | `/docker/cron` |
+| **Build Method** | Dockerfile |
+| **Dockerfile Path** | `Dockerfile` |
 
-### Option B: System Crontab
+**Environment variables** (set in EasyPanel):
+```
+APP_URL=http://autokkeep-ai_autokkeep-app:3000
+CRON_SECRET=<same as autokkeep-app CRON_SECRET>
+```
 
-SSH into the VPS and add to crontab:
+> **Note:** `APP_URL` uses the internal Docker network hostname (not the public URL) so cron requests stay within the EasyPanel project network.
+
+### Cron Schedule (7 jobs)
+
+| Schedule | Endpoint | Description |
+|----------|----------|-------------|
+| `*/15 * * * *` | `auto-categorize` | Categorize pending transactions |
+| `*/30 * * * *` | `ledger-sync` | Push approved txns to QBO/Xero |
+| `0 */4 * * *` | `plaid-sync` | Sync bank transactions via Plaid |
+| `30 */4 * * *` | `suspense-timeout` | Escalate stale escrow_suspense items |
+| `0 */6 * * *` | `token-refresh` | Refresh expiring OAuth tokens |
+| `0 10 * * 1-5` | `receipt-chase` | Chase missing receipts (weekdays) |
+| `0 16 * * 5` | `weekly-digest` | Send weekly summary email |
+
+All endpoints are called via `GET /api/cron/<endpoint>` with `Authorization: Bearer $CRON_SECRET`.
+
+### Alternative: System Crontab
+
+If not using the sidecar container, SSH into the VPS and add to crontab:
 
 ```bash
 crontab -e
@@ -171,13 +191,6 @@ APP_URL=https://autokkeep.com
 0 */6 * * *  curl -sf -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron/token-refresh > /dev/null 2>&1
 0 10 * * 1-5 curl -sf -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron/receipt-chase > /dev/null 2>&1
 0 16 * * 5   curl -sf -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron/weekly-digest > /dev/null 2>&1
-```
-
-### Option C: Cron Script
-
-Use the bundled script:
-```bash
-APP_URL=https://autokkeep.com CRON_SECRET=your-secret ./scripts/cron.sh auto-categorize
 ```
 
 ---

@@ -156,7 +156,7 @@ export default function NotificationBell() {
         }
         break;
     }
-  }, [notifications]);
+  }, [notifications, focusedIndex]);
 
   return (
     <div ref={bellRef} style={{ position: 'relative' }}>

@@ -80,12 +80,15 @@ export default function AdminOrganizationsPage() {
     }
   }, []);
 
-  React.useEffect(() => {
-    fetchOrgs(1, '');
-  }, [fetchOrgs]);
+  const isInitialMount = React.useRef(true);
 
-  // Debounced search
+  // Fetch on mount immediately, then debounce on search changes
   React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchOrgs(1, '');
+      return;
+    }
     const timer = setTimeout(() => {
       fetchOrgs(1, search);
     }, 300);

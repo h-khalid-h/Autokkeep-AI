@@ -109,7 +109,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
         }
         break;
     }
-  }, []);
+  }, [focusedIndex]);
 
   return (
     <div ref={menuRef} style={{ position: 'relative' }}>

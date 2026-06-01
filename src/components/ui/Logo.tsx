@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 interface LogoProps {
   size?: number;
@@ -10,9 +11,8 @@ export default function Logo({ size = 32, className = '', style = {} }: LogoProp
   // Apple squircle-like radius is ~22% of size
   const borderRadius = Math.round(size * 0.22);
   
-  // eslint-disable-next-line @next/next/no-img-element
   return (
-    <img
+    <Image
       src="/images/logo.png"
       alt="Autokkeep Logo"
       width={size}

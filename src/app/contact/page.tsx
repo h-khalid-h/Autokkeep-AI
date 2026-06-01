@@ -67,7 +67,7 @@ export default function ContactPage() {
                 Let&apos;s <span className="text-gradient">Talk</span>
               </h1>
               <p className="section-subtitle">
-                Whether you're a small business owner looking for financial clarity, an accounting professional exploring automation, or a startup founder tired of spreadsheets — we'd love to connect.
+                Whether you&apos;re a small business owner looking for financial clarity, an accounting professional exploring automation, or a startup founder tired of spreadsheets — we&apos;d love to connect.
               </p>
             </div>
 

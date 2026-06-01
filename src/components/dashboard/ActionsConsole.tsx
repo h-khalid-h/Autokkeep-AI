@@ -169,7 +169,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
 
         {/* Category Search Combobox */}
         {showCategorySearch && (
-          <div className="category-search" role="combobox" aria-label="Search chart of accounts">
+          <div className="category-search" role="combobox" aria-label="Search chart of accounts" aria-controls="category-listbox" aria-expanded={true}>
             <input
               ref={categoryInputRef}
               type="text"
@@ -181,6 +181,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
               autoFocus
             />
             <ul
+              id="category-listbox"
               className="category-search-dropdown"
               role="listbox"
               aria-label="Chart of accounts options"
