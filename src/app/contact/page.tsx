@@ -74,8 +74,8 @@ export default function ContactPage() {
             {!submitted ? (
               <>
               {formError && (
-                <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', borderLeft: '4px solid var(--color-error, #ef4444)', maxWidth: '560px', margin: '0 auto 16px' }}>
-                  <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>⚠️ {formError}</div>
+                <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', borderLeft: '4px solid var(--destructive)', maxWidth: '560px', margin: '0 auto 16px' }}>
+                  <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {formError}</div>
                 </div>
               )}
               <form

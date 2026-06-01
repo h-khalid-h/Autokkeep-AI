@@ -111,7 +111,7 @@ export default function PartnersPage() {
     successSubtle: 'var(--success-subtle)',
     mono: 'var(--font-mono)',
     bgSec: 'var(--bg-secondary)',
-    bgTer: 'var(--bg-tertiary)',
+    bgTer: 'var(--bg-surface)',
   };
 
   return (

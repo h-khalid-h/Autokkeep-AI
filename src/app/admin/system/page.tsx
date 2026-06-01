@@ -40,7 +40,7 @@ function Skeleton({ width, height = '20px' }: { width?: string; height?: string 
         width: width || '100%',
         height,
         borderRadius: '6px',
-        background: 'var(--bg-tertiary, #2a2a2a)',
+        background: 'var(--bg-elevated)',
         animation: 'pulse 1.5s ease-in-out infinite',
       }}
     />
@@ -119,9 +119,9 @@ export default function AdminSystemPage() {
           <div className="card" style={{
             padding: '16px',
             marginBottom: '24px',
-            borderLeft: '4px solid var(--color-error, #ef4444)',
+            borderLeft: '4px solid var(--destructive)',
           }}>
-            <div className="text-body" style={{ color: 'var(--color-error, #ef4444)' }}>
+            <div className="text-body" style={{ color: 'var(--destructive)' }}>
               ⚠️ {error}
             </div>
           </div>
@@ -220,10 +220,10 @@ export default function AdminSystemPage() {
                               fontSize: '12px',
                               fontFamily: 'var(--font-mono, monospace)',
                               background: v.set
-                                ? 'rgba(16, 185, 129, 0.12)'
-                                : 'rgba(239, 68, 68, 0.12)',
-                              color: v.set ? '#10b981' : '#ef4444',
-                              border: `1px solid ${v.set ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                                ? 'var(--success-subtle)'
+                                : 'var(--destructive-subtle)',
+                              color: v.set ? 'var(--success)' : 'var(--destructive)',
+                              border: `1px solid ${v.set ? 'var(--success-border)' : 'var(--destructive-border)'}`,
                             }}
                           >
                             {v.set ? '✓' : '✗'} {v.name}

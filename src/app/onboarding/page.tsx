@@ -899,7 +899,7 @@ export default function OnboardingPage() {
                       <span style={{
                         position: 'absolute', top: '8px', right: '8px',
                         fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                        background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                        background: 'var(--bg-surface)', color: 'var(--text-secondary)',
                       }}>Coming soon</span>
                     )}
                     <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{channel.icon}</div>

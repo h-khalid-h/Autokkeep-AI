@@ -13,10 +13,10 @@ function getPasswordStrength(password: string): { level: number; label: string; 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 1) return { level: 1, label: 'Weak', color: '#ef4444' };
-  if (score === 2) return { level: 2, label: 'Fair', color: '#f59e0b' };
-  if (score === 3) return { level: 3, label: 'Good', color: '#3b82f6' };
-  return { level: 4, label: 'Strong', color: '#10b981' };
+  if (score <= 1) return { level: 1, label: 'Weak', color: 'hsl(0, 72%, 55%)' };
+  if (score === 2) return { level: 2, label: 'Fair', color: 'hsl(38, 92%, 50%)' };
+  if (score === 3) return { level: 3, label: 'Good', color: 'hsl(217, 99%, 50%)' };
+  return { level: 4, label: 'Strong', color: 'hsl(180, 100%, 50%)' };
 }
 
 export default function SignupPage() {

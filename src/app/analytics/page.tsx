@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div style={{
                     height: '6px', borderRadius: '3px',
-                    background: 'var(--bg-tertiary)',
+                    background: 'var(--bg-surface)',
                   }}>
                     <div style={{
                       height: '100%', borderRadius: '3px',
