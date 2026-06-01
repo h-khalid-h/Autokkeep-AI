@@ -41,8 +41,9 @@ export default function ForgotPasswordPage() {
           position: 'fixed',
           inset: 0,
           background: `
-            radial-gradient(ellipse at 20% 50%, rgba(30, 111, 255, 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(36, 215, 210, 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse 60% 50% at 50% 40%, rgba(var(--accent-glow-rgb), 0.14) 0%, transparent 60%),
+            radial-gradient(ellipse at 20% 50%, rgba(var(--accent-glow-rgb), 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(0, 245, 255, 0.06) 0%, transparent 50%)
           `,
           zIndex: 0,
         }}
@@ -65,25 +66,26 @@ export default function ForgotPasswordPage() {
         style={{
           minHeight: '100vh',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
           zIndex: 1,
-          padding: '24px',
+          padding: 'var(--space-6)',
         }}
       >
         {/* Glassmorphic Card */}
         <div
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '20px',
-            padding: '48px',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'var(--bg-glass)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: 'var(--radius-2xl)',
+            padding: 'var(--space-12)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             maxWidth: '440px',
             width: '100%',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.5), var(--shadow-glow)',
             animation: 'fpCardFadeIn 0.6s ease-out forwards',
             opacity: 0,
           }}
@@ -93,8 +95,8 @@ export default function ForgotPasswordPage() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              marginBottom: '32px',
+              gap: 'var(--space-3)',
+              marginBottom: 'var(--space-8)',
             }}
           >
             <Link
@@ -102,7 +104,7 @@ export default function ForgotPasswordPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: 'var(--space-3)',
                 textDecoration: 'none',
               }}
             >
@@ -127,13 +129,13 @@ export default function ForgotPasswordPage() {
                 style={{
                   width: '56px',
                   height: '56px',
-                  borderRadius: '16px',
+                  borderRadius: 'var(--radius-xl)',
                   background: 'var(--accent-subtle)',
                   border: '1px solid var(--border-accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '24px',
+                  marginBottom: 'var(--space-6)',
                 }}
               >
                 <svg
@@ -154,7 +156,7 @@ export default function ForgotPasswordPage() {
               {/* Heading */}
               <h2
                 className="text-h2"
-                style={{ marginBottom: '8px' }}
+                style={{ marginBottom: 'var(--space-2)' }}
               >
                 Reset password
               </h2>
@@ -162,7 +164,7 @@ export default function ForgotPasswordPage() {
               {/* Subtitle */}
               <p
                 className="text-body"
-                style={{ marginBottom: '32px' }}
+                style={{ marginBottom: 'var(--space-8)' }}
               >
                 Enter your email and we&apos;ll send you a link to reset your password.
               </p>
@@ -170,15 +172,15 @@ export default function ForgotPasswordPage() {
               {/* Form */}
               <form onSubmit={handleSubmit}>
                 {/* Email field */}
-                <div style={{ marginBottom: '24px' }}>
+                <div style={{ marginBottom: 'var(--space-6)' }}>
                   <label
                     htmlFor="fp-email-input"
                     style={{
                       display: 'block',
                       fontSize: '14px',
                       fontWeight: 500,
-                      color: 'rgba(255,255,255,0.7)',
-                      marginBottom: '8px',
+                      color: 'var(--text-secondary)',
+                      marginBottom: 'var(--space-2)',
                     }}
                   >
                     Email address
@@ -238,13 +240,13 @@ export default function ForgotPasswordPage() {
                 style={{
                   width: '56px',
                   height: '56px',
-                  borderRadius: '16px',
+                  borderRadius: 'var(--radius-xl)',
                   background: 'var(--success-subtle)',
                   border: '1px solid var(--success-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '24px',
+                  marginBottom: 'var(--space-6)',
                   animation: 'fpCheckBounce 0.5s ease-out',
                 }}
               >
@@ -264,14 +266,14 @@ export default function ForgotPasswordPage() {
 
               <h2
                 className="text-h2"
-                style={{ marginBottom: '8px' }}
+                style={{ marginBottom: 'var(--space-2)' }}
               >
                 Check your email
               </h2>
 
               <p
                 className="text-body"
-                style={{ marginBottom: '12px' }}
+                style={{ marginBottom: 'var(--space-3)' }}
               >
                 We&apos;ve sent a password reset link to:
               </p>
@@ -281,11 +283,11 @@ export default function ForgotPasswordPage() {
                   fontSize: '15px',
                   fontWeight: 600,
                   color: 'var(--text-primary)',
-                  padding: '12px 16px',
+                  padding: 'var(--space-3) var(--space-4)',
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-primary)',
-                  borderRadius: '8px',
-                  marginBottom: '24px',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 'var(--space-6)',
                   wordBreak: 'break-all',
                 }}
               >
@@ -294,7 +296,7 @@ export default function ForgotPasswordPage() {
 
               <p
                 className="text-body"
-                style={{ marginBottom: '32px', fontSize: '14px' }}
+                style={{ marginBottom: 'var(--space-8)', fontSize: '14px' }}
               >
                 Click the link in the email to reset your password. If you don&apos;t see it, check your spam folder.
               </p>
@@ -305,7 +307,7 @@ export default function ForgotPasswordPage() {
                   setSubmitted(false);
                   setEmail('');
                 }}
-                style={{ width: '100%', marginBottom: '16px' }}
+                style={{ width: '100%', marginBottom: 'var(--space-4)' }}
               >
                 Try a different email
               </button>
@@ -317,15 +319,15 @@ export default function ForgotPasswordPage() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              margin: '28px 0',
+              gap: 'var(--space-4)',
+              margin: 'var(--space-6) 0',
             }}
           >
             <div
               style={{
                 flex: 1,
                 height: '1px',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border-secondary)',
               }}
             />
           </div>
@@ -335,7 +337,7 @@ export default function ForgotPasswordPage() {
             style={{
               textAlign: 'center',
               fontSize: '14px',
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--text-tertiary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -361,15 +363,38 @@ export default function ForgotPasswordPage() {
                 color: 'var(--accent-primary)',
                 textDecoration: 'none',
                 fontWeight: 500,
-                transition: 'opacity 0.2s ease',
+                transition: 'color var(--duration-fast) var(--ease-out)',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-secondary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
             >
               Back to Sign In
             </Link>
           </p>
         </div>
+
+        {/* Back to home link */}
+        <Link
+          href="/"
+          style={{
+            marginTop: 'var(--space-6)',
+            fontSize: '13px',
+            color: 'var(--text-tertiary)',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'color var(--duration-fast) var(--ease-out)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back to home
+        </Link>
       </div>
 
       {/* Error toast */}

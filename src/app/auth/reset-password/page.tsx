@@ -59,12 +59,13 @@ export default function ResetPasswordPage() {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'var(--bg-primary)',
         position: 'relative',
         overflow: 'hidden',
-        padding: '24px',
+        padding: 'var(--space-6)',
       }}
     >
       {/* Background radial gradients */}
@@ -73,7 +74,7 @@ export default function ResetPasswordPage() {
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30, 111, 255, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(36, 215, 210, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(30, 111, 255, 0.06) 0%, transparent 50%)',
+            'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(var(--accent-glow-rgb), 0.14) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 245, 255, 0.06) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(var(--accent-glow-rgb), 0.06) 0%, transparent 50%)',
           pointerEvents: 'none',
         }}
       />
@@ -81,12 +82,12 @@ export default function ResetPasswordPage() {
       {/* Grid pattern overlay */}
       <div
         style={{
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
           backgroundImage: `linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
                             linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)`,
           backgroundSize: '64px 64px',
-          zIndex: 0,
+          pointerEvents: 'none',
         }}
       />
 
@@ -95,15 +96,15 @@ export default function ResetPasswordPage() {
         id="reset-password-card"
         style={{
           position: 'relative',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '20px',
-          padding: '48px',
+          background: 'var(--bg-glass)',
+          border: '1px solid var(--border-primary)',
+          borderRadius: 'var(--radius-2xl)',
+          padding: 'var(--space-12)',
           maxWidth: '440px',
           width: '100%',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5), var(--shadow-glow)',
           animation: 'resetFadeInUp 0.5s ease-out both',
         }}
       >
@@ -116,16 +117,16 @@ export default function ResetPasswordPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '12px',
-                marginBottom: '32px',
+                gap: 'var(--space-3)',
+                marginBottom: 'var(--space-8)',
               }}
             >
               <Logo size={40} />
               <span
+                className="text-gradient"
                 style={{
                   fontSize: '22px',
                   fontWeight: 700,
-                  color: '#f0f0f5',
                   letterSpacing: '-0.3px',
                 }}
               >
@@ -139,8 +140,7 @@ export default function ResetPasswordPage() {
               className="text-h2"
               style={{
                 textAlign: 'center',
-                color: '#f0f0f5',
-                marginBottom: '8px',
+                marginBottom: 'var(--space-2)',
               }}
             >
               Set new password
@@ -152,8 +152,7 @@ export default function ResetPasswordPage() {
               className="text-body"
               style={{
                 textAlign: 'center',
-                color: 'rgba(255,255,255,0.5)',
-                marginBottom: '32px',
+                marginBottom: 'var(--space-8)',
               }}
             >
               Enter your new password below
@@ -164,11 +163,11 @@ export default function ResetPasswordPage() {
               <div
                 id="reset-password-error-toast"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  marginBottom: '24px',
+                  background: 'var(--destructive-subtle)',
+                  border: '1px solid var(--destructive-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  marginBottom: 'var(--space-6)',
                   color: '#fca5a5',
                   fontSize: '14px',
                   lineHeight: 1.5,
@@ -200,7 +199,7 @@ export default function ResetPasswordPage() {
             {/* Form */}
             <form id="reset-password-form" onSubmit={handleSubmit}>
               {/* Password */}
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
                 <label
                   id="reset-password-label"
                   htmlFor="reset-password-input"
@@ -208,8 +207,8 @@ export default function ResetPasswordPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   New password
@@ -217,32 +216,14 @@ export default function ResetPasswordPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="reset-password-input"
+                    className="input"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     required
                     autoComplete="new-password"
-                    style={{
-                      width: '100%',
-                      padding: '12px 48px 12px 16px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      color: '#f0f0f5',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    style={{ paddingRight: '48px' }}
                   />
                   <button
                     id="reset-password-toggle"
@@ -256,18 +237,18 @@ export default function ResetPasswordPage() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--text-tertiary)',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'color 0.2s ease',
+                      transition: 'color var(--duration-fast) var(--ease-out)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                      e.currentTarget.style.color = 'var(--text-tertiary)';
                     }}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -288,7 +269,7 @@ export default function ResetPasswordPage() {
               </div>
 
               {/* Confirm Password */}
-              <div style={{ marginBottom: '28px' }}>
+              <div style={{ marginBottom: 'var(--space-6)' }}>
                 <label
                   id="reset-confirm-password-label"
                   htmlFor="reset-confirm-password-input"
@@ -296,8 +277,8 @@ export default function ResetPasswordPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   Confirm password
@@ -305,32 +286,14 @@ export default function ResetPasswordPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="reset-confirm-password-input"
+                    className="input"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your password"
                     required
                     autoComplete="new-password"
-                    style={{
-                      width: '100%',
-                      padding: '12px 48px 12px 16px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      color: '#f0f0f5',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    style={{ paddingRight: '48px' }}
                   />
                   <button
                     id="reset-confirm-password-toggle"
@@ -344,18 +307,18 @@ export default function ResetPasswordPage() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--text-tertiary)',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'color 0.2s ease',
+                      transition: 'color var(--duration-fast) var(--ease-out)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                      e.currentTarget.style.color = 'var(--text-tertiary)';
                     }}
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
@@ -383,14 +346,9 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 style={{
                   width: '100%',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontSize: '15px',
-                  fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.7 : 1,
-                  transition: 'opacity 0.2s ease, transform 0.15s ease',
+                  transition: 'opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)',
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
@@ -432,9 +390,9 @@ export default function ResetPasswordPage() {
               id="reset-password-signin-link"
               style={{
                 textAlign: 'center',
-                marginTop: '24px',
+                marginTop: 'var(--space-6)',
                 fontSize: '14px',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-tertiary)',
               }}
             >
               Remember your password?{' '}
@@ -444,7 +402,7 @@ export default function ResetPasswordPage() {
                   color: 'var(--accent-primary)',
                   textDecoration: 'none',
                   fontWeight: 500,
-                  transition: 'color 0.2s ease',
+                  transition: 'color var(--duration-fast) var(--ease-out)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = 'var(--accent-secondary)';
@@ -472,12 +430,12 @@ export default function ResetPasswordPage() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '2px solid rgba(16, 185, 129, 0.3)',
+                background: 'var(--success-subtle)',
+                border: '2px solid var(--success-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 24px',
+                margin: '0 auto var(--space-6)',
               }}
             >
               <svg
@@ -485,7 +443,7 @@ export default function ResetPasswordPage() {
                 height="32"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#10b981"
+                stroke="var(--success)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -498,8 +456,7 @@ export default function ResetPasswordPage() {
             <h2
               className="text-h2"
               style={{
-                color: '#f0f0f5',
-                marginBottom: '12px',
+                marginBottom: 'var(--space-3)',
               }}
             >
               Password updated
@@ -509,8 +466,7 @@ export default function ResetPasswordPage() {
             <p
               className="text-body"
               style={{
-                color: 'rgba(255,255,255,0.5)',
-                marginBottom: '32px',
+                marginBottom: 'var(--space-8)',
                 lineHeight: 1.6,
               }}
             >
@@ -519,6 +475,30 @@ export default function ResetPasswordPage() {
           </div>
         )}
       </div>
+
+      {/* Back to home link */}
+      <Link
+        href="/"
+        style={{
+          position: 'relative',
+          marginTop: 'var(--space-6)',
+          fontSize: '13px',
+          color: 'var(--text-tertiary)',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'color var(--duration-fast) var(--ease-out)',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to home
+      </Link>
 
       {/* Global keyframe animations */}
       <style>{`

@@ -206,6 +206,7 @@ export default function TaxPage() {
   const [data, setData] = React.useState<TaxReadinessReport | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = React.useState(false);
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
@@ -523,6 +524,48 @@ export default function TaxPage() {
                     Tax Year {data.taxYear}
                   </div>
                 </div>
+
+                {/* Document upload dropzone */}
+                <div
+                  onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                  style={{
+                    marginTop: 'var(--space-5)',
+                    padding: 'var(--space-5) var(--space-3)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: isDragOver
+                      ? '2px solid var(--accent-secondary)'
+                      : '2px dashed rgba(var(--accent-glow-rgb), 0.2)',
+                    background: isDragOver
+                      ? 'rgba(0, 245, 255, 0.06)'
+                      : 'transparent',
+                    transition: 'all 200ms ease-out',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    animation: isDragOver ? 'none' : 'tax-dropzone-pulse 3s ease-in-out infinite',
+                    boxShadow: isDragOver
+                      ? '0 0 20px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(0, 245, 255, 0.05)'
+                      : 'none',
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Drop documents here to upload"
+                >
+                  <span style={{ fontSize: '24px', display: 'block', marginBottom: 'var(--space-2)' }}>
+                    {isDragOver ? '📥' : '📎'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      color: isDragOver ? 'var(--accent-secondary)' : 'var(--text-tertiary)',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isDragOver ? 'Drop to upload' : 'Drop receipts here'}
+                  </span>
+                </div>
               </div>
 
               {/* Right column */}
@@ -566,12 +609,14 @@ export default function TaxPage() {
                           style={{
                             background: 'var(--warning-subtle)',
                             border: '1px solid var(--warning-border)',
+                            borderLeft: '3px solid var(--warning)',
                             borderRadius: 'var(--radius-lg)',
                             padding: 'var(--space-3) var(--space-4)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             gap: 'var(--space-3)',
+                            transition: 'all 200ms ease-out',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
@@ -649,7 +694,8 @@ export default function TaxPage() {
                           key={i}
                           style={{
                             background: 'var(--info-subtle)',
-                            border: '1px solid rgba(30, 111, 255, 0.25)',
+                            border: '1px solid rgba(var(--accent-glow-rgb), 0.2)',
+                            borderLeft: '3px solid var(--accent-primary)',
                             borderRadius: 'var(--radius-lg)',
                             padding: 'var(--space-3) var(--space-5)',
                             fontSize: '0.8125rem',
@@ -672,6 +718,10 @@ export default function TaxPage() {
           @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
+          }
+          @keyframes tax-dropzone-pulse {
+            0%, 100% { border-color: rgba(var(--accent-glow-rgb), 0.15); }
+            50% { border-color: rgba(var(--accent-glow-rgb), 0.35); }
           }
           @media (max-width: 768px) {
             div[style*="grid-template-columns: 220px"] {

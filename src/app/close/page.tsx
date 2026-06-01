@@ -150,114 +150,187 @@ function ReadinessGauge({ score }: { score: number }) {
   );
 }
 
-// ─── Check Item ─────────────────────────────────────────────────────────────
+// ─── Timeline Check Item ────────────────────────────────────────────────────
 
-function CheckItem({ check }: { check: CloseCheck }) {
+function CheckItem({ check, index, total }: { check: CloseCheck; index: number; total: number }) {
   const [expanded, setExpanded] = React.useState(false);
   const colors = getStatusColor(check.status);
   const hasDetails = check.details && check.details.length > 0;
+  const isLast = index === total - 1;
+  const isPassed = check.status === 'pass';
 
   return (
     <div
       style={{
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4) var(--space-5)',
-        animation: 'fade-in-up 0.3s ease-out',
+        display: 'flex',
+        gap: 'var(--space-4)',
+        position: 'relative',
+        animation: `fade-in-up 0.3s ease-out ${index * 0.06}s both`,
       }}
     >
+      {/* Timeline connector */}
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: 'var(--space-3)',
-          cursor: hasDetails ? 'pointer' : 'default',
+          flexShrink: 0,
+          width: '32px',
         }}
-        onClick={() => hasDetails && setExpanded(!expanded)}
-        onKeyDown={(e) => {
-          if (hasDetails && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            setExpanded(!expanded);
-          }
-        }}
-        role={hasDetails ? 'button' : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
       >
-        <span style={{ fontSize: '20px', flexShrink: 0 }}>
-          {getStatusIcon(check.status)}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <h4
-              style={{
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}
-            >
-              {check.name}
-            </h4>
-            <span
-              className="badge"
-              style={{
-                background: colors.bg,
-                color: colors.text,
-                border: `1px solid ${colors.border}`,
-                fontSize: '0.625rem',
-                textTransform: 'uppercase',
-              }}
-            >
-              {check.status}
-            </span>
-            {check.count !== undefined && (
-              <span className="text-caption" style={{ fontSize: '0.75rem' }}>
-                ({check.count} item{check.count !== 1 ? 's' : ''})
-              </span>
-            )}
-          </div>
-          <p
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: '0.8125rem',
-              margin: 0,
-              marginTop: 'var(--space-1)',
-            }}
-          >
-            {check.description}
-          </p>
-        </div>
-        {hasDetails && (
-          <span
-            style={{
-              color: 'var(--text-tertiary)',
-              fontSize: '12px',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease',
-              flexShrink: 0,
-            }}
-          >
-            ▼
-          </span>
-        )}
-      </div>
-      {expanded && check.details && (
-        <ul
+        {/* Timeline node */}
+        <div
           style={{
-            marginTop: 'var(--space-3)',
-            paddingLeft: 'var(--space-10)',
-            listStyle: 'disc',
-            color: 'var(--text-secondary)',
-            fontSize: '0.8125rem',
-            lineHeight: 1.8,
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: isPassed
+              ? 'var(--success-subtle)'
+              : colors.bg,
+            border: `2px solid ${isPassed ? 'var(--success)' : colors.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            flexShrink: 0,
+            position: 'relative',
+            zIndex: 1,
+            boxShadow: isPassed
+              ? '0 0 12px rgba(0, 245, 255, 0.2)'
+              : 'none',
+            transition: 'all 0.3s ease-out',
           }}
         >
-          {check.details.map((detail, i) => (
-            <li key={i}>{detail}</li>
-          ))}
-        </ul>
-      )}
+          {getStatusIcon(check.status)}
+        </div>
+        {/* Timeline line */}
+        {!isLast && (
+          <div
+            style={{
+              width: '2px',
+              flex: 1,
+              minHeight: '20px',
+              background: isPassed
+                ? 'var(--success)'
+                : 'var(--border-primary)',
+              transition: 'background 0.6s ease-out',
+              opacity: isPassed ? 0.5 : 0.3,
+            }}
+          />
+        )}
+      </div>
+
+      {/* Check content card */}
+      <div
+        style={{
+          flex: 1,
+          background: colors.bg,
+          border: `1px solid ${colors.border}`,
+          borderLeft: isPassed ? '3px solid var(--success)' : `1px solid ${colors.border}`,
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-4) var(--space-5)',
+          marginBottom: 'var(--space-2)',
+          transition: 'all 200ms var(--ease-out, ease)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            cursor: hasDetails ? 'pointer' : 'default',
+          }}
+          onClick={() => hasDetails && setExpanded(!expanded)}
+          onKeyDown={(e) => {
+            if (hasDetails && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              setExpanded(!expanded);
+            }
+          }}
+          role={hasDetails ? 'button' : undefined}
+          tabIndex={hasDetails ? 0 : undefined}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <h4
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                }}
+              >
+                {check.name}
+              </h4>
+              <span
+                className="badge"
+                style={{
+                  background: colors.bg,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  fontSize: '0.625rem',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {check.status}
+              </span>
+              {check.count !== undefined && (
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 600,
+                  }}
+                >
+                  ({check.count})
+                </span>
+              )}
+            </div>
+            <p
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.8125rem',
+                margin: 0,
+                marginTop: 'var(--space-1)',
+              }}
+            >
+              {check.description}
+            </p>
+          </div>
+          {hasDetails && (
+            <span
+              style={{
+                color: 'var(--text-tertiary)',
+                fontSize: '12px',
+                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+                flexShrink: 0,
+              }}
+            >
+              ▼
+            </span>
+          )}
+        </div>
+        {expanded && check.details && (
+          <ul
+            style={{
+              marginTop: 'var(--space-3)',
+              paddingLeft: 'var(--space-6)',
+              listStyle: 'disc',
+              color: 'var(--text-secondary)',
+              fontSize: '0.8125rem',
+              lineHeight: 1.8,
+            }}
+          >
+            {check.details.map((detail, i) => (
+              <li key={i}>{detail}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -384,6 +457,10 @@ export default function ClosePage() {
   // ─── Year options ─────────────────────────────────────────────────────────
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  // ─── Sync progress counters ───────────────────────────────────────────────
+  const passCount = data?.report.checks.filter(c => c.status === 'pass').length ?? 0;
+  const totalChecks = data?.report.checks.length ?? 0;
 
   return (
     <ErrorBoundary componentName="Close">
@@ -612,6 +689,56 @@ export default function ClosePage() {
                 >
                   {data.report.summary}
                 </p>
+
+                {/* Sync progress counter */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--space-2)',
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '0.8125rem',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      color: passCount === totalChecks ? 'var(--success)' : 'var(--text-primary)',
+                    }}
+                  >
+                    {passCount}/{totalChecks}
+                  </span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>checks passed</span>
+                </div>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    height: '4px',
+                    borderRadius: '2px',
+                    background: 'var(--border-primary)',
+                    overflow: 'hidden',
+                    marginBottom: 'var(--space-4)',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: totalChecks > 0 ? `${(passCount / totalChecks) * 100}%` : '0%',
+                      background: passCount === totalChecks
+                        ? 'var(--success)'
+                        : 'var(--accent-gradient)',
+                      borderRadius: '2px',
+                      transition: 'width 0.8s ease-out',
+                      boxShadow: passCount === totalChecks
+                        ? '0 0 8px rgba(0, 245, 255, 0.4)'
+                        : 'none',
+                    }}
+                  />
+                </div>
+
                 {!data.periodStatus.isLocked && (
                   <button
                     onClick={handleClosePeriod}
@@ -638,21 +765,24 @@ export default function ClosePage() {
               </div>
             </div>
 
-            {/* Checklist */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            {/* Timeline Checklist */}
+            <div>
               <h3
                 style={{
                   fontSize: '1rem',
                   fontWeight: 600,
                   margin: 0,
+                  marginBottom: 'var(--space-5)',
                   color: 'var(--text-primary)',
                 }}
               >
                 Close Checklist — {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
               </h3>
-              {data.report.checks.map((check, i) => (
-                <CheckItem key={i} check={check} />
-              ))}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {data.report.checks.map((check, i) => (
+                  <CheckItem key={i} check={check} index={i} total={data.report.checks.length} />
+                ))}
+              </div>
             </div>
           </div>
         )}

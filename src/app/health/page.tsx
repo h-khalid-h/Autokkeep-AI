@@ -40,25 +40,33 @@ function getAlertIcon(alertType: string): string {
   }
 }
 
-function getSeverityColor(severity: string): { bg: string; border: string; text: string } {
+function getSeverityStyles(severity: string): {
+  bg: string; border: string; text: string; leftBorder: string; glowColor: string;
+} {
   switch (severity) {
     case 'critical':
       return {
         bg: 'var(--destructive-subtle)',
         border: 'var(--destructive-border)',
         text: 'var(--destructive)',
+        leftBorder: 'var(--destructive)',
+        glowColor: 'rgba(220, 60, 60, 0.1)',
       };
     case 'warning':
       return {
         bg: 'var(--warning-subtle)',
         border: 'var(--warning-border)',
         text: 'var(--warning)',
+        leftBorder: 'var(--warning)',
+        glowColor: 'rgba(245, 158, 11, 0.08)',
       };
     default:
       return {
         bg: 'var(--info-subtle)',
-        border: 'rgba(30, 111, 255, 0.25)',
-        text: 'var(--info)',
+        border: 'rgba(var(--accent-glow-rgb), 0.25)',
+        text: 'var(--accent-secondary)',
+        leftBorder: 'var(--accent-secondary)',
+        glowColor: 'rgba(0, 245, 255, 0.06)',
       };
   }
 }
@@ -133,28 +141,48 @@ function AlertCard({
   alert,
   onDismiss,
   dismissing,
+  index,
 }: {
   alert: HealthAlertData;
   onDismiss: (id: string) => void;
   dismissing: boolean;
+  index: number;
 }) {
-  const colors = getSeverityColor(alert.severity);
+  const styles = getSeverityStyles(alert.severity);
   const icon = getAlertIcon(alert.alertType);
 
   return (
     <div
       style={{
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
+        background: styles.bg,
+        border: `1px solid ${styles.border}`,
+        borderLeft: `3px solid ${styles.leftBorder}`,
         borderRadius: 'var(--radius-lg)',
         padding: 'var(--space-5)',
         display: 'flex',
         gap: 'var(--space-4)',
         alignItems: 'flex-start',
-        animation: 'fade-in-up 0.3s ease-out',
+        animation: `fade-in-up 0.3s ease-out ${index * 0.05}s both`,
+        transition: 'all 200ms ease-out',
+        boxShadow: `0 0 16px ${styles.glowColor}`,
       }}
     >
-      <span style={{ fontSize: '24px', flexShrink: 0, lineHeight: 1 }}>{icon}</span>
+      <span
+        style={{
+          fontSize: '24px',
+          flexShrink: 0,
+          lineHeight: 1,
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 'var(--radius-md)',
+          background: 'rgba(255, 255, 255, 0.03)',
+        }}
+      >
+        {icon}
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
@@ -177,12 +205,13 @@ function AlertCard({
           <span
             className="badge"
             style={{
-              background: colors.bg,
-              color: colors.text,
-              border: `1px solid ${colors.border}`,
-              fontSize: '0.6875rem',
+              background: styles.bg,
+              color: styles.text,
+              border: `1px solid ${styles.border}`,
+              fontSize: '0.625rem',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
+              fontWeight: 800,
             }}
           >
             {alert.severity}
@@ -529,17 +558,17 @@ export default function HealthPage() {
               <HealthScoreGauge score={healthScore} />
               <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                 {data && data.alertCount.critical > 0 && (
-                  <span className="badge badge-destructive">
+                  <span className="badge badge-destructive" style={{ fontWeight: 800, letterSpacing: '0.04em' }}>
                     {data.alertCount.critical} critical
                   </span>
                 )}
                 {data && data.alertCount.warning > 0 && (
-                  <span className="badge badge-warning">
+                  <span className="badge badge-warning" style={{ fontWeight: 800, letterSpacing: '0.04em' }}>
                     {data.alertCount.warning} warning
                   </span>
                 )}
                 {data && data.alertCount.info > 0 && (
-                  <span className="badge badge-info">
+                  <span className="badge badge-info" style={{ fontWeight: 800, letterSpacing: '0.04em' }}>
                     {data.alertCount.info} info
                   </span>
                 )}
@@ -553,23 +582,27 @@ export default function HealthPage() {
                 <section>
                   <h3
                     style={{
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
                       color: 'var(--destructive)',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.06em',
                       marginBottom: 'var(--space-3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                     }}
                   >
-                    🚨 Critical ({criticalAlerts.length})
+                    <span style={{ fontSize: '14px' }}>🚨</span> Critical ({criticalAlerts.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    {criticalAlerts.map((alert) => (
+                    {criticalAlerts.map((alert, i) => (
                       <AlertCard
                         key={alert.id}
                         alert={alert}
                         onDismiss={handleDismiss}
                         dismissing={dismissingIds.has(alert.id)}
+                        index={i}
                       />
                     ))}
                   </div>
@@ -581,23 +614,27 @@ export default function HealthPage() {
                 <section>
                   <h3
                     style={{
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
                       color: 'var(--warning)',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.06em',
                       marginBottom: 'var(--space-3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                     }}
                   >
-                    ⚠️ Warnings ({warningAlerts.length})
+                    <span style={{ fontSize: '14px' }}>⚠️</span> Warnings ({warningAlerts.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    {warningAlerts.map((alert) => (
+                    {warningAlerts.map((alert, i) => (
                       <AlertCard
                         key={alert.id}
                         alert={alert}
                         onDismiss={handleDismiss}
                         dismissing={dismissingIds.has(alert.id)}
+                        index={i}
                       />
                     ))}
                   </div>
@@ -609,23 +646,27 @@ export default function HealthPage() {
                 <section>
                   <h3
                     style={{
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      color: 'var(--info)',
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      color: 'var(--accent-secondary)',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.06em',
                       marginBottom: 'var(--space-3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                     }}
                   >
-                    ℹ️ Info ({infoAlerts.length})
+                    <span style={{ fontSize: '14px' }}>ℹ️</span> Info ({infoAlerts.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    {infoAlerts.map((alert) => (
+                    {infoAlerts.map((alert, i) => (
                       <AlertCard
                         key={alert.id}
                         alert={alert}
                         onDismiss={handleDismiss}
                         dismissing={dismissingIds.has(alert.id)}
+                        index={i}
                       />
                     ))}
                   </div>

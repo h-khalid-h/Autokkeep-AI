@@ -83,6 +83,7 @@
 .insights-sidebar-item.active {
   background: var(--accent-subtle);
   border-color: var(--border-accent);
+  border-left: 3px solid var(--accent-primary);
 }
 
 .insights-sidebar-item-title {
@@ -260,26 +261,31 @@
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
   max-width: 680px;
-  box-shadow: var(--shadow-sm);
   line-height: 1.6;
 }
 
+/* User messages: right-aligned with solid midnight navy borders */
 .insights-message-user .insights-message-bubble {
-  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
-  border: 1px solid rgba(var(--accent-glow-rgb), 0.3);
-  color: white;
+  background: var(--bg-surface);
+  border: 1px solid rgba(10, 21, 48, 0.9);
+  border-right: 3px solid var(--accent-primary);
+  color: var(--text-primary);
   border-bottom-right-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25),
+              0 0 0 1px rgba(var(--accent-glow-rgb), 0.1);
 }
 
+/* AI responses: glassmorphism with glowing cyan left border */
 .insights-message-assistant .insights-message-bubble {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--border-primary);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.005) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 245, 255, 0.1);
   border-left: 3px solid var(--accent-secondary);
   border-bottom-left-radius: var(--radius-sm);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 16px rgba(0, 245, 255, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .insights-message-content p {
@@ -301,7 +307,7 @@
 }
 
 .insights-bullet-dot {
-  color: var(--accent-primary);
+  color: var(--accent-secondary);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -311,7 +317,7 @@
 .insights-citations {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-primary);
+  border-top: 1px solid rgba(0, 245, 255, 0.08);
 }
 
 .insights-citations-header {
@@ -334,8 +340,8 @@
 
 .insights-citation-card {
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-glass);
-  border: 1px solid var(--border-primary);
+  background: rgba(0, 245, 255, 0.04);
+  border: 1px solid rgba(0, 245, 255, 0.1);
   border-radius: var(--radius-sm);
   min-width: 120px;
 }
@@ -351,7 +357,7 @@
   font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--accent-primary);
+  color: var(--accent-secondary);
 }
 
 .insights-citation-period {
@@ -379,7 +385,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--text-tertiary);
+  background: var(--accent-secondary);
   animation: insights-typing-bounce 1.4s ease-in-out infinite;
 }
 
@@ -435,9 +441,10 @@
 }
 
 .insights-follow-up-chip:hover {
-  border-color: var(--border-accent);
-  color: var(--accent-primary);
-  background: var(--accent-subtle);
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  background: rgba(0, 245, 255, 0.06);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.08);
 }
 
 /* ── Error Banner ────────────────────────────────────────────────────────────── */
@@ -462,28 +469,32 @@
   border: none;
 }
 
-/* ── Input Area ──────────────────────────────────────────────────────────────── */
+/* ── Input Area — Floating pill with blur effect ─────────────────────────────── */
 
 .insights-input-area {
   padding: var(--space-4) var(--space-8) var(--space-5);
-  border-top: 1px solid var(--border-primary);
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .insights-input-container {
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
-  background: var(--bg-surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-2xl);
   padding: var(--space-3) var(--space-4);
-  transition: border-color var(--duration-fast) var(--ease-out);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 200ms var(--ease-out);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .insights-input-container:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
+  box-shadow: 0 0 0 3px rgba(var(--accent-glow-rgb), 0.12),
+              0 0 24px rgba(var(--accent-glow-rgb), 0.1),
+              0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .insights-input {
@@ -508,7 +519,7 @@
   width: 40px;
   height: 40px;
   min-width: 40px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -517,17 +528,19 @@
   color: white;
   border: none;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 200ms var(--ease-out);
+  box-shadow: 0 0 12px rgba(var(--accent-glow-rgb), 0.2);
 }
 
 .insights-send-btn:hover:not(:disabled) {
   box-shadow: var(--accent-glow);
-  transform: translateY(-1px);
+  transform: scale(1.05);
 }
 
 .insights-send-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .insights-send-spinner {

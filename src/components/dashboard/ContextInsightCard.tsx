@@ -93,7 +93,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                 <span className="insight-row-label" role="cell">
                   Amount
                 </span>
-                <span className="insight-row-value" role="cell">
+                <span className="insight-row-value" role="cell" style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {formattedAmount}
                 </span>
               </div>
@@ -110,7 +110,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                   Card
                 </span>
                 <span className="insight-row-value" role="cell">
-                  {transaction.cardHolder} ····{transaction.cardLast4}
+                  {transaction.cardHolder} <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>····</span>{transaction.cardLast4}
                 </span>
               </div>
               <div className="insight-row" role="row">

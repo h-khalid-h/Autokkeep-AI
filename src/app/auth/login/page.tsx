@@ -62,8 +62,9 @@ function LoginContent() {
           position: 'fixed',
           inset: 0,
           background: `
-            radial-gradient(ellipse at 20% 50%, rgba(30, 111, 255, 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(36, 215, 210, 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse 60% 50% at 50% 40%, rgba(var(--accent-glow-rgb), 0.14) 0%, transparent 60%),
+            radial-gradient(ellipse at 20% 50%, rgba(var(--accent-glow-rgb), 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(0, 245, 255, 0.06) 0%, transparent 50%)
           `,
           zIndex: 0,
         }}
@@ -88,26 +89,27 @@ function LoginContent() {
         style={{
           minHeight: '100vh',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
           zIndex: 1,
-          padding: '24px',
+          padding: 'var(--space-6)',
         }}
       >
         {/* Glassmorphic Card */}
         <div
           id="login-card"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '20px',
-            padding: '48px',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'var(--bg-glass)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: 'var(--radius-2xl)',
+            padding: 'var(--space-12)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             maxWidth: '440px',
             width: '100%',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.5), var(--shadow-glow)',
             animation: 'loginCardFadeIn 0.6s ease-out forwards',
             opacity: 0,
           }}
@@ -118,8 +120,8 @@ function LoginContent() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              marginBottom: '32px',
+              gap: 'var(--space-3)',
+              marginBottom: 'var(--space-8)',
             }}
           >
             <Logo size={40} />
@@ -140,7 +142,7 @@ function LoginContent() {
           <h2
             id="login-heading"
             className="text-h2"
-            style={{ marginBottom: '8px' }}
+            style={{ marginBottom: 'var(--space-2)' }}
           >
             Welcome back
           </h2>
@@ -149,7 +151,7 @@ function LoginContent() {
           <p
             id="login-subtitle"
             className="text-body"
-            style={{ marginBottom: '32px' }}
+            style={{ marginBottom: 'var(--space-8)' }}
           >
             Sign in to your account
           </p>
@@ -157,7 +159,7 @@ function LoginContent() {
           {/* Form */}
           <form id="login-form" onSubmit={handleSubmit}>
             {/* Email field */}
-            <div id="login-email-group" style={{ marginBottom: '20px' }}>
+            <div id="login-email-group" style={{ marginBottom: 'var(--space-5)' }}>
               <label
                 id="login-email-label"
                 htmlFor="login-email-input"
@@ -165,8 +167,8 @@ function LoginContent() {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: 'rgba(255,255,255,0.7)',
-                  marginBottom: '8px',
+                  color: 'var(--text-secondary)',
+                  marginBottom: 'var(--space-2)',
                 }}
               >
                 Email
@@ -184,7 +186,7 @@ function LoginContent() {
             </div>
 
             {/* Password field */}
-            <div id="login-password-group" style={{ marginBottom: '12px' }}>
+            <div id="login-password-group" style={{ marginBottom: 'var(--space-3)' }}>
               <label
                 id="login-password-label"
                 htmlFor="login-password-input"
@@ -192,8 +194,8 @@ function LoginContent() {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: 'rgba(255,255,255,0.7)',
-                  marginBottom: '8px',
+                  color: 'var(--text-secondary)',
+                  marginBottom: 'var(--space-2)',
                 }}
               >
                 Password
@@ -222,18 +224,18 @@ function LoginContent() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.4)',
+                    color: 'var(--text-tertiary)',
                     padding: '4px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'color 0.2s ease',
+                    transition: 'color var(--duration-fast) var(--ease-out)',
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')
+                    (e.currentTarget.style.color = 'var(--text-secondary)')
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')
+                    (e.currentTarget.style.color = 'var(--text-tertiary)')
                   }
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
@@ -278,7 +280,7 @@ function LoginContent() {
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
-                marginBottom: '24px',
+                marginBottom: 'var(--space-6)',
               }}
             >
               <Link
@@ -288,10 +290,10 @@ function LoginContent() {
                   fontSize: '13px',
                   color: 'var(--accent-primary)',
                   textDecoration: 'none',
-                  transition: 'opacity 0.2s ease',
+                  transition: 'color var(--duration-fast) var(--ease-out)',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-secondary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
               >
                 Forgot password?
               </Link>
@@ -339,22 +341,22 @@ function LoginContent() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              margin: '28px 0',
+              gap: 'var(--space-4)',
+              margin: 'var(--space-6) 0',
             }}
           >
             <div
               style={{
                 flex: 1,
                 height: '1px',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border-secondary)',
               }}
             />
             <span
               id="login-divider-text"
               style={{
                 fontSize: '13px',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--text-tertiary)',
                 textTransform: 'lowercase',
               }}
             >
@@ -364,7 +366,7 @@ function LoginContent() {
               style={{
                 flex: 1,
                 height: '1px',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border-secondary)',
               }}
             />
           </div>
@@ -375,7 +377,7 @@ function LoginContent() {
             style={{
               textAlign: 'center',
               fontSize: '14px',
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--text-tertiary)',
             }}
           >
             Don&apos;t have an account?{' '}
@@ -386,15 +388,38 @@ function LoginContent() {
                 color: 'var(--accent-primary)',
                 textDecoration: 'none',
                 fontWeight: 500,
-                transition: 'opacity 0.2s ease',
+                transition: 'color var(--duration-fast) var(--ease-out)',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-secondary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
             >
               Sign up
             </Link>
           </p>
         </div>
+
+        {/* Back to home link */}
+        <Link
+          href="/"
+          style={{
+            marginTop: 'var(--space-6)',
+            fontSize: '13px',
+            color: 'var(--text-tertiary)',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'color var(--duration-fast) var(--ease-out)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back to home
+        </Link>
       </div>
 
       {/* Error toast */}

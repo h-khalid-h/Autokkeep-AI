@@ -91,12 +91,13 @@ export default function SignupPage() {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'var(--bg-primary)',
         position: 'relative',
         overflow: 'hidden',
-        padding: '24px',
+        padding: 'var(--space-6)',
       }}
     >
       {/* Background radial gradients */}
@@ -105,7 +106,19 @@ export default function SignupPage() {
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30, 111, 255, 0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(36, 215, 210, 0.08) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(30, 111, 255, 0.06) 0%, transparent 50%)',
+            'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(var(--accent-glow-rgb), 0.14) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 245, 255, 0.06) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 10% 60%, rgba(var(--accent-glow-rgb), 0.06) 0%, transparent 50%)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Grid pattern overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)`,
+          backgroundSize: '64px 64px',
           pointerEvents: 'none',
         }}
       />
@@ -115,15 +128,15 @@ export default function SignupPage() {
         id="signup-card"
         style={{
           position: 'relative',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '20px',
-          padding: '48px',
+          background: 'var(--bg-glass)',
+          border: '1px solid var(--border-primary)',
+          borderRadius: 'var(--radius-2xl)',
+          padding: 'var(--space-12)',
           maxWidth: '440px',
           width: '100%',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5), var(--shadow-glow)',
           animation: 'fadeInUp 0.5s ease-out both',
         }}
       >
@@ -136,16 +149,16 @@ export default function SignupPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '12px',
-                marginBottom: '32px',
+                gap: 'var(--space-3)',
+                marginBottom: 'var(--space-8)',
               }}
             >
               <Logo size={40} />
               <span
+                className="text-gradient"
                 style={{
                   fontSize: '22px',
                   fontWeight: 700,
-                  color: '#f0f0f5',
                   letterSpacing: '-0.3px',
                 }}
               >
@@ -159,8 +172,7 @@ export default function SignupPage() {
               className="text-h2"
               style={{
                 textAlign: 'center',
-                color: '#f0f0f5',
-                marginBottom: '8px',
+                marginBottom: 'var(--space-2)',
               }}
             >
               Create your account
@@ -172,8 +184,7 @@ export default function SignupPage() {
               className="text-body"
               style={{
                 textAlign: 'center',
-                color: 'rgba(255,255,255,0.5)',
-                marginBottom: '32px',
+                marginBottom: 'var(--space-8)',
               }}
             >
               Start understanding your finances
@@ -184,11 +195,11 @@ export default function SignupPage() {
               <div
                 id="signup-error-toast"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  marginBottom: '24px',
+                  background: 'var(--destructive-subtle)',
+                  border: '1px solid var(--destructive-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  marginBottom: 'var(--space-6)',
                   color: '#fca5a5',
                   fontSize: '14px',
                   lineHeight: 1.5,
@@ -220,7 +231,7 @@ export default function SignupPage() {
             {/* Form */}
             <form id="signup-form" onSubmit={handleSubmit}>
               {/* Organization Name */}
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
                 <label
                   id="signup-org-label"
                   htmlFor="signup-org-input"
@@ -228,44 +239,25 @@ export default function SignupPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   Organization name
                 </label>
                 <input
                   id="signup-org-input"
+                  className="input"
                   type="text"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="Acme Inc."
                   required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '12px',
-                    color: '#f0f0f5',
-                    fontSize: '15px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    boxSizing: 'border-box',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
                 />
               </div>
 
               {/* Email */}
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
                 <label
                   id="signup-email-label"
                   htmlFor="signup-email-input"
@@ -273,44 +265,25 @@ export default function SignupPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   Email
                 </label>
                 <input
                   id="signup-email-input"
+                  className="input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
                   required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '12px',
-                    color: '#f0f0f5',
-                    fontSize: '15px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    boxSizing: 'border-box',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
                 />
               </div>
 
               {/* Password */}
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
                 <label
                   id="signup-password-label"
                   htmlFor="signup-password-input"
@@ -318,8 +291,8 @@ export default function SignupPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   Password
@@ -327,31 +300,13 @@ export default function SignupPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="signup-password-input"
+                    className="input"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     required
-                    style={{
-                      width: '100%',
-                      padding: '12px 48px 12px 16px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      color: '#f0f0f5',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
+                    style={{ paddingRight: '48px' }}
                   />
                   <button
                     id="signup-password-toggle"
@@ -365,18 +320,18 @@ export default function SignupPage() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--text-tertiary)',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'color 0.2s ease',
+                      transition: 'color var(--duration-fast) var(--ease-out)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+                      e.currentTarget.style.color = 'var(--text-tertiary)'
                     }}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -396,7 +351,7 @@ export default function SignupPage() {
                 </div>
                 {/* Password strength indicator */}
                 {password.length > 0 && (
-                  <div style={{ marginTop: '8px' }}>
+                  <div style={{ marginTop: 'var(--space-2)' }}>
                     <div style={{
                       display: 'flex',
                       gap: '4px',
@@ -411,8 +366,8 @@ export default function SignupPage() {
                             borderRadius: '2px',
                             background: level <= getPasswordStrength(password).level
                               ? getPasswordStrength(password).color
-                              : 'rgba(255,255,255,0.08)',
-                            transition: 'background 0.2s ease',
+                              : 'var(--border-secondary)',
+                            transition: 'background var(--duration-fast) var(--ease-out)',
                           }}
                         />
                       ))}
@@ -432,7 +387,7 @@ export default function SignupPage() {
                     style={{
                       listStyle: 'none',
                       padding: 0,
-                      margin: '8px 0 0 0',
+                      margin: 'var(--space-2) 0 0 0',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '4px',
@@ -444,11 +399,11 @@ export default function SignupPage() {
                         style={{
                           fontSize: '0.75rem',
                           lineHeight: 1.5,
-                          color: req.met ? 'var(--status-success)' : 'var(--text-secondary)',
+                          color: req.met ? 'var(--success)' : 'var(--text-secondary)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          transition: 'color 0.2s ease',
+                          transition: 'color var(--duration-fast) var(--ease-out)',
                         }}
                       >
                         <span
@@ -456,7 +411,7 @@ export default function SignupPage() {
                             fontSize: '0.75rem',
                             lineHeight: 1,
                             flexShrink: 0,
-                            transition: 'color 0.2s ease',
+                            transition: 'color var(--duration-fast) var(--ease-out)',
                           }}
                         >
                           {req.met ? '✓' : '✗'}
@@ -469,7 +424,7 @@ export default function SignupPage() {
               </div>
 
               {/* Confirm Password */}
-              <div style={{ marginBottom: '28px' }}>
+              <div style={{ marginBottom: 'var(--space-6)' }}>
                 <label
                   id="signup-confirm-password-label"
                   htmlFor="signup-confirm-password-input"
@@ -477,8 +432,8 @@ export default function SignupPage() {
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
                   Confirm password
@@ -486,31 +441,13 @@ export default function SignupPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="signup-confirm-password-input"
+                    className="input"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your password"
                     required
-                    style={{
-                      width: '100%',
-                      padding: '12px 48px 12px 16px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      color: '#f0f0f5',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
+                    style={{ paddingRight: '48px' }}
                   />
                   <button
                     id="signup-confirm-password-toggle"
@@ -524,18 +461,18 @@ export default function SignupPage() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--text-tertiary)',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'color 0.2s ease',
+                      transition: 'color var(--duration-fast) var(--ease-out)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+                      e.currentTarget.style.color = 'var(--text-tertiary)'
                     }}
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
@@ -558,14 +495,14 @@ export default function SignupPage() {
                   <div
                     id="signup-password-match-indicator"
                     style={{
-                      marginTop: '8px',
+                      marginTop: 'var(--space-2)',
                       fontSize: '0.75rem',
                       lineHeight: 1.5,
-                      color: passwordsMatch ? 'var(--status-success)' : 'var(--status-danger)',
+                      color: passwordsMatch ? 'var(--success)' : 'var(--destructive)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
-                      transition: 'color 0.2s ease',
+                      transition: 'color var(--duration-fast) var(--ease-out)',
                     }}
                   >
                     <span
@@ -573,7 +510,7 @@ export default function SignupPage() {
                         fontSize: '0.75rem',
                         lineHeight: 1,
                         flexShrink: 0,
-                        transition: 'color 0.2s ease',
+                        transition: 'color var(--duration-fast) var(--ease-out)',
                       }}
                     >
                       {passwordsMatch ? '✓' : '✗'}
@@ -591,15 +528,14 @@ export default function SignupPage() {
                 disabled={!isFormValid}
                 style={{
                   width: '100%',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontSize: '15px',
-                  fontWeight: 600,
                   cursor: !isFormValid ? 'not-allowed' : 'pointer',
                   opacity: !isFormValid ? 0.7 : 1,
-                  transition: 'opacity 0.2s ease, transform 0.15s ease',
+                  transition: 'opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)',
                   position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
                 }}
               >
                 {loading ? (
@@ -632,9 +568,9 @@ export default function SignupPage() {
 
               <p style={{
                 textAlign: 'center',
-                marginTop: '12px',
+                marginTop: 'var(--space-3)',
                 fontSize: '11px',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--text-tertiary)',
                 lineHeight: '1.5',
               }}>
                 By creating an account, you agree to our{' '}
@@ -649,9 +585,9 @@ export default function SignupPage() {
               id="signup-signin-link"
               style={{
                 textAlign: 'center',
-                marginTop: '24px',
+                marginTop: 'var(--space-6)',
                 fontSize: '14px',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-tertiary)',
               }}
             >
               Already have an account?{' '}
@@ -661,7 +597,7 @@ export default function SignupPage() {
                   color: 'var(--accent-primary)',
                   textDecoration: 'none',
                   fontWeight: 500,
-                  transition: 'color 0.2s ease',
+                  transition: 'color var(--duration-fast) var(--ease-out)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = 'var(--accent-secondary)'
@@ -690,12 +626,12 @@ export default function SignupPage() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '2px solid rgba(16, 185, 129, 0.3)',
+                background: 'var(--success-subtle)',
+                border: '2px solid var(--success-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 24px',
+                margin: '0 auto var(--space-6)',
               }}
             >
               <svg
@@ -703,7 +639,7 @@ export default function SignupPage() {
                 height="32"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#10b981"
+                stroke="var(--success)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -717,8 +653,7 @@ export default function SignupPage() {
               id="signup-confirmation-heading"
               className="text-h2"
               style={{
-                color: '#f0f0f5',
-                marginBottom: '12px',
+                marginBottom: 'var(--space-3)',
               }}
             >
               Check your email
@@ -729,13 +664,12 @@ export default function SignupPage() {
               id="signup-confirmation-text"
               className="text-body"
               style={{
-                color: 'rgba(255,255,255,0.5)',
-                marginBottom: '32px',
+                marginBottom: 'var(--space-8)',
                 lineHeight: 1.6,
               }}
             >
               We sent a verification link to{' '}
-              <span style={{ color: '#f0f0f5', fontWeight: 500 }}>{email}</span>.
+              <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{email}</span>.
               Click the link to activate your account.
             </p>
 
@@ -751,7 +685,7 @@ export default function SignupPage() {
                 textDecoration: 'none',
                 fontWeight: 500,
                 fontSize: '15px',
-                transition: 'color 0.2s ease',
+                transition: 'color var(--duration-fast) var(--ease-out)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--accent-secondary)'
@@ -778,6 +712,30 @@ export default function SignupPage() {
           </div>
         )}
       </div>
+
+      {/* Back to home link */}
+      <Link
+        href="/"
+        style={{
+          position: 'relative',
+          marginTop: 'var(--space-6)',
+          fontSize: '13px',
+          color: 'var(--text-tertiary)',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'color var(--duration-fast) var(--ease-out)',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to home
+      </Link>
 
       {/* Global keyframe animations */}
       <style>{`

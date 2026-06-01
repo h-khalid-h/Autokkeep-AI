@@ -71,7 +71,13 @@ export default function Hero() {
           </p>
 
           <div className="hero-ctas">
-            <a href="#cta" className="btn btn-primary btn-lg">
+            <a
+              href="#cta"
+              className="btn btn-primary btn-lg"
+              style={{
+                animation: 'pulse-glow 3s ease-in-out infinite',
+              }}
+            >
               Start Free
             </a>
             <a href="#solution" className="btn btn-secondary btn-lg">
