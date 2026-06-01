@@ -3,8 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
 import Providers from "@/components/Providers";
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+
 
 const inter = Inter({
   variable: "--font-inter",
@@ -136,8 +135,7 @@ export default function RootLayout({
         <Providers>
           <main id="main-content">{children}</main>
           <CookieConsent />
-          <Analytics />
-          <SpeedInsights />
+
         </Providers>
         <div aria-live="polite" aria-atomic="true" className="sr-only" id="notification-live-region" />
       </body>

@@ -52,7 +52,7 @@ const HIGH_RISK_AMOUNT_THRESHOLD = 250;
 const LOW_CONFIDENCE_THRESHOLD = 0.95;
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://app.autokkeep.com';
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://autokkeep.com';
 }
 
 function getRiskLevel(amount: number, confidence: number): 'high' | 'medium' | 'low' {
