@@ -237,7 +237,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Step 1: Create entity via server-side API (uses service_role to bypass RLS) ──
+  // ── Step 1: Create entity via DB-level RPC (SECURITY DEFINER bypasses RLS) ──
   const handleCreateEntity = async () => {
     if (!entityName.trim()) return;
     // C14: Prevent duplicate entity creation if we already have one
@@ -249,24 +249,23 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      // Use server-side API route which has service_role access
+      const supabase = createClient();
+
+      // Call the bootstrap_onboarding SECURITY DEFINER function.
       // This bypasses the RLS bootstrapping problem where a new user
       // can't INSERT into organizations/team_members because they have
-      // no existing org membership.
-      const response = await fetch('/api/onboarding/bootstrap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entityName: entityName.trim(),
-          currency,
-          fiscalYearEnd,
-        }),
-      });
+      // no existing org membership. The function runs as the DB owner
+      // but uses auth.uid() to verify the caller is authenticated.
+      const { data: result, error: rpcError } = await (supabase as unknown as SupabaseQueryClient)
+        .rpc('bootstrap_onboarding', {
+          p_entity_name: entityName.trim(),
+          p_fiscal_year_end: fiscalYearEnd,
+          p_currency: currency,
+        });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setError(result.error || 'Failed to create entity. Please try again.');
+      if (rpcError || !result) {
+        console.error('[Onboarding] Bootstrap RPC error:', rpcError);
+        setError(rpcError?.message || 'Failed to create entity. Please try again.');
         setLoading(false);
         return;
       }
