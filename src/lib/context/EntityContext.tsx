@@ -62,6 +62,10 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       const membership = membershipData?.[0] ?? null;
 
       if (!membership) {
+        // No org membership — redirect to onboarding (defense-in-depth)
+        if (typeof window !== 'undefined' && window.location.pathname !== '/onboarding') {
+          window.location.replace('/onboarding');
+        }
         setIsLoading(false);
         return;
       }
