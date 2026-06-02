@@ -237,7 +237,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Step 1: Create entity in Supabase ──────────────────────────────────
+  // ── Step 1: Create entity via server-side API (uses service_role to bypass RLS) ──
   const handleCreateEntity = async () => {
     if (!entityName.trim()) return;
     // C14: Prevent duplicate entity creation if we already have one
@@ -249,83 +249,30 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const supabase = createClient();
+      // Use server-side API route which has service_role access
+      // This bypasses the RLS bootstrapping problem where a new user
+      // can't INSERT into organizations/team_members because they have
+      // no existing org membership.
+      const response = await fetch('/api/onboarding/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityName: entityName.trim(),
+          currency,
+          fiscalYearEnd,
+        }),
+      });
 
-      // 1. Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        setError('You must be logged in to create an entity. Please sign in first.');
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to create entity. Please try again.');
         setLoading(false);
         return;
       }
 
-      // 2. Check if user already has an org, if not create one
-      const { data: existingMemberships } = await (supabase as unknown as SupabaseQueryClient)
-        .from('team_members')
-        .select('id, org_id')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      const existingMembership = existingMemberships?.[0] ?? null;
-
-      let orgId: string;
-
-      if (existingMembership?.org_id) {
-        orgId = existingMembership.org_id;
-      } else {
-        // Create a new organization
-        // E16: Append random suffix to slug to prevent collisions
-        const baseSlug = `${entityName} Org`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        const uniqueSuffix = Math.random().toString(36).substring(2, 8);
-        const slug = `${baseSlug}-${uniqueSuffix}`;
-        const { data: newOrg, error: orgError } = await (supabase as unknown as SupabaseQueryClient)
-          .from('organizations')
-          .insert({ name: `${entityName} Org`, slug, owner_id: user.id })
-          .select('id')
-          .single();
-
-        if (orgError || !newOrg) {
-          setError('Failed to create organization. Please try again.');
-          setLoading(false);
-          return;
-        }
-        orgId = newOrg.id;
-
-        // 3. Add user as team member with owner role
-        const { error: memberError } = await (supabase as unknown as SupabaseQueryClient)
-          .from('team_members')
-          .insert({
-            user_id: user.id,
-            org_id: orgId,
-            role: 'owner',
-          });
-
-        if (memberError) {
-          setError('Failed to set up team membership. Please try again.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 4. Create the entity (base_currency is set in the region step)
-      const { data: newEntity, error: entityError } = await (supabase as unknown as SupabaseQueryClient)
-        .from('entities')
-        .insert({
-          name: entityName.trim(),
-          fiscal_year_end: fiscalYearEnd,
-          org_id: orgId,
-        })
-        .select('id')
-        .single();
-
-      if (entityError || !newEntity) {
-        setError('Failed to create entity. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      // 5. Store entityId for subsequent steps
-      setEntityId(newEntity.id);
+      // Store entityId for subsequent steps
+      setEntityId(result.entityId);
       goNext();
     } catch (err) {
       console.error('[Onboarding] Entity creation error:', err);
@@ -334,6 +281,7 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
 
   // ── Step: Save region/localization ─────────────────────────────────────
   const handleSaveRegion = async () => {
