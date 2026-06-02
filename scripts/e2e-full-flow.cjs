@@ -848,21 +848,37 @@ async function runLogoutTest(page) {
   try {
     await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
     
-    // Try to find logout via various selectors
-    const clicked = await page.evaluate(() => {
-      const allEls = Array.from(document.querySelectorAll('button, a, [role="button"], [role="menuitem"]'));
-      const logoutEl = allEls.find(el => {
-        const text = (el.textContent || '').toLowerCase();
-        const label = (el.getAttribute('aria-label') || '').toLowerCase();
-        return text.includes('log out') || text.includes('logout') || text.includes('sign out') 
-          || label.includes('log out') || label.includes('logout') || label.includes('sign out');
-      });
-      if (logoutEl) {
-        (logoutEl).click();
-        return true;
+    // Wait for the sidebar to render (it's inside AuthGuard which loads async)
+    let clicked = false;
+    try {
+      await page.waitForSelector('#sidebar-sign-out', { timeout: 10000 });
+      const signOutBtn = await page.$('#sidebar-sign-out');
+      if (signOutBtn) {
+        await signOutBtn.click();
+        clicked = true;
+        log('ℹ️', 'Clicked #sidebar-sign-out button');
       }
-      return false;
-    });
+    } catch {
+      log('ℹ️', 'Sign out button not found by ID, trying text search...');
+    }
+    
+    // Fallback: try to find by text content
+    if (!clicked) {
+      clicked = await page.evaluate(() => {
+        const allEls = Array.from(document.querySelectorAll('button, a, [role="button"], [role="menuitem"]'));
+        const logoutEl = allEls.find(el => {
+          const text = (el.textContent || '').toLowerCase();
+          const label = (el.getAttribute('aria-label') || '').toLowerCase();
+          return text.includes('log out') || text.includes('logout') || text.includes('sign out') 
+            || label.includes('log out') || label.includes('logout') || label.includes('sign out');
+        });
+        if (logoutEl) {
+          (logoutEl).click();
+          return true;
+        }
+        return false;
+      });
+    }
 
     if (clicked) {
       await delay(3000);
@@ -873,17 +889,24 @@ async function runLogoutTest(page) {
       } else {
         pass('Logout: button clicked');
       }
+      
+      // Verify logout by visiting protected page
+      await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
+      const verifyUrl = page.url();
+      if (verifyUrl.includes('/auth/login') || verifyUrl.includes('/onboarding')) {
+        pass('Logout verified: protected page redirects to login');
+      } else {
+        log('ℹ️', `After logout, dashboard URL: ${verifyUrl}`);
+      }
     } else {
       // Try via Supabase client signOut in the browser
       log('ℹ️', 'No visible logout button — trying programmatic signOut');
       await page.evaluate(async () => {
-        // Try to call signOut via the global Supabase client
         if (window.__SUPABASE_CLIENT__) {
           await window.__SUPABASE_CLIENT__.auth.signOut();
         }
       }).catch(() => {});
       
-      // Verify logout by visiting protected page
       await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
       const finalUrl = page.url();
       if (finalUrl.includes('/auth/login')) {
