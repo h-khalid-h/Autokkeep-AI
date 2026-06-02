@@ -1,0 +1,8 @@
+/* ─── Transaction Card ────────────────────────── */
+
+.checkbox {
+  margin-right: var(--space-2);
+  cursor: pointer;
+  accent-color: var(--color-accent);
+  flex-shrink: 0;
+}

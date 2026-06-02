@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
+import styles from './TransactionCard.module.css';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -72,12 +73,7 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
               onClick={handleCheckboxClick}
               onChange={() => {}} // controlled by onClick
               aria-label={`Select ${transaction.merchant}`}
-              style={{
-                marginRight: '8px',
-                cursor: 'pointer',
-                accentColor: 'var(--accent-primary)',
-                flexShrink: 0,
-              }}
+              className={styles.checkbox}
             />
           )}
           <span className="tx-card-merchant">

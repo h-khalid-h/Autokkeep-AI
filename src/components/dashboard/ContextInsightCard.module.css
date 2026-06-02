@@ -1,0 +1,13 @@
+/* ─── Context Insight Card ────────────────────── */
+
+.amountValue {
+  font-size: 1.0625rem;
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.cardMask {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}

@@ -1,0 +1,16 @@
+/* ─── Error Boundary Fallback ─────────────────── */
+
+.fallback {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+
+.message {
+  margin-bottom: var(--space-4);
+}

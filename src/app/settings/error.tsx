@@ -1,61 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
-import Link from 'next/link';
+import styles from '../shared-error.module.css';
 
-export default function SettingsError({
+export default function Error({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error('[Settings] Error:', error);
-    import('@/lib/sentry').then(({ captureException }) => {
-      captureException(error, {
-        tags: { boundary: 'settings-error' },
-        extra: { digest: error.digest },
-      });
-    });
-  }, [error]);
-
   return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
-    >
-      <div className="card-elevated" style={{ textAlign: 'center', maxWidth: '460px', padding: '48px 32px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚙️</div>
-        <h2 className="text-h3" style={{ marginBottom: '8px' }}>
-          Settings couldn&apos;t load
-        </h2>
-        <p
-          className="text-body"
-          style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}
-        >
-          We couldn&apos;t load your settings. This is usually temporary — please try
-          again or head back to the dashboard.
-        </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button className="btn btn-primary" onClick={reset}>
-            Try Again
-          </button>
-          <Link href="/dashboard" className="btn btn-ghost">
-            Back to Dashboard
-          </Link>
-        </div>
-        {error.digest && (
-          <p className="text-caption" style={{ marginTop: '16px' }}>
-            Error ID: {error.digest}
-          </p>
-        )}
-      </div>
+    <div className={styles.errorPage}>
+      <div className={styles.errorIcon}>⚠️</div>
+      <h2 className={styles.errorTitle}>Something went wrong</h2>
+      <p className={styles.errorMessage}>{error.message}</p>
+      <button className={styles.retryBtn} onClick={reset}>
+        Try again
+      </button>
     </div>
   );
 }

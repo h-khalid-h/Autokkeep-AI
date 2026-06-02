@@ -1,0 +1,51 @@
+.errorPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4, 16px);
+  background: var(--bg-primary);
+  padding: var(--space-6, 24px);
+}
+
+.errorIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.errorTitle {
+  font-size: var(--text-lg, 18px);
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  margin: 0;
+}
+
+.errorMessage {
+  font-size: var(--text-sm, 14px);
+  color: var(--text-secondary, #888);
+  max-width: 400px;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.retryBtn {
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  font-size: var(--text-sm, 14px);
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-accent, #6366f1);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.retryBtn:hover {
+  opacity: 0.85;
+}

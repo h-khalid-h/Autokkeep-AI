@@ -4,6 +4,7 @@ import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
 import ActionsConsole from '@/components/dashboard/ActionsConsole';
+import styles from './TransactionDetailPanel.module.css';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -45,27 +46,9 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
   if (loading) {
     return (
       <main className="dashboard-content" aria-label="Transaction review area">
-        <div
-          className="flex-center"
-          style={{
-            width: '100%',
-            flexDirection: 'column',
-            gap: 'var(--space-5)',
-            padding: 'var(--space-16)',
-          }}
-        >
-          <div
-            className="loading-spinner"
-            style={{
-              width: '36px',
-              height: '36px',
-              border: '3px solid var(--border-primary)',
-              borderTopColor: 'var(--accent-primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
-          <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>Loading details…</p>
+        <div className={`flex-center ${styles.loadingContainer}`}>
+          <div className={styles.spinner} />
+          <p className={styles.loadingText}>Loading details…</p>
         </div>
       </main>
     );
@@ -73,12 +56,8 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
 
   return (
     <main
-      className="dashboard-content"
+      className={`dashboard-content ${styles.content}`}
       aria-label="Transaction review area"
-      style={{
-        gap: 'var(--space-6)',
-        padding: 'var(--space-8)',
-      }}
     >
       {/* Center: Context Insight */}
       <ContextInsightCard transaction={transaction} />

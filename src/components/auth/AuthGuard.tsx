@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import guardStyles from './AuthGuard.module.css';
 
 let _supabase: ReturnType<typeof createBrowserClient> | null = null;
 function getSupabase() {
@@ -74,41 +75,12 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   // Loading state
   if (isAuthenticated === null) {
     return fallback || (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '16px',
-              margin: '0 auto 16px',
-              animation: 'authPulse 1.5s ease-in-out infinite',
-            }}
-          >
+      <div className={guardStyles.guardLoading}>
+        <div className={guardStyles.guardInner}>
+          <div className={guardStyles.guardLogo}>
             AK
           </div>
           <div className="text-caption">Loading...</div>
-          <style>{`
-            @keyframes authPulse {
-              0%, 100% { opacity: 1; transform: scale(1); }
-              50% { opacity: 0.6; transform: scale(0.95); }
-            }
-          `}</style>
         </div>
       </div>
     );

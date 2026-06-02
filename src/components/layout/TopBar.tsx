@@ -82,7 +82,7 @@ export default function TopBar({
         {/* Breadcrumbs (desktop) */}
         <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
           {breadcrumbs.map((crumb, i) => (
-            <span key={crumb.href} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <span key={crumb.href} className={styles.breadcrumbSegment}>
               {i > 0 && (
                 <span className={styles.breadcrumbSeparator} aria-hidden="true">
                   /
@@ -138,18 +138,7 @@ export default function TopBar({
 
         {/* User menu */}
         <button className={styles.userTrigger} aria-label="User menu" aria-haspopup="true">
-          <span style={{
-            width: 32,
-            height: 32,
-            borderRadius: 'var(--radius-full)',
-            background: 'var(--color-accent-subtle)',
-            color: 'var(--color-accent-text)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 'var(--text-xs)',
-            fontWeight: 'var(--weight-semibold)',
-          }}>
+          <span className={styles.userAvatar}>
             {userInitials}
           </span>
         </button>

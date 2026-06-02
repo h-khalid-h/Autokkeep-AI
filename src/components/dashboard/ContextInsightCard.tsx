@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
+import styles from './ContextInsightCard.module.css';
 
 interface ContextInsightCardProps {
   transaction: Transaction | null;
@@ -93,7 +94,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                 <span className="insight-row-label" role="cell">
                   Amount
                 </span>
-                <span className="insight-row-value" role="cell" style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span className={`insight-row-value ${styles.amountValue}`} role="cell">
                   {formattedAmount}
                 </span>
               </div>
@@ -110,7 +111,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                   Card
                 </span>
                 <span className="insight-row-value" role="cell">
-                  {transaction.cardHolder} <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>····</span>{transaction.cardLast4}
+                  {transaction.cardHolder} <span className={styles.cardMask}>····</span>{transaction.cardLast4}
                 </span>
               </div>
               <div className="insight-row" role="row">
