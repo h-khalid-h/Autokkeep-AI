@@ -481,9 +481,17 @@ async function runOnboarding(page) {
       },
       { timeout: 15000 }
     );
-    // Also wait for either the welcome heading or the entity form
+    // Wait for the invite check to finish (the "Checking for team invites…" screen)
     await page.waitForFunction(
-      () => document.querySelector('h1, h2, [aria-label="Start onboarding"]'),
+      () => {
+        const body = document.body.innerText || '';
+        return !body.includes('Checking for team invites');
+      },
+      { timeout: 15000 }
+    );
+    // Now wait for the actual wizard content
+    await page.waitForFunction(
+      () => document.querySelector('[aria-label="Start onboarding"], #entity-name, [aria-label="Select base currency"]'),
       { timeout: 10000 }
     );
     pass('Onboarding page loaded');

@@ -23,12 +23,41 @@ interface OnboardingState {
   selectedChannel: string;
   entityId: string | null;
   bankConnected: boolean;
-  regionCountry: string;
-  regionCurrency: string;
-  regionTimezone: string;
+  country: string;
+  timezone: string;
 }
 
-type OnboardingStep = 'welcome' | 'entity' | 'region' | 'bank' | 'ledger' | 'channel' | 'complete';
+type OnboardingStep = 'welcome' | 'entity' | 'bank' | 'ledger' | 'channel' | 'complete';
+
+// Country → default currency + timezone mapping
+const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string }> = {
+  US: { currency: 'USD', timezone: 'America/New_York' },
+  GB: { currency: 'GBP', timezone: 'Europe/London' },
+  AE: { currency: 'AED', timezone: 'Asia/Dubai' },
+  SA: { currency: 'SAR', timezone: 'Asia/Riyadh' },
+  EG: { currency: 'EGP', timezone: 'Africa/Cairo' },
+  DE: { currency: 'EUR', timezone: 'Europe/Berlin' },
+  EE: { currency: 'EUR', timezone: 'Europe/Tallinn' },
+  FR: { currency: 'EUR', timezone: 'Europe/Paris' },
+  FI: { currency: 'EUR', timezone: 'Europe/Helsinki' },
+  CA: { currency: 'CAD', timezone: 'America/Toronto' },
+  AU: { currency: 'AUD', timezone: 'Australia/Sydney' },
+  IN: { currency: 'INR', timezone: 'Asia/Kolkata' },
+  JP: { currency: 'JPY', timezone: 'Asia/Tokyo' },
+  CH: { currency: 'CHF', timezone: 'Europe/Zurich' },
+  SG: { currency: 'SGD', timezone: 'Asia/Singapore' },
+  NL: { currency: 'EUR', timezone: 'Europe/Amsterdam' },
+  IE: { currency: 'EUR', timezone: 'Europe/London' },
+  SE: { currency: 'EUR', timezone: 'Europe/Stockholm' },
+  LV: { currency: 'EUR', timezone: 'Europe/Riga' },
+  LT: { currency: 'EUR', timezone: 'Europe/Vilnius' },
+  PL: { currency: 'EUR', timezone: 'Europe/Warsaw' },
+  BR: { currency: 'USD', timezone: 'America/Sao_Paulo' },
+  MX: { currency: 'USD', timezone: 'America/Mexico_City' },
+  ZA: { currency: 'USD', timezone: 'Africa/Johannesburg' },
+  NG: { currency: 'USD', timezone: 'Africa/Lagos' },
+  KE: { currency: 'USD', timezone: 'Africa/Nairobi' },
+};
 
 const SUPPORTED_COUNTRIES = [
   { code: 'US', name: 'United States' },
@@ -93,8 +122,7 @@ const SUPPORTED_TIMEZONES = [
 
 const STEPS: { id: OnboardingStep; title: string; icon: string; description: string }[] = [
   { id: 'welcome', title: 'Welcome', icon: '👋', description: 'Let\'s set up your AI financial operations' },
-  { id: 'entity', title: 'Create Entity', icon: '🏢', description: 'Set up your business entity' },
-  { id: 'region', title: 'Region', icon: '🌍', description: 'Set your country, currency, and timezone' },
+  { id: 'entity', title: 'Create Entity', icon: '🏢', description: 'Set up your business entity and region' },
   { id: 'bank', title: 'Connect Bank', icon: '🏦', description: 'Link your bank accounts via Plaid' },
   { id: 'ledger', title: 'Connect Ledger', icon: '📗', description: 'Connect QuickBooks or Xero' },
   { id: 'channel', title: 'Set Up Channel', icon: '💬', description: 'Choose your receipt chase channel' },
@@ -124,11 +152,54 @@ export default function OnboardingPage() {
   // Invite check state
   const [isCheckingInvite, setIsCheckingInvite] = useState(true);
 
-  // Region step state
-  const [regionCountry, setRegionCountry] = useState('US');
-  const [regionCurrency, setRegionCurrency] = useState('USD');
-  const [regionTimezone, setRegionTimezone] = useState('America/New_York');
+  // Region state (merged into entity step)
+  const [country, setCountry] = useState('US');
+  const [timezone, setTimezone] = useState('America/New_York');
+  const [geoDetected, setGeoDetected] = useState(false);
   const supportedCurrencies = getSupportedCurrencies();
+
+  // ── Auto-detect location from IP on mount ──────────────────────────────
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+        if (!res.ok) return;
+        const geo = await res.json();
+        const countryCode = (geo.country_code || '').toUpperCase();
+        const detectedTz = geo.timezone || '';
+        // Only apply if country is in our supported list
+        if (SUPPORTED_COUNTRIES.some(c => c.code === countryCode)) {
+          setCountry(countryCode);
+          setGeoDetected(true);
+          // Set currency from mapping
+          const defaults = COUNTRY_DEFAULTS[countryCode];
+          if (defaults) {
+            setCurrency(defaults.currency);
+          }
+          // Set timezone — prefer detected, fall back to mapping
+          if (SUPPORTED_TIMEZONES.some(tz => tz.value === detectedTz)) {
+            setTimezone(detectedTz);
+          } else if (defaults) {
+            setTimezone(defaults.timezone);
+          }
+        }
+      } catch {
+        // Silent — geo-detection is best-effort
+      }
+    };
+    detectLocation();
+  }, []);
+
+  // ── Country change cascades to currency + timezone ─────────────────────
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    setGeoDetected(false); // User overrode geo-detection
+    const defaults = COUNTRY_DEFAULTS[newCountry];
+    if (defaults) {
+      setCurrency(defaults.currency);
+      setTimezone(defaults.timezone);
+    }
+  };
 
   // ── Check for pending team invite on mount ─────────────────────────────
   useEffect(() => {
@@ -203,9 +274,8 @@ export default function OnboardingPage() {
         if (state.selectedChannel) setSelectedChannel(state.selectedChannel);
         if (state.entityId) setEntityId(state.entityId);
         if (state.bankConnected) setBankConnected(state.bankConnected);
-        if (state.regionCountry) setRegionCountry(state.regionCountry);
-        if (state.regionCurrency) setRegionCurrency(state.regionCurrency);
-        if (state.regionTimezone) setRegionTimezone(state.regionTimezone);
+        if (state.country) setCountry(state.country);
+        if (state.timezone) setTimezone(state.timezone);
       }
     } catch (_e) {
       console.warn('[Onboarding] Failed to restore state:', _e);
@@ -217,14 +287,14 @@ export default function OnboardingPage() {
     const state: OnboardingState = {
       currentStep, entityName, currency, fiscalYearEnd,
       selectedLedger, selectedChannel, entityId, bankConnected,
-      regionCountry, regionCurrency, regionTimezone,
+      country, timezone,
     };
     try {
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
     } catch (_e) {
       // Ignore storage errors
     }
-  }, [currentStep, entityName, currency, fiscalYearEnd, selectedLedger, selectedChannel, entityId, bankConnected, regionCountry, regionCurrency, regionTimezone]);
+  }, [currentStep, entityName, currency, fiscalYearEnd, selectedLedger, selectedChannel, entityId, bankConnected, country, timezone]);
 
   const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
   const progress = ((currentIndex) / (STEPS.length - 1)) * 100;
@@ -245,10 +315,10 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Step 1: Create entity via DB-level RPC (SECURITY DEFINER bypasses RLS) ──
+  // ── Step 1: Create entity + save region in one step ──
   const handleCreateEntity = async () => {
     if (!entityName.trim()) return;
-    // C14: Prevent duplicate entity creation if we already have one
+    // Prevent duplicate entity creation if we already have one
     if (entityId) {
       goNext();
       return;
@@ -262,8 +332,7 @@ export default function OnboardingPage() {
       // Call the bootstrap_onboarding SECURITY DEFINER function.
       // This bypasses the RLS bootstrapping problem where a new user
       // can't INSERT into organizations/team_members because they have
-      // no existing org membership. The function runs as the DB owner
-      // but uses auth.uid() to verify the caller is authenticated.
+      // no existing org membership.
       const { data: result, error: rpcError } = await (supabase as unknown as SupabaseQueryClient)
         .rpc('bootstrap_onboarding', {
           p_entity_name: entityName.trim(),
@@ -278,47 +347,26 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Store entityId for subsequent steps
-      setEntityId(result.entityId);
-      goNext();
-    } catch (err) {
-      console.error('[Onboarding] Entity creation error:', err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      const newEntityId = result.entityId;
+      setEntityId(newEntityId);
 
-
-  // ── Step: Save region/localization ─────────────────────────────────────
-  const handleSaveRegion = async () => {
-    if (!entityId) {
-      setError('Entity not found. Please go back and create one first.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-
-    try {
-      const supabase = createClient();
+      // Immediately update entity with country + timezone
       const { error: updateError } = await (supabase as unknown as SupabaseQueryClient)
         .from('entities')
         .update({
-          base_currency: regionCurrency,
-          country: regionCountry,
-          timezone: regionTimezone,
+          country: country,
+          timezone: timezone,
         })
-        .eq('id', entityId);
+        .eq('id', newEntityId);
 
       if (updateError) {
-        setError('Failed to save regional settings. Please try again.');
-        setLoading(false);
-        return;
+        console.warn('[Onboarding] Region update warning:', updateError);
+        // Non-fatal — entity was created, region can be updated in settings
       }
 
       goNext();
     } catch (err) {
-      console.error('[Onboarding] Region save error:', err);
+      console.error('[Onboarding] Entity creation error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -416,7 +464,7 @@ export default function OnboardingPage() {
           currentStep: 'channel' as OnboardingStep, // Skip to next step on return
           entityName, currency, fiscalYearEnd,
           selectedLedger, selectedChannel, entityId, bankConnected,
-          regionCountry, regionCurrency, regionTimezone,
+          country, timezone,
         };
         localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stateToSave));
         localStorage.setItem('autokkeep_oauth_return', 'onboarding');
@@ -431,7 +479,7 @@ export default function OnboardingPage() {
           currentStep: 'channel' as OnboardingStep, // Skip to next step on return
           entityName, currency, fiscalYearEnd,
           selectedLedger, selectedChannel, entityId, bankConnected,
-          regionCountry, regionCurrency, regionTimezone,
+          country, timezone,
         };
         localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stateToSave));
         localStorage.setItem('autokkeep_oauth_return', 'onboarding');
@@ -566,7 +614,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Entity Step */}
+          {/* Entity Step (includes region/currency/timezone) */}
           {currentStep === 'entity' && (
             <div role="form" aria-label="Create entity">
               <h2 className={styles.stepHeading}>🏢 Create Your Entity</h2>
@@ -586,6 +634,24 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className={styles.fieldGroup}>
+                  <label htmlFor="entity-country" className={styles.selectLabel}>
+                    Country
+                    {geoDetected && <span className={styles.geoDetected}> 📍 Auto-detected</span>}
+                  </label>
+                  <select
+                    id="entity-country"
+                    className={styles.select}
+                    value={country}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    disabled={loading}
+                    aria-label="Select your country"
+                  >
+                    {SUPPORTED_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.fieldGroup}>
                   <label htmlFor="entity-currency" className={styles.selectLabel}>Base Currency</label>
                   <select
                     id="entity-currency"
@@ -599,6 +665,27 @@ export default function OnboardingPage() {
                       <option key={curr.code} value={curr.code}>{curr.symbol} {curr.code} — {curr.name}</option>
                     ))}
                   </select>
+                  <p className={styles.helperText}>
+                    All monetary values will be displayed in this currency.
+                  </p>
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="entity-timezone" className={styles.selectLabel}>Timezone</label>
+                  <select
+                    id="entity-timezone"
+                    className={styles.select}
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    disabled={loading}
+                    aria-label="Select your timezone"
+                  >
+                    {SUPPORTED_TIMEZONES.map((tz) => (
+                      <option key={tz.value} value={tz.value}>{tz.label}</option>
+                    ))}
+                  </select>
+                  <p className={styles.helperText}>
+                    Used for transaction timestamps and report scheduling.
+                  </p>
                 </div>
                 <div className={styles.fieldGroup}>
                   <label htmlFor="entity-fiscal-year" className={styles.selectLabel}>Fiscal Year End</label>
@@ -611,9 +698,17 @@ export default function OnboardingPage() {
                     aria-label="Select fiscal year end month"
                   >
                     <option value="12">December</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
                     <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
                     <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
                     <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
                   </select>
                 </div>
               </Card>
@@ -629,83 +724,6 @@ export default function OnboardingPage() {
                   aria-label="Create entity and continue"
                 >
                   {loading ? 'Creating…' : 'Continue →'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Region Step */}
-          {currentStep === 'region' && (
-            <div role="form" aria-label="Set your region">
-              <h2 className={styles.stepHeading}>🌍 Set Your Region</h2>
-              <p className={styles.stepDescription}>
-                Configure your country, currency, and timezone for accurate financial reporting.
-              </p>
-              <Card variant="elevated" padding="lg">
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="region-country" className={styles.selectLabel}>Country</label>
-                  <select
-                    id="region-country"
-                    className={styles.select}
-                    value={regionCountry}
-                    onChange={(e) => setRegionCountry(e.target.value)}
-                    disabled={loading}
-                    aria-label="Select your country"
-                  >
-                    {SUPPORTED_COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="region-currency" className={styles.selectLabel}>Base Currency</label>
-                  <select
-                    id="region-currency"
-                    className={styles.select}
-                    value={regionCurrency}
-                    onChange={(e) => setRegionCurrency(e.target.value)}
-                    disabled={loading}
-                    aria-label="Select your base currency"
-                  >
-                    {supportedCurrencies.map((curr) => (
-                      <option key={curr.code} value={curr.code}>{curr.symbol} {curr.code} — {curr.name}</option>
-                    ))}
-                  </select>
-                  <p className={styles.helperText}>
-                    All monetary values will be displayed in this currency.
-                  </p>
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="region-timezone" className={styles.selectLabel}>Timezone</label>
-                  <select
-                    id="region-timezone"
-                    className={styles.select}
-                    value={regionTimezone}
-                    onChange={(e) => setRegionTimezone(e.target.value)}
-                    disabled={loading}
-                    aria-label="Select your timezone"
-                  >
-                    {SUPPORTED_TIMEZONES.map((tz) => (
-                      <option key={tz.value} value={tz.value}>{tz.label}</option>
-                    ))}
-                  </select>
-                  <p className={styles.helperText}>
-                    Used for transaction timestamps and report scheduling.
-                  </p>
-                </div>
-              </Card>
-              <div className={styles.navButtons}>
-                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
-                  ← Back
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleSaveRegion}
-                  disabled={loading}
-                  isLoading={loading}
-                  aria-label="Save region settings and continue"
-                >
-                  {loading ? 'Saving…' : 'Continue →'}
                 </Button>
               </div>
             </div>
