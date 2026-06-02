@@ -6,6 +6,11 @@
 -- 
 -- Solution: A SECURITY DEFINER function that runs with elevated privileges,
 -- while still verifying the caller is authenticated via auth.uid().
+--
+-- Fixes applied:
+--   M7:  Input length validation on p_entity_name
+--   H1:  Entity idempotency — reuse existing entity with same name in org
+--   M10: Use p_currency to set base_currency on the entities table
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION bootstrap_onboarding(
@@ -25,6 +30,11 @@ BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- M7: Input length validation
+  IF length(p_entity_name) > 255 OR length(p_entity_name) < 1 THEN
+    RAISE EXCEPTION 'Entity name must be 1-255 characters';
   END IF;
 
   -- Check if user already has an org
@@ -50,10 +60,19 @@ BEGIN
     VALUES (v_org_id, v_user_id, 'owner');
   END IF;
 
-  -- Create entity
-  INSERT INTO entities (org_id, name, fiscal_year_end)
-  VALUES (v_org_id, p_entity_name, p_fiscal_year_end)
-  RETURNING id INTO v_entity_id;
+  -- H1: Entity idempotency — check if entity with same name exists in this org
+  SELECT id INTO v_entity_id
+  FROM entities
+  WHERE org_id = v_org_id
+    AND name = p_entity_name
+  LIMIT 1;
+
+  IF v_entity_id IS NULL THEN
+    -- Create new entity with base_currency from p_currency (M10)
+    INSERT INTO entities (org_id, name, fiscal_year_end, base_currency)
+    VALUES (v_org_id, p_entity_name, p_fiscal_year_end, p_currency)
+    RETURNING id INTO v_entity_id;
+  END IF;
 
   RETURN jsonb_build_object(
     'orgId', v_org_id,

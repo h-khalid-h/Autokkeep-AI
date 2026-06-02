@@ -53,9 +53,12 @@ export async function middleware(request: NextRequest) {
         onboardingUrl.pathname = '/onboarding';
         return NextResponse.redirect(onboardingUrl);
       }
-    } catch {
-      // If the DB query fails, allow through rather than blocking
-      // — AuthGuard and EntityProvider provide defense-in-depth
+    } catch (error) {
+      // If the DB query fails, redirect to onboarding rather than silently allowing through
+      console.error('[Middleware] DB query failed during membership check:', error);
+      const onboardingUrl = request.nextUrl.clone();
+      onboardingUrl.pathname = '/onboarding';
+      return NextResponse.redirect(onboardingUrl);
     }
   }
 

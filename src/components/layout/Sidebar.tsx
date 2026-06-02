@@ -63,15 +63,26 @@ export interface SidebarProps {
   collapsed?: boolean;
   /** Callback when collapse is toggled (controlled mode) */
   onToggle?: () => void;
+  /** Controlled mobile open state from AppShell */
+  mobileOpen?: boolean;
+  /** Callback when mobile menu should close */
+  onMobileClose?: () => void;
 }
 
-export default function Sidebar({ pendingCount, isConnected = false, collapsed: controlledCollapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ pendingCount, isConnected = false, collapsed: controlledCollapsed, onToggle, mobileOpen: controlledMobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { selectedEntity, entities, setSelectedEntityId } = useEntity();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const collapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+  const mobileOpen = controlledMobileOpen !== undefined ? controlledMobileOpen : internalMobileOpen;
+  const setMobileOpen = (open: boolean) => {
+    if (onMobileClose && !open) {
+      onMobileClose();
+    }
+    setInternalMobileOpen(open);
+  };
   const [entityDropdownOpen, setEntityDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const prevPathnameRef = useRef(pathname);
@@ -119,8 +130,8 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
   }, [onToggle]);
 
   const toggleMobile = useCallback(() => {
-    setMobileOpen(prev => !prev);
-  }, []);
+    setMobileOpen(!mobileOpen);
+  }, [mobileOpen]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';

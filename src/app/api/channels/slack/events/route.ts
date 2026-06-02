@@ -62,8 +62,8 @@ async function handleFileUpload(event: Record<string, unknown>) {
 
   if (!files?.length || !threadTs) return;
 
-  const { createServerClient } = await import('@/lib/supabase/server');
-  const supabase = await createServerClient();
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
   const db = supabase as unknown as SupabaseQueryClient;
 
   // Find the receipt request linked to this thread

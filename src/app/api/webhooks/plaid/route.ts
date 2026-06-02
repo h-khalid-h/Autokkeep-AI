@@ -129,7 +129,9 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook authenticity via Plaid-Verification JWT header
     const verificationHeader = request.headers.get('plaid-verification');
-    if (process.env.NODE_ENV === 'production') {
+    const skipVerification = process.env.PLAID_SKIP_WEBHOOK_VERIFICATION === 'true';
+
+    if (!skipVerification) {
       if (!verificationHeader) {
         console.warn('[Plaid Webhook] Missing Plaid-Verification header — rejecting');
         return NextResponse.json(
@@ -147,14 +149,14 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // Even in non-production, validate basic payload structure
+      // Verification explicitly skipped — still validate basic payload structure
       if (!body?.webhook_type || !body?.webhook_code || !body?.item_id) {
         return NextResponse.json(
           { error: 'Invalid webhook payload structure' },
           { status: 400 }
         );
       }
-      console.warn('[Plaid Webhook] Verification skipped in non-production environment');
+      console.warn('[Plaid Webhook] Verification skipped (PLAID_SKIP_WEBHOOK_VERIFICATION=true)');
     }
 
     if (!webhook_type || !item_id) {

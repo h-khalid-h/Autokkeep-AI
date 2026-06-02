@@ -53,11 +53,17 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       }
 
       const db = supabase as unknown as SupabaseQueryClient;
-      const { data: membershipData } = await db
+      const { data: membershipData, error: membershipError } = await db
         .from('team_members')
         .select('org_id')
         .eq('user_id', user.id)
         .limit(1);
+
+      if (membershipError) {
+        setError('Failed to load team membership. Please try again.');
+        setIsLoading(false);
+        return;
+      }
 
       const membership = membershipData?.[0] ?? null;
 
@@ -70,11 +76,17 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const { data: entityData } = await db
+      const { data: entityData, error: entityError } = await db
         .from('entities')
         .select('id, name, base_currency')
         .eq('org_id', membership.org_id)
         .order('created_at', { ascending: true });
+
+      if (entityError) {
+        setError('Failed to load entities. Please try again.');
+        setIsLoading(false);
+        return;
+      }
 
       const items: EntityItem[] = (entityData || []).map(
         (e: { id: string; name: string; base_currency?: string }) => ({

@@ -257,6 +257,9 @@ export default function AccountPage() {
                 />
               ))}
             </div>
+            <p className={styles.notifDisclaimer}>
+              ℹ️ These preferences are saved to this browser only.
+            </p>
           </div>
         </Card>
 

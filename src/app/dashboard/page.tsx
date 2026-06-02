@@ -269,7 +269,7 @@ export default function DashboardPage() {
 
     fetchTransactions();
     return () => { cancelled = true; };
-  }, [selectedEntity]);
+  }, [selectedEntity?.id]);
 
   // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -291,7 +291,7 @@ export default function DashboardPage() {
 
     fetchChartOfAccounts();
     return () => { cancelled = true; };
-  }, [selectedEntity]);
+  }, [selectedEntity?.id]);
 
   const handleSelectTransaction = React.useCallback(
     (transaction: Transaction) => {

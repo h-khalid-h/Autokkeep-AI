@@ -10,6 +10,17 @@
   padding: var(--space-6) var(--space-4);
 }
 
+/* ─── Error banner ────────────────────────────── */
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  margin-bottom: var(--space-4);
+}
+
 /* ─── Time range toolbar ──────────────────────── */
 .toolbar {
   display: flex;

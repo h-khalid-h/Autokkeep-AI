@@ -65,16 +65,18 @@ export async function getApiAuthContext(
     // Resolve org membership — multi-org safe
     // If x-org-id header is provided, use that org specifically
     const orgIdHeader = request?.headers?.get('x-org-id');
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validOrgId = orgIdHeader && UUID_RE.test(orgIdHeader) ? orgIdHeader : null;
 
     let membership: { id: string; org_id: string; role: string } | null = null;
 
-    if (orgIdHeader) {
+    if (validOrgId) {
       // Validate user belongs to the requested org
       const { data } = await db
         .from('team_members')
         .select('id, org_id, role')
         .eq('user_id', user.id)
-        .eq('org_id', orgIdHeader)
+        .eq('org_id', validOrgId)
         .limit(1);
 
       membership = data?.[0] ?? null;

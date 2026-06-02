@@ -21,7 +21,14 @@ export async function GET(request: Request) {
       if (isLocalEnv) {
         return NextResponse.redirect(`${origin}${next}`);
       } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
+        // Validate forwardedHost against the configured app URL to prevent open redirects
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const allowedHost = appUrl ? new URL(appUrl).host : null;
+        if (allowedHost && forwardedHost === allowedHost) {
+          return NextResponse.redirect(`https://${forwardedHost}${next}`);
+        }
+        // Untrusted forwarded host — fall back to origin
+        return NextResponse.redirect(`${origin}${next}`);
       } else {
         return NextResponse.redirect(`${origin}${next}`);
       }

@@ -121,6 +121,9 @@ export default function OnboardingPage() {
   const [bankConnected, setBankConnected] = useState(false);
   const [bankLinkToken, setBankLinkToken] = useState<string | null>(null);
 
+  // Invite check state
+  const [isCheckingInvite, setIsCheckingInvite] = useState(true);
+
   // Region step state
   const [regionCountry, setRegionCountry] = useState('US');
   const [regionCurrency, setRegionCurrency] = useState('USD');
@@ -130,37 +133,42 @@ export default function OnboardingPage() {
   // ── Check for pending team invite on mount ─────────────────────────────
   useEffect(() => {
     const checkPendingInvite = async () => {
-      const db = createClient() as unknown as SupabaseQueryClient;
-      const { data: { user } } = await db.auth.getUser();
-      if (!user?.email) return;
+      setIsCheckingInvite(true);
+      try {
+        const db = createClient() as unknown as SupabaseQueryClient;
+        const { data: { user } } = await db.auth.getUser();
+        if (!user?.email) return;
 
-      // Check for pending invite
-      const { data: pendingInvites } = await db
-        .from('team_members')
-        .select('id, org_id, role')
-        .eq('invited_email', user.email)
-        .is('user_id', null)
-        .limit(1);
-
-      const pendingInvite = pendingInvites?.[0] ?? null;
-      if (pendingInvite) {
-        // Link user to existing org
-        await db
+        // Check for pending invite
+        const { data: pendingInvites } = await db
           .from('team_members')
-          .update({
-            user_id: user.id,
-            accepted_at: new Date().toISOString(),
-          })
-          .eq('id', pendingInvite.id);
+          .select('id, org_id, role')
+          .eq('invited_email', user.email)
+          .is('user_id', null)
+          .limit(1);
 
-        // Skip onboarding — redirect to dashboard
-        router.push('/dashboard');
-        return;
+        const pendingInvite = pendingInvites?.[0] ?? null;
+        if (pendingInvite) {
+          // Link user to existing org
+          await db
+            .from('team_members')
+            .update({
+              user_id: user.id,
+              accepted_at: new Date().toISOString(),
+            })
+            .eq('id', pendingInvite.id);
+
+          // Skip onboarding — redirect to dashboard
+          router.push('/dashboard');
+          return;
+        }
+      } catch (err) {
+        console.warn('[Onboarding] Invite check failed:', err);
+      } finally {
+        setIsCheckingInvite(false);
       }
     };
-    checkPendingInvite().catch((err) =>
-      console.warn('[Onboarding] Invite check failed:', err)
-    );
+    checkPendingInvite();
   }, [router]);
 
   // ── Load Plaid Link SDK when bank step is active ───────────────────────
@@ -485,9 +493,11 @@ export default function OnboardingPage() {
           <Logo size={36} />
           <span className={styles.headerTitle}>Autokkeep Setup</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
-          Skip for now →
-        </Button>
+        {entityId && (
+          <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
+            Skip for now →
+          </Button>
+        )}
       </header>
 
       {/* Progress Bar */}
@@ -511,6 +521,20 @@ export default function OnboardingPage() {
       {/* Content */}
       <div className={styles.content} aria-live="polite">
         <div className={styles.contentInner}>
+
+          {/* Invite check loading state */}
+          {isCheckingInvite && (
+            <div className={styles.welcomeWrapper}>
+              <span className={styles.welcomeEmoji}>⏳</span>
+              <h1 className={styles.welcomeHeading}>Checking for team invites…</h1>
+              <p className={styles.welcomeDescription}>
+                Please wait while we check if you have a pending team invitation.
+              </p>
+            </div>
+          )}
+
+          {!isCheckingInvite && (
+          <>
 
           {/* Error Banner */}
           {error && (
@@ -571,10 +595,9 @@ export default function OnboardingPage() {
                     disabled={loading}
                     aria-label="Select base currency"
                   >
-                    <option value="USD">USD — US Dollar</option>
-                    <option value="EUR">EUR — Euro</option>
-                    <option value="GBP">GBP — British Pound</option>
-                    <option value="CAD">CAD — Canadian Dollar</option>
+                    {supportedCurrencies.map((curr) => (
+                      <option key={curr.code} value={curr.code}>{curr.symbol} {curr.code} — {curr.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className={styles.fieldGroup}>
@@ -883,6 +906,9 @@ export default function OnboardingPage() {
                 Go to Dashboard →
               </Button>
             </div>
+          )}
+
+          </>
           )}
 
         </div>

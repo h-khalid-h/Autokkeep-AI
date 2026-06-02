@@ -201,14 +201,11 @@ export async function POST(request: NextRequest) {
 
       // ── Step 3 & 4: Auto-approve ≥95%, flag <95% for HITL ──────────────
 
-      // Pre-fetch document anchors for ALL transactions in batch (avoid N+1)
-      const batchTxIds = Array.from(results.keys());
-      const { data: batchDocAnchors } = await db
-        .from('document_anchors')
-        .select('transaction_id')
-        .in('transaction_id', batchTxIds);
+      // Build set of transaction IDs that have a document_url (no separate table needed)
       const docAnchorSet = new Set(
-        (batchDocAnchors || []).map((d: { transaction_id: string }) => d.transaction_id)
+        pendingTransactions
+          .filter((t: Record<string, unknown>) => !!t.document_url)
+          .map((t: Record<string, unknown>) => t.id as string)
       );
 
       // Cache triage results for reuse in history learning (step 5)

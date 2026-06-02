@@ -168,20 +168,43 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // Handle status changes — approval sets confidence to 100
-    if (newStatus === 'approved') {
-      updateData.status = 'approved';
-      updateData.confidence = 100;
-    } else if (newStatus) {
-      // Validate allowed status transitions
-      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'escrow_suspense', 'categorization_failed', 'removed'];
-      if (!validStatuses.includes(newStatus)) {
+    // Handle status changes — validate transitions and approval sets confidence to 100
+    if (newStatus) {
+      // Valid status transition map
+      const validTransitions: Record<string, string[]> = {
+        pending: ['approved', 'rejected', 'categorization_failed', 'human_review'],
+        human_review: ['approved', 'rejected', 'pending'],
+        auto_categorized: ['approved', 'rejected', 'human_review'],
+        approved: ['syncing', 'synced'],
+        rejected: ['pending'],
+        syncing: ['synced', 'approved'],
+        synced: [], // terminal — no transitions allowed
+        escrow_suspense: ['pending', 'approved'],
+        categorization_failed: ['pending', 'human_review'],
+        removed: [], // terminal — no transitions allowed
+      };
+
+      const currentStatus = existing.status as string;
+      const allowed = validTransitions[currentStatus];
+
+      if (!allowed) {
         return NextResponse.json(
-          { error: `Invalid status: ${newStatus}` },
+          { error: `Unknown current status: ${currentStatus}` },
           { status: 400 }
         );
       }
+
+      if (!allowed.includes(newStatus)) {
+        return NextResponse.json(
+          { error: `Invalid status transition: ${currentStatus} → ${newStatus}` },
+          { status: 400 }
+        );
+      }
+
       updateData.status = newStatus;
+      if (newStatus === 'approved') {
+        updateData.confidence = 100;
+      }
     }
 
     const { data: transaction, error: updateError } = await db

@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     const sanitizedEmail = email.trim().toLowerCase();
     const sanitizedMessage = message?.trim().slice(0, 5000) || '';
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const supabase = createAdminClient();
 
     const { writeAuditLog } = await import('@/lib/audit');
     // Store in audit_log (or a dedicated contact_submissions table)

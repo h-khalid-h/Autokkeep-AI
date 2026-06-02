@@ -152,7 +152,7 @@ export default function TaxPage() {
 
     doFetch();
     return () => controller.abort();
-  }, [selectedEntity, selectedYear]);
+  }, [selectedEntity?.id, selectedYear]);
 
   const currency = selectedEntity?.currency || 'USD';
 
@@ -189,11 +189,9 @@ export default function TaxPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => {
-                    toast.info('Export functionality will generate a tax-ready CSV/PDF report for your accountant.');
-                  }}
+                  disabled
                 >
-                  📤 Export for Accountant
+                  📤 Export for Accountant (Coming Soon)
                 </Button>
               </div>
             </div>
@@ -288,16 +286,19 @@ export default function TaxPage() {
                     onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); toast.info('Receipt upload coming soon'); }}
                     role="button"
                     tabIndex={0}
-                    aria-label="Drop documents here to upload"
+                    aria-label="Drop documents here — coming soon"
                   >
                     <span className={styles.dropzoneIcon}>
                       {isDragOver ? '📥' : '📎'}
                     </span>
                     <span className={styles.dropzoneText}>
                       {isDragOver ? 'Drop to upload' : 'Drop receipts here'}
+                    </span>
+                    <span className={styles.dropzoneText}>
+                      (Coming Soon)
                     </span>
                   </div>
                 </Card>

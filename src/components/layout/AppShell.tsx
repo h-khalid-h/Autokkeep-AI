@@ -27,7 +27,7 @@ export default function AppShell({
   topBarActions,
 }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [_mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Global keyboard shortcuts
   useNavigationShortcuts();
@@ -58,6 +58,8 @@ export default function AppShell({
         isConnected={isConnected}
         collapsed={sidebarCollapsed}
         onToggle={handleSidebarToggle}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       <TopBar

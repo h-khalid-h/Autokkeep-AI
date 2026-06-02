@@ -63,13 +63,16 @@ export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<Record<TimeRange, AnalyticsData>>(EMPTY_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch real transaction stats on mount
   useEffect(() => {
     if (!selectedEntity?.id) return;
+    const controller = new AbortController();
     async function fetchAnalytics() {
+      setError(null);
       try {
-        const res = await fetch(`/api/transactions?entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/transactions?entityId=${selectedEntity!.id}`, { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch');
         const result = await res.json();
         const txns = result.transactions || [];
@@ -165,14 +168,18 @@ export default function AnalyticsPage() {
 
         setAnalyticsData(updated);
       } catch (err) {
-        console.warn('[Analytics] Failed to load data:', err);
+        if ((err as Error).name !== 'AbortError') {
+          console.warn('[Analytics] Failed to load data:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load analytics data');
+        }
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchAnalytics();
-  }, [selectedEntity]);
+    return () => controller.abort();
+  }, [selectedEntity?.id]);
 
   const data = analyticsData[timeRange];
   const entityCurrency = selectedEntity?.currency || 'USD';
@@ -253,6 +260,13 @@ export default function AnalyticsPage() {
                 </Button>
               }
             />
+          )}
+
+          {/* Error banner */}
+          {error && (
+            <div role="alert" className={styles.errorBanner}>
+              ⚠️ {error}
+            </div>
           )}
 
           {/* Time Range Selector */}
