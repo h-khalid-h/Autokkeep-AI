@@ -331,21 +331,48 @@ async function loginFlow(page) {
   await page.goto(`${BASE_URL}/auth/login`, { waitUntil: 'networkidle2', timeout: 30000 });
   await screenshot(page, '05_login_page');
 
+  // Login page Input components use React.useId() — no fixed IDs.
+  // Use type-based selectors instead.
   try {
-    await page.waitForSelector('#login-email-input', { timeout: 10000 });
+    await page.waitForSelector('input[type="email"]', { timeout: 10000 });
     pass('Login page loads with form');
   } catch (err) {
     fail('Login page loads', err);
     throw err;
   }
 
-  await page.type('#login-email-input', TEST_EMAIL, { delay: 30 });
-  await page.type('#login-password-input', TEST_PASSWORD, { delay: 20 });
+  // Dismiss cookie banner if present (it can block clicks)
+  try {
+    const cookieBtn = await page.$('button');
+    const allBtns = await page.$$('button');
+    for (const btn of allBtns) {
+      const text = await page.evaluate(el => el.textContent, btn);
+      if (text.includes('Accept All') || text.includes('Essential Only')) {
+        await btn.click();
+        await delay(500);
+        break;
+      }
+    }
+  } catch {}
+
+  await page.type('input[type="email"]', TEST_EMAIL, { delay: 30 });
+  await page.type('input[type="password"]', TEST_PASSWORD, { delay: 20 });
   pass('Login credentials entered');
 
   await screenshot(page, '06_login_filled');
 
-  await page.click('#login-submit-button');
+  // Find and click the Sign In button (no fixed ID)
+  const submitted = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('button[type="submit"]'));
+    const signInBtn = buttons.find(b => b.textContent.includes('Sign In'));
+    if (signInBtn) { signInBtn.click(); return true; }
+    return false;
+  });
+  
+  if (!submitted) {
+    // Fallback: press Enter in the password field
+    await page.keyboard.press('Enter');
+  }
   log('ℹ️', 'Login submitted...');
 
   // Wait for navigation
@@ -444,61 +471,96 @@ async function runOnboarding(page) {
     await page.goto(`${BASE_URL}/onboarding`, { waitUntil: 'networkidle2', timeout: 15000 });
   }
 
+  // Wait for AuthGuard loading to finish (the "AK Loading..." spinner)
+  // The onboarding page has a header with "Autokkeep Setup" text
+  try {
+    await page.waitForFunction(
+      () => {
+        const loading = document.querySelector('[class*="guardLoading"]');
+        return !loading; // Wait until the guard spinner is gone
+      },
+      { timeout: 15000 }
+    );
+    // Also wait for either the welcome heading or the entity form
+    await page.waitForFunction(
+      () => document.querySelector('h1, h2, [aria-label="Start onboarding"]'),
+      { timeout: 10000 }
+    );
+    pass('Onboarding page loaded');
+  } catch (err) {
+    fail('Onboarding page loaded', err);
+    await screenshot(page, '10_onboarding_load_failed');
+    return;
+  }
+
   await screenshot(page, '10_onboarding_start');
 
-  // Step 1: Welcome — click "Let's Get Started"
+  // ── Step 1: Welcome → click "Let's Get Started" ───────────────────────
   try {
     const startBtn = await page.$('[aria-label="Start onboarding"]');
     if (startBtn) {
       await startBtn.click();
-      await delay(1000);
-      pass('Onboarding: Welcome → clicked "Let\'s Get Started"');
+      await delay(800);
+      pass('Welcome step → clicked "Let\'s Get Started"');
     } else {
-      log('ℹ️', 'Welcome step skipped (not visible)');
+      log('ℹ️', 'Welcome step not visible (may have resumed from saved state)');
     }
-  } catch {}
+  } catch (err) {
+    fail('Welcome step', err);
+  }
 
   await screenshot(page, '11_onboarding_entity');
 
-  // Step 2: Create Entity
+  // ── Step 2: Create Entity ─────────────────────────────────────────────
   try {
     const entityInput = await page.$('#entity-name');
     if (entityInput) {
-      // Clear and type
-      await page.evaluate(el => { el.value = ''; el.dispatchEvent(new Event('input', {bubbles: true})); }, entityInput);
+      // Clear any existing text and type entity name
+      await page.evaluate(el => { el.value = ''; }, entityInput);
       await entityInput.click({ clickCount: 3 });
       await page.keyboard.press('Backspace');
       await page.type('#entity-name', ENTITY_NAME, { delay: 30 });
-      
-      // Select EUR
+
+      // Select EUR currency
       await page.select('#entity-currency', CURRENCY);
       // Select December fiscal year
       await page.select('#entity-fiscal-year', '12');
-      
-      pass(`Entity form: ${ENTITY_NAME}, ${CURRENCY}, FY Dec`);
+
+      pass(`Entity form filled: ${ENTITY_NAME}, ${CURRENCY}, FY Dec`);
       await screenshot(page, '12_onboarding_entity_filled');
 
-      // Click Continue
+      // Click "Continue →" (Create entity and continue)
       const continueBtn = await page.$('[aria-label="Create entity and continue"]');
       if (continueBtn) {
         await continueBtn.click();
-        log('ℹ️', 'Creating entity...');
-        
-        // Wait for step transition (max 15s)
+        log('ℹ️', 'Creating entity in Supabase...');
+
+        // Wait for step transition — the region step has #region-country
+        let transitioned = false;
         for (let i = 0; i < 30; i++) {
           await delay(500);
           const regionEl = await page.$('#region-country');
           const errorEl = await page.$('[class*="errorBanner"]');
-          if (regionEl) { pass('Entity created → moved to Region step'); break; }
+          if (regionEl) {
+            pass('Entity created → moved to Region step');
+            transitioned = true;
+            break;
+          }
           if (errorEl) {
             const errText = await page.evaluate(el => el.textContent, errorEl);
             fail('Entity creation', new Error(errText));
             break;
           }
         }
+        if (!transitioned) {
+          log('⚠️', 'Region step not detected after 15s');
+          await screenshot(page, '12b_entity_timeout');
+        }
+      } else {
+        fail('Entity continue button', new Error('Button not found'));
       }
     } else {
-      log('ℹ️', 'Entity step not visible (already completed?)');
+      log('ℹ️', 'Entity step not visible (already completed or resumed)');
     }
   } catch (err) {
     fail('Entity creation', err);
@@ -506,29 +568,40 @@ async function runOnboarding(page) {
 
   await screenshot(page, '13_onboarding_region');
 
-  // Step 3: Region — Estonia, EUR, Tallinn
+  // ── Step 3: Region — Estonia, EUR, Tallinn ────────────────────────────
   try {
     const regionSelect = await page.$('#region-country');
     if (regionSelect) {
       await page.select('#region-country', COUNTRY);
       await page.select('#region-currency', CURRENCY);
       await page.select('#region-timezone', TIMEZONE);
-      
-      pass(`Region: Estonia (${COUNTRY}), ${CURRENCY}, ${TIMEZONE}`);
+
+      pass(`Region set: Estonia (${COUNTRY}), ${CURRENCY}, ${TIMEZONE}`);
       await screenshot(page, '14_onboarding_region_filled');
 
       const continueBtn = await page.$('[aria-label="Save region settings and continue"]');
       if (continueBtn) {
         await continueBtn.click();
-        
+        log('ℹ️', 'Saving region settings...');
+
+        // Wait for bank step (has the bank emoji or bank center class)
+        let transitioned = false;
         for (let i = 0; i < 20; i++) {
           await delay(500);
-          const bankStep = await page.$('[class*="bankEmoji"], [class*="bankCenter"]');
-          if (bankStep) { pass('Region saved → moved to Bank step'); break; }
+          const bankStep = await page.evaluate(() => {
+            const h2 = Array.from(document.querySelectorAll('h2'));
+            return h2.some(el => el.textContent.includes('Connect Your Bank'));
+          });
+          if (bankStep) {
+            pass('Region saved → moved to Bank step');
+            transitioned = true;
+            break;
+          }
         }
+        if (!transitioned) log('⚠️', 'Bank step not detected after 10s');
       }
     } else {
-      log('ℹ️', 'Region step not visible');
+      log('ℹ️', 'Region step not visible (already completed)');
     }
   } catch (err) {
     fail('Region setup', err);
@@ -536,36 +609,49 @@ async function runOnboarding(page) {
 
   await screenshot(page, '15_onboarding_bank');
 
-  // Step 4: Bank — Skip
+  // ── Step 4: Bank — Skip ───────────────────────────────────────────────
   try {
+    // The bank step has aria-label "Skip bank connection"
     const skipBtn = await page.$('[aria-label="Skip bank connection"]');
     if (skipBtn) {
       await skipBtn.click();
       await delay(1000);
-      pass('Bank: skipped');
+      pass('Bank step: skipped');
     } else {
-      log('ℹ️', 'Bank step not visible');
+      log('ℹ️', 'Bank skip button not visible');
     }
-  } catch {}
+  } catch (err) {
+    fail('Bank step', err);
+  }
 
   await screenshot(page, '16_onboarding_ledger');
 
-  // Step 5: Ledger — Select "No ledger yet"
+  // ── Step 5: Ledger — Select "No ledger yet" then click Continue ───────
   try {
-    const ledgerBtns = await page.$$('[class*="ledgerOption"]');
-    if (ledgerBtns.length > 0) {
-      // Click "No ledger yet" (last option)
-      await ledgerBtns[ledgerBtns.length - 1].click();
-      await delay(300);
-      
-      // Click continue (should be "Continue →" since we selected "none")
+    // Find the "No ledger yet" option by its data-selected attribute
+    const noLedgerClicked = await page.evaluate(() => {
+      const options = Array.from(document.querySelectorAll('[class*="ledgerOption"]'));
+      const noLedger = options.find(el => el.textContent.includes('No ledger yet'));
+      if (noLedger) { noLedger.click(); return true; }
+      return false;
+    });
+
+    if (noLedgerClicked) {
+      await delay(500);
+      pass('Ledger: selected "No ledger yet"');
+
+      // Click "Continue →" (aria-label: "Continue to next step" since we selected "none")
       const continueBtn = await page.$('[aria-label="Continue to next step"]');
       const skipBtn = await page.$('[aria-label="Skip ledger connection"]');
-      if (continueBtn) await continueBtn.click();
-      else if (skipBtn) await skipBtn.click();
-      
-      await delay(1000);
-      pass('Ledger: selected "No ledger yet"');
+      if (continueBtn) {
+        await continueBtn.click();
+        await delay(1000);
+        pass('Ledger: continued');
+      } else if (skipBtn) {
+        await skipBtn.click();
+        await delay(1000);
+        pass('Ledger: skipped');
+      }
     } else {
       log('ℹ️', 'Ledger step not visible');
     }
@@ -575,42 +661,53 @@ async function runOnboarding(page) {
 
   await screenshot(page, '17_onboarding_channel');
 
-  // Step 6: Channel — Skip (Slack would redirect to OAuth)
+  // ── Step 6: Channel — Skip (Slack would redirect to OAuth) ────────────
   try {
-    const channelBtns = await page.$$('[class*="channelOption"]:not([disabled])');
-    if (channelBtns.length > 0) {
-      // Select Slack (first available)
-      await channelBtns[0].click();
-      await delay(300);
-      
-      // Instead of clicking "Finish Setup" (which redirects to Slack OAuth),
-      // let's check if there's a skip option or manually advance
-      const finishBtn = await page.$('[aria-label="Finish channel setup"]');
-      if (finishBtn) {
-        // Clicking this would redirect to Slack OAuth — instead let's skip
-        // Check for a back button or skip
-        const navBtns = await page.$$('button');
-        let skipped = false;
-        for (const btn of navBtns) {
-          const text = await page.evaluate(el => el.textContent, btn);
-          if (text.includes('Skip')) {
-            await btn.click();
-            await delay(1000);
-            skipped = true;
-            break;
-          }
-        }
-        if (!skipped) {
-          // Just click Finish — might redirect to Slack OAuth but we'll handle it
-          // Actually, let's use a non-interactive channel like "sms" 
-          // But SMS is disabled. Let's just navigate directly to dashboard
-          log('ℹ️', 'Skipping channel step (would redirect to Slack OAuth)');
-          await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
-        }
-        pass('Channel step handled');
+    // Check if we're on the channel step
+    const isChannelStep = await page.evaluate(() => {
+      const h2 = Array.from(document.querySelectorAll('h2'));
+      return h2.some(el => el.textContent.includes('Receipt Chase'));
+    });
+
+    if (isChannelStep) {
+      // Select Slack (the only available option)
+      const slackClicked = await page.evaluate(() => {
+        const options = Array.from(document.querySelectorAll('[class*="channelOption"]:not([disabled])'));
+        if (options.length > 0) { options[0].click(); return true; }
+        return false;
+      });
+
+      if (slackClicked) {
+        await delay(300);
+        pass('Channel: selected Slack');
+
+        // Don't click "Finish Setup" as it redirects to Slack OAuth.
+        // Instead, navigate directly to the complete step or dashboard.
+        // The onboarding state is persisted to localStorage.
+        log('ℹ️', 'Skipping Slack OAuth redirect — navigating to dashboard');
+        await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
+        pass('Channel step handled (skipped OAuth)');
+      } else {
+        log('ℹ️', 'No available channel options');
+        await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
       }
     } else {
-      log('ℹ️', 'Channel step not visible');
+      // Check if we're on the complete step
+      const isComplete = await page.$('[class*="completeWrapper"]');
+      if (isComplete) {
+        pass('Onboarding completion screen shown');
+
+        // Click "Go to Dashboard →"
+        const dashBtn = await page.evaluate(() => {
+          const btns = Array.from(document.querySelectorAll('button'));
+          const btn = btns.find(b => b.textContent.includes('Dashboard'));
+          if (btn) { btn.click(); return true; }
+          return false;
+        });
+        if (dashBtn) await delay(3000);
+      } else {
+        log('ℹ️', 'Channel/Complete step not visible');
+      }
     }
   } catch (err) {
     fail('Channel step', err);
@@ -618,31 +715,20 @@ async function runOnboarding(page) {
 
   await screenshot(page, '18_onboarding_complete');
 
-  // Check for completion screen
-  try {
-    const completeWrapper = await page.$('[class*="completeWrapper"]');
-    if (completeWrapper) {
-      pass('Onboarding completion screen shown');
-      
-      // Click "Go to Dashboard"
-      const dashBtn = await page.$$('button');
-      for (const btn of dashBtn) {
-        const text = await page.evaluate(el => el.textContent, btn);
-        if (text.includes('Dashboard')) {
-          await btn.click();
-          await delay(3000);
-          break;
-        }
-      }
-    }
-  } catch {}
-
-  // Ensure we're on dashboard
+  // Ensure we end up on dashboard
   const finalUrl = page.url();
   if (!finalUrl.includes('/dashboard')) {
     await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle2', timeout: 15000 });
   }
-  
+
+  // Wait for dashboard to fully load (AuthGuard + EntityProvider)
+  try {
+    await page.waitForFunction(
+      () => !document.querySelector('[class*="guardLoading"]'),
+      { timeout: 15000 }
+    );
+  } catch {}
+
   await screenshot(page, '19_dashboard_after_onboarding');
   pass('Onboarding complete → on dashboard');
 }
