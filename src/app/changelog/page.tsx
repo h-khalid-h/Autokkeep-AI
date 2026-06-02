@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 export const metadata: Metadata = {
   title: 'Changelog — Autokkeep',
@@ -80,7 +81,7 @@ export default function ChangelogPage() {
     <>
       <Navbar />
       <main>
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)' }}>
+        <section className={`section ${styles.section}`}>
           <div className="container">
             <div className="section-header">
               <div className="section-label">
@@ -95,46 +96,28 @@ export default function ChangelogPage() {
             </div>
 
             {/* Changelog Entries */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '800px', margin: '0 auto' }}>
+            <div className={styles.entriesList}>
               {changelogEntries.map((entry) => (
                 <article
                   key={entry.version}
-                  className="card"
-                  style={{
-                    padding: '32px',
-                    borderLeft: '4px solid var(--accent-primary)',
-                  }}
+                  className={`card ${styles.entryCard}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        background: 'var(--accent-gradient)',
-                        color: '#fff',
-                        padding: '4px 14px',
-                        borderRadius: '9999px',
-                        fontSize: '0.875rem',
-                        fontWeight: 700,
-                        letterSpacing: '0.02em',
-                      }}
-                    >
+                  <div className={styles.entryHeader}>
+                    <span className={styles.versionBadge}>
                       {entry.version}
                     </span>
                     <time
                       dateTime={entry.dateISO}
-                      style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}
+                      className={styles.entryDate}
                     >
                       {entry.date}
                     </time>
                   </div>
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: 0, padding: 0, listStyle: 'none' }}>
+                  <ul className={styles.changesList}>
                     {entry.changes.map((change) => (
                       <li
                         key={change}
-                        className="text-body"
-                        style={{
-                          fontSize: '0.9375rem',
-                          lineHeight: 1.6,
-                        }}
+                        className={`text-body ${styles.changeItem}`}
                       >
                         {change}
                       </li>
@@ -145,8 +128,8 @@ export default function ChangelogPage() {
             </div>
 
             {/* Subscribe CTA */}
-            <div className="cta-section" style={{ padding: '48px 0' }}>
-              <p className="text-body" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+            <div className={`cta-section ${styles.ctaSection}`}>
+              <p className={`text-body ${styles.ctaText}`}>
                 Subscribe to our changelog via RSS or follow us on Twitter for updates.
               </p>
             </div>

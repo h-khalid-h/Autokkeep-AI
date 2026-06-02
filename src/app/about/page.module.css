@@ -1,0 +1,151 @@
+/* ═══════════════════════════════════════════════════════════
+   About Page — CSS Module
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero ── */
+.heroSection {
+  padding-top: calc(var(--header-height) + 80px);
+}
+
+.heroHeader {
+  max-width: 800px;
+}
+
+.heroTitle {
+  margin-bottom: 24px;
+}
+
+.heroSubtitle {
+  max-width: 700px;
+}
+
+/* ── Mission ── */
+.missionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.missionTitle {
+  margin-bottom: 16px;
+}
+
+.missionIntro {
+  margin-bottom: 16px;
+}
+
+.missionFollow {
+  margin-top: 12px;
+}
+
+.marketCard {
+  padding: 32px;
+}
+
+.marketStatLarge {
+  font-size: 4rem;
+  margin-bottom: 8px;
+}
+
+.marketLabel {
+  margin-bottom: 8px;
+}
+
+.marketSubGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.marketStatSmall {
+  font-size: 1.5rem;
+}
+
+/* ── Timeline ── */
+.timelineContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.timelineSidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.timelineBadge {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.timelineLine {
+  width: 2px;
+  height: 60px;
+  background: var(--border-primary);
+}
+
+.timelineTitle {
+  margin-bottom: 4px;
+}
+
+/* ── Values ── */
+.valueCard {
+  padding: 32px;
+}
+
+.valueIcon {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.valueTitle {
+  margin-bottom: 8px;
+}
+
+/* ── Tech Stack ── */
+.stackCard {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 2;
+  color: var(--text-secondary);
+}
+
+.stackRow {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.stackRowLast {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stackValue {
+  color: var(--accent-primary);
+}
+
+/* ── CTA ── */
+.ctaButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}

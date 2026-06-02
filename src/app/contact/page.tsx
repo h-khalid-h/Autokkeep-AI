@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 export default function ContactPage() {
   const [formState, setFormState] = useState({
@@ -57,8 +58,8 @@ export default function ContactPage() {
     <>
       <Navbar />
       <main>
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)' }}>
-          <div className="container" style={{ maxWidth: '700px' }}>
+        <section className={`section ${styles.section}`}>
+          <div className={`container ${styles.container}`}>
             <div className="section-header">
               <div className="section-label">
                 <span>📬</span> Contact
@@ -74,18 +75,17 @@ export default function ContactPage() {
             {!submitted ? (
               <>
               {formError && (
-                <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', borderLeft: '4px solid var(--destructive)', maxWidth: '560px', margin: '0 auto 16px' }}>
-                  <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {formError}</div>
+                <div className={`card ${styles.errorCard}`}>
+                  <div className={`text-body ${styles.errorText}`}>⚠️ {formError}</div>
                 </div>
               )}
               <form
                 onSubmit={handleSubmit}
-                className="card-elevated"
-                style={{ padding: '40px', maxWidth: '560px', margin: '0 auto' }}
+                className={`card-elevated ${styles.form}`}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className={styles.formFields}>
                   <div>
-                    <label htmlFor="contact-name" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                    <label htmlFor="contact-name" className={`text-caption ${styles.label}`}>
                       Full Name *
                     </label>
                     <input
@@ -101,7 +101,7 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-email" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                    <label htmlFor="contact-email" className={`text-caption ${styles.label}`}>
                       Work Email *
                     </label>
                     <input
@@ -117,7 +117,7 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-company" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                    <label htmlFor="contact-company" className={`text-caption ${styles.label}`}>
                       Company / Firm Name *
                     </label>
                     <input
@@ -132,9 +132,9 @@ export default function ContactPage() {
                     />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className={styles.gridRow}>
                     <div>
-                      <label htmlFor="contact-type" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                      <label htmlFor="contact-type" className={`text-caption ${styles.label}`}>
                         I Am A...
                       </label>
                       <select
@@ -154,7 +154,7 @@ export default function ContactPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="contact-entities" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                      <label htmlFor="contact-entities" className={`text-caption ${styles.label}`}>
                         # of Entities / Clients
                       </label>
                       <input
@@ -170,46 +170,39 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-message" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                    <label htmlFor="contact-message" className={`text-caption ${styles.label}`}>
                       How can we help? *
                     </label>
                     <textarea
                       id="contact-message"
                       name="message"
-                      className="input"
+                      className={`input ${styles.textarea}`}
                       placeholder="Tell us about your current financial workflow and what you're looking for..."
                       value={formState.message}
                       onChange={handleChange}
                       required
                       rows={5}
-                      style={{ resize: 'vertical' }}
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={isSubmitting}>
+                  <button type="submit" className={`btn btn-primary btn-lg ${styles.submitBtn}`} disabled={isSubmitting}>
                     {isSubmitting ? 'Sending...' : 'Send Message'}
                   </button>
 
-                  <p className="text-caption" style={{ textAlign: 'center' }}>
+                  <p className={`text-caption ${styles.responseNote}`}>
                     We typically respond within 24 hours on business days.
                   </p>
                 </div>
               </form>
               </>
             ) : (
-              <div className="card-elevated" style={{
-                padding: '60px 40px',
-                textAlign: 'center',
-                maxWidth: '560px',
-                margin: '0 auto',
-                animation: 'slide-up-fade 0.4s ease forwards',
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
-                <h2 className="text-h3" style={{ marginBottom: '8px' }}>Message Received!</h2>
-                <p className="text-body" style={{ marginBottom: '24px' }}>
+              <div className={`card-elevated ${styles.successCard}`}>
+                <div className={styles.successIcon}>✅</div>
+                <h2 className={`text-h3 ${styles.successTitle}`}>Message Received!</h2>
+                <p className={`text-body ${styles.successBody}`}>
                   Thank you, {formState.name}. Our team will review your message and get back to you at {formState.email} within 24 hours.
                 </p>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <div className={styles.successActions}>
                   <Link href="/" className="btn btn-secondary">Back to Home</Link>
                   <Link href="/dashboard" className="btn btn-primary">Try Dashboard Demo</Link>
                 </div>

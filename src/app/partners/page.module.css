@@ -1,0 +1,407 @@
+/* ═══════════════════════════════════════════════════════════
+   Partners Page — CSS Module
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Hero ── */
+.heroSection {
+  padding-top: calc(var(--header-height) + 80px);
+  text-align: center;
+}
+
+.heroTitle {
+  margin-top: 24px;
+}
+
+.heroSubtitle {
+  max-width: 720px;
+  margin: 24px auto 0;
+  color: var(--text-secondary);
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+/* ── 1b. Key Benefits ── */
+.gridMt48 {
+  margin-top: 48px;
+}
+
+.benefitCard {
+  padding: 32px 24px;
+  height: 100%;
+}
+
+.benefitIcon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.benefitTitle {
+  margin-bottom: 8px;
+}
+
+.benefitBody {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── 2. The Problem ── */
+.statCard {
+  text-align: center;
+  padding: 40px;
+}
+
+.statValue {
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+}
+
+.statDesc {
+  color: var(--text-secondary);
+}
+
+.accentBanner {
+  text-align: center;
+  padding: 32px 40px;
+}
+
+.accentBannerMargin {
+  margin-top: 32px;
+}
+
+.accentBannerText {
+  margin: 0;
+}
+
+/* ── 3. How It Works ── */
+.stepCard {
+  padding: 40px 32px;
+  height: 100%;
+}
+
+.stepNumber {
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+  opacity: 0.35;
+  display: block;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.stepTitle {
+  margin-bottom: 12px;
+}
+
+.stepBody {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── 4. Revenue Calculator ── */
+.calcWrapper {
+  max-width: 800px;
+  margin: 48px auto 0;
+}
+
+.calcCard {
+  padding: 48px 40px;
+}
+
+.sliderGroup {
+  margin-bottom: 36px;
+}
+
+.sliderHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sliderLabel {
+  font-weight: 600;
+}
+
+.sliderValue {
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.sliderInput {
+  width: 100%;
+  accent-color: var(--accent-primary);
+  height: 6px;
+  cursor: pointer;
+}
+
+.sliderRange {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.sliderRangeLabel {
+  color: var(--text-secondary);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-primary);
+  margin: 8px 0 36px;
+}
+
+.outputGrid {
+  gap: 24px;
+}
+
+.outputCard {
+  padding: 24px;
+  text-align: center;
+}
+
+.outputCardAccent {
+  padding: 24px;
+  text-align: center;
+  border-color: var(--accent-primary);
+}
+
+.outputLabel {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.outputLabelAccent {
+  color: var(--accent-primary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.outputValue {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.outputValueAccent {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+.outputStatAccent {
+  color: var(--accent-primary);
+  margin: 0;
+}
+
+.calcDisclaimer {
+  color: var(--text-secondary);
+  margin-top: 24px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── 5. Shadow Audit CTA ── */
+.shadowAuditCard {
+  text-align: center;
+  padding: 48px 40px;
+}
+
+.shadowAuditTitle {
+  margin-bottom: 16px;
+}
+
+.shadowAuditBody {
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin: 0 auto 28px;
+}
+
+/* ── 6. Partner Tiers ── */
+.tierCard {
+  padding: 40px 32px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.tierCardHighlight {
+  composes: tierCard;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 40px rgba(30, 111, 255, 0.12);
+}
+
+.tierBadge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.tierName {
+  margin-bottom: 8px;
+}
+
+.tierPriceRow {
+  margin-bottom: 8px;
+}
+
+.tierPrice {
+  font-family: var(--font-mono);
+}
+
+.tierUnit {
+  color: var(--text-secondary);
+}
+
+.tierDesc {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.tierFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+  flex: 1;
+}
+
+.tierFeatureItem {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tierCheck {
+  color: var(--success);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.tierCta {
+  width: 100%;
+  text-align: center;
+}
+
+/* ── 7. FAQ ── */
+.faqContainer {
+  max-width: 800px;
+  margin: 48px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faqCard {
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.faqButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.faqQuestion {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.faqAnswer {
+  padding: 0 24px 24px;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ── 8. CTA / Form ── */
+.ctaContainer {
+  text-align: center;
+}
+
+.ctaSubtext {
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 16px;
+  font-size: 1.05rem;
+}
+
+.ctaFormWrapper {
+  max-width: 480px;
+  margin: 40px auto 0;
+}
+
+.successCard {
+  padding: 40px 32px;
+  text-align: center;
+  border-color: var(--success-border);
+  background: var(--success-subtle);
+}
+
+.successEmoji {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.successTitle {
+  margin-bottom: 8px;
+}
+
+.successBody {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.partnerForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: inherit;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  border-color: var(--accent-primary);
+}
+
+.submitBtn {
+  width: 100%;
+}
+
+/* ── Chevron ── */
+.chevron {
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}

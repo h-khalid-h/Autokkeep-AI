@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════════════════════
+   Security Page — CSS Module
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero ── */
+.heroSection {
+  padding-top: calc(var(--header-height) + 80px);
+}
+
+/* ── Security Commitment Banner ── */
+.commitmentBanner {
+  text-align: center;
+  padding: 32px;
+  margin-bottom: 64px;
+}
+
+.commitmentTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-bottom: 8px;
+}
+
+.commitmentBody {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ── Security Layers Grid ── */
+.securityGrid {
+  gap: 24px;
+}
+
+.layerCard {
+  padding: 32px;
+}
+
+.layerIcon {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.layerTitle {
+  margin-bottom: 16px;
+}
+
+.layerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.layerItem {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.checkIcon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+/* ── Data Flow Diagram ── */
+.flowNode {
+  border-color: var(--success-border);
+}
+
+.flowNodeIcon {
+  background: var(--success-subtle);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+/* ── AI Safety & Compliance ── */
+.contentGrid {
+  gap: 24px;
+}
+
+.contentCard {
+  padding: 32px;
+}
+
+.contentIcon {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.contentTitle {
+  margin-bottom: 8px;
+}
+
+/* ── Compliance Cards ── */
+.complianceHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.complianceIcon {
+  font-size: 2rem;
+}
+
+.complianceTitle {
+  margin: 0;
+}
+
+/* ── Infrastructure ── */
+.infraContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.infraCard {
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.infraCheck {
+  color: var(--success);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infraTitle {
+  margin-bottom: 4px;
+}
+
+/* ── CTA ── */
+.ctaSection {
+  padding: 48px 0;
+}
+
+.ctaTitle {
+  margin-bottom: 12px;
+}
+
+.ctaBody {
+  margin-bottom: 24px;
+}

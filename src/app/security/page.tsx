@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 export const metadata: Metadata = {
   title: 'Security — Autokkeep',
@@ -75,7 +76,7 @@ export default function SecurityPage() {
     <>
       <Navbar />
       <main>
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)' }}>
+        <section className={`section ${styles.heroSection}`}>
           <div className="container">
             <div className="section-header">
               <div className="section-label">
@@ -90,35 +91,25 @@ export default function SecurityPage() {
             </div>
 
             {/* Security Commitment Banner */}
-            <div className="card-accent" style={{
-              textAlign: 'center',
-              padding: '32px',
-              marginBottom: '64px',
-            }}>
-              <p style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>
+            <div className={`card-accent ${styles.commitmentBanner}`}>
+              <p className={styles.commitmentTitle}>
                 🔒 Our Security Promise
               </p>
-              <p className="text-body" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <p className={`text-body ${styles.commitmentBody}`}>
                 Your financial data is never used for AI model training. Every AI decision is logged with full transparency. No data leaves our managed infrastructure. Period.
               </p>
             </div>
 
             {/* Security Layers Grid */}
-            <div className="grid-3" style={{ gap: '24px' }}>
+            <div className={`grid-3 ${styles.securityGrid}`}>
               {securityLayers.map((layer) => (
-                <div key={layer.title} className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>{layer.icon}</div>
-                  <h3 className="text-h4" style={{ marginBottom: '16px' }}>{layer.title}</h3>
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div key={layer.title} className={`card ${styles.layerCard}`}>
+                  <div className={styles.layerIcon}>{layer.icon}</div>
+                  <h3 className={`text-h4 ${styles.layerTitle}`}>{layer.title}</h3>
+                  <ul className={styles.layerList}>
                     {layer.items.map((item) => (
-                      <li key={item} style={{
-                        fontSize: '0.875rem',
-                        color: 'var(--text-secondary)',
-                        display: 'flex',
-                        gap: '8px',
-                        alignItems: 'flex-start',
-                      }}>
-                        <span style={{ color: 'var(--success)', flexShrink: 0 }}>✓</span>
+                      <li key={item} className={styles.layerItem}>
+                        <span className={styles.checkIcon}>✓</span>
                         <span>{item}</span>
                       </li>
                     ))}
@@ -138,48 +129,32 @@ export default function SecurityPage() {
 
               <div className="arch-diagram">
                 <div className="arch-flow">
-                  <div className="arch-node" style={{ borderColor: 'var(--success-border)' }}>
-                    <div className="arch-node-icon" style={{
-                      background: 'var(--success-subtle)',
-                      border: '1px solid var(--success-border)',
-                      color: 'var(--success)',
-                    }}>🔒</div>
+                  <div className={`arch-node ${styles.flowNode}`}>
+                    <div className={`arch-node-icon ${styles.flowNodeIcon}`}>🔒</div>
                     <div className="arch-node-label">Bank API (TLS 1.3)</div>
                     <div className="arch-node-sublabel">Plaid encrypted tunnel</div>
                   </div>
 
                   <div className="arch-arrow">→</div>
 
-                  <div className="arch-node" style={{ borderColor: 'var(--success-border)' }}>
-                    <div className="arch-node-icon" style={{
-                      background: 'var(--success-subtle)',
-                      border: '1px solid var(--success-border)',
-                      color: 'var(--success)',
-                    }}>🛡️</div>
+                  <div className={`arch-node ${styles.flowNode}`}>
+                    <div className={`arch-node-icon ${styles.flowNodeIcon}`}>🛡️</div>
                     <div className="arch-node-label">PII Redaction</div>
                     <div className="arch-node-sublabel">Before AI inference</div>
                   </div>
 
                   <div className="arch-arrow">→</div>
 
-                  <div className="arch-node" style={{ borderColor: 'var(--success-border)' }}>
-                    <div className="arch-node-icon" style={{
-                      background: 'var(--success-subtle)',
-                      border: '1px solid var(--success-border)',
-                      color: 'var(--success)',
-                    }}>🤖</div>
+                  <div className={`arch-node ${styles.flowNode}`}>
+                    <div className={`arch-node-icon ${styles.flowNodeIcon}`}>🤖</div>
                     <div className="arch-node-label">AI Engine (DPA)</div>
                     <div className="arch-node-sublabel">No training on your data</div>
                   </div>
 
                   <div className="arch-arrow">→</div>
 
-                  <div className="arch-node" style={{ borderColor: 'var(--success-border)' }}>
-                    <div className="arch-node-icon" style={{
-                      background: 'var(--success-subtle)',
-                      border: '1px solid var(--success-border)',
-                      color: 'var(--success)',
-                    }}>📋</div>
+                  <div className={`arch-node ${styles.flowNode}`}>
+                    <div className={`arch-node-icon ${styles.flowNodeIcon}`}>📋</div>
                     <div className="arch-node-label">Audit Trail (RLS)</div>
                     <div className="arch-node-sublabel">Immutable, hash-chained</div>
                   </div>
@@ -196,25 +171,25 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div className="grid-2" style={{ gap: '24px' }}>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>🚫</div>
-                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>No Training on Your Data</h3>
+              <div className={`grid-2 ${styles.contentGrid}`}>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.contentIcon}>🚫</div>
+                  <h3 className={`text-h4 ${styles.contentTitle}`}>No Training on Your Data</h3>
                   <p className="text-body">No financial data is used to train our AI models. Strict Data Processing Agreements with all AI providers ensure your data is processed in real-time only.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>📊</div>
-                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Confidence-Scored Categorizations</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.contentIcon}>📊</div>
+                  <h3 className={`text-h4 ${styles.contentTitle}`}>Confidence-Scored Categorizations</h3>
                   <p className="text-body">All AI categorizations are confidence-scored — transactions below 95% are routed to human review. No blind automation touches your books.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⚙️</div>
-                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Deterministic Filter First</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.contentIcon}>⚙️</div>
+                  <h3 className={`text-h4 ${styles.contentTitle}`}>Deterministic Filter First</h3>
                   <p className="text-body">Deterministic filter handles 60%+ of transactions without touching AI at all — rule-based, predictable, and zero-cost per transaction.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px' }}>✅</div>
-                  <h3 className="text-h4" style={{ marginBottom: '8px' }}>Double-Entry Validation</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.contentIcon}>✅</div>
+                  <h3 className={`text-h4 ${styles.contentTitle}`}>Double-Entry Validation</h3>
                   <p className="text-body">Double-entry validation trigger ensures ledger integrity at the database level. Every debit must have a matching credit — enforced by PostgreSQL, not application code.</p>
                 </div>
               </div>
@@ -229,32 +204,32 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div className="grid-2" style={{ gap: '24px' }}>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '2rem' }}>🏛️</span>
-                    <h3 className="text-h4" style={{ margin: 0 }}>SOC 2 Type II Readiness</h3>
+              <div className={`grid-2 ${styles.contentGrid}`}>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.complianceHeader}>
+                    <span className={styles.complianceIcon}>🏛️</span>
+                    <h3 className={`text-h4 ${styles.complianceTitle}`}>SOC 2 Type II Readiness</h3>
                   </div>
                   <p className="text-body">Security architecture designed to align with SOC 2 Type II trust service criteria. Formal audit engagement on roadmap.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '2rem' }}>🇪🇺</span>
-                    <h3 className="text-h4" style={{ margin: 0 }}>GDPR Compliance</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.complianceHeader}>
+                    <span className={styles.complianceIcon}>🇪🇺</span>
+                    <h3 className={`text-h4 ${styles.complianceTitle}`}>GDPR Compliance</h3>
                   </div>
                   <p className="text-body">Full GDPR compliance including data deletion on request, consent management, and data portability. EU residents can exercise all data rights.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '2rem' }}>💳</span>
-                    <h3 className="text-h4" style={{ margin: 0 }}>PCI DSS via Plaid/Stripe</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.complianceHeader}>
+                    <span className={styles.complianceIcon}>💳</span>
+                    <h3 className={`text-h4 ${styles.complianceTitle}`}>PCI DSS via Plaid/Stripe</h3>
                   </div>
                   <p className="text-body">PCI DSS compliance handled entirely by Plaid and Stripe. No card numbers are ever stored on Autokkeep infrastructure.</p>
                 </div>
-                <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '2rem' }}>🗑️</span>
-                    <h3 className="text-h4" style={{ margin: 0 }}>Right to Be Forgotten</h3>
+                <div className={`card ${styles.contentCard}`}>
+                  <div className={styles.complianceHeader}>
+                    <span className={styles.complianceIcon}>🗑️</span>
+                    <h3 className={`text-h4 ${styles.complianceTitle}`}>Right to Be Forgotten</h3>
                   </div>
                   <p className="text-body">Real account deletion — not just deactivation. When you delete your account, your data is permanently removed from all systems within 30 days.</p>
                 </div>
@@ -270,32 +245,32 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '700px', margin: '0 auto' }}>
-                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+              <div className={styles.infraContainer}>
+                <div className={`card ${styles.infraCard}`}>
+                  <span className={styles.infraCheck}>✓</span>
                   <div>
-                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>PostgreSQL with Row-Level Security</h3>
+                    <h3 className={`text-h4 ${styles.infraTitle}`}>PostgreSQL with Row-Level Security</h3>
                     <p className="text-body">20 tables, every query automatically filtered by tenant. No client can ever access another client&apos;s data — enforced at the database level.</p>
                   </div>
                 </div>
-                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                <div className={`card ${styles.infraCard}`}>
+                  <span className={styles.infraCheck}>✓</span>
                   <div>
-                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Period Locking</h3>
+                    <h3 className={`text-h4 ${styles.infraTitle}`}>Period Locking</h3>
                     <p className="text-body">Locked accounting periods cannot be modified — preventing accidental or malicious changes to finalized financial records.</p>
                   </div>
                 </div>
-                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                <div className={`card ${styles.infraCard}`}>
+                  <span className={styles.infraCheck}>✓</span>
                   <div>
-                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Immutable Audit Trail</h3>
+                    <h3 className={`text-h4 ${styles.infraTitle}`}>Immutable Audit Trail</h3>
                     <p className="text-body">Every action logged with actor, timestamp, and details. Hash-chained entries cannot be modified retroactively.</p>
                   </div>
                 </div>
-                <div className="card" style={{ padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--success)', fontSize: '1.25rem', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                <div className={`card ${styles.infraCard}`}>
+                  <span className={styles.infraCheck}>✓</span>
                   <div>
-                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>Encrypted Token Storage</h3>
+                    <h3 className={`text-h4 ${styles.infraTitle}`}>Encrypted Token Storage</h3>
                     <p className="text-body">Supabase Vault for third-party API credentials. Encryption keys managed separately from application code.</p>
                   </div>
                 </div>
@@ -303,11 +278,11 @@ export default function SecurityPage() {
             </section>
 
             {/* CTA */}
-            <div className="cta-section" style={{ padding: '48px 0' }}>
-              <h3 className="text-h3" style={{ marginBottom: '12px' }}>
+            <div className={`cta-section ${styles.ctaSection}`}>
+              <h3 className={`text-h3 ${styles.ctaTitle}`}>
                 Questions About Our Security?
               </h3>
-              <p className="text-body" style={{ marginBottom: '24px' }}>
+              <p className={`text-body ${styles.ctaBody}`}>
                 We&apos;re happy to share our security documentation, audit reports, and data processing agreements.
               </p>
               <a href="/contact" className="btn btn-primary btn-lg">

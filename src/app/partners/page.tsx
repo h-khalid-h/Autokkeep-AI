@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 /* ─────────────────────── helpers ─────────────────────── */
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
@@ -24,6 +25,7 @@ function useAnimateOnScroll() {
     return () => io.disconnect();
   }, []);
 
+  /* dynamic — visibility-driven animation */
   const style: React.CSSProperties = {
     opacity: visible ? 1 : 0,
     transform: visible ? 'translateY(0)' : 'translateY(40px)',
@@ -34,10 +36,10 @@ function useAnimateOnScroll() {
 }
 
 /* ─────────────── Animated wrapper component ─────────────── */
-function Anim({ children, delay = 0, style: extra, ...rest }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties } & React.HTMLAttributes<HTMLDivElement>) {
+function Anim({ children, delay = 0, style: extra, className, ...rest }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; className?: string } & React.HTMLAttributes<HTMLDivElement>) {
   const { ref, style } = useAnimateOnScroll();
   return (
-    <div ref={ref} style={{ ...style, transitionDelay: `${delay}ms`, ...extra }} {...rest}>
+    <div ref={ref} style={{ ...style, transitionDelay: `${delay}ms`, ...extra }} className={className} {...rest}>
       {children}
     </div>
   );
@@ -48,11 +50,8 @@ function Chevron({ open }: { open: boolean }) {
   return (
     <svg
       width="20" height="20" viewBox="0 0 20 20" fill="none"
-      style={{
-        transition: 'transform 0.3s ease',
-        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-        flexShrink: 0,
-      }}
+      className={styles.chevron}
+      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} /* dynamic */
     >
       <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -101,46 +100,33 @@ export default function PartnersPage() {
     }
   };
 
-  /* ────────── inline‑style tokens (supplement CSS vars) ────────── */
-  const s = {
-    accent: 'var(--accent-primary)',
-    textSec: 'var(--text-secondary)',
-    border: 'var(--border-primary)',
-    success: 'var(--success)',
-    successBorder: 'var(--success-border)',
-    successSubtle: 'var(--success-subtle)',
-    mono: 'var(--font-mono)',
-    bgSec: 'var(--bg-secondary)',
-    bgTer: 'var(--bg-surface)',
-  };
-
   return (
     <>
       <Navbar />
 
       <main>
         {/* ───────────────── 1  HERO ───────────────── */}
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)', textAlign: 'center' }}>
+        <section className={`section ${styles.heroSection}`}>
           <div className="container">
             <Anim>
               <span className="section-label">🦾 Built for Accounting Professionals</span>
             </Anim>
 
             <Anim delay={100}>
-              <h1 className="text-display" style={{ marginTop: 24 }}>
+              <h1 className={`text-display ${styles.heroTitle}`}>
                 The Accountant&apos;s <span className="text-gradient">Iron Man Suit.</span>
               </h1>
             </Anim>
 
             <Anim delay={200}>
-              <p className="text-body-lg" style={{ maxWidth: 720, margin: '24px auto 0', color: s.textSec }}>
+              <p className={`text-body-lg ${styles.heroSubtitle}`}>
                 Autokkeep helps accounting firms serve more clients with AI-powered automation.
                 Stop losing talent. Stop turning away clients. Let your existing team handle 4x the client load
                 — with AI doing the heavy lifting and your CPAs providing the strategic oversight.
               </p>
             </Anim>
 
-            <Anim delay={300} style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 40, flexWrap: 'wrap' }}>
+            <Anim delay={300} className={styles.heroCta}>
               <a href="#partner-cta" className="btn btn-primary btn-lg">Become a Partner</a>
               <a href="/demo/shadow-audit" className="btn btn-secondary btn-lg">See Shadow Audit Demo</a>
             </Anim>
@@ -159,7 +145,7 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <div className="grid-3" style={{ marginTop: 48 }}>
+            <div className={`grid-3 ${styles.gridMt48}`}>
               {[
                 { icon: '🚀', title: 'Serve 3x More Clients', body: 'Without adding staff. AI handles routine bookkeeping so your team focuses on advisory work that drives revenue.' },
                 { icon: '🤖', title: 'Automated Bookkeeping', body: 'Free your team from data entry. AI categorizes, reconciles, and posts transactions automatically — 95%+ accuracy.' },
@@ -169,10 +155,10 @@ export default function PartnersPage() {
                 { icon: '💰', title: 'Value-Based Pricing', body: 'Move from hourly billing to flat monthly fees. Your cost per entity drops while margins increase dramatically.' },
               ].map((benefit, i) => (
                 <Anim key={i} delay={i * 100}>
-                  <div className="card" style={{ padding: '32px 24px', height: '100%' }}>
-                    <span style={{ fontSize: '2rem', display: 'block', marginBottom: 12 }}>{benefit.icon}</span>
-                    <h3 className="text-h4" style={{ marginBottom: 8 }}>{benefit.title}</h3>
-                    <p className="text-body" style={{ color: s.textSec, margin: 0 }}>{benefit.body}</p>
+                  <div className={`card ${styles.benefitCard}`}>
+                    <span className={styles.benefitIcon}>{benefit.icon}</span>
+                    <h3 className={`text-h4 ${styles.benefitTitle}`}>{benefit.title}</h3>
+                    <p className={`text-body ${styles.benefitBody}`}>{benefit.body}</p>
                   </div>
                 </Anim>
               ))}
@@ -192,24 +178,24 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <div className="grid-3" style={{ marginTop: 48 }}>
+            <div className={`grid-3 ${styles.gridMt48}`}>
               {[
                 { value: '300K+', desc: 'Accountants have left the profession since 2020' },
                 { value: '73 Days', desc: 'Average time to fill a finance role' },
                 { value: '30%+', desc: 'Decline in CPA exam candidates' },
               ].map((stat, i) => (
                 <Anim key={i} delay={i * 120}>
-                  <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-                    <div className="stat-value" style={{ color: s.accent, marginBottom: 12 }}>{stat.value}</div>
-                    <p className="text-body" style={{ color: s.textSec }}>{stat.desc}</p>
+                  <div className={`card ${styles.statCard}`}>
+                    <div className={`stat-value ${styles.statValue}`}>{stat.value}</div>
+                    <p className={`text-body ${styles.statDesc}`}>{stat.desc}</p>
                   </div>
                 </Anim>
               ))}
             </div>
 
-            <Anim delay={400} style={{ marginTop: 32 }}>
-              <div className="card-accent" style={{ textAlign: 'center', padding: '32px 40px' }}>
-                <p className="text-body-lg" style={{ margin: 0 }}>
+            <Anim delay={400} className={styles.accentBannerMargin}>
+              <div className={`card-accent ${styles.accentBanner}`}>
+                <p className={`text-body-lg ${styles.accentBannerText}`}>
                   The math is simple: fewer accountants + more regulations + growing businesses = <strong>unsustainable</strong>. Unless you change the equation.
                 </p>
               </div>
@@ -229,29 +215,19 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <div className="grid-3" style={{ marginTop: 48 }}>
+            <div className={`grid-3 ${styles.gridMt48}`}>
               {[
                 { num: '01', title: 'Onboard Your Clients', body: 'Connect bank feeds via Plaid. Map chart of accounts. Set approval workflows. 48 hours, not 48 days.' },
                 { num: '02', title: 'AI Handles Daily Bookkeeping', body: 'Transactions are auto-categorized, reconciled, and posted in real-time. The dual-engine architecture handles 95%+ automatically.' },
                 { num: '03', title: 'CPAs Review Exceptions', body: 'Your team focuses only on the 5% that needs human judgment. Review flagged items, approve batches, and provide strategic advisory — the work they actually enjoy.' },
               ].map((step, i) => (
                 <Anim key={i} delay={i * 140}>
-                  <div className="card" style={{ padding: '40px 32px', height: '100%' }}>
-                    <span
-                      className="text-h2"
-                      style={{
-                        fontFamily: s.mono,
-                        color: s.accent,
-                        opacity: 0.35,
-                        display: 'block',
-                        marginBottom: 16,
-                        lineHeight: 1,
-                      }}
-                    >
+                  <div className={`card ${styles.stepCard}`}>
+                    <span className={`text-h2 ${styles.stepNumber}`}>
                       {step.num}
                     </span>
-                    <h3 className="text-h4" style={{ marginBottom: 12 }}>{step.title}</h3>
-                    <p className="text-body" style={{ color: s.textSec, margin: 0 }}>{step.body}</p>
+                    <h3 className={`text-h4 ${styles.stepTitle}`}>{step.title}</h3>
+                    <p className={`text-body ${styles.stepBody}`}>{step.body}</p>
                   </div>
                 </Anim>
               ))}
@@ -271,75 +247,65 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <Anim delay={200} style={{ maxWidth: 800, margin: '48px auto 0' }}>
-              <div className="card-elevated" style={{ padding: '48px 40px' }}>
+            <Anim delay={200} className={styles.calcWrapper}>
+              <div className={`card-elevated ${styles.calcCard}`}>
                 {/* Sliders */}
-                <div style={{ marginBottom: 36 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <label className="text-body" style={{ fontWeight: 600 }}>Number of Clients</label>
-                    <span className="text-body" style={{ fontFamily: s.mono, color: s.accent, fontWeight: 700 }}>{clients}</span>
+                <div className={styles.sliderGroup}>
+                  <div className={styles.sliderHeader}>
+                    <label className={`text-body ${styles.sliderLabel}`}>Number of Clients</label>
+                    <span className={`text-body ${styles.sliderValue}`}>{clients}</span>
                   </div>
                   <input
                     type="range" min={10} max={500} step={10} value={clients}
                     onChange={e => setClients(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      accentColor: 'var(--accent-primary)',
-                      height: 6,
-                      cursor: 'pointer',
-                    }}
+                    className={styles.sliderInput}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                    <span className="text-caption" style={{ color: s.textSec }}>10</span>
-                    <span className="text-caption" style={{ color: s.textSec }}>500</span>
+                  <div className={styles.sliderRange}>
+                    <span className={`text-caption ${styles.sliderRangeLabel}`}>10</span>
+                    <span className={`text-caption ${styles.sliderRangeLabel}`}>500</span>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 36 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <label className="text-body" style={{ fontWeight: 600 }}>Average Monthly Fee Per Client ($)</label>
-                    <span className="text-body" style={{ fontFamily: s.mono, color: s.accent, fontWeight: 700 }}>${fmt(fee)}</span>
+                <div className={styles.sliderGroup}>
+                  <div className={styles.sliderHeader}>
+                    <label className={`text-body ${styles.sliderLabel}`}>Average Monthly Fee Per Client ($)</label>
+                    <span className={`text-body ${styles.sliderValue}`}>${fmt(fee)}</span>
                   </div>
                   <input
                     type="range" min={100} max={2000} step={50} value={fee}
                     onChange={e => setFee(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      accentColor: 'var(--accent-primary)',
-                      height: 6,
-                      cursor: 'pointer',
-                    }}
+                    className={styles.sliderInput}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                    <span className="text-caption" style={{ color: s.textSec }}>$100</span>
-                    <span className="text-caption" style={{ color: s.textSec }}>$2,000</span>
+                  <div className={styles.sliderRange}>
+                    <span className={`text-caption ${styles.sliderRangeLabel}`}>$100</span>
+                    <span className={`text-caption ${styles.sliderRangeLabel}`}>$2,000</span>
                   </div>
                 </div>
 
                 {/* Divider */}
-                <div style={{ height: 1, background: s.border, margin: '8px 0 36px' }} />
+                <div className={styles.divider} />
 
                 {/* Output grid */}
-                <div className="grid-2" style={{ gap: 24 }}>
-                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-                    <p className="text-caption" style={{ color: s.textSec, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Annual Revenue</p>
-                    <p className="text-h3" style={{ margin: 0, fontFamily: s.mono }}>{usd(currentRevenue)}</p>
+                <div className={`grid-2 ${styles.outputGrid}`}>
+                  <div className={`card ${styles.outputCard}`}>
+                    <p className={`text-caption ${styles.outputLabel}`}>Current Annual Revenue</p>
+                    <p className={`text-h3 ${styles.outputValue}`}>{usd(currentRevenue)}</p>
                   </div>
-                  <div className="card" style={{ padding: 24, textAlign: 'center', borderColor: s.accent }}>
-                    <p className="text-caption" style={{ color: s.accent, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>With Autokkeep (4x Capacity)</p>
-                    <p className="text-h3" style={{ margin: 0, fontFamily: s.mono, color: s.accent }}>{usd(boostedRevenue)}</p>
+                  <div className={`card ${styles.outputCardAccent}`}>
+                    <p className={`text-caption ${styles.outputLabelAccent}`}>With Autokkeep (4x Capacity)</p>
+                    <p className={`text-h3 ${styles.outputValueAccent}`}>{usd(boostedRevenue)}</p>
                   </div>
-                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-                    <p className="text-caption" style={{ color: s.accent, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Additional Annual Revenue</p>
-                    <p className="stat-value" style={{ color: s.accent, margin: 0 }}>{usd(additionalRevenue)}</p>
+                  <div className={`card ${styles.outputCard}`}>
+                    <p className={`text-caption ${styles.outputLabelAccent}`}>Additional Annual Revenue</p>
+                    <p className={`stat-value ${styles.outputStatAccent}`}>{usd(additionalRevenue)}</p>
                   </div>
-                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-                    <p className="text-caption" style={{ color: s.textSec, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Client Capacity</p>
-                    <p className="text-h3" style={{ margin: 0, fontFamily: s.mono }}>+{fmt(newCapacity)} clients</p>
+                  <div className={`card ${styles.outputCard}`}>
+                    <p className={`text-caption ${styles.outputLabel}`}>New Client Capacity</p>
+                    <p className={`text-h3 ${styles.outputValue}`}>+{fmt(newCapacity)} clients</p>
                   </div>
                 </div>
 
-                <p className="text-caption" style={{ color: s.textSec, marginTop: 24, textAlign: 'center', fontStyle: 'italic' }}>
+                <p className={`text-caption ${styles.calcDisclaimer}`}>
                   Based on 4x capacity multiplier observed in pilot programs
                 </p>
               </div>
@@ -351,9 +317,9 @@ export default function PartnersPage() {
         <section className="section-sm">
           <div className="container">
             <Anim>
-              <div className="card-accent" style={{ textAlign: 'center', padding: '48px 40px' }}>
-                <h2 className="text-h2" style={{ marginBottom: 16 }}>See It In Action</h2>
-                <p className="text-body-lg" style={{ color: s.textSec, maxWidth: 640, margin: '0 auto 28px' }}>
+              <div className={`card-accent ${styles.shadowAuditCard}`}>
+                <h2 className={`text-h2 ${styles.shadowAuditTitle}`}>See It In Action</h2>
+                <p className={`text-body-lg ${styles.shadowAuditBody}`}>
                   Try our Shadow Audit Demo — upload any CSV of transactions and watch Autokkeep categorize them in real-time. No signup required.
                 </p>
                 <a href="/demo/shadow-audit" className="btn btn-primary btn-lg">Try Shadow Audit Demo →</a>
@@ -374,7 +340,7 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <div className="grid-3" style={{ marginTop: 48 }}>
+            <div className={`grid-3 ${styles.gridMt48}`}>
               {[
                 {
                   name: 'Foundation',
@@ -406,49 +372,30 @@ export default function PartnersPage() {
               ].map((tier, i) => (
                 <Anim key={i} delay={i * 140}>
                   <div
-                    className="card"
-                    style={{
-                      padding: '40px 32px',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      ...(tier.highlight
-                        ? { borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(30, 111, 255, 0.12)' }
-                        : {}),
-                    }}
+                    className={`card ${tier.highlight ? styles.tierCardHighlight : styles.tierCard}`}
                   >
                     {tier.highlight && (
                       <span
-                        className="badge badge-accent"
-                        style={{ position: 'absolute', top: 16, right: 16 }}
+                        className={`badge badge-accent ${styles.tierBadge}`}
                       >
                         Most Popular
                       </span>
                     )}
 
-                    <h3 className="text-h4" style={{ marginBottom: 8 }}>{tier.name}</h3>
-                    <div style={{ marginBottom: 8 }}>
-                      <span className="text-h2" style={{ fontFamily: s.mono }}>{tier.price}</span>
-                      {tier.unit && <span className="text-caption" style={{ color: s.textSec }}>{tier.unit}</span>}
+                    <h3 className={`text-h4 ${styles.tierName}`}>{tier.name}</h3>
+                    <div className={styles.tierPriceRow}>
+                      <span className={`text-h2 ${styles.tierPrice}`}>{tier.price}</span>
+                      {tier.unit && <span className={`text-caption ${styles.tierUnit}`}>{tier.unit}</span>}
                     </div>
-                    <p className="text-body" style={{ color: s.textSec, marginBottom: 24 }}>{tier.desc}</p>
+                    <p className={`text-body ${styles.tierDesc}`}>{tier.desc}</p>
 
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', flex: 1 }}>
+                    <ul className={styles.tierFeatures}>
                       {tier.features.map((f, fi) => (
                         <li
                           key={fi}
-                          className="text-body"
-                          style={{
-                            padding: '8px 0',
-                            borderBottom: `1px solid ${s.border}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                          }}
+                          className={`text-body ${styles.tierFeatureItem}`}
                         >
-                          <span style={{ color: s.success, fontSize: 16, lineHeight: 1 }}>✓</span>
+                          <span className={styles.tierCheck}>✓</span>
                           {f}
                         </li>
                       ))}
@@ -456,8 +403,7 @@ export default function PartnersPage() {
 
                     <a
                       href="#partner-cta"
-                      className={`btn ${tier.highlight ? 'btn-primary' : 'btn-secondary'} btn-lg`}
-                      style={{ width: '100%', textAlign: 'center' }}
+                      className={`btn ${tier.highlight ? 'btn-primary' : 'btn-secondary'} btn-lg ${styles.tierCta}`}
                     >
                       {tier.cta}
                     </a>
@@ -480,7 +426,7 @@ export default function PartnersPage() {
               </Anim>
             </div>
 
-            <div style={{ maxWidth: 800, margin: '48px auto 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className={styles.faqContainer}>
               {[
                 {
                   q: 'Is the AI safe? Will it make errors?',
@@ -507,43 +453,27 @@ export default function PartnersPage() {
                 return (
                   <Anim key={i} delay={i * 80}>
                     <div
-                      className="card"
-                      style={{
-                        overflow: 'hidden',
-                        transition: 'border-color 0.3s ease',
-                        ...(isOpen ? { borderColor: 'var(--accent-primary)' } : {}),
-                      }}
+                      className={`card ${styles.faqCard}`}
+                      style={isOpen ? { borderColor: 'var(--accent-primary)' } : undefined} /* dynamic */
                     >
                       <button
                         onClick={() => toggleFaq(i)}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 16,
-                          padding: '20px 24px',
-                          background: 'none',
-                          border: 'none',
-                          color: 'inherit',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          fontFamily: 'inherit',
-                        }}
+                        className={styles.faqButton}
                       >
-                        <span className="text-h4" style={{ margin: 0, fontSize: '1.05rem' }}>{item.q}</span>
+                        <span className={`text-h4 ${styles.faqQuestion}`}>{item.q}</span>
                         <Chevron open={isOpen} />
                       </button>
 
                       <div
                         style={{
+                          /* dynamic — open/close animation */
                           maxHeight: isOpen ? 300 : 0,
                           opacity: isOpen ? 1 : 0,
                           overflow: 'hidden',
                           transition: 'max-height 0.4s cubic-bezier(.16,1,.3,1), opacity 0.3s ease',
                         }}
                       >
-                        <p className="text-body" style={{ padding: '0 24px 24px', margin: 0, color: s.textSec, lineHeight: 1.7 }}>
+                        <p className={`text-body ${styles.faqAnswer}`}>
                           {item.a}
                         </p>
                       </div>
@@ -557,7 +487,7 @@ export default function PartnersPage() {
 
         {/* ───────────────── 8  CTA / FORM ───────────────── */}
         <section className="cta-section" id="partner-cta">
-          <div className="container" style={{ textAlign: 'center' }}>
+          <div className={`container ${styles.ctaContainer}`}>
             <Anim>
               <h2 className="cta-title">
                 Start Your Free <span className="text-gradient">60-Day Pilot</span>
@@ -569,51 +499,29 @@ export default function PartnersPage() {
               </p>
             </Anim>
             <Anim delay={150}>
-              <p className="text-body" style={{ color: s.textSec, maxWidth: 600, margin: '0 auto 16px', fontSize: '1.05rem' }}>
+              <p className={`text-body ${styles.ctaSubtext}`}>
                 Join the growing network of accounting firms transforming their practice with AI.
               </p>
             </Anim>
 
-            <Anim delay={200} style={{ maxWidth: 480, margin: '40px auto 0' }}>
+            <Anim delay={200} className={styles.ctaFormWrapper}>
               {formSubmitted ? (
-                <div
-                  className="card"
-                  style={{
-                    padding: '40px 32px',
-                    textAlign: 'center',
-                    borderColor: s.successBorder,
-                    background: s.successSubtle,
-                  }}
-                >
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-                  <h3 className="text-h3" style={{ marginBottom: 8 }}>You&apos;re In!</h3>
-                  <p className="text-body" style={{ color: s.textSec, margin: 0 }}>
+                <div className={`card ${styles.successCard}`}>
+                  <div className={styles.successEmoji}>🎉</div>
+                  <h3 className={`text-h3 ${styles.successTitle}`}>You&apos;re In!</h3>
+                  <p className={`text-body ${styles.successBody}`}>
                     We&apos;ll be in touch within 24 hours to set up your pilot.
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <form onSubmit={handleSubmit} className={styles.partnerForm}>
                   <input
                     type="email"
                     required
                     placeholder="Work email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 18px',
-                      borderRadius: 12,
-                      border: `1px solid ${s.border}`,
-                      background: s.bgSec,
-                      color: 'inherit',
-                      fontSize: '1rem',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
-                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-primary)')}
+                    className={styles.formInput}
                   />
                   <input
                     type="text"
@@ -621,23 +529,9 @@ export default function PartnersPage() {
                     placeholder="Firm name"
                     value={firmName}
                     onChange={e => setFirmName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 18px',
-                      borderRadius: 12,
-                      border: `1px solid ${s.border}`,
-                      background: s.bgSec,
-                      color: 'inherit',
-                      fontSize: '1rem',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
-                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-primary)')}
+                    className={styles.formInput}
                   />
-                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
+                  <button type="submit" className={`btn btn-primary btn-lg ${styles.submitBtn}`}>
                     Start Free Pilot
                   </button>
                 </form>

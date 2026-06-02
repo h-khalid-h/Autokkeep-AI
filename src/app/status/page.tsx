@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 export const metadata: Metadata = {
   title: 'System Status — Autokkeep',
@@ -44,22 +45,10 @@ function uptimeDays() {
 export default function StatusPage() {
   return (
     <>
-      {/* Pulse animation for status dots */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes pulse-green {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
-            }
-          `,
-        }}
-      />
-
       <Navbar />
 
       <main>
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)' }}>
+        <section className={`section ${styles.heroSection}`}>
           <div className="container">
             {/* Page header */}
             <div className="section-header">
@@ -75,31 +64,11 @@ export default function StatusPage() {
             </div>
 
             {/* Overall status banner */}
-            <div
-              className="card-accent"
-              style={{
-                textAlign: 'center',
-                padding: '32px',
-                marginBottom: '64px',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: '2rem',
-                  marginBottom: '8px',
-                  lineHeight: 1,
-                }}
-                aria-hidden="true"
-              >
+            <div className={`card-accent ${styles.statusBanner}`}>
+              <p className={styles.statusEmoji} aria-hidden="true">
                 ✅
               </p>
-              <p
-                className="text-h3"
-                style={{
-                  color: 'var(--accent-primary)',
-                  marginBottom: '4px',
-                }}
-              >
+              <p className={`text-h3 ${styles.statusTitle}`}>
                 All Systems Operational
               </p>
               <p className="text-body">
@@ -108,50 +77,25 @@ export default function StatusPage() {
             </div>
 
             {/* Services grid — 2 cols desktop, 1 col mobile */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 400px), 1fr))',
-                gap: '20px',
-                marginBottom: '80px',
-              }}
-            >
+            <div className={styles.servicesGrid}>
               {services.map((svc) => (
                 <div
                   key={svc.name}
-                  className="card"
-                  style={{ padding: '24px', display: 'flex', gap: '14px', alignItems: 'center' }}
+                  className={`card ${styles.serviceCard}`}
                 >
                   {/* Green pulsing dot */}
                   <span
                     aria-hidden="true"
-                    style={{
-                      display: 'inline-block',
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '50%',
-                      backgroundColor: '#22c55e',
-                      flexShrink: 0,
-                      animation: 'pulse-green 2s ease-in-out infinite',
-                    }}
+                    className={styles.pulseDot}
                   />
                   <div>
-                    <h3 className="text-h4" style={{ marginBottom: '2px' }}>
+                    <h3 className={`text-h4 ${styles.serviceTitle}`}>
                       {svc.name}
                     </h3>
-                    <p
-                      className="text-body"
-                      style={{ fontSize: '0.85rem', marginBottom: '4px' }}
-                    >
+                    <p className={`text-body ${styles.serviceDesc}`}>
                       {svc.description}
                     </p>
-                    <span
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: '#22c55e',
-                      }}
-                    >
+                    <span className={styles.serviceStatus}>
                       {svc.status}
                     </span>
                   </div>
@@ -170,42 +114,19 @@ export default function StatusPage() {
                 </p>
               </div>
 
-              <div
-                className="card"
-                style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}
-              >
+              <div className={`card ${styles.uptimeCard}`}>
                 {/* Day blocks */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '3px',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    marginBottom: '16px',
-                  }}
-                >
+                <div className={styles.uptimeDays}>
                   {uptimeDays().map((day) => (
                     <div
                       key={day}
                       title={`Day ${90 - day}`}
-                      style={{
-                        width: '7px',
-                        height: '28px',
-                        borderRadius: '2px',
-                        backgroundColor: '#22c55e',
-                      }}
+                      className={styles.uptimeDay}
                     />
                   ))}
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
+                <div className={styles.uptimeLabels}>
                   <span>90 days ago</span>
                   <span>Today</span>
                 </div>
@@ -220,60 +141,26 @@ export default function StatusPage() {
                 </h2>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  maxWidth: '700px',
-                  margin: '0 auto',
-                }}
-              >
+              <div className={styles.incidentsList}>
                 {incidents.map((inc) => (
                   <div
                     key={inc.date}
-                    className="card"
-                    style={{
-                      padding: '24px',
-                      borderLeft: '4px solid #22c55e',
-                    }}
+                    className={`card ${styles.incidentCard}`}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                      }}
-                    >
+                    <div className={styles.incidentHeader}>
                       <time
                         dateTime={inc.date}
-                        style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          color: 'var(--text-secondary)',
-                        }}
+                        className={styles.incidentDate}
                       >
                         {inc.label}
                       </time>
                       {inc.resolved && (
-                        <span
-                          style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: '#22c55e',
-                            border: '1px solid #22c55e',
-                            borderRadius: '9999px',
-                            padding: '2px 10px',
-                          }}
-                        >
+                        <span className={styles.incidentResolved}>
                           Resolved ✅
                         </span>
                       )}
                     </div>
-                    <h3 className="text-h4" style={{ marginBottom: '4px' }}>
+                    <h3 className={`text-h4 ${styles.incidentTitle}`}>
                       {inc.title}
                     </h3>
                     <p className="text-body">{inc.detail}</p>
@@ -283,17 +170,17 @@ export default function StatusPage() {
             </section>
 
             {/* Subscribe CTA */}
-            <div className="cta-section" style={{ padding: '48px 0' }}>
-              <h3 className="text-h3" style={{ marginBottom: '12px' }}>
+            <div className={`cta-section ${styles.ctaSection}`}>
+              <h3 className={`text-h3 ${styles.ctaTitle}`}>
                 Stay Informed
               </h3>
-              <p className="text-body" style={{ marginBottom: '24px', maxWidth: '520px', margin: '0 auto 24px' }}>
+              <p className={`text-body ${styles.ctaBody}`}>
                 Get notified of status changes. Subscribe via email or follow{' '}
                 <a
                   href="https://twitter.com/autokkeep"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                  className={styles.ctaLink}
                 >
                   @autokkeep
                 </a>{' '}

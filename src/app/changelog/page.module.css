@@ -1,0 +1,62 @@
+.section {
+  padding-top: calc(var(--header-height) + 80px);
+}
+
+.entriesList {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.entryCard {
+  padding: 32px;
+  border-left: 4px solid var(--accent-primary);
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.versionBadge {
+  background: var(--accent-gradient);
+  color: #fff;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.entryDate {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.changesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changeItem {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.ctaSection {
+  padding: 48px 0;
+}
+
+.ctaText {
+  color: var(--text-secondary);
+  text-align: center;
+}

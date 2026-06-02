@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Logo from '@/components/ui/Logo';
+import styles from './page.module.css';
 
 const LAST_UPDATED = 'May 25, 2026';
 
@@ -266,64 +267,20 @@ export default function PrivacyPage() {
   return (
     <>
       {/* Navbar */}
-      <nav
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 32px',
-          background: 'rgba(10, 14, 26, 0.9)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border-primary)',
-          zIndex: 1000,
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            textDecoration: 'none',
-          }}
-        >
+      <nav className={styles.navbar}>
+        <Link href="/" className={styles.logoLink}>
           <Logo size={32} />
-          <span
-            style={{
-              fontSize: '18px',
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-            }}
-          >
+          <span className={styles.logoText}>
             Autokkeep
           </span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <Link
-            href="/terms"
-            style={{
-              fontSize: '14px',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-          >
+        <div className={styles.navActions}>
+          <Link href="/terms" className={styles.navLink}>
             Terms of Service
           </Link>
           <Link
             href="/auth/login"
-            className="btn btn-primary btn-sm"
-            style={{ textDecoration: 'none' }}
+            className={`btn btn-primary btn-sm ${styles.signInLink}`}
           >
             Sign In
           </Link>
@@ -331,103 +288,36 @@ export default function PrivacyPage() {
       </nav>
 
       {/* Hero Header */}
-      <div
-        style={{
-          paddingTop: '140px',
-          paddingBottom: '64px',
-          textAlign: 'center',
-          position: 'relative',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `
-              radial-gradient(ellipse at 50% 0%, rgba(30, 111, 255, 0.08) 0%, transparent 60%)
-            `,
-            zIndex: 0,
-          }}
-        />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 16px',
-              background: 'var(--accent-subtle)',
-              border: '1px solid var(--border-accent)',
-              borderRadius: '9999px',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--accent-primary)',
-              marginBottom: '24px',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
+      <div className={styles.hero}>
+        <div className={styles.heroGlow} />
+        <div className={styles.heroContent}>
+          <div className={styles.badge}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             Legal
           </div>
-          <h1 className="text-h1" style={{ marginBottom: '16px' }}>
+          <h1 className={`text-h1 ${styles.heroTitle}`}>
             Privacy Policy
           </h1>
-          <p
-            className="text-body-lg"
-            style={{
-              maxWidth: '600px',
-              margin: '0 auto 16px',
-            }}
-          >
+          <p className={`text-body-lg ${styles.heroSubtitle}`}>
             Your privacy is fundamental to how we build Autokkeep. This policy explains how we collect, use, and protect your information.
           </p>
-          <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
+          <p className={`text-caption ${styles.heroDate}`}>
             Last updated: {LAST_UPDATED}
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div
-        className="container"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '220px 1fr',
-          gap: '48px',
-          paddingBottom: '96px',
-          alignItems: 'start',
-        }}
-        id="privacy-grid"
-      >
+      <div className={`container ${styles.mainGrid}`}>
         {/* Sidebar Nav */}
-        <nav
-          style={{
-            position: 'sticky',
-            top: '96px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-          className="privacy-sidebar"
-        >
+        <nav className={styles.sidebar}>
           {sections.map((section) => (
             <a
               key={section.id}
               href={`#${section.id}`}
-              style={{
-                fontSize: '13px',
-                fontWeight: activeSection === section.id ? 600 : 400,
-                color: activeSection === section.id ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                textDecoration: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                borderLeft: activeSection === section.id ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                background: activeSection === section.id ? 'var(--accent-subtle)' : 'transparent',
-                transition: 'all 0.2s ease',
-              }}
+              className={`${styles.sidebarLink} ${activeSection === section.id ? styles.sidebarLinkActive : ''}`}
             >
               {section.title}
             </a>
@@ -435,77 +325,31 @@ export default function PrivacyPage() {
         </nav>
 
         {/* Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div className={styles.contentColumn}>
           {sections.map((section) => (
             <section
               key={section.id}
               id={section.id}
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: '16px',
-                padding: '32px',
-                transition: 'border-color 0.3s ease',
-              }}
+              className={styles.sectionCard}
             >
               {/* Section Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '24px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: 'var(--accent-subtle)',
-                    border: '1px solid var(--border-accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--accent-primary)',
-                    flexShrink: 0,
-                  }}
-                >
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIcon}>
                   {section.icon}
                 </div>
-                <h2 className="text-h3" style={{ margin: 0 }}>
+                <h2 className={`text-h3 ${styles.sectionTitle}`}>
                   {section.title}
                 </h2>
               </div>
 
               {/* Content Items */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className={styles.contentItems}>
                 {section.content.map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      paddingLeft: '20px',
-                      borderLeft: '2px solid var(--border-primary)',
-                    }}
-                  >
-                    <h3
-                      className="text-h4"
-                      style={{
-                        marginBottom: '8px',
-                        fontSize: '15px',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
+                  <div key={i} className={styles.contentItem}>
+                    <h3 className={`text-h4 ${styles.contentItemTitle}`}>
                       {item.subtitle}
                     </h3>
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        lineHeight: '1.7',
-                        color: 'var(--text-secondary)',
-                        margin: 0,
-                      }}
-                    >
+                    <p className={styles.contentItemText}>
                       {item.text}
                     </p>
                   </div>
@@ -515,33 +359,16 @@ export default function PrivacyPage() {
           ))}
 
           {/* Contact Section */}
-          <section
-            style={{
-              background: 'var(--accent-subtle)',
-              border: '1px solid var(--border-accent)',
-              borderRadius: '16px',
-              padding: '32px',
-              textAlign: 'center',
-            }}
-          >
-            <h2 className="text-h3" style={{ marginBottom: '12px' }}>
+          <section className={styles.contactSection}>
+            <h2 className={`text-h3 ${styles.contactTitle}`}>
               Questions about your privacy?
             </h2>
-            <p
-              style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.7',
-                maxWidth: '500px',
-                margin: '0 auto 24px',
-              }}
-            >
+            <p className={styles.contactText}>
               If you have any questions about this Privacy Policy or wish to exercise your data rights, please contact our Data Protection team.
             </p>
             <a
               href="mailto:privacy@autokkeep.com"
-              className="btn btn-primary"
-              style={{ textDecoration: 'none' }}
+              className={`btn btn-primary ${styles.contactLink}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -554,88 +381,27 @@ export default function PrivacyPage() {
       </div>
 
       {/* Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid var(--border-primary)',
-          padding: '48px 0',
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        <div
-          className="container"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '24px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <footer className={styles.footer}>
+        <div className={`container ${styles.footerInner}`}>
+          <div className={styles.footerBrand}>
             <Logo size={28} />
-            <span
-              style={{
-                fontSize: '14px',
-                color: 'var(--text-tertiary)',
-              }}
-            >
+            <span className={styles.footerCopy}>
               © {new Date().getFullYear()} Autokkeep. All rights reserved.
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '32px' }}>
-            <Link
-              href="/"
-              style={{
-                fontSize: '14px',
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-            >
+          <div className={styles.footerLinks}>
+            <Link href="/" className={styles.footerLink}>
               Home
             </Link>
-            <Link
-              href="/terms"
-              style={{
-                fontSize: '14px',
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-            >
+            <Link href="/terms" className={styles.footerLink}>
               Terms of Service
             </Link>
-            <Link
-              href="/privacy"
-              style={{
-                fontSize: '14px',
-                color: 'var(--accent-primary)',
-                textDecoration: 'none',
-                fontWeight: 500,
-              }}
-            >
+            <Link href="/privacy" className={styles.footerLinkActive}>
               Privacy Policy
             </Link>
           </div>
         </div>
       </footer>
-
-      {/* Responsive styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          #privacy-grid {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-          .privacy-sidebar {
-            display: none !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

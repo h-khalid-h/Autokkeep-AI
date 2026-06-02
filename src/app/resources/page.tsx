@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 
 export const metadata: Metadata = {
@@ -107,7 +108,7 @@ export default function ResourcesPage() {
     <>
       <Navbar />
       <main>
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)' }}>
+        <section className={`section ${styles.section}`}>
           <div className="container">
             <div className="section-header">
               <div className="section-label">
@@ -123,21 +124,17 @@ export default function ResourcesPage() {
 
             {/* Featured Article */}
             {featured && (
-              <div className="card-elevated" style={{
-                padding: '40px',
-                marginBottom: '48px',
-                cursor: 'pointer',
-              }}>
-                <div className="badge badge-accent" style={{ marginBottom: '16px' }}>
+              <div className={`card-elevated ${styles.featuredCard}`}>
+                <div className={`badge badge-accent ${styles.featuredBadge}`}>
                   ⭐ Featured
                 </div>
-                <div className="text-caption" style={{ marginBottom: '8px' }}>
+                <div className={`text-caption ${styles.featuredMeta}`}>
                   {featured.date} · {featured.category} · {featured.readTime}
                 </div>
-                <h2 className="text-h2" style={{ marginBottom: '12px' }}>
+                <h2 className={`text-h2 ${styles.featuredTitle}`}>
                   {featured.title}
                 </h2>
-                <p className="text-body-lg" style={{ marginBottom: '20px', maxWidth: '700px' }}>
+                <p className={`text-body-lg ${styles.featuredExcerpt}`}>
                   {featured.excerpt}
                 </p>
                 <span className="badge badge-accent">
@@ -147,32 +144,22 @@ export default function ResourcesPage() {
             )}
 
             {/* Article Grid */}
-            <div className="grid-3" style={{ gap: '24px' }}>
+            <div className={`grid-3 ${styles.articleGrid}`}>
               {rest.map((article) => (
-                <article key={article.title} className="card" style={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
-                  <div className="badge badge-info" style={{ alignSelf: 'flex-start', marginBottom: '16px' }}>
+                <article key={article.title} className={`card ${styles.articleCard}`}>
+                  <div className={`badge badge-info ${styles.articleBadge}`}>
                     {article.category}
                   </div>
-                  <div className="text-caption" style={{ marginBottom: '8px' }}>
+                  <div className={`text-caption ${styles.articleMeta}`}>
                     {article.date} · {article.readTime}
                   </div>
-                  <h3 className="text-h4" style={{ marginBottom: '12px', flex: 1 }}>
+                  <h3 className={`text-h4 ${styles.articleTitle}`}>
                     {article.title}
                   </h3>
-                  <p className="text-body" style={{
-                    marginBottom: '16px',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}>
+                  <p className={`text-body ${styles.articleExcerpt}`}>
                     {article.excerpt}
                   </p>
-                  <span className="badge badge-accent" style={{ fontSize: '0.7rem' }}>
+                  <span className={`badge badge-accent ${styles.comingSoonBadge}`}>
                     Coming Soon
                   </span>
                 </article>
@@ -180,18 +167,14 @@ export default function ResourcesPage() {
             </div>
 
             {/* Newsletter */}
-            <div className="card-accent" style={{
-              textAlign: 'center',
-              padding: '48px',
-              marginTop: '64px',
-            }}>
-              <h3 className="text-h3" style={{ marginBottom: '8px' }}>
+            <div className={`card-accent ${styles.newsletter}`}>
+              <h3 className={`text-h3 ${styles.newsletterTitle}`}>
                 Stay in the Loop
               </h3>
-              <p className="text-body" style={{ marginBottom: '24px' }}>
+              <p className={`text-body ${styles.newsletterBody}`}>
                 Get monthly insights on AI financial operations, accounting industry trends, and Autokkeep product updates.
               </p>
-              <p className="text-body" style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+              <p className={`text-body ${styles.newsletterNote}`}>
                 Newsletter coming soon.
               </p>
             </div>

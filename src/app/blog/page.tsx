@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { blogPosts } from '@/data/blogPosts';
+import styles from './page.module.css';
 
 export const metadata: Metadata = {
   title: 'Blog | Autokkeep — AI Financial Operations Insights',
@@ -9,71 +10,31 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      padding: '120px 24px 80px',
-    }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{
-          fontSize: '2.5rem',
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-          marginBottom: '12px',
-          letterSpacing: '-0.5px',
-        }}>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <h1 className={styles.title}>
           Autokkeep Blog
         </h1>
-        <p style={{
-          fontSize: '1.125rem',
-          color: 'rgba(255,255,255,0.5)',
-          marginBottom: '48px',
-          lineHeight: 1.6,
-        }}>
+        <p className={styles.subtitle}>
           Insights on AI financial operations, small business automation, and the future of accounting.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className={styles.postList}>
           {blogPosts.map((post) => (
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: '16px',
-                padding: '32px',
-                textDecoration: 'none',
-                transition: 'all 0.2s ease',
-                display: 'block',
-              }}
+              className={styles.postCard}
             >
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: '12px',
-                  color: 'var(--accent-primary)',
-                  background: 'var(--accent-subtle)',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 500,
-                }}>{post.category}</span>
-                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>{post.date}</span>
-                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>{post.readTime}</span>
+              <div className={styles.postMeta}>
+                <span className={styles.categoryBadge}>{post.category}</span>
+                <span className={styles.metaText}>{post.date}</span>
+                <span className={styles.metaText}>{post.readTime}</span>
               </div>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginBottom: '8px',
-                letterSpacing: '-0.3px',
-              }}>
+              <h2 className={styles.postTitle}>
                 {post.title}
               </h2>
-              <p style={{
-                fontSize: '0.9375rem',
-                color: 'rgba(255,255,255,0.45)',
-                lineHeight: 1.6,
-              }}>
+              <p className={styles.postExcerpt}>
                 {post.excerpt}
               </p>
             </Link>
