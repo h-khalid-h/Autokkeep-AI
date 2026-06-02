@@ -1,0 +1,222 @@
+.topBar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-width);
+  height: var(--header-height);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  z-index: var(--z-sticky);
+  transition: left var(--duration-moderate) var(--ease-out);
+}
+
+.topBar.sidebarCollapsed {
+  left: var(--sidebar-collapsed-width);
+}
+
+/* ─── Left section ─── */
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.mobileMenuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.mobileMenuButton:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.pageTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Breadcrumbs ─── */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  min-width: 0;
+}
+
+.breadcrumbItem {
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.breadcrumbItem:hover {
+  color: var(--color-text-secondary);
+}
+
+.breadcrumbItem.current {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.breadcrumbSeparator {
+  color: var(--color-text-disabled);
+  flex-shrink: 0;
+}
+
+/* ─── Right section ─── */
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ─── Search trigger ─── */
+.searchTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+  min-width: 200px;
+}
+
+.searchTrigger:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.searchShortcut {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-strong);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  line-height: 1;
+}
+
+/* ─── Icon buttons ─── */
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  position: relative;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.iconButton:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.notificationDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-destructive);
+  border: 2px solid var(--color-bg-primary);
+}
+
+/* ─── User menu trigger ─── */
+.userTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.userTrigger:hover {
+  background: var(--color-bg-hover);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1023px) {
+  .topBar {
+    left: 0;
+  }
+
+  .topBar.sidebarCollapsed {
+    left: 0;
+  }
+
+  .mobileMenuButton {
+    display: flex;
+  }
+
+  .searchTrigger {
+    min-width: auto;
+    padding: var(--space-2);
+  }
+
+  .searchLabel,
+  .searchShortcut {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .breadcrumbs {
+    display: none;
+  }
+}

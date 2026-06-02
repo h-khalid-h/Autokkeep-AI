@@ -1,156 +1,124 @@
-'use client';
+import { Button, Card } from '@/components/ui';
+import styles from './PricingSection.module.css';
 
-import { useEffect, useRef } from 'react';
+interface PricingTier {
+  name: string;
+  price: number;
+  period: string;
+  description: string;
+  features: string[];
+  popular?: boolean;
+  ctaLabel: string;
+  ctaVariant: 'primary' | 'secondary';
+}
 
-const pricing = [
+const tiers: PricingTier[] = [
   {
     name: 'Starter',
     price: 29,
-    period: '/ month',
-    description: 'For solopreneurs and early-stage businesses getting their finances organized.',
+    period: '/mo',
+    description: 'For freelancers and sole proprietors getting started.',
     features: [
-      'Automated bookkeeping',
-      'Bank & credit card sync',
+      'Up to 500 transactions/mo',
       'AI categorization',
-      'Basic financial insights',
-      '1 entity, 500 txn/month',
-      'Unlimited seats',
+      '1 bank connection',
+      'Basic financial reports',
+      'Email support',
     ],
-    featured: false,
+    ctaLabel: 'Start Free Trial',
+    ctaVariant: 'secondary',
   },
   {
     name: 'Growth',
-    price: 99,
-    period: '/ month',
-    description: 'For growing businesses that need deeper financial intelligence.',
+    price: 79,
+    period: '/mo',
+    description: 'For growing businesses that need full automation.',
     features: [
-      'Everything in Starter',
-      'AI Financial Analyst',
-      'Cash flow intelligence',
-      'Health monitoring alerts',
-      'Tax readiness tools',
-      '3 entities, 2,500 txn/month',
+      'Up to 5,000 transactions/mo',
+      'AI categorization + receipt chase',
+      'Unlimited bank connections',
+      'Month-end auto-close',
+      'Financial health dashboard',
+      'Priority support',
     ],
-    featured: true,
+    popular: true,
+    ctaLabel: 'Start Free Trial',
+    ctaVariant: 'primary',
   },
   {
     name: 'Pro',
     price: 299,
-    period: '/ month',
-    description: 'For established businesses with complex multi-entity operations.',
+    period: '/mo',
+    description: 'For firms and multi-entity businesses at scale.',
     features: [
+      'Unlimited transactions',
       'Everything in Growth',
-      'Multi-entity consolidation',
-      'Advanced forecasting',
-      'Monthly financial narratives',
-      'Accountant collaboration portal',
-      'Unlimited entities, 10,000+ txn/month',
-      'Priority support',
+      'Multi-entity management',
+      'Tax readiness reports',
+      'Custom rules engine',
+      'Dedicated account manager',
+      'API access',
     ],
-    featured: false,
+    ctaLabel: 'Contact Sales',
+    ctaVariant: 'secondary',
   },
 ];
 
 export default function PricingSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    const elements = sectionRef.current?.querySelectorAll('.animate-on-scroll');
-    elements?.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section className="section" id="pricing" ref={sectionRef}>
-      <div className="container">
-        <div className="section-header">
-          <div className="section-label animate-on-scroll">
-            <span>💎</span> Pricing
-          </div>
-          <h2 className="section-title animate-on-scroll delay-1">
-            Simple Pricing. <span className="text-gradient">Powerful Results.</span>
-          </h2>
-          <p className="section-subtitle animate-on-scroll delay-2">
-            No per-seat charges. No hidden fees. Pick the plan that fits your business size and transaction volume. Upgrade or downgrade anytime.
-          </p>
-        </div>
+    <section className={styles.section} id="pricing">
+      <div className={styles.container}>
+        <p className={styles.label}>Pricing</p>
+        <h2 className={styles.heading}>Simple, transparent pricing</h2>
+        <p className={styles.subheading}>
+          Start free for 14 days. No credit card required.
+        </p>
 
-        {/* Pricing Cards */}
-        <div className="pricing-grid">
-          {pricing.map((plan) => (
-            <div
-              key={plan.name}
-              className={`pricing-card ${plan.featured ? 'featured' : ''}`}
+        <div className={styles.tiers}>
+          {tiers.map((tier) => (
+            <Card
+              key={tier.name}
+              variant="default"
+              padding="lg"
+              className={`${styles.tierCard} ${tier.popular ? styles.popular : ''}`}
             >
-              {plan.featured && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  padding: '4px 16px',
-                  background: 'var(--accent-primary)',
-                  color: '#fff',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  borderRadius: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}>
-                  Most Popular
-                </div>
+              {tier.popular && (
+                <span className={styles.popularBadge}>Most Popular</span>
               )}
-              <h3 className="pricing-name">{plan.name}</h3>
-              <div className="pricing-price">
-                <span className="pricing-amount">${plan.price}</span>
-                <span className="pricing-period">{plan.period}</span>
-              </div>
-              <p className="pricing-description">{plan.description}</p>
 
-              <div className="pricing-features">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="pricing-feature">
-                    <span className="pricing-feature-icon">✓</span>
-                    <span>{feature}</span>
-                  </div>
+              <h3 className={styles.tierName}>{tier.name}</h3>
+
+              <div className={styles.tierPrice}>
+                <span className={styles.priceAmount}>${tier.price}</span>
+                <span className={styles.pricePeriod}>{tier.period}</span>
+              </div>
+
+              <p className={styles.tierDesc}>{tier.description}</p>
+
+              <div className={styles.tierDivider} />
+
+              <ul className={styles.featureList}>
+                {tier.features.map((feature) => (
+                  <li key={feature} className={styles.featureItem}>
+                    <span className={styles.featureCheck} aria-hidden="true">✓</span>
+                    {feature}
+                  </li>
                 ))}
+              </ul>
+
+              <div className={styles.tierCta}>
+                <Button
+                  variant={tier.ctaVariant}
+                  size="md"
+                 
+                  href="/signup"
+                  className={styles.tierCtaButton}
+                >
+                  {tier.ctaLabel}
+                </Button>
               </div>
-
-              <a
-                href="#cta"
-                className={`btn ${plan.featured ? 'btn-primary' : 'btn-secondary'} btn-lg`}
-                style={{ width: '100%' }}
-              >
-                Start Free
-              </a>
-            </div>
+            </Card>
           ))}
-        </div>
-
-        {/* Free trial callout */}
-        <div className="card-accent animate-on-scroll delay-3" style={{
-          textAlign: 'center',
-          padding: '24px',
-          marginTop: '24px',
-        }}>
-          <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent-primary)' }}>
-            🎁 Start free — no credit card required. 14-day trial on any plan.
-          </p>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Try Autokkeep risk-free. Connect your bank, let the AI categorize your transactions, and see the difference in days — not months.
-          </p>
         </div>
       </div>
     </section>

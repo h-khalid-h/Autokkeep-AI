@@ -1,0 +1,89 @@
+/* ============================================
+   CTA SECTION — Final call to action
+   ============================================ */
+
+.section {
+  position: relative;
+  padding: var(--space-24) var(--space-6);
+  overflow: hidden;
+}
+
+.bgAccent {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-hide);
+}
+
+.bgGradient {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 400px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(1, 95, 253, 0.1) 0%,
+    rgba(0, 245, 255, 0.05) 40%,
+    transparent 70%
+  );
+  filter: blur(60px);
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.heading {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.headingGradient {
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.description {
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-10);
+}
+
+.ctas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+/* ─── Responsive ───────────────────────────── */
+
+@media (max-width: 768px) {
+  .section {
+    padding: var(--space-16) var(--space-4);
+  }
+
+  .heading {
+    font-size: var(--text-2xl);
+  }
+
+  .ctas {
+    flex-direction: column;
+  }
+
+  .ctas > * {
+    width: 100%;
+  }
+}

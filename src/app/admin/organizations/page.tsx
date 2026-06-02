@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import Logo from '@/components/ui/Logo';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Input, Skeleton, EmptyState } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,18 +32,14 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('en-US').format(n);
 }
 
-function Skeleton({ width, height = '20px' }: { width?: string; height?: string }) {
-  return (
-    <div
-      style={{
-        width: width || '100%',
-        height,
-        borderRadius: '6px',
-        background: 'var(--bg-elevated)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}
-    />
-  );
+function statusVariant(status: string): 'success' | 'accent' | 'warning' | 'destructive' | 'default' {
+  switch (status) {
+    case 'active': return 'success';
+    case 'trialing': return 'accent';
+    case 'past_due': return 'warning';
+    case 'canceled': return 'destructive';
+    default: return 'default';
+  }
 }
 
 // ─── Page ───────────────────────────────────────────────────────────────────────
@@ -95,202 +92,142 @@ export default function AdminOrganizationsPage() {
     return () => clearTimeout(timer);
   }, [search, fetchOrgs]);
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'var(--success)';
-      case 'trialing': return 'var(--accent-primary)';
-      case 'past_due': return 'var(--warning)';
-      case 'canceled': return 'var(--destructive)';
-      default: return 'var(--text-tertiary)';
-    }
-  };
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header className="dashboard-header">
-        <Link href="/admin" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="badge badge-warning" style={{ fontSize: '11px' }}>ADMIN</span>
+    <AppShell>
+      <div className={styles.page}>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>🏢 Organizations</h1>
+          <Badge variant="warning">ADMIN</Badge>
         </div>
-        <Link href="/admin" className="btn btn-ghost btn-sm">
-          ← Back to Admin
-        </Link>
-      </header>
 
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 32px)', maxWidth: '1100px' }}>
-        <h1 className="text-h2" style={{ marginBottom: '32px' }}>
-          🏢 Organizations
-        </h1>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Search */}
-          <div className="card" style={{ padding: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '1.2rem' }}>🔍</span>
-            <input
-              type="text"
-              className="input"
+        {/* Search */}
+        <Card padding="sm">
+          <div className={styles.searchBar}>
+            <Input
               placeholder="Search organizations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ flex: 1 }}
+              leftIcon={<span>🔍</span>}
+              className={styles.searchInput}
             />
-            <div className="text-caption">
+            <span className={styles.totalCount}>
               {pagination.total} total
-            </div>
+            </span>
           </div>
+        </Card>
 
-          {/* Table */}
-          {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="card" style={{ padding: '20px' }}>
-                  <Skeleton width="100%" height="20px" />
-                </div>
-              ))}
-            </div>
-          ) : orgs.length === 0 ? (
-            <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-              <div className="text-caption">No organizations found</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {orgs.map((org) => (
-                <div key={org.id}>
-                  <div
-                    className="card"
-                    style={{
-                      padding: '16px 20px',
-                      cursor: 'pointer',
-                      transition: 'background 150ms ease',
-                    }}
-                    onClick={() => setExpandedId(expandedId === org.id ? null : org.id)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ flex: 1 }}>
-                        <div className="text-h4">{org.name}</div>
-                        <div className="text-caption" style={{ marginTop: '4px' }}>
-                          {org.slug} · Created {new Date(org.createdAt).toLocaleDateString()}
-                        </div>
+        {/* List */}
+        {loading ? (
+          <div className={styles.skeletonStack}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i} padding="sm">
+                <Skeleton width="100%" height={20} />
+              </Card>
+            ))}
+          </div>
+        ) : orgs.length === 0 ? (
+          <EmptyState
+            icon="🏢"
+            title="No organizations found"
+            description={search ? 'Try a different search term.' : 'No organizations have been created yet.'}
+          />
+        ) : (
+          <div className={styles.orgList}>
+            {orgs.map((org) => (
+              <div key={org.id}>
+                <Card
+                  variant="interactive"
+                  padding="sm"
+                  className={styles.orgRow}
+                  onClick={() => setExpandedId(expandedId === org.id ? null : org.id)}
+                >
+                  <div className={styles.orgRowInner}>
+                    <div className={styles.orgInfo}>
+                      <div className={styles.orgName}>{org.name}</div>
+                      <div className={styles.orgMeta}>
+                        {org.slug} · Created {new Date(org.createdAt).toLocaleDateString()}
                       </div>
-
-                      <div style={{ textAlign: 'center', minWidth: '60px' }}>
-                        <div className="text-h4">{org.entityCount}</div>
-                        <div className="text-caption">Entities</div>
-                      </div>
-
-                      <div style={{ textAlign: 'center', minWidth: '80px' }}>
-                        <div className="text-h4">{formatNumber(org.transactionCount)}</div>
-                        <div className="text-caption">Txns</div>
-                      </div>
-
-                      <div style={{
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        background: `${statusColor(org.status)}22`,
-                        color: statusColor(org.status),
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                        minWidth: '60px',
-                        textAlign: 'center',
-                      }}>
-                        {org.status}
-                      </div>
-
-                      <div style={{
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        background: 'var(--bg-elevated)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                        minWidth: '60px',
-                        textAlign: 'center',
-                      }}>
-                        {org.plan.replace(/_/g, ' ')}
-                      </div>
-
-                      <span style={{ opacity: 0.4 }}>
-                        {expandedId === org.id ? '▲' : '▼'}
-                      </span>
                     </div>
+
+                    <div className={styles.orgStat}>
+                      <div className={styles.orgStatValue}>{org.entityCount}</div>
+                      <div className={styles.orgStatLabel}>Entities</div>
+                    </div>
+
+                    <div className={styles.orgStatWide}>
+                      <div className={styles.orgStatValue}>{formatNumber(org.transactionCount)}</div>
+                      <div className={styles.orgStatLabel}>Txns</div>
+                    </div>
+
+                    <Badge variant={statusVariant(org.status)}>
+                      {org.status}
+                    </Badge>
+
+                    <Badge variant="default">
+                      {org.plan.replace(/_/g, ' ')}
+                    </Badge>
+
+                    <span className={styles.expandIcon}>
+                      {expandedId === org.id ? '▲' : '▼'}
+                    </span>
                   </div>
+                </Card>
 
-                  {/* Expanded Details */}
-                  {expandedId === org.id && (
-                    <div className="card" style={{
-                      padding: '16px 20px',
-                      marginTop: '2px',
-                      borderTop: '2px solid var(--accent-primary)',
-                    }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                        <div>
-                          <div className="text-caption" style={{ marginBottom: '4px' }}>Organization ID</div>
-                          <div className="text-body" style={{
-                            fontFamily: 'var(--font-mono, monospace)',
-                            fontSize: '12px',
-                            wordBreak: 'break-all',
-                          }}>
-                            {org.id}
-                          </div>
+                {/* Expanded Details */}
+                {expandedId === org.id && (
+                  <Card className={styles.expandedDetails} padding="sm">
+                    <div className={styles.detailsGrid}>
+                      <div>
+                        <div className={styles.detailLabel}>Organization ID</div>
+                        <div className={styles.detailMono}>{org.id}</div>
+                      </div>
+                      <div>
+                        <div className={styles.detailLabel}>Plan</div>
+                        <div className={styles.detailCapitalize}>
+                          {org.plan.replace(/_/g, ' ')}
                         </div>
-                        <div>
-                          <div className="text-caption" style={{ marginBottom: '4px' }}>Plan</div>
-                          <div className="text-body" style={{ textTransform: 'capitalize' }}>
-                            {org.plan.replace(/_/g, ' ')}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-caption" style={{ marginBottom: '4px' }}>Last Activity</div>
-                          <div className="text-body">
-                            {org.lastActivity
-                              ? new Date(org.lastActivity).toLocaleString()
-                              : 'No activity'}
-                          </div>
+                      </div>
+                      <div>
+                        <div className={styles.detailLabel}>Last Activity</div>
+                        <div className={styles.detailValue}>
+                          {org.lastActivity
+                            ? new Date(org.lastActivity).toLocaleString()
+                            : 'No activity'}
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                  </Card>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '8px' }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={pagination.page <= 1}
-                onClick={() => fetchOrgs(pagination.page - 1, search)}
-              >
-                ← Previous
-              </button>
-              <span className="text-caption" style={{ display: 'flex', alignItems: 'center' }}>
-                Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
-              </span>
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={!pagination.hasMore}
-                onClick={() => fetchOrgs(pagination.page + 1, search)}
-              >
-                Next →
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+        {/* Pagination */}
+        {pagination.total > pagination.limit && (
+          <div className={styles.pagination}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => fetchOrgs(pagination.page - 1, search)}
+            >
+              ← Previous
+            </Button>
+            <span className={styles.paginationText}>
+              Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!pagination.hasMore}
+              onClick={() => fetchOrgs(pagination.page + 1, search)}
+            >
+              Next →
+            </Button>
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }

@@ -1,0 +1,173 @@
+/* ============================================
+   Modal Component Styles
+   ============================================ */
+
+/* ─── Overlay ──────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background-color: var(--color-bg-overlay);
+  animation: overlayFadeIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Dialog panel ─────────────────────────── */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - var(--space-16));
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  animation: panelScaleIn var(--duration-moderate) var(--ease-out);
+}
+
+@keyframes panelScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Sizes ────────────────────────────────── */
+
+.sizeSm {
+  max-width: 400px;
+}
+
+.sizeMd {
+  max-width: 540px;
+}
+
+.sizeLg {
+  max-width: 720px;
+}
+
+.sizeFull {
+  max-width: calc(100vw - var(--space-8));
+  max-height: calc(100vh - var(--space-8));
+  border-radius: var(--radius-lg);
+}
+
+/* ─── Header ───────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+/* ─── Close button ─────────────────────────── */
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.closeButton:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.closeButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Body ─────────────────────────────────── */
+
+.body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+/* ─── Footer ───────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* ─── Responsive ───────────────────────────── */
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .panel {
+    max-width: 100%;
+    max-height: 92vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .sizeFull {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* ─── Reduced motion ──────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+
+  .panel {
+    animation: none;
+  }
+}

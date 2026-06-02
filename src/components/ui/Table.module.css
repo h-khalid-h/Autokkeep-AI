@@ -1,0 +1,174 @@
+/* ============================================
+   Table Component Styles
+   ============================================ */
+
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+}
+
+/* ─── Base Table ─────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+/* ─── Header ─────────────────────────────────── */
+.header {
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.headerCell {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  background: var(--color-bg-subtle);
+}
+
+.headerCellSortable {
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.headerCellSortable:hover {
+  color: var(--color-text-primary);
+}
+
+.headerCellSortable:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-xs);
+}
+
+.headerCellContent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.sortIndicator {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 0.625rem;
+  line-height: 0.6;
+  opacity: 0.35;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.sortIndicatorActive {
+  opacity: 1;
+  color: var(--color-accent);
+}
+
+.sortArrowActive {
+  color: var(--color-accent);
+}
+
+.sortArrowInactive {
+  opacity: 0.3;
+}
+
+/* ─── Body ───────────────────────────────────── */
+.body {
+  /* No special styles needed — semantic grouping */
+}
+
+/* ─── Row ────────────────────────────────────── */
+.row {
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.rowSelected {
+  background-color: var(--color-accent-subtle);
+}
+
+.rowSelected:hover {
+  background-color: var(--color-accent-muted);
+}
+
+/* Striped */
+.striped .body .row:nth-child(even) {
+  background-color: var(--color-bg-subtle);
+}
+
+.striped .body .row:nth-child(even):hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* ─── Cell ───────────────────────────────────── */
+.cell {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+
+/* ─── Responsive Card Layout ─────────────────── */
+@media (max-width: 767px) {
+  .mobileCards .header {
+    display: none;
+  }
+
+  .mobileCards .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .mobileCards .row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-surface);
+  }
+
+  .mobileCards .cell {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-1) 0;
+    border-bottom: none;
+  }
+
+  .mobileCards .cell::before {
+    content: attr(data-label);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    margin-right: var(--space-4);
+  }
+}
+
+/* ─── Reduced Motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .headerCellSortable,
+  .sortIndicator {
+    transition: none;
+  }
+}

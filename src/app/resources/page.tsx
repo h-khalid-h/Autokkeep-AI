@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
-import NewsletterForm from '@/components/landing/NewsletterForm';
+
 
 export const metadata: Metadata = {
   title: 'Resources — Autokkeep',
@@ -191,7 +191,9 @@ export default function ResourcesPage() {
               <p className="text-body" style={{ marginBottom: '24px' }}>
                 Get monthly insights on AI financial operations, accounting industry trends, and Autokkeep product updates.
               </p>
-              <NewsletterForm />
+              <p className="text-body" style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+                Newsletter coming soon.
+              </p>
             </div>
           </div>
         </section>

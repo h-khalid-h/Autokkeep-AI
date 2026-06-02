@@ -1,0 +1,54 @@
+/* ============================================
+   EmptyState Component Styles
+   ============================================ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+  min-height: 240px;
+  font-family: var(--font-sans);
+}
+
+/* ─── Icon ───────────────────────────────────── */
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-6);
+  font-size: 2.5rem;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-2xl);
+}
+
+/* ─── Title ──────────────────────────────────── */
+.title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin: 0 0 var(--space-2) 0;
+  max-width: 400px;
+}
+
+/* ─── Description ────────────────────────────── */
+.description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 var(--space-6) 0;
+  max-width: 360px;
+}
+
+/* ─── Action ─────────────────────────────────── */
+.action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

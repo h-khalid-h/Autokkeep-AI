@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import Logo from '@/components/ui/Logo';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Input, Skeleton, EmptyState, Tabs } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,34 @@ interface AdminStats {
   };
 }
 
-type AdminTab = 'overview' | 'organizations' | 'system';
+interface OrgItem {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  status: string;
+  createdAt: string;
+  entityCount: number;
+  transactionCount: number;
+  lastActivity: string | null;
+}
+
+interface OrgPagination {
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+interface SystemData {
+  uptime: number;
+  timestamp: string;
+  database: { status: string; latencyMs: number };
+  redis: { status: string };
+  cron: { lastTransactionSync: string | null };
+  audit: { actionsLast24h: number };
+  environment: { group: string; vars: { name: string; set: boolean }[] }[];
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -45,30 +73,50 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('en-US').format(n);
 }
 
-// ─── Status Color Map ───────────────────────────────────────────────────────────
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  parts.push(`${m}m`);
+  return parts.join(' ');
+}
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'var(--warning)',
-  approved: 'var(--success)',
-  auto_categorized: 'var(--accent-primary)',
-  human_review: 'var(--destructive)',
+  pending: 'var(--color-warning)',
+  approved: 'var(--color-success)',
+  auto_categorized: 'var(--color-accent)',
+  human_review: 'var(--color-destructive)',
   synced: '#8b5cf6',
 };
 
-// ─── Skeleton ───────────────────────────────────────────────────────────────────
+function statusIcon(status: string) {
+  switch (status) {
+    case 'healthy':
+    case 'connected':
+      return '✅';
+    case 'degraded':
+    case 'disconnected':
+      return '⚠️';
+    case 'unhealthy':
+      return '❌';
+    case 'not_configured':
+      return '➖';
+    default:
+      return '❓';
+  }
+}
 
-function Skeleton({ width, height = '20px' }: { width?: string; height?: string }) {
-  return (
-    <div
-      style={{
-        width: width || '100%',
-        height,
-        borderRadius: '6px',
-        background: 'var(--bg-elevated)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}
-    />
-  );
+function statusVariant(status: string): 'success' | 'accent' | 'warning' | 'destructive' | 'default' {
+  switch (status) {
+    case 'active': return 'success';
+    case 'trialing': return 'accent';
+    case 'past_due': return 'warning';
+    case 'canceled': return 'destructive';
+    default: return 'default';
+  }
 }
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────────
@@ -85,29 +133,19 @@ function KPICard({
   loading: boolean;
 }) {
   return (
-    <div className="card-elevated" style={{ padding: 'var(--space-6)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <Card variant="elevated">
+      <div className={styles.kpiCardInner}>
         <div>
-          <div className="text-caption" style={{ marginBottom: 'var(--space-2)' }}>{label}</div>
+          <div className={styles.kpiLabel}>{label}</div>
           {loading ? (
-            <Skeleton width="80px" height="32px" />
+            <Skeleton width={80} height={32} />
           ) : (
-            <div className="text-h3" style={{ fontSize: '1.75rem', color: 'var(--text-primary)' }}>{value}</div>
+            <div className={styles.kpiValue}>{value}</div>
           )}
         </div>
-        <div style={{
-          fontSize: '1.75rem',
-          opacity: 0.6,
-          width: '44px',
-          height: '44px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 'var(--radius-lg)',
-          background: 'var(--accent-subtle)',
-        }}>{icon}</div>
+        <div className={styles.kpiIcon}>{icon}</div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -115,24 +153,12 @@ function KPICard({
 
 function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; total: number }) {
   if (total === 0) {
-    return (
-      <div className="text-caption" style={{ textAlign: 'center', padding: '20px' }}>
-        No transactions yet
-      </div>
-    );
+    return <div className={styles.statusEmpty}>No transactions yet</div>;
   }
 
   return (
     <div>
-      {/* Visual bar */}
-      <div style={{
-        display: 'flex',
-        height: '24px',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        marginBottom: '16px',
-        background: 'var(--bg-elevated)',
-      }}>
+      <div className={styles.statusBar}>
         {Object.entries(byStatus).map(([status, count]) => {
           const pct = total > 0 ? (count / total) * 100 : 0;
           if (pct === 0) return null;
@@ -140,29 +166,24 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
             <div
               key={status}
               title={`${status}: ${count} (${pct.toFixed(1)}%)`}
+              className={styles.statusSegment}
               style={{
                 width: `${pct}%`,
                 background: STATUS_COLORS[status] || '#6b7280',
-                transition: 'width 0.3s ease',
-                minWidth: pct > 0 ? '4px' : '0',
               }}
             />
           );
         })}
       </div>
 
-      {/* Legend */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+      <div className={styles.statusLegend}>
         {Object.entries(byStatus).map(([status, count]) => (
-          <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              background: STATUS_COLORS[status] || '#6b7280',
-              flexShrink: 0,
-            }} />
-            <span className="text-caption">
+          <div key={status} className={styles.statusLegendItem}>
+            <div
+              className={styles.statusDot}
+              style={{ background: STATUS_COLORS[status] || '#6b7280' }}
+            />
+            <span className={styles.statusCaption}>
               {status.replace(/_/g, ' ')}: {formatNumber(count)}
             </span>
           </div>
@@ -175,7 +196,6 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
 // ─── Page Component ─────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = React.useState<AdminTab>('overview');
   const [stats, setStats] = React.useState<AdminStats | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -205,91 +225,46 @@ export default function AdminDashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const tabs: { id: AdminTab; label: string; icon: string; href?: string }[] = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'organizations', label: 'Organizations', icon: '🏢' },
-    { id: 'system', label: 'System', icon: '⚙️' },
-  ];
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header className="dashboard-header">
-        <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span className="badge badge-warning" style={{ marginRight: '8px', fontSize: '11px' }}>
-            ADMIN
-          </span>
-          <nav style={{ display: 'flex', gap: '4px' }}>
-            {tabs.map((tab) =>
-              tab.href ? (
-                <Link
-                  key={tab.id}
-                  href={tab.href}
-                  className="btn btn-ghost btn-sm"
-                >
-                  {tab.icon} {tab.label}
-                </Link>
-              ) : (
-                <button
-                  key={tab.id}
-                  className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-ghost'} btn-sm`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              )
-            )}
-          </nav>
+    <AppShell>
+      <div className={styles.page}>
+        <div>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>🛡️ Admin Dashboard</h1>
+            <Badge variant="warning">ADMIN</Badge>
+          </div>
+          <p className={styles.pageDescription}>
+            Platform-wide visibility into organizations, subscriptions, and system health.
+          </p>
         </div>
 
-        <Link href="/dashboard" className="btn btn-ghost btn-sm">
-          ← Back to Dashboard
-        </Link>
-      </header>
-
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 32px)', maxWidth: '1100px' }}>
-        <h1 className="text-h2" style={{ marginBottom: '8px' }}>
-          🛡️ Admin Dashboard
-        </h1>
-        <p className="text-caption" style={{ marginBottom: '32px' }}>
-          Platform-wide visibility into organizations, subscriptions, and system health.
-        </p>
-
         {error && (
-          <div className="card" style={{
-            padding: '16px',
-            marginBottom: '24px',
-            borderLeft: '4px solid var(--destructive)',
-          }}>
-            <div className="text-body" style={{ color: 'var(--destructive)' }}>
-              ⚠️ {error}
-            </div>
-          </div>
+          <Card className={styles.errorBanner} padding="sm">
+            <span className={styles.errorText}>⚠️ {error}</span>
+          </Card>
         )}
 
-        {activeTab === 'overview' && (
-          <OverviewTab stats={stats} loading={loading} />
-        )}
-        {activeTab === 'organizations' && (
-          <OrganizationsTab />
-        )}
-        {activeTab === 'system' && (
-          <SystemTab />
-        )}
-      </main>
+        <Tabs defaultValue="overview">
+          <Tabs.List>
+            <Tabs.Tab value="overview">📊 Overview</Tabs.Tab>
+            <Tabs.Tab value="organizations">🏢 Organizations</Tabs.Tab>
+            <Tabs.Tab value="system">⚙️ System</Tabs.Tab>
+          </Tabs.List>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+          <Tabs.Panel value="overview">
+            <OverviewTab stats={stats} loading={loading} />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="organizations">
+            <OrganizationsTab />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="system">
+            <SystemTab />
+          </Tabs.Panel>
+        </Tabs>
+      </div>
+    </AppShell>
   );
 }
 
@@ -299,9 +274,9 @@ export default function AdminDashboardPage() {
 
 function OverviewTab({ stats, loading }: { stats: AdminStats | null; loading: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className={styles.tabContent}>
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+      <div className={styles.kpiGrid}>
         <KPICard
           label="Total Organizations"
           value={stats ? formatNumber(stats.organizations) : '—'}
@@ -329,70 +304,68 @@ function OverviewTab({ stats, loading }: { stats: AdminStats | null; loading: bo
       </div>
 
       {/* Transaction Volume */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Transaction Volume</div>
+      <Card>
+        <h2 className={styles.sectionTitle}>Transaction Volume</h2>
         {loading ? (
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <Skeleton width="100%" height="60px" />
-            <Skeleton width="100%" height="60px" />
-            <Skeleton width="100%" height="60px" />
+          <div className={styles.skeletonRow}>
+            <Skeleton width="100%" height={60} />
+            <Skeleton width="100%" height={60} />
+            <Skeleton width="100%" height={60} />
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-              <div className="text-h3" style={{ color: 'var(--accent-primary)' }}>
+          <div className={styles.volumeGrid}>
+            <Card className={styles.volumeItem} padding="sm">
+              <div className={styles.volumeValue}>
                 {formatNumber(stats?.transactions.today || 0)}
               </div>
-              <div className="text-caption">Today</div>
-            </div>
-            <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-              <div className="text-h3" style={{ color: 'var(--accent-primary)' }}>
+              <div className={styles.volumeLabel}>Today</div>
+            </Card>
+            <Card className={styles.volumeItem} padding="sm">
+              <div className={styles.volumeValue}>
                 {formatNumber(stats?.transactions.thisWeek || 0)}
               </div>
-              <div className="text-caption">This Week</div>
-            </div>
-            <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-              <div className="text-h3" style={{ color: 'var(--accent-primary)' }}>
+              <div className={styles.volumeLabel}>This Week</div>
+            </Card>
+            <Card className={styles.volumeItem} padding="sm">
+              <div className={styles.volumeValue}>
                 {formatNumber(stats?.transactions.thisMonth || 0)}
               </div>
-              <div className="text-caption">This Month</div>
-            </div>
+              <div className={styles.volumeLabel}>This Month</div>
+            </Card>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Status Breakdown */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Transactions by Status</div>
+      <Card>
+        <h2 className={styles.sectionTitle}>Transactions by Status</h2>
         {loading ? (
-          <Skeleton width="100%" height="80px" />
+          <Skeleton width="100%" height={80} />
         ) : stats ? (
           <StatusBar byStatus={stats.transactions.byStatus} total={stats.transactions.total} />
         ) : null}
-      </div>
+      </Card>
 
       {/* Subscriptions by Plan */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Active Subscriptions by Plan</div>
+      <Card>
+        <h2 className={styles.sectionTitle}>Active Subscriptions by Plan</h2>
         {loading ? (
-          <Skeleton width="100%" height="60px" />
+          <Skeleton width="100%" height={60} />
         ) : stats ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+          <div className={styles.planGrid}>
             {Object.keys(stats.subscriptions.byPlan).length === 0 ? (
-              <div className="text-caption">No active subscriptions</div>
+              <span className={styles.statusCaption}>No active subscriptions</span>
             ) : (
               Object.entries(stats.subscriptions.byPlan).map(([plan, count]) => (
-                <div key={plan} className="card" style={{ padding: '16px', textAlign: 'center', minWidth: '120px' }}>
-                  <div className="text-h4">{count}</div>
-                  <div className="text-caption" style={{ textTransform: 'capitalize' }}>
-                    {plan.replace(/_/g, ' ')}
-                  </div>
-                </div>
+                <Card key={plan} className={styles.planItem} padding="sm">
+                  <div className={styles.planCount}>{count}</div>
+                  <div className={styles.planName}>{plan.replace(/_/g, ' ')}</div>
+                </Card>
               ))
             )}
           </div>
         ) : null}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -400,25 +373,6 @@ function OverviewTab({ stats, loading }: { stats: AdminStats | null; loading: bo
 // ═══════════════════════════════════════════════════════════════════════════════
 // ORGANIZATIONS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface OrgItem {
-  id: string;
-  name: string;
-  slug: string;
-  plan: string;
-  status: string;
-  createdAt: string;
-  entityCount: number;
-  transactionCount: number;
-  lastActivity: string | null;
-}
-
-interface OrgPagination {
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-}
 
 function OrganizationsTab() {
   const [orgs, setOrgs] = React.useState<OrgItem[]>([]);
@@ -455,7 +409,6 @@ function OrganizationsTab() {
 
   const isInitialMount = React.useRef(true);
 
-  // Fetch on mount immediately, then debounce on search changes
   React.useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -468,141 +421,100 @@ function OrganizationsTab() {
     return () => clearTimeout(timer);
   }, [search, fetchOrgs]);
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'var(--success)';
-      case 'trialing': return 'var(--accent-primary)';
-      case 'past_due': return 'var(--warning)';
-      case 'canceled': return 'var(--destructive)';
-      default: return 'var(--text-tertiary)';
-    }
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className={styles.tabContent}>
       {/* Search */}
-      <div className="card" style={{ padding: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <span style={{ fontSize: '1.2rem' }}>🔍</span>
-        <input
-          type="text"
-          className="input"
-          placeholder="Search organizations..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1 }}
-        />
-        <div className="text-caption">
-          {pagination.total} total
+      <Card padding="sm">
+        <div className={styles.searchBar}>
+          <Input
+            placeholder="Search organizations..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            leftIcon={<span>🔍</span>}
+            className={styles.searchInput}
+          />
+          <span className={styles.totalCount}>{pagination.total} total</span>
         </div>
-      </div>
+      </Card>
 
-      {/* Table */}
+      {/* List */}
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className={styles.skeletonStack}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="card" style={{ padding: '20px' }}>
-              <Skeleton width="100%" height="20px" />
-            </div>
+            <Card key={i} padding="sm">
+              <Skeleton width="100%" height={20} />
+            </Card>
           ))}
         </div>
       ) : orgs.length === 0 ? (
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <div className="text-caption">No organizations found</div>
-        </div>
+        <EmptyState
+          icon="🏢"
+          title="No organizations found"
+          description={search ? 'Try a different search term.' : 'No organizations have been created yet.'}
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className={styles.orgList}>
           {orgs.map((org) => (
             <div key={org.id}>
-              <div
-                className="card"
-                style={{
-                  padding: '16px 20px',
-                  cursor: 'pointer',
-                  transition: 'background 150ms ease',
-                }}
+              <Card
+                variant="interactive"
+                padding="sm"
+                className={styles.orgRow}
                 onClick={() => setExpandedId(expandedId === org.id ? null : org.id)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="text-h4">{org.name}</div>
-                    <div className="text-caption" style={{ marginTop: '4px' }}>
+                <div className={styles.orgRowInner}>
+                  <div className={styles.orgInfo}>
+                    <div className={styles.orgName}>{org.name}</div>
+                    <div className={styles.orgMeta}>
                       {org.slug} · Created {new Date(org.createdAt).toLocaleDateString()}
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'center', minWidth: '60px' }}>
-                    <div className="text-h4">{org.entityCount}</div>
-                    <div className="text-caption">Entities</div>
+                  <div className={styles.orgStat}>
+                    <div className={styles.orgStatValue}>{org.entityCount}</div>
+                    <div className={styles.orgStatLabel}>Entities</div>
                   </div>
 
-                  <div style={{ textAlign: 'center', minWidth: '80px' }}>
-                    <div className="text-h4">{formatNumber(org.transactionCount)}</div>
-                    <div className="text-caption">Txns</div>
+                  <div className={styles.orgStatWide}>
+                    <div className={styles.orgStatValue}>{formatNumber(org.transactionCount)}</div>
+                    <div className={styles.orgStatLabel}>Txns</div>
                   </div>
 
-                  <div style={{
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    background: `${statusColor(org.status)}22`,
-                    color: statusColor(org.status),
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    minWidth: '60px',
-                    textAlign: 'center',
-                  }}>
+                  <Badge variant={statusVariant(org.status)}>
                     {org.status}
-                  </div>
+                  </Badge>
 
-                  <div style={{
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    background: 'var(--bg-elevated)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    minWidth: '60px',
-                    textAlign: 'center',
-                  }}>
+                  <Badge variant="default">
                     {org.plan.replace(/_/g, ' ')}
-                  </div>
+                  </Badge>
 
-                  <span style={{ opacity: 0.4 }}>
+                  <span className={styles.expandIcon}>
                     {expandedId === org.id ? '▲' : '▼'}
                   </span>
                 </div>
-              </div>
+              </Card>
 
-              {/* Expanded Details */}
               {expandedId === org.id && (
-                <div className="card" style={{
-                  padding: '16px 20px',
-                  marginTop: '2px',
-                  borderTop: '2px solid var(--accent-primary)',
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <Card className={styles.expandedDetails} padding="sm">
+                  <div className={styles.detailsGrid}>
                     <div>
-                      <div className="text-caption" style={{ marginBottom: '4px' }}>Organization ID</div>
-                      <div className="text-body" style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '12px' }}>
-                        {org.id}
-                      </div>
+                      <div className={styles.detailLabel}>Organization ID</div>
+                      <div className={styles.detailMono}>{org.id}</div>
                     </div>
                     <div>
-                      <div className="text-caption" style={{ marginBottom: '4px' }}>Plan</div>
-                      <div className="text-body" style={{ textTransform: 'capitalize' }}>
-                        {org.plan.replace(/_/g, ' ')}
-                      </div>
+                      <div className={styles.detailLabel}>Plan</div>
+                      <div className={styles.detailCapitalize}>{org.plan.replace(/_/g, ' ')}</div>
                     </div>
                     <div>
-                      <div className="text-caption" style={{ marginBottom: '4px' }}>Last Activity</div>
-                      <div className="text-body">
+                      <div className={styles.detailLabel}>Last Activity</div>
+                      <div className={styles.detailValue}>
                         {org.lastActivity
                           ? new Date(org.lastActivity).toLocaleString()
                           : 'No activity'}
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
             </div>
           ))}
@@ -611,24 +523,26 @@ function OrganizationsTab() {
 
       {/* Pagination */}
       {pagination.total > pagination.limit && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '8px' }}>
-          <button
-            className="btn btn-ghost btn-sm"
+        <div className={styles.pagination}>
+          <Button
+            variant="ghost"
+            size="sm"
             disabled={pagination.page <= 1}
             onClick={() => fetchOrgs(pagination.page - 1, search)}
           >
             ← Previous
-          </button>
-          <span className="text-caption" style={{ display: 'flex', alignItems: 'center' }}>
+          </Button>
+          <span className={styles.paginationText}>
             Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
           </span>
-          <button
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             disabled={!pagination.hasMore}
             onClick={() => fetchOrgs(pagination.page + 1, search)}
           >
             Next →
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -638,16 +552,6 @@ function OrganizationsTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // SYSTEM TAB
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface SystemData {
-  uptime: number;
-  timestamp: string;
-  database: { status: string; latencyMs: number };
-  redis: { status: string };
-  cron: { lastTransactionSync: string | null };
-  audit: { actionsLast24h: number };
-  environment: { group: string; vars: { name: string; set: boolean }[] }[];
-}
 
 function SystemTab() {
   const [data, setData] = React.useState<SystemData | null>(null);
@@ -672,43 +576,17 @@ function SystemTab() {
     return () => { cancelled = true; };
   }, []);
 
-  function formatUptime(seconds: number): string {
-    const d = Math.floor(seconds / 86400);
-    const h = Math.floor((seconds % 86400) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const parts: string[] = [];
-    if (d > 0) parts.push(`${d}d`);
-    if (h > 0) parts.push(`${h}h`);
-    parts.push(`${m}m`);
-    return parts.join(' ');
-  }
-
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-      case 'connected':
-        return '✅';
-      case 'degraded':
-      case 'disconnected':
-        return '⚠️';
-      case 'unhealthy':
-        return '❌';
-      case 'not_configured':
-        return '➖';
-      default:
-        return '❓';
-    }
-  };
-
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className={styles.skeletonStack}>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="card" style={{ padding: '24px' }}>
-            <Skeleton width="40%" height="24px" />
-            <div style={{ marginTop: '12px' }}><Skeleton width="80%" /></div>
-            <div style={{ marginTop: '8px' }}><Skeleton width="60%" /></div>
-          </div>
+          <Card key={i}>
+            <div className={styles.skeletonCardInner}>
+              <Skeleton width="40%" height={24} />
+              <Skeleton width="80%" />
+              <Skeleton width="60%" />
+            </div>
+          </Card>
         ))}
       </div>
     );
@@ -716,64 +594,62 @@ function SystemTab() {
 
   if (!data) {
     return (
-      <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-        <div className="text-caption">Failed to load system status</div>
-      </div>
+      <EmptyState
+        icon="⚠️"
+        title="Failed to load system status"
+        description="Unable to retrieve system health data."
+      />
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className={styles.tabContent}>
       {/* Health Overview */}
-      <div className="card-elevated" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Service Health</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
-              {statusIcon(data.database.status)}
-            </div>
-            <div className="text-h4">Database</div>
-            <div className="text-caption">{data.database.latencyMs}ms</div>
-          </div>
-          <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
-              {statusIcon(data.redis.status)}
-            </div>
-            <div className="text-h4">Redis</div>
-            <div className="text-caption">{data.redis.status}</div>
-          </div>
-          <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>⏱️</div>
-            <div className="text-h4">Uptime</div>
-            <div className="text-caption">{formatUptime(data.uptime)}</div>
-          </div>
-          <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>📝</div>
-            <div className="text-h4">Audit (24h)</div>
-            <div className="text-caption">{formatNumber(data.audit.actionsLast24h)} actions</div>
-          </div>
+      <Card variant="elevated">
+        <h2 className={styles.sectionTitle}>Service Health</h2>
+        <div className={styles.healthGrid}>
+          <Card className={styles.healthItem} padding="sm">
+            <div className={styles.healthIcon}>{statusIcon(data.database.status)}</div>
+            <div className={styles.healthLabel}>Database</div>
+            <div className={styles.healthCaption}>{data.database.latencyMs}ms</div>
+          </Card>
+          <Card className={styles.healthItem} padding="sm">
+            <div className={styles.healthIcon}>{statusIcon(data.redis.status)}</div>
+            <div className={styles.healthLabel}>Redis</div>
+            <div className={styles.healthCaption}>{data.redis.status}</div>
+          </Card>
+          <Card className={styles.healthItem} padding="sm">
+            <div className={styles.healthIcon}>⏱️</div>
+            <div className={styles.healthLabel}>Uptime</div>
+            <div className={styles.healthCaption}>{formatUptime(data.uptime)}</div>
+          </Card>
+          <Card className={styles.healthItem} padding="sm">
+            <div className={styles.healthIcon}>📝</div>
+            <div className={styles.healthLabel}>Audit (24h)</div>
+            <div className={styles.healthCaption}>{formatNumber(data.audit.actionsLast24h)} actions</div>
+          </Card>
         </div>
-      </div>
+      </Card>
 
       {/* Cron Status */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Cron / Sync Status</div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Cron / Sync Status</h2>
+        <div className={styles.cronRow}>
           <div>
-            <div className="text-caption" style={{ marginBottom: '4px' }}>Last Transaction Sync</div>
-            <div className="text-body">
+            <div className={styles.cronLabel}>Last Transaction Sync</div>
+            <div className={styles.cronValue}>
               {data.cron.lastTransactionSync
                 ? new Date(data.cron.lastTransactionSync).toLocaleString()
                 : 'No sync activity recorded'}
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Environment Variables */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Environment Configuration</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Environment Configuration</h2>
+        <div className={styles.envGroups}>
           {data.environment.map((group) => {
             const setCount = group.vars.filter((v) => v.set).length;
             const totalCount = group.vars.length;
@@ -781,60 +657,42 @@ function SystemTab() {
 
             return (
               <div key={group.group}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div className={styles.envGroupHeader}>
                   <span>{allSet ? '✅' : '⚠️'}</span>
-                  <span className="text-h4" style={{ fontSize: '14px' }}>
-                    {group.group}
-                  </span>
-                  <span className="text-caption">
-                    ({setCount}/{totalCount})
-                  </span>
+                  <span className={styles.envGroupName}>{group.group}</span>
+                  <span className={styles.envGroupCount}>({setCount}/{totalCount})</span>
                 </div>
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  paddingLeft: '28px',
-                }}>
+                <div className={styles.envVars}>
                   {group.vars.map((v) => (
-                    <span
+                    <Badge
                       key={v.name}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontFamily: 'var(--font-mono, monospace)',
-                        background: v.set
-                          ? 'var(--success-subtle)'
-                          : 'var(--destructive-subtle)',
-                        color: v.set ? 'var(--success)' : 'var(--destructive)',
-                        border: `1px solid ${v.set ? 'var(--success-border)' : 'var(--destructive-border)'}`,
-                      }}
+                      variant={v.set ? 'success' : 'destructive'}
+                      size="sm"
                     >
                       {v.set ? '✓' : '✗'} {v.name}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </Card>
 
       {/* Server Info */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '12px' }}>Server Info</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Server Info</h2>
+        <div className={styles.serverGrid}>
           <div>
-            <div className="text-caption">Timestamp</div>
-            <div className="text-body">{new Date(data.timestamp).toLocaleString()}</div>
+            <div className={styles.serverLabel}>Timestamp</div>
+            <div className={styles.serverValue}>{new Date(data.timestamp).toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-caption">Runtime</div>
-            <div className="text-body">Node.js (Next.js)</div>
+            <div className={styles.serverLabel}>Runtime</div>
+            <div className={styles.serverValue}>Node.js (Next.js)</div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

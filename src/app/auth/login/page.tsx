@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, FormEvent, Suspense } from 'react';
 import Logo from '@/components/ui/Logo';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import styles from './page.module.css';
 
 function LoginContent() {
   const router = useRouter();
@@ -56,187 +60,56 @@ function LoginContent() {
   return (
     <>
       {/* Background */}
-      <div
-        id="login-background"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: `
-            radial-gradient(ellipse 60% 50% at 50% 40%, rgba(var(--accent-glow-rgb), 0.14) 0%, transparent 60%),
-            radial-gradient(ellipse at 20% 50%, rgba(var(--accent-glow-rgb), 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(0, 245, 255, 0.06) 0%, transparent 50%)
-          `,
-          zIndex: 0,
-        }}
-      />
-
-      {/* Grid pattern overlay */}
-      <div
-        id="login-grid-overlay"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)`,
-          backgroundSize: '64px 64px',
-          zIndex: 0,
-        }}
-      />
+      <div className={styles.background} />
+      <div className={styles.gridOverlay} />
 
       {/* Page container */}
-      <div
-        id="login-page"
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          zIndex: 1,
-          padding: 'var(--space-6)',
-        }}
-      >
-        {/* Glassmorphic Card */}
-        <div
-          id="login-card"
-          style={{
-            background: 'var(--bg-glass)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 'var(--radius-2xl)',
-            padding: 'var(--space-12)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            maxWidth: '440px',
-            width: '100%',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.5), var(--shadow-glow)',
-            animation: 'loginCardFadeIn 0.6s ease-out forwards',
-            opacity: 0,
-          }}
-        >
+      <div className={styles.page}>
+        {/* Card */}
+        <Card variant="elevated" padding="lg" className={styles.card}>
           {/* Logo */}
-          <div
-            id="login-logo-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-              marginBottom: 'var(--space-8)',
-            }}
-          >
+          <div className={styles.logoRow}>
             <Logo size={40} />
-            <span
-              id="login-logo-text"
-              className="text-gradient"
-              style={{
-                fontSize: '20px',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Autokkeep
-            </span>
+            <span className={styles.logoText}>Autokkeep</span>
           </div>
 
           {/* Heading */}
-          <h2
-            id="login-heading"
-            className="text-h2"
-            style={{ marginBottom: 'var(--space-2)' }}
-          >
-            Welcome back
-          </h2>
-
-          {/* Subtitle */}
-          <p
-            id="login-subtitle"
-            className="text-body"
-            style={{ marginBottom: 'var(--space-8)' }}
-          >
-            Sign in to your account
-          </p>
+          <h2 className={styles.heading}>Welcome back</h2>
+          <p className={styles.subtitle}>Sign in to your account</p>
 
           {/* Form */}
-          <form id="login-form" onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit}>
             {/* Email field */}
-            <div id="login-email-group" style={{ marginBottom: 'var(--space-5)' }}>
-              <label
-                id="login-email-label"
-                htmlFor="login-email-input"
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  marginBottom: 'var(--space-2)',
-                }}
-              >
-                Email
-              </label>
-              <input
-                id="login-email-input"
-                className="input"
+            <div className={styles.emailGroup}>
+              <Input
+                label="Email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                size="lg"
               />
             </div>
 
             {/* Password field */}
-            <div id="login-password-group" style={{ marginBottom: 'var(--space-3)' }}>
-              <label
-                id="login-password-label"
-                htmlFor="login-password-input"
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  marginBottom: 'var(--space-2)',
-                }}
-              >
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="login-password-input"
-                  className="input"
+            <div className={styles.passwordGroup}>
+              <div className={styles.passwordWrapper}>
+                <Input
+                  label="Password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  style={{ paddingRight: '48px' }}
+                  size="lg"
                 />
                 <button
-                  id="login-toggle-password"
                   type="button"
+                  className={styles.passwordToggle}
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-tertiary)',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'color var(--duration-fast) var(--ease-out)',
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = 'var(--text-secondary)')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = 'var(--text-tertiary)')
-                  }
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
@@ -275,145 +148,42 @@ function LoginContent() {
             </div>
 
             {/* Forgot password link */}
-            <div
-              id="login-forgot-row"
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginBottom: 'var(--space-6)',
-              }}
-            >
-              <Link
-                id="login-forgot-link"
-                href="/auth/forgot-password"
-                style={{
-                  fontSize: '13px',
-                  color: 'var(--accent-primary)',
-                  textDecoration: 'none',
-                  transition: 'color var(--duration-fast) var(--ease-out)',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-secondary)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
-              >
+            <div className={styles.forgotRow}>
+              <Link href="/auth/forgot-password" className={styles.forgotLink}>
                 Forgot password?
               </Link>
             </div>
 
             {/* Submit button */}
-            <button
-              id="login-submit-btn"
-              className="btn btn-primary btn-lg"
+            <Button
               type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                position: 'relative',
-              }}
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              className={styles.submitButton}
             >
-              {loading && (
-                <svg
-                  id="login-spinner"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  style={{
-                    animation: 'loginSpinner 0.8s linear infinite',
-                  }}
-                >
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                </svg>
-              )}
               {loading ? 'Signing in...' : 'Sign In'}
-            </button>
+            </Button>
           </form>
 
           {/* Divider */}
-          <div
-            id="login-divider"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-4)',
-              margin: 'var(--space-6) 0',
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                height: '1px',
-                background: 'var(--border-secondary)',
-              }}
-            />
-            <span
-              id="login-divider-text"
-              style={{
-                fontSize: '13px',
-                color: 'var(--text-tertiary)',
-                textTransform: 'lowercase',
-              }}
-            >
-              or
-            </span>
-            <div
-              style={{
-                flex: 1,
-                height: '1px',
-                background: 'var(--border-secondary)',
-              }}
-            />
+          <div className={styles.divider}>
+            <div className={styles.dividerLine} />
+            <span className={styles.dividerText}>or</span>
+            <div className={styles.dividerLine} />
           </div>
 
           {/* Sign up link */}
-          <p
-            id="login-signup-row"
-            style={{
-              textAlign: 'center',
-              fontSize: '14px',
-              color: 'var(--text-tertiary)',
-            }}
-          >
+          <p className={styles.signupRow}>
             Don&apos;t have an account?{' '}
-            <Link
-              id="login-signup-link"
-              href="/auth/signup"
-              style={{
-                color: 'var(--accent-primary)',
-                textDecoration: 'none',
-                fontWeight: 500,
-                transition: 'color var(--duration-fast) var(--ease-out)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-secondary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
-            >
+            <Link href="/auth/signup" className={styles.signupLink}>
               Sign up
             </Link>
           </p>
-        </div>
+        </Card>
 
         {/* Back to home link */}
-        <Link
-          href="/"
-          style={{
-            marginTop: 'var(--space-6)',
-            fontSize: '13px',
-            color: 'var(--text-tertiary)',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'color var(--duration-fast) var(--ease-out)',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-        >
+        <Link href="/" className={styles.backLink}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
@@ -424,27 +194,10 @@ function LoginContent() {
 
       {/* Error toast */}
       {error && (
-        <div
-          id="login-error-toast"
-          className="toast toast-error"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            animation: 'loginToastIn 0.3s ease-out forwards',
-          }}
-        >
-          <div
-            id="login-error-toast-content"
-            className="toast-content"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
+        <div className={styles.errorToast}>
+          <div className={styles.errorToastContent}>
             <svg
+              className={styles.errorToastIcon}
               width="18"
               height="18"
               viewBox="0 0 24 24"
@@ -453,50 +206,15 @@ function LoginContent() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ flexShrink: 0 }}
             >
               <circle cx="12" cy="12" r="10" />
               <line x1="15" y1="9" x2="9" y2="15" />
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
-            <span id="login-error-toast-message">{error}</span>
+            <span>{error}</span>
           </div>
         </div>
       )}
-
-      {/* Keyframe animations */}
-      <style>{`
-        @keyframes loginCardFadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes loginSpinner {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes loginToastIn {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </>
   );
 }

@@ -1,0 +1,133 @@
+/* ============================================
+   Progress Component Styles
+   ============================================ */
+
+/* ─── Bar Variant ────────────────────────────── */
+.barWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.barTrack {
+  flex: 1;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.barTrackSm {
+  height: 4px;
+}
+
+.barTrackMd {
+  height: 8px;
+}
+
+.barTrackLg {
+  height: 12px;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-moderate) var(--ease-out);
+  min-width: 0;
+}
+
+.barLabel {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* ─── Circle Variant ─────────────────────────── */
+.circleWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+}
+
+.circleSvg {
+  transform: rotate(-90deg);
+}
+
+.circleTrack {
+  fill: none;
+  stroke: var(--color-bg-tertiary);
+}
+
+.circleFill {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--duration-moderate) var(--ease-out);
+}
+
+.circleLabel {
+  position: absolute;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+}
+
+.circleLabelSm {
+  font-size: var(--text-xs);
+}
+
+.circleLabelMd {
+  font-size: var(--text-base);
+}
+
+.circleLabelLg {
+  font-size: var(--text-lg);
+}
+
+/* ─── Color Variants ─────────────────────────── */
+.colorAccent {
+  background: var(--color-accent);
+}
+
+.colorSuccess {
+  background: var(--color-success);
+}
+
+.colorWarning {
+  background: var(--color-warning);
+}
+
+.colorDestructive {
+  background: var(--color-destructive);
+}
+
+/* Stroke versions for SVG circles */
+.strokeAccent {
+  stroke: var(--color-accent);
+}
+
+.strokeSuccess {
+  stroke: var(--color-success);
+}
+
+.strokeWarning {
+  stroke: var(--color-warning);
+}
+
+.strokeDestructive {
+  stroke: var(--color-destructive);
+}
+
+/* ─── Reduced Motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .barFill,
+  .circleFill {
+    transition: none;
+  }
+}

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
 import Providers from "@/components/Providers";
+import { themeScript } from "@/components/providers/theme-script";
 
 
 const inter = Inter({
@@ -121,10 +122,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/images/logo.png" />
-        <meta name="theme-color" content="#040916" />
+        <meta name="theme-color" content="#0B0F1A" />
+        {/* Prevent flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -135,7 +138,6 @@ export default function RootLayout({
         <Providers>
           <main id="main-content">{children}</main>
           <CookieConsent />
-
         </Providers>
         <div aria-live="polite" aria-atomic="true" className="sr-only" id="notification-live-region" />
       </body>

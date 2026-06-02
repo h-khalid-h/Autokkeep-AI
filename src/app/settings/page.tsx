@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import Logo from '@/components/ui/Logo';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Input, Skeleton, Tabs } from '@/components/ui';
+import styles from './page.module.css';
 
-// ---- Types ----
+// ─── Types ──────────────────────────────────────────────────────────────────────
 
-type SettingsTab = 'integrations' | 'billing' | 'team' | 'localization';
+
 
 interface OrgData {
   id: string;
@@ -44,37 +45,23 @@ interface ConnectionStatus {
   slack: boolean;
 }
 
+// ─── Skeleton helper ────────────────────────────────────────────────────────────
 
-// ---- Skeleton component ----
-
-function Skeleton({ width, height = '20px' }: { width?: string; height?: string }) {
+function CardSkeletonBlock() {
   return (
-    <div
-      style={{
-        width: width || '100%',
-        height,
-        borderRadius: '6px',
-        background: 'var(--bg-elevated)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}
-    />
+    <Card>
+      <div className={styles.skeletonCardInner}>
+        <Skeleton width="40%" height={24} />
+        <Skeleton width="80%" />
+        <Skeleton width="60%" />
+      </div>
+    </Card>
   );
 }
 
-function CardSkeleton() {
-  return (
-    <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <Skeleton width="40%" height="24px" />
-      <Skeleton width="80%" />
-      <Skeleton width="60%" />
-    </div>
-  );
-}
-
-// ---- Main Page ----
+// ─── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('integrations');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -243,97 +230,71 @@ export default function SettingsPage() {
     void fetchData();
   }, [fetchData]);
 
-  const tabs: { id: SettingsTab; label: string; icon: string }[] = [
-    { id: 'integrations', label: 'Integrations', icon: '🔌' },
-    { id: 'billing', label: 'Billing', icon: '💳' },
-    { id: 'team', label: 'Team', icon: '👥' },
-    { id: 'localization', label: 'Localization', icon: '🌍' },
-  ];
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header className="dashboard-header">
-        <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <nav style={{ display: 'flex', gap: '8px' }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-ghost'} btn-sm`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </nav>
-        <Link href="/dashboard" className="btn btn-ghost btn-sm">
-          ← Back to Dashboard
-        </Link>
-      </header>
-
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 32px)', maxWidth: '900px' }}>
-        <h1 className="text-h2" style={{ marginBottom: '32px' }}>
+    <AppShell>
+      <div className={styles.page}>
+        <h1 className={styles.pageTitle}>
           Settings
           {orgData && (
-            <span className="text-caption" style={{ marginLeft: '12px', fontWeight: 400 }}>
-              — {orgData.name}
-            </span>
+            <span className={styles.orgName}>— {orgData.name}</span>
           )}
         </h1>
 
         {error && (
-          <div className="card" style={{ padding: '16px', marginBottom: '24px', borderLeft: '4px solid var(--destructive)' }}>
-            <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {error}</div>
-          </div>
+          <Card className={styles.errorBanner} padding="sm">
+            <span className={styles.errorText}>⚠️ {error}</span>
+          </Card>
         )}
 
-        {activeTab === 'integrations' && (
-          <IntegrationsTab
-            loading={loading}
-            entities={entities}
-            connections={connections}
-            onRefresh={fetchData}
-          />
-        )}
-        {activeTab === 'billing' && (
-          <BillingTab
-            loading={loading}
-            orgId={orgData?.id || ''}
-            userEmail={userEmail}
-            subscription={subscription}
-            entityCount={entities.length}
-            transactionCount={transactionCount}
-            hitlCount={hitlCount}
-          />
-        )}
-        {activeTab === 'team' && (
-          <TeamTab
-            loading={loading}
-            orgId={orgData?.id || ''}
-            userId={userId}
-            userRole={userRole}
-            teamMembers={teamMembers}
-            onRefresh={fetchData}
-          />
-        )}
-        {activeTab === 'localization' && (
-          <LocalizationTab
-            loading={loading}
-            entities={entities}
-          />
-        )}
-      </main>
+        <Tabs defaultValue="integrations">
+          <Tabs.List>
+            <Tabs.Tab value="integrations">🔌 Integrations</Tabs.Tab>
+            <Tabs.Tab value="billing">💳 Billing</Tabs.Tab>
+            <Tabs.Tab value="team">👥 Team</Tabs.Tab>
+            <Tabs.Tab value="localization">🌍 Localization</Tabs.Tab>
+          </Tabs.List>
 
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+          <Tabs.Panel value="integrations">
+            <IntegrationsTab
+              loading={loading}
+              entities={entities}
+              connections={connections}
+              onRefresh={fetchData}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="billing">
+            <BillingTab
+              loading={loading}
+              orgId={orgData?.id || ''}
+              userEmail={userEmail}
+              subscription={subscription}
+              entityCount={entities.length}
+              transactionCount={transactionCount}
+              hitlCount={hitlCount}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="team">
+            <TeamTab
+              loading={loading}
+              orgId={orgData?.id || ''}
+              userId={userId}
+              userRole={userRole}
+              teamMembers={teamMembers}
+              onRefresh={fetchData}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="localization">
+            <LocalizationTab
+              loading={loading}
+              entities={entities}
+            />
+          </Tabs.Panel>
+        </Tabs>
+      </div>
+    </AppShell>
   );
 }
 
@@ -574,68 +535,66 @@ function IntegrationsTab({
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        <CardSkeleton />
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className={styles.skeletonStack}>
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className={styles.tabContent}>
       {actionError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
-          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {actionError}</div>
-        </div>
+        <Card className={styles.errorBanner} padding="sm">
+          <span className={styles.errorText}>⚠️ {actionError}</span>
+        </Card>
       )}
 
       {integrations.map((category) => (
         <div key={category.category}>
-          <h3 className="text-h4" style={{ marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {category.category}
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3 className={styles.categoryTitle}>{category.category}</h3>
+          <div className={styles.categoryList}>
             {category.items.map((item) => {
               const status = getStatus(item.name);
               const handler = getHandler(item.name);
               const isItemLoading = actionLoading === item.name.toLowerCase().replace(/\s.*/, '');
 
               return (
-                <div key={item.name} className="card" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '20px',
-                }}>
-                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>{item.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div className="text-h4">{item.name}</div>
-                    <div className="text-body" style={{ marginTop: '4px' }}>{item.description}</div>
+                <Card key={item.name} padding="sm">
+                  <div className={styles.integrationRow}>
+                    <div className={styles.integrationIcon}>{item.icon}</div>
+                    <div className={styles.integrationInfo}>
+                      <div className={styles.integrationName}>{item.name}</div>
+                      <div className={styles.integrationDesc}>{item.description}</div>
+                    </div>
+                    <div className={styles.integrationActions}>
+                      {status === 'configured' && (
+                        <Badge variant="success">Connected</Badge>
+                      )}
+                      {handler ? (
+                        <Button
+                          variant={status === 'configured' ? 'ghost' : 'primary'}
+                          size="sm"
+                          onClick={handler}
+                          disabled={isItemLoading}
+                          isLoading={isItemLoading}
+                        >
+                          {status === 'configured' ? 'Manage' : item.action}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled
+                          className={styles.comingSoon}
+                        >
+                          Coming Soon
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                    {status === 'configured' && (
-                      <span className="badge badge-success">Connected</span>
-                    )}
-                    {handler ? (
-                      <button
-                        onClick={handler}
-                        disabled={isItemLoading}
-                        className={`btn ${status === 'configured' ? 'btn-ghost' : 'btn-primary'} btn-sm`}
-                      >
-                        {isItemLoading ? '...' : status === 'configured' ? 'Manage' : item.action}
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        disabled
-                        style={{ opacity: 0.5 }}
-                      >
-                        Coming Soon
-                      </button>
-                    )}
-                  </div>
-                </div>
+                </Card>
               );
             })}
           </div>
@@ -750,70 +709,78 @@ function BillingTab({
 
   if (pageLoading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <CardSkeleton />
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className={styles.skeletonStack}>
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className={styles.tabContent}>
       {billingError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
-          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {billingError}</div>
-        </div>
+        <Card className={styles.errorBanner} padding="sm">
+          <span className={styles.errorText}>⚠️ {billingError}</span>
+        </Card>
       )}
+
       {/* Current Plan */}
-      <div className="card-elevated" style={{ padding: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Card variant="elevated" padding="lg">
+        <div className={styles.billingPlanHeader}>
           <div>
-            <div className="text-caption" style={{ marginBottom: '4px' }}>Current Plan</div>
-            <div className="text-h3">{planName}</div>
-            <div className="text-body" style={{ marginTop: '4px' }}>{planDescription}</div>
+            <div className={styles.planLabel}>Current Plan</div>
+            <div className={styles.planName}>{planName}</div>
+            <div className={styles.planDescription}>{planDescription}</div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={handlePortal} disabled={loading || !orgId}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handlePortal}
+            disabled={loading || !orgId}
+          >
             Manage Subscription
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Usage */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Usage This Period</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Usage This Period</h2>
+        <div className={styles.usageGrid}>
           <div>
-            <div className="stat-value" style={{ fontSize: '1.5rem' }}>{entityCount}/{entityLimit}</div>
-            <div className="text-caption">Entities</div>
+            <div className={styles.usageValue}>{entityCount}/{entityLimit}</div>
+            <div className={styles.usageLabel}>Entities</div>
           </div>
           <div>
-            <div className="stat-value" style={{ fontSize: '1.5rem' }}>{transactionCount}</div>
-            <div className="text-caption">Transactions Processed</div>
+            <div className={styles.usageValue}>{transactionCount}</div>
+            <div className={styles.usageLabel}>Transactions Processed</div>
           </div>
           <div>
-            <div className="stat-value" style={{ fontSize: '1.5rem' }}>{hitlCount}</div>
-            <div className="text-caption">HITL Reviews</div>
+            <div className={styles.usageValue}>{hitlCount}</div>
+            <div className={styles.usageLabel}>HITL Reviews</div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Upgrade */}
-      <div className="card-accent" style={{ padding: '24px', textAlign: 'center' }}>
-        <div className="text-h4" style={{ marginBottom: '8px' }}>Ready to Scale?</div>
-        <div className="text-body" style={{ marginBottom: '16px' }}>Upgrade to unlock unlimited entities and advanced features.</div>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => handleCheckout('starter')} disabled={loading}>
-            Starter — $29/mo
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={() => handleCheckout('growth')} disabled={loading}>
-            Growth — $99/mo
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => handleCheckout('pro')} disabled={loading}>
-            Pro — $299/mo
-          </button>
+      <Card variant="accent">
+        <div className={styles.textCenter}>
+          <div className={styles.upgradeTitle}>Ready to Scale?</div>
+          <div className={styles.upgradeDesc}>Upgrade to unlock unlimited entities and advanced features.</div>
+          <div className={styles.upgradeBtns}>
+            <Button variant="secondary" size="sm" onClick={() => handleCheckout('starter')} disabled={loading}>
+              Starter — $29/mo
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => handleCheckout('growth')} disabled={loading}>
+              Growth — $99/mo
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => handleCheckout('pro')} disabled={loading}>
+              Pro — $299/mo
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -921,31 +888,29 @@ function TeamTab({
 
   if (pageLoading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className={styles.skeletonStack}>
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className={styles.tabContent}>
       {actionError && (
-        <div className="card" style={{ padding: '12px 16px', borderLeft: '4px solid var(--destructive)' }}>
-          <div className="text-body" style={{ color: 'var(--destructive)' }}>⚠️ {actionError}</div>
-        </div>
+        <Card className={styles.errorBanner} padding="sm">
+          <span className={styles.errorText}>⚠️ {actionError}</span>
+        </Card>
       )}
 
       {/* Invite Form */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Invite Team Member</div>
-        <form onSubmit={handleInvite} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="invite-email" className="text-caption" style={{ display: 'block', marginBottom: '4px' }}>Email</label>
-            <input
-              id="invite-email"
+      <Card>
+        <h2 className={styles.sectionTitle}>Invite Team Member</h2>
+        <form onSubmit={handleInvite} className={styles.inviteForm}>
+          <div className={styles.inviteEmailField}>
+            <Input
+              label="Email"
               type="email"
-              className="input"
               placeholder="colleague@firm.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -953,27 +918,33 @@ function TeamTab({
               disabled={!canManageTeam}
             />
           </div>
-          <div style={{ width: '180px' }}>
-            <label htmlFor="invite-role" className="text-caption" style={{ display: 'block', marginBottom: '4px' }}>Role</label>
-            <select id="invite-role" className="input" value={role} onChange={(e) => setRole(e.target.value)} disabled={!canManageTeam}>
-              <option value="admin">Admin</option>
-              <option value="accountant">Accountant</option>
-              <option value="viewer">Viewer</option>
+          <div className={styles.inviteRoleField}>
+            <label htmlFor="invite-role" className={styles.fieldLabel}>Role</label>
+            <select
+              id="invite-role"
+              className={styles.select}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={!canManageTeam}
+            >
+              <option value="admin" className={styles.selectOption}>Admin</option>
+              <option value="accountant" className={styles.selectOption}>Accountant</option>
+              <option value="viewer" className={styles.selectOption}>Viewer</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={inviteLoading || !canManageTeam}>
-            {inviteLoading ? '...' : 'Invite'}
-          </button>
+          <Button type="submit" variant="primary" size="sm" disabled={inviteLoading || !canManageTeam} isLoading={inviteLoading}>
+            Invite
+          </Button>
         </form>
-        <p className="text-caption" style={{ marginTop: '8px' }}>
+        <p className={styles.inviteHint}>
           💡 {userRole === 'owner' || userRole === 'admin' ? 'Seat limits vary by plan: Starter (3 seats), Growth (10 seats), Pro (unlimited).' : 'Contact your admin for seat availability.'}
         </p>
-      </div>
+      </Card>
 
       {/* Team Members */}
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '16px' }}>Team Members</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Team Members</h2>
+        <div className={styles.memberList}>
           {teamMembers.map((member) => {
             const isCurrentUser = member.user_id === userId;
             const isAccepted = !!member.accepted_at;
@@ -983,43 +954,37 @@ function TeamTab({
             const displayEmail = member.user_email || member.invited_email || '';
 
             return (
-              <div key={member.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 0',
-                borderBottom: '1px solid var(--border-primary)',
-              }}>
+              <div key={member.id} className={styles.memberRow}>
                 <div>
-                  <div className="text-body" style={{ fontWeight: 600 }}>
+                  <div className={styles.memberName}>
                     {displayName}{isCurrentUser ? ` (${member.role})` : ''}
                   </div>
-                  <div className="text-caption">{displayEmail}</div>
+                  <div className={styles.memberEmail}>{displayEmail}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={`badge ${isAccepted ? 'badge-success' : 'badge-warning'}`}>
+                <div className={styles.memberActions}>
+                  <Badge variant={isAccepted ? 'success' : 'warning'}>
                     {isAccepted ? member.role : 'Pending'}
-                  </span>
+                  </Badge>
                   {member.role !== 'owner' && !isCurrentUser && canManageTeam && (
-                    <button
-                      className="btn btn-ghost btn-sm"
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleRemove(member.id)}
                       disabled={removeLoading === member.id}
+                      isLoading={removeLoading === member.id}
                     >
-                      {removeLoading === member.id ? '...' : 'Remove'}
-                    </button>
+                      Remove
+                    </Button>
                   )}
                 </div>
               </div>
             );
           })}
           {teamMembers.length === 0 && (
-            <div className="text-body" style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>
-              No team members found.
-            </div>
+            <div className={styles.emptyText}>No team members found.</div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -1170,56 +1135,42 @@ function LocalizationTab({
 
   if (pageLoading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className={styles.skeletonStack}>
+        <CardSkeletonBlock />
+        <CardSkeletonBlock />
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className={styles.tabContent}>
       {saveResult && (
-        <div
-          className="card"
-          style={{
-            padding: '12px 16px',
-            borderLeft: `4px solid ${saveResult.type === 'success' ? 'var(--success)' : 'var(--destructive)'}`,
-          }}
-        >
-          <div
-            className="text-body"
-            style={{
-              color: saveResult.type === 'success' ? 'var(--success)' : 'var(--destructive)',
-            }}
-          >
+        <Card className={saveResult.type === 'success' ? styles.resultSuccess : styles.resultError} padding="sm">
+          <span className={saveResult.type === 'success' ? styles.resultSuccessText : styles.resultErrorText}>
             {saveResult.type === 'success' ? '✅' : '⚠️'} {saveResult.message}
-          </div>
-        </div>
+          </span>
+        </Card>
       )}
 
-      <div className="card" style={{ padding: '24px' }}>
-        <div className="text-h4" style={{ marginBottom: '8px' }}>Regional Settings</div>
-        <p className="text-caption" style={{ marginBottom: '24px' }}>
+      <Card>
+        <h2 className={styles.sectionTitle}>Regional Settings</h2>
+        <p className={styles.localeDescription}>
           Configure currency, country, and timezone for accurate financial reporting and localization.
         </p>
 
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSave} className={styles.localeForm}>
           {/* Entity Selector (if multiple entities) */}
           {entities.length > 1 && (
             <div>
-              <label htmlFor="locale-entity" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                Entity
-              </label>
+              <label htmlFor="locale-entity" className={styles.fieldLabel}>Entity</label>
               <select
                 id="locale-entity"
-                className="input"
+                className={styles.select}
                 value={selectedEntityId}
                 onChange={(e) => setSelectedEntityId(e.target.value)}
-                style={{ width: '100%' }}
               >
                 {entities.map((entity) => (
-                  <option key={entity.id} value={entity.id} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                  <option key={entity.id} value={entity.id} className={styles.selectOption}>
                     {entity.name}
                   </option>
                 ))}
@@ -1229,89 +1180,80 @@ function LocalizationTab({
 
           {/* Base Currency */}
           <div>
-            <label htmlFor="base-currency" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-              Base Currency
-            </label>
+            <label htmlFor="base-currency" className={styles.fieldLabel}>Base Currency</label>
             <select
               id="base-currency"
-              className="input"
+              className={styles.select}
               value={baseCurrency}
               onChange={(e) => setBaseCurrency(e.target.value)}
-              style={{ width: '100%' }}
             >
               {SUPPORTED_CURRENCIES.map((curr) => (
-                <option key={curr.code} value={curr.code} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                <option key={curr.code} value={curr.code} className={styles.selectOption}>
                   {curr.symbol} {curr.code} — {curr.name}
                 </option>
               ))}
             </select>
-            <p className="text-caption" style={{ marginTop: '4px' }}>
+            <p className={styles.helperText}>
               All monetary values will be displayed in this currency. Multi-currency transactions will be converted automatically.
             </p>
           </div>
 
           {/* Country */}
           <div>
-            <label htmlFor="country" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-              Country
-            </label>
+            <label htmlFor="country" className={styles.fieldLabel}>Country</label>
             <select
               id="country"
-              className="input"
+              className={styles.select}
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              style={{ width: '100%' }}
             >
               {SUPPORTED_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                <option key={c.code} value={c.code} className={styles.selectOption}>
                   {c.name} ({c.code})
                 </option>
               ))}
             </select>
-            <p className="text-caption" style={{ marginTop: '4px' }}>
+            <p className={styles.helperText}>
               Determines tax rules, date formats, and regulatory compliance defaults.
             </p>
           </div>
 
           {/* Timezone */}
           <div>
-            <label htmlFor="timezone" className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-              Timezone
-            </label>
+            <label htmlFor="timezone" className={styles.fieldLabel}>Timezone</label>
             <select
               id="timezone"
-              className="input"
+              className={styles.select}
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              style={{ width: '100%' }}
             >
               {SUPPORTED_TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                <option key={tz.value} value={tz.value} className={styles.selectOption}>
                   {tz.label}
                 </option>
               ))}
             </select>
-            <p className="text-caption" style={{ marginTop: '4px' }}>
+            <p className={styles.helperText}>
               Used for transaction timestamps, report generation times, and scheduled jobs.
             </p>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={saving || !selectedEntityId} style={{ alignSelf: 'flex-start', marginTop: '8px' }}>
-            {saving ? 'Saving…' : 'Save Localization Settings'}
-          </button>
+          <Button type="submit" variant="primary" disabled={saving || !selectedEntityId} isLoading={saving}>
+            Save Localization Settings
+          </Button>
         </form>
-      </div>
+      </Card>
 
       {/* Info card */}
-      <div className="card-accent" style={{ padding: '20px 24px' }}>
-        <div className="text-h4" style={{ marginBottom: '8px' }}>💡 About Localization</div>
-        <div className="text-body" style={{ lineHeight: 1.7 }}>
+      <Card variant="accent">
+        <div className={styles.infoTitle}>💡 About Localization</div>
+        <div className={styles.infoBody}>
           Localization settings affect how financial data is displayed across the platform.
           Changing the base currency will not retroactively convert existing transactions — it sets
           the default for new transactions and report formatting. Multi-currency support automatically
           converts foreign currency transactions at the exchange rate at the time of import.
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

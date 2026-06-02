@@ -1,0 +1,43 @@
+/* ============================================
+   SOCIAL PROOF — Trust bar
+   ============================================ */
+
+.section {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.trustText {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--tracking-wide);
+  margin: 0;
+}
+
+.trustHighlight {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.divider {
+  width: 48px;
+  height: 1px;
+  background: var(--color-border-strong);
+  margin: var(--space-6) auto 0;
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .trustText {
+    font-size: var(--text-sm);
+  }
+}

@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getSupportedCurrencies } from '@/lib/currency/converter';
 import Logo from '@/components/ui/Logo';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Progress } from '@/components/ui/Progress';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import styles from './page.module.css';
 
 const ONBOARDING_STORAGE_KEY = 'autokkeep_onboarding_state';
 
@@ -461,136 +466,82 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <div className={styles.page}>
       {/* Header */}
-      <header style={{
-        padding: '20px 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-primary)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <header className={styles.header}>
+        <div className={styles.headerBrand}>
           <Logo size={36} />
-          <span className="text-gradient" style={{ fontSize: '18px', fontWeight: 700 }}>
-            Autokkeep Setup
-          </span>
+          <span className={styles.headerTitle}>Autokkeep Setup</span>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard')}>Skip for now →</button>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
+          Skip for now →
+        </Button>
       </header>
 
       {/* Progress Bar */}
-      <div style={{ padding: '0 32px', marginTop: '24px' }}>
-        <div
-          role="progressbar"
-          aria-valuenow={currentIndex}
-          aria-valuemin={0}
-          aria-valuemax={STEPS.length - 1}
-          aria-label={`Onboarding progress: step ${currentIndex + 1} of ${STEPS.length}`}
-          style={{
-            height: '4px', borderRadius: '2px',
-            background: 'rgba(255, 255, 255, 0.05)', overflow: 'hidden',
-          }}
-        >
-          <div style={{
-            height: '100%', borderRadius: '2px',
-            background: 'var(--accent-gradient)',
-            width: `${progress}%`,
-            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: '0 0 10px rgba(0, 245, 255, 0.5)',
-          }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
+      <div className={styles.progressArea}>
+        <Progress variant="bar" value={progress} />
+        <div className={styles.stepIndicators}>
           {STEPS.map((step, i) => (
             <div
               key={step.id}
+              className={styles.stepIndicator}
               aria-current={i === currentIndex ? 'step' : undefined}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                opacity: i <= currentIndex ? 1 : 0.35,
-                transition: 'opacity 0.3s ease',
-              }}
+              data-state={i === currentIndex ? 'current' : i < currentIndex ? 'past' : 'future'}
             >
-              <span style={{ fontSize: '14px' }}>{step.icon}</span>
-              <span className="text-caption" style={{
-                fontWeight: i === currentIndex ? 700 : 400,
-                color: i === currentIndex ? 'var(--text-primary)' : 'var(--text-secondary)',
-                textShadow: i === currentIndex ? '0 0 10px rgba(1, 95, 253, 0.3)' : 'none',
-              }}>{step.title}</span>
+              <span className={styles.stepIcon}>{step.icon}</span>
+              <span className={styles.stepLabel}>{step.title}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Content */}
-      <div
-        aria-live="polite"
-        style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '48px 32px',
-        }}
-      >
-        <div style={{ maxWidth: '560px', width: '100%' }}>
+      <div className={styles.content} aria-live="polite">
+        <div className={styles.contentInner}>
 
           {/* Error Banner */}
           {error && (
-            <div style={{
-              padding: '12px 16px',
-              marginBottom: '20px',
-              borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: 'var(--destructive)',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
+            <div className={styles.errorBanner}>
               <span>⚠️</span>
               <span>{error}</span>
               <button
+                className={styles.errorDismiss}
                 onClick={() => setError(null)}
-                style={{
-                  marginLeft: 'auto', background: 'none', border: 'none',
-                  color: 'inherit', cursor: 'pointer', fontSize: '16px',
-                }}
-              >×</button>
+                aria-label="Dismiss error"
+              >
+                ×
+              </button>
             </div>
           )}
 
           {/* Welcome Step */}
           {currentStep === 'welcome' && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '24px' }}>👋</div>
-              <h1 className="text-h1" style={{ marginBottom: '16px' }}>Welcome to Autokkeep</h1>
-              <p className="text-body" style={{ marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>
+            <div className={styles.welcomeWrapper}>
+              <span className={styles.welcomeEmoji}>👋</span>
+              <h1 className={styles.welcomeHeading}>Welcome to Autokkeep</h1>
+              <p className={styles.welcomeDescription}>
                 Let&apos;s get your AI financial operations running in under 5 minutes.
                 We&apos;ll connect your bank, your ledger, and your preferred communication channel.
               </p>
-              <button className="btn btn-primary btn-lg" onClick={goNext} aria-label="Start onboarding">
+              <Button variant="primary" size="lg" onClick={goNext} aria-label="Start onboarding">
                 Let&apos;s Get Started →
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Entity Step */}
           {currentStep === 'entity' && (
             <div role="form" aria-label="Create entity">
-              <h2 className="text-h2" style={{ marginBottom: '8px' }}>🏢 Create Your Entity</h2>
-              <p className="text-body" style={{ marginBottom: '32px' }}>
+              <h2 className={styles.stepHeading}>🏢 Create Your Entity</h2>
+              <p className={styles.stepDescription}>
                 An entity represents a company or business you&apos;re managing finances for.
               </p>
-              <div className="card" style={{ padding: '32px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <label htmlFor="entity-name" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Entity Name</label>
-                  <input
+              <Card variant="elevated" padding="lg">
+                <div className={styles.fieldGroup}>
+                  <Input
                     id="entity-name"
-                    className="input"
+                    label="Entity Name"
                     type="text"
                     placeholder="e.g. Acme Corp, My Startup LLC"
                     value={entityName}
@@ -598,11 +549,11 @@ export default function OnboardingPage() {
                     disabled={loading}
                   />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label htmlFor="entity-currency" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Base Currency</label>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="entity-currency" className={styles.selectLabel}>Base Currency</label>
                   <select
                     id="entity-currency"
-                    className="input"
+                    className={styles.select}
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
                     disabled={loading}
@@ -614,11 +565,11 @@ export default function OnboardingPage() {
                     <option value="CAD">CAD — Canadian Dollar</option>
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="entity-fiscal-year" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Fiscal Year End</label>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="entity-fiscal-year" className={styles.selectLabel}>Fiscal Year End</label>
                   <select
                     id="entity-fiscal-year"
-                    className="input"
+                    className={styles.select}
                     value={fiscalYearEnd}
                     onChange={(e) => setFiscalYearEnd(e.target.value)}
                     disabled={loading}
@@ -630,17 +581,20 @@ export default function OnboardingPage() {
                     <option value="9">September</option>
                   </select>
                 </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">← Back</button>
-                <button
-                  className="btn btn-primary"
+              </Card>
+              <div className={styles.navButtons}>
+                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
+                  ← Back
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleCreateEntity}
                   disabled={!entityName.trim() || loading}
+                  isLoading={loading}
                   aria-label="Create entity and continue"
                 >
-                  {loading ? '⏳ Creating…' : 'Continue →'}
-                </button>
+                  {loading ? 'Creating…' : 'Continue →'}
+                </Button>
               </div>
             </div>
           )}
@@ -648,20 +602,19 @@ export default function OnboardingPage() {
           {/* Region Step */}
           {currentStep === 'region' && (
             <div role="form" aria-label="Set your region">
-              <h2 className="text-h2" style={{ marginBottom: '8px' }}>🌍 Set Your Region</h2>
-              <p className="text-body" style={{ marginBottom: '32px' }}>
+              <h2 className={styles.stepHeading}>🌍 Set Your Region</h2>
+              <p className={styles.stepDescription}>
                 Configure your country, currency, and timezone for accurate financial reporting.
               </p>
-              <div className="card" style={{ padding: '32px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <label htmlFor="region-country" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Country</label>
+              <Card variant="elevated" padding="lg">
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="region-country" className={styles.selectLabel}>Country</label>
                   <select
                     id="region-country"
-                    className="input"
+                    className={styles.select}
                     value={regionCountry}
                     onChange={(e) => setRegionCountry(e.target.value)}
                     disabled={loading}
-                    style={{ width: '100%' }}
                     aria-label="Select your country"
                   >
                     {SUPPORTED_COUNTRIES.map((c) => (
@@ -669,55 +622,56 @@ export default function OnboardingPage() {
                     ))}
                   </select>
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label htmlFor="region-currency" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Base Currency</label>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="region-currency" className={styles.selectLabel}>Base Currency</label>
                   <select
                     id="region-currency"
-                    className="input"
+                    className={styles.select}
                     value={regionCurrency}
                     onChange={(e) => setRegionCurrency(e.target.value)}
                     disabled={loading}
-                    style={{ width: '100%' }}
                     aria-label="Select your base currency"
                   >
                     {supportedCurrencies.map((curr) => (
                       <option key={curr.code} value={curr.code}>{curr.symbol} {curr.code} — {curr.name}</option>
                     ))}
                   </select>
-                  <p className="text-caption" style={{ marginTop: '4px' }}>
+                  <p className={styles.helperText}>
                     All monetary values will be displayed in this currency.
                   </p>
                 </div>
-                <div>
-                  <label htmlFor="region-timezone" className="text-caption" style={{ display: 'block', marginBottom: '8px' }}>Timezone</label>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="region-timezone" className={styles.selectLabel}>Timezone</label>
                   <select
                     id="region-timezone"
-                    className="input"
+                    className={styles.select}
                     value={regionTimezone}
                     onChange={(e) => setRegionTimezone(e.target.value)}
                     disabled={loading}
-                    style={{ width: '100%' }}
                     aria-label="Select your timezone"
                   >
                     {SUPPORTED_TIMEZONES.map((tz) => (
                       <option key={tz.value} value={tz.value}>{tz.label}</option>
                     ))}
                   </select>
-                  <p className="text-caption" style={{ marginTop: '4px' }}>
+                  <p className={styles.helperText}>
                     Used for transaction timestamps and report scheduling.
                   </p>
                 </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">← Back</button>
-                <button
-                  className="btn btn-primary"
+              </Card>
+              <div className={styles.navButtons}>
+                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
+                  ← Back
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleSaveRegion}
                   disabled={loading}
+                  isLoading={loading}
                   aria-label="Save region settings and continue"
                 >
-                  {loading ? '⏳ Saving…' : 'Continue →'}
-                </button>
+                  {loading ? 'Saving…' : 'Continue →'}
+                </Button>
               </div>
             </div>
           )}
@@ -725,56 +679,60 @@ export default function OnboardingPage() {
           {/* Bank Step */}
           {currentStep === 'bank' && (
             <div>
-              <h2 className="text-h2" style={{ marginBottom: '8px' }}>🏦 Connect Your Bank</h2>
-              <p className="text-body" style={{ marginBottom: '32px' }}>
+              <h2 className={styles.stepHeading}>🏦 Connect Your Bank</h2>
+              <p className={styles.stepDescription}>
                 We use Plaid to securely connect to your bank. Your credentials are never stored on our servers.
               </p>
-              <div className="card" style={{ padding: '32px', textAlign: 'center' }}>
+              <Card variant="elevated" padding="lg" className={styles.bankCenter}>
                 {bankConnected ? (
                   <>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
-                    <p className="text-body" style={{ marginBottom: '8px', color: 'var(--success)' }}>
+                    <span className={styles.bankEmoji}>✅</span>
+                    <p className={styles.bankSuccessText}>
                       Bank account connected successfully!
                     </p>
-                    <p className="text-caption">
+                    <p className={styles.bankCaption}>
                       Autokkeep will begin importing transactions shortly.
                     </p>
                   </>
                 ) : bankLinkToken ? (
                   <>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔗</div>
-                    <p className="text-body" style={{ marginBottom: '16px' }}>
+                    <span className={styles.bankEmoji}>🔗</span>
+                    <p className={styles.bankBody}>
                       Plaid Link is opening…
                     </p>
-                    <p className="text-caption">
+                    <p className={styles.bankCaption}>
                       If the window didn&apos;t open, please check your pop-up blocker.
                     </p>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔒</div>
-                    <p className="text-body" style={{ marginBottom: '24px' }}>
+                    <span className={styles.bankEmoji}>🔒</span>
+                    <p className={styles.bankBody}>
                       Click below to open Plaid Link and connect your bank accounts.
                       Autokkeep will automatically import and categorize your transactions.
                     </p>
-                    <button
-                      className="btn btn-primary btn-lg"
+                    <Button
+                      variant="primary"
+                      size="lg"
                       onClick={handleConnectBank}
                       disabled={loading}
+                      isLoading={loading}
                     >
-                      {loading ? '⏳ Connecting…' : '🏦 Connect Bank Account'}
-                    </button>
-                    <p className="text-caption" style={{ marginTop: '16px' }}>
+                      {loading ? 'Connecting…' : '🏦 Connect Bank Account'}
+                    </Button>
+                    <p className={styles.bankSupportedText}>
                       Supported: Chase, Bank of America, Wells Fargo, Capital One, and 12,000+ more
                     </p>
                   </>
                 )}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">← Back</button>
-                <button className="btn btn-ghost" onClick={goNext} aria-label={bankConnected ? 'Continue to next step' : 'Skip bank connection'}>
+              </Card>
+              <div className={styles.navButtons}>
+                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
+                  ← Back
+                </Button>
+                <Button variant="ghost" onClick={goNext} aria-label={bankConnected ? 'Continue to next step' : 'Skip bank connection'}>
                   {bankConnected ? 'Continue →' : 'Skip for now →'}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -782,11 +740,11 @@ export default function OnboardingPage() {
           {/* Ledger Step */}
           {currentStep === 'ledger' && (
             <div>
-              <h2 className="text-h2" style={{ marginBottom: '8px' }}>📗 Connect Your Ledger</h2>
-              <p className="text-body" style={{ marginBottom: '32px' }}>
+              <h2 className={styles.stepHeading}>📗 Connect Your Ledger</h2>
+              <p className={styles.stepDescription}>
                 Choose your accounting software. We&apos;ll sync your Chart of Accounts and push journal entries automatically.
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className={styles.ledgerList}>
                 {[
                   { id: 'quickbooks', name: 'QuickBooks Online', icon: '📗', desc: 'Most popular for US businesses' },
                   { id: 'xero', name: 'Xero', icon: '📘', desc: 'Popular worldwide, especially UK/AU' },
@@ -794,50 +752,39 @@ export default function OnboardingPage() {
                 ].map((ledger) => (
                   <button
                     key={ledger.id}
-                    className="card"
+                    className={styles.ledgerOption}
                     onClick={() => setSelectedLedger(ledger.id)}
                     disabled={loading}
-                    style={{
-                      padding: '20px',
-                      display: 'flex', alignItems: 'center', gap: '16px',
-                      cursor: 'pointer', textAlign: 'left', width: '100%',
-                      border: '1px solid transparent',
-                      borderColor: selectedLedger === ledger.id
-                        ? 'var(--accent-secondary)'
-                        : 'var(--border-primary)',
-                      boxShadow: selectedLedger === ledger.id
-                        ? '0 0 20px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(1, 95, 253, 0.1)'
-                        : 'none',
-                      background: selectedLedger === ledger.id
-                        ? 'rgba(1, 95, 253, 0.04)'
-                        : 'var(--bg-glass)',
-                      transform: selectedLedger === ledger.id ? 'translateY(-1px)' : 'none',
-                      transition: 'all var(--duration-normal) var(--ease-out)',
-                    }}
+                    data-selected={selectedLedger === ledger.id ? 'true' : 'false'}
                   >
-                    <span style={{ fontSize: '2rem' }}>{ledger.icon}</span>
-                    <div>
-                      <div className="text-h4">{ledger.name}</div>
-                      <div className="text-caption">{ledger.desc}</div>
+                    <span className={styles.ledgerIcon}>{ledger.icon}</span>
+                    <div className={styles.ledgerInfo}>
+                      <div className={styles.ledgerName}>{ledger.name}</div>
+                      <div className={styles.ledgerDesc}>{ledger.desc}</div>
                     </div>
                     {selectedLedger === ledger.id && (
-                      <span style={{ marginLeft: 'auto', color: 'var(--success)' }}>✓</span>
+                      <span className={styles.ledgerCheck}>✓</span>
                     )}
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">← Back</button>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-ghost" onClick={goNext} aria-label="Skip ledger connection">Skip →</button>
-                  <button
-                    className="btn btn-primary"
+              <div className={styles.navButtons}>
+                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
+                  ← Back
+                </Button>
+                <div className={styles.navButtonsRight}>
+                  <Button variant="ghost" onClick={goNext} aria-label="Skip ledger connection">
+                    Skip →
+                  </Button>
+                  <Button
+                    variant="primary"
                     onClick={handleConnectLedger}
                     disabled={!selectedLedger || loading}
+                    isLoading={loading}
                     aria-label={selectedLedger === 'none' ? 'Continue to next step' : 'Connect ledger and continue'}
                   >
-                    {loading ? '⏳ Connecting…' : selectedLedger === 'none' ? 'Continue →' : 'Connect & Continue →'}
-                  </button>
+                    {loading ? 'Connecting…' : selectedLedger === 'none' ? 'Continue →' : 'Connect & Continue →'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -846,23 +793,11 @@ export default function OnboardingPage() {
           {/* Channel Step */}
           {currentStep === 'channel' && (
             <div>
-              <style jsx>{`
-                .onboarding-channel-grid {
-                  display: grid;
-                  grid-template-columns: 1fr 1fr;
-                  gap: 12px;
-                }
-                @media (max-width: 480px) {
-                  .onboarding-channel-grid {
-                    grid-template-columns: 1fr;
-                  }
-                }
-              `}</style>
-              <h2 className="text-h2" style={{ marginBottom: '8px' }}>💬 Set Up Receipt Chase</h2>
-              <p className="text-body" style={{ marginBottom: '32px' }}>
+              <h2 className={styles.stepHeading}>💬 Set Up Receipt Chase</h2>
+              <p className={styles.stepDescription}>
                 Choose how Autokkeep should reach your team when it needs a receipt or categorization confirmation.
               </p>
-              <div className="onboarding-channel-grid">
+              <div className={styles.channelGrid}>
                 {[
                   { id: 'slack', name: 'Slack', icon: '💬', desc: 'Interactive messages', available: true },
                   { id: 'teams', name: 'Teams', icon: '🟣', desc: 'Adaptive Cards', available: false },
@@ -871,93 +806,70 @@ export default function OnboardingPage() {
                 ].map((channel) => (
                   <button
                     key={channel.id}
-                    className="card"
+                    className={styles.channelOption}
                     onClick={() => channel.available && setSelectedChannel(channel.id)}
                     disabled={loading || !channel.available}
                     aria-label={`Select ${channel.name} as receipt chase channel${!channel.available ? ' (coming soon)' : ''}`}
-                    style={{
-                      padding: '24px',
-                      cursor: channel.available ? 'pointer' : 'not-allowed',
-                      textAlign: 'center',
-                      border: '1px solid transparent',
-                      borderColor: selectedChannel === channel.id
-                        ? 'var(--accent-secondary)'
-                        : 'var(--border-primary)',
-                      boxShadow: selectedChannel === channel.id
-                        ? '0 0 20px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(1, 95, 253, 0.1)'
-                        : 'none',
-                      background: selectedChannel === channel.id
-                        ? 'rgba(1, 95, 253, 0.04)'
-                        : 'var(--bg-glass)',
-                      transform: selectedChannel === channel.id ? 'translateY(-1px)' : 'none',
-                      transition: 'all var(--duration-normal) var(--ease-out), opacity var(--duration-normal) var(--ease-out)',
-                      position: 'relative',
-                      opacity: channel.available ? 1 : 0.5,
-                    }}
+                    data-selected={selectedChannel === channel.id ? 'true' : 'false'}
                   >
                     {!channel.available && (
-                      <span style={{
-                        position: 'absolute', top: '8px', right: '8px',
-                        fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                        background: 'var(--bg-surface)', color: 'var(--text-secondary)',
-                      }}>Coming soon</span>
+                      <span className={styles.channelSoon}>Coming soon</span>
                     )}
-                    <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{channel.icon}</div>
-                    <div className="text-h4">{channel.name}</div>
-                    <div className="text-caption">{channel.desc}</div>
+                    <span className={styles.channelIcon}>{channel.icon}</span>
+                    <div className={styles.channelName}>{channel.name}</div>
+                    <div className={styles.channelDesc}>{channel.desc}</div>
                     {selectedChannel === channel.id && (
-                      <div style={{ color: 'var(--success)', marginTop: '8px' }}>✓ Selected</div>
+                      <div className={styles.channelSelected}>✓ Selected</div>
                     )}
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                <button className="btn btn-ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">← Back</button>
-                <button
-                  className="btn btn-primary"
+              <div className={styles.navButtons}>
+                <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
+                  ← Back
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleSetupChannel}
                   disabled={!selectedChannel || loading}
+                  isLoading={loading}
                   aria-label="Finish channel setup"
                 >
-                  {loading ? '⏳ Setting up…' : 'Finish Setup →'}
-                </button>
+                  {loading ? 'Setting up…' : 'Finish Setup →'}
+                </Button>
               </div>
             </div>
           )}
 
           {/* Complete Step */}
           {currentStep === 'complete' && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: '80px', height: '80px', borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 24px', fontSize: '2.5rem',
-              }}>🚀</div>
-              <h1 className="text-h1" style={{ marginBottom: '16px' }}>You&apos;re All Set!</h1>
-              <p className="text-body" style={{ marginBottom: '12px', maxWidth: '420px', margin: '0 auto 12px' }}>
+            <div className={styles.completeWrapper}>
+              <div className={styles.completeEmojiCircle}>🚀</div>
+              <h1 className={styles.completeHeading}>You&apos;re All Set!</h1>
+              <p className={styles.completeDescription}>
                 {entityName ? `${entityName} is ready to go.` : 'Your entity is ready to go.'}
                 {' '}Autokkeep will now:
               </p>
-              <div className="card" style={{ padding: '24px', textAlign: 'left', marginBottom: '32px' }}>
-                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <li className="text-body">✅ Automatically import new bank transactions</li>
-                  <li className="text-body">✅ Categorize each transaction using the dual-engine AI</li>
-                  <li className="text-body">✅ Auto-approve high-confidence matches (≥95%)</li>
-                  <li className="text-body">✅ Flag exceptions for your review</li>
-                  <li className="text-body">✅ Chase missing receipts via {selectedChannel || 'your channel'}</li>
-                  <li className="text-body">✅ Sync approved entries to {selectedLedger === 'quickbooks' ? 'QuickBooks' : selectedLedger === 'xero' ? 'Xero' : 'your ledger'}</li>
+              <Card variant="elevated" padding="lg" className={styles.completeListCard}>
+                <ul className={styles.completeList}>
+                  <li className={styles.completeListItem}>✅ Automatically import new bank transactions</li>
+                  <li className={styles.completeListItem}>✅ Categorize each transaction using the dual-engine AI</li>
+                  <li className={styles.completeListItem}>✅ Auto-approve high-confidence matches (≥95%)</li>
+                  <li className={styles.completeListItem}>✅ Flag exceptions for your review</li>
+                  <li className={styles.completeListItem}>✅ Chase missing receipts via {selectedChannel || 'your channel'}</li>
+                  <li className={styles.completeListItem}>✅ Sync approved entries to {selectedLedger === 'quickbooks' ? 'QuickBooks' : selectedLedger === 'xero' ? 'Xero' : 'your ledger'}</li>
                 </ul>
-              </div>
-              <button
-                className="btn btn-primary btn-lg"
+              </Card>
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={() => {
                   localStorage.removeItem(ONBOARDING_STORAGE_KEY);
                   router.push('/dashboard');
                 }}
               >
                 Go to Dashboard →
-              </button>
+              </Button>
             </div>
           )}
 

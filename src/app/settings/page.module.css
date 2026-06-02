@@ -1,0 +1,386 @@
+/* ============================================
+   Settings Page Styles
+   ============================================ */
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.orgName {
+  font-weight: var(--weight-normal);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-left: var(--space-3);
+}
+
+/* Error banner */
+.errorBanner {
+  border-left: 4px solid var(--color-destructive);
+}
+
+.errorText {
+  color: var(--color-destructive);
+  font-size: var(--text-base);
+}
+
+/* Tab content */
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Skeleton helpers */
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.skeletonCardInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ============================================
+   INTEGRATIONS TAB
+   ============================================ */
+
+.categoryTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.integrationRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .integrationRow {
+    flex-wrap: wrap;
+  }
+}
+
+.integrationIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.integrationInfo {
+  flex: 1;
+}
+
+.integrationName {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.integrationDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.integrationActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.comingSoon {
+  opacity: 0.5;
+}
+
+/* ============================================
+   BILLING TAB
+   ============================================ */
+
+.billingPlanHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .billingPlanHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+}
+
+.planLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.planName {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.planDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.sectionTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.usageGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .usageGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.usageValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+}
+
+.usageLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.upgradeTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.upgradeDesc {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.upgradeBtns {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   TEAM TAB
+   ============================================ */
+
+.inviteForm {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+@media (max-width: 640px) {
+  .inviteForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.inviteEmailField {
+  flex: 1;
+}
+
+.inviteRoleField {
+  width: 180px;
+}
+
+@media (max-width: 640px) {
+  .inviteRoleField {
+    width: 100%;
+  }
+}
+
+.inviteHint {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-2);
+}
+
+/* Select (shared) */
+.select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.select:hover {
+  border-color: var(--color-border-strong);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.selectOption {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.fieldLabel {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1-5);
+}
+
+/* Team member list */
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .memberRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+
+.memberName {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.memberEmail {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.memberActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emptyText {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  padding: var(--space-3) 0;
+}
+
+/* ============================================
+   LOCALIZATION TAB
+   ============================================ */
+
+.localeForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.helperText {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-1);
+}
+
+.localeDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* Success/error result */
+.resultBanner {
+  padding: var(--space-3) var(--space-4);
+}
+
+.resultSuccess {
+  composes: resultBanner;
+  border-left: 4px solid var(--color-success);
+}
+
+.resultError {
+  composes: resultBanner;
+  border-left: 4px solid var(--color-destructive);
+}
+
+.resultSuccessText {
+  color: var(--color-success);
+  font-size: var(--text-base);
+}
+
+.resultErrorText {
+  color: var(--color-destructive);
+  font-size: var(--text-base);
+}
+
+/* About localization info card */
+.infoTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.infoBody {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.textCenter {
+  text-align: center;
+}

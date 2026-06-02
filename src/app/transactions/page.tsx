@@ -4,8 +4,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
-import Logo from '@/components/ui/Logo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AppShell from '@/components/layout/AppShell';
+import { Button, Card, Badge, Input, Skeleton, EmptyState } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface TransactionRow {
@@ -40,27 +42,32 @@ type StatusFilter = '' | 'pending' | 'human_review' | 'auto_categorized' | 'appr
 
 const PAGE_SIZE = 25;
 
-// ─── Status badge config ────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:          { label: 'Pending',          color: 'var(--warning)',  bg: 'var(--warning-subtle)',      border: 'var(--warning-border)' },
-  human_review:     { label: 'Human Review',     color: '#f97316',        bg: 'rgba(249,115,22,0.12)',      border: 'rgba(249,115,22,0.25)' },
-  auto_categorized: { label: 'Auto-Categorized', color: 'var(--info)',     bg: 'var(--info-subtle)',         border: 'rgba(14,165,233,0.25)' },
-  approved:         { label: 'Approved',         color: 'var(--success)', bg: 'var(--success-subtle)',      border: 'var(--success-border)' },
-  synced:           { label: 'Synced',           color: '#a855f7',        bg: 'rgba(168,85,247,0.12)',      border: 'rgba(168,85,247,0.25)' },
+// ─── Status badge variant map ───────────────────────────────────────────────
+const STATUS_BADGE_MAP: Record<string, { label: string; variant: 'warning' | 'destructive' | 'info' | 'success' | 'accent' | 'default' }> = {
+  pending:          { label: 'Pending',          variant: 'warning' },
+  human_review:     { label: 'Human Review',     variant: 'destructive' },
+  auto_categorized: { label: 'Auto-Categorized', variant: 'info' },
+  approved:         { label: 'Approved',         variant: 'success' },
+  synced:           { label: 'Synced',           variant: 'accent' },
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-// formatCurrency is imported from @/lib/currency/converter
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const getConfidenceVariant = (conf: number): 'destructive' | 'warning' | 'success' => {
+  if (conf < 50) return 'destructive';
+  if (conf < 80) return 'warning';
+  return 'success';
+};
+
 const getConfidenceColor = (conf: number) => {
-  if (conf < 50) return 'var(--destructive)';
-  if (conf < 80) return 'var(--warning)';
-  return 'var(--success)';
+  if (conf < 50) return 'var(--color-destructive)';
+  if (conf < 80) return 'var(--color-warning)';
+  return 'var(--color-success)';
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -95,8 +102,6 @@ export default function TransactionsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-
-
   // Fetch transactions
   const fetchTransactions = useCallback(async () => {
     if (!selectedEntity?.id) return;
@@ -121,11 +126,9 @@ export default function TransactionsPage() {
       const data = await res.json();
       const txns: TransactionRow[] = data.transactions || [];
 
-      // Server handles sorting — no need to sort client-side
       setTransactions(txns);
       setPagination(data.pagination || { total: 0, limit: PAGE_SIZE, offset: page * PAGE_SIZE, hasMore: false });
 
-      // Track whether user has any transactions at all
       if (hasAnyTransactions === null) {
         setHasAnyTransactions(data.pagination?.total > 0 || txns.length > 0);
       }
@@ -148,8 +151,6 @@ export default function TransactionsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage((prev) => prev === 0 ? prev : 0);
   }, [debouncedSearch, statusFilter, dateFrom, dateTo, sort]);
-
-
 
   // Clear filters
   const clearFilters = () => {
@@ -209,488 +210,384 @@ export default function TransactionsPage() {
 
   return (
     <ErrorBoundary componentName="Transactions">
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="dashboard-header">
-        <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <h1 className="text-h3" style={{ margin: 0 }}>Transaction History</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleExport}
-            disabled={isExporting || transactions.length === 0}
-            style={{ opacity: isExporting ? 0.6 : 1 }}
-          >
-            {isExporting ? '⏳ Exporting…' : '📥 Export CSV'}
-          </button>
-          <Link href="/dashboard" className="btn btn-ghost btn-sm">← Dashboard</Link>
-        </div>
-      </header>
+      <AppShell>
+        <div className={styles.page}>
+          {/* ── Header ──────────────────────────────────────────────────── */}
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Transaction History</h1>
+            <div className={styles.headerActions}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting || transactions.length === 0}
+                isLoading={isExporting}
+              >
+                📥 Export CSV
+              </Button>
+            </div>
+          </div>
 
-      {/* ── Main ───────────────────────────────────────────────────────────── */}
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 24px)', maxWidth: '1200px', paddingBottom: '48px' }}>
+          {/* ── Search & Filters ────────────────────────────────────────── */}
+          <Card padding="md">
+            <div className={styles.filtersCard}>
+              <div className={styles.filterRow}>
+                <div className={styles.searchWrapper}>
+                  <span className={styles.searchIcon}>🔍</span>
+                  <Input
+                    placeholder="Search by merchant name…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className={styles.searchInput}
+                  />
+                </div>
+                <select
+                  className={styles.statusSelect}
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="human_review">Human Review</option>
+                  <option value="auto_categorized">Auto-Categorized</option>
+                  <option value="approved">Approved</option>
+                  <option value="synced">Synced</option>
+                </select>
+              </div>
 
-        {/* ── Search & Filters ─────────────────────────────────────────────── */}
-        <div className="card" style={{ padding: '20px', marginBottom: '20px' }}>
-          {/* Row 1: Search + Status */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-            <div style={{ flex: '1 1 280px', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: '14px' }}>🔍</span>
-              <input
-                className="input"
-                type="text"
-                placeholder="Search by merchant name…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: '36px' }}
+              <div className={styles.filterRow}>
+                <div className={styles.dateGroup}>
+                  <span className={styles.dateLabel}>From</span>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)}
+                    className={styles.dateInput}
+                  />
+                </div>
+                <div className={styles.dateGroup}>
+                  <span className={styles.dateLabel}>To</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={e => setDateTo(e.target.value)}
+                    className={styles.dateInput}
+                  />
+                </div>
+                <select
+                  className={styles.sortSelect}
+                  value={sort}
+                  onChange={e => setSort(e.target.value as SortOption)}
+                >
+                  <option value="date_desc">Date (Newest First)</option>
+                  <option value="date_asc">Date (Oldest First)</option>
+                  <option value="amount_desc">Amount (Highest)</option>
+                  <option value="amount_asc">Amount (Lowest)</option>
+                  <option value="confidence_asc">Confidence (Lowest)</option>
+                  <option value="confidence_desc">Confidence (Highest)</option>
+                </select>
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    ✕ Clear Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* ── Summary Stats ──────────────────────────────────────────── */}
+          {!isLoading && transactions.length > 0 && (
+            <div className={styles.statsGrid}>
+              <Card variant="elevated" padding="md" className={styles.statCard}>
+                <span className={styles.statLabel}>Total Transactions</span>
+                <span className={styles.statValue}>{pagination.total.toLocaleString()}</span>
+              </Card>
+              <Card variant="elevated" padding="md" className={styles.statCard}>
+                <span className={styles.statLabel}>Page Amount</span>
+                <span
+                  className={`${styles.statValue} ${styles.statMono}`}
+                  style={{ color: totalAmount < 0 ? 'var(--color-destructive)' : 'var(--color-text-primary)' }}
+                >
+                  {fmtCurrency(totalAmount)}
+                </span>
+              </Card>
+              <Card variant="elevated" padding="md" className={styles.statCard}>
+                <span className={styles.statLabel}>Avg Confidence</span>
+                <span className={styles.statValue} style={{ color: getConfidenceColor(avgConfidence) }}>
+                  {avgConfidence}%
+                </span>
+              </Card>
+              <Card variant="elevated" padding="md" className={styles.statCard}>
+                <span className={styles.statLabel}>Pending Review</span>
+                <span
+                  className={styles.statValue}
+                  style={{ color: pendingCount > 0 ? 'var(--color-warning)' : 'var(--color-success)' }}
+                >
+                  {pendingCount}
+                </span>
+              </Card>
+            </div>
+          )}
+
+          {/* ── Error Banner ───────────────────────────────────────────── */}
+          {error && (
+            <div className={styles.errorBanner} role="alert">
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* ── Loading State ──────────────────────────────────────────── */}
+          {isLoading && (
+            <Card padding="lg">
+              <Skeleton height={20} width="40%" />
+              <Skeleton height={48} count={5} />
+            </Card>
+          )}
+
+          {/* ── Empty State (no transactions at all) ───────────────────── */}
+          {!isLoading && hasAnyTransactions === false && (
+            <Card padding="lg">
+              <EmptyState
+                icon="🏦"
+                title="No Transactions Yet"
+                description="Connect a bank account to start importing transactions and let Autokkeep categorize them automatically."
+                action={
+                  <Button as={Link} href="/onboarding" variant="primary">
+                    Connect Bank Account →
+                  </Button>
+                }
               />
-            </div>
-            <select
-              className="input"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-              style={{ flex: '0 1 200px', cursor: 'pointer' }}
-            >
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="human_review">Human Review</option>
-              <option value="auto_categorized">Auto-Categorized</option>
-              <option value="approved">Approved</option>
-              <option value="synced">Synced</option>
-            </select>
-          </div>
+            </Card>
+          )}
 
-          {/* Row 2: Dates + Sort + Clear */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="text-caption" style={{ whiteSpace: 'nowrap' }}>From</span>
-              <input
-                className="input"
-                type="date"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                style={{ width: '160px' }}
+          {/* ── Empty State (no matches) ───────────────────────────────── */}
+          {!isLoading && hasAnyTransactions !== false && transactions.length === 0 && (
+            <Card padding="lg">
+              <EmptyState
+                icon="🔍"
+                title="No Transactions Found"
+                description="Try adjusting your search or filter criteria."
+                action={
+                  hasFilters ? (
+                    <Button variant="secondary" size="sm" onClick={clearFilters}>
+                      Clear All Filters
+                    </Button>
+                  ) : undefined
+                }
               />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="text-caption" style={{ whiteSpace: 'nowrap' }}>To</span>
-              <input
-                className="input"
-                type="date"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                style={{ width: '160px' }}
-              />
-            </div>
-            <select
-              className="input"
-              value={sort}
-              onChange={e => setSort(e.target.value as SortOption)}
-              style={{ flex: '0 1 220px', cursor: 'pointer' }}
-            >
-              <option value="date_desc">Date (Newest First)</option>
-              <option value="date_asc">Date (Oldest First)</option>
-              <option value="amount_desc">Amount (Highest)</option>
-              <option value="amount_asc">Amount (Lowest)</option>
-              <option value="confidence_asc">Confidence (Lowest)</option>
-              <option value="confidence_desc">Confidence (Highest)</option>
-            </select>
-            {hasFilters && (
-              <button className="btn btn-ghost btn-sm" onClick={clearFilters} style={{ whiteSpace: 'nowrap' }}>
-                ✕ Clear Filters
-              </button>
-            )}
-          </div>
-        </div>
+            </Card>
+          )}
 
-        {/* ── Summary Stats ────────────────────────────────────────────────── */}
-        {!isLoading && transactions.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-            <div className="card-elevated" style={{ padding: '16px 20px' }}>
-              <div className="text-caption">Total Transactions</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px' }}>
-                {pagination.total.toLocaleString()}
-              </div>
-            </div>
-            <div className="card-elevated" style={{ padding: '16px 20px' }}>
-              <div className="text-caption">Page Amount</div>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                marginTop: '4px',
-                fontFamily: 'var(--font-mono)',
-                color: totalAmount < 0 ? 'var(--destructive)' : 'var(--text-primary)',
-              }}>
-                {fmtCurrency(totalAmount)}
-              </div>
-            </div>
-            <div className="card-elevated" style={{ padding: '16px 20px' }}>
-              <div className="text-caption">Avg Confidence</div>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                marginTop: '4px',
-                color: getConfidenceColor(avgConfidence),
-              }}>
-                {avgConfidence}%
-              </div>
-            </div>
-            <div className="card-elevated" style={{ padding: '16px 20px' }}>
-              <div className="text-caption">Pending Review</div>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                marginTop: '4px',
-                color: pendingCount > 0 ? 'var(--warning)' : 'var(--success)',
-              }}>
-                {pendingCount}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Error Banner ─────────────────────────────────────────────────── */}
-        {error && (
-          <div
-            role="alert"
-            style={{
-              background: 'var(--destructive-subtle)',
-              color: 'var(--destructive)',
-              padding: '12px 20px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '13px',
-              marginBottom: '16px',
-              border: '1px solid var(--destructive-border)',
-            }}
-          >
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* ── Loading State ────────────────────────────────────────────────── */}
-        {isLoading && (
-          <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid var(--bg-elevated)',
-                borderTopColor: 'var(--accent-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                margin: '0 auto 16px',
-              }}
-            />
-            <p className="text-caption">Loading transactions…</p>
-          </div>
-        )}
-
-        {/* ── Empty State (no transactions at all) ─────────────────────────── */}
-        {!isLoading && hasAnyTransactions === false && (
-          <div className="card" style={{ padding: '80px 40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏦</div>
-            <h2 className="text-h3" style={{ marginBottom: '8px' }}>No Transactions Yet</h2>
-            <p className="text-body" style={{ marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
-              Connect a bank account to start importing transactions and let Autokkeep categorize them automatically.
-            </p>
-            <Link href="/onboarding" className="btn btn-primary">
-              Connect Bank Account →
-            </Link>
-          </div>
-        )}
-
-        {/* ── Empty State (no matches) ─────────────────────────────────────── */}
-        {!isLoading && hasAnyTransactions !== false && transactions.length === 0 && (
-          <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-            <h3 className="text-h4" style={{ marginBottom: '8px' }}>No Transactions Found</h3>
-            <p className="text-caption" style={{ marginBottom: '16px' }}>
-              Try adjusting your search or filter criteria.
-            </p>
-            {hasFilters && (
-              <button className="btn btn-secondary btn-sm" onClick={clearFilters}>
-                Clear All Filters
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Transaction Table ─────────────────────────────────────────────── */}
-        {!isLoading && transactions.length > 0 && (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                    {['Date', 'Merchant', 'Amount', 'Category', 'Status', 'Confidence', 'Actions'].map(col => (
-                      <th
-                        key={col}
-                        style={{
-                          padding: '14px 16px',
-                          textAlign: col === 'Amount' || col === 'Confidence' ? 'right' : 'left',
-                          fontWeight: 600,
-                          color: 'var(--text-secondary)',
-                          fontSize: '0.75rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          whiteSpace: 'nowrap',
-                          background: 'var(--bg-secondary)',
-                        }}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx) => {
-                    const isExpanded = expandedId === tx.id;
-                    const statusCfg = STATUS_CONFIG[tx.status] || { label: tx.status, color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-primary)' };
-                    const conf = tx.confidence ?? 0;
-                    const glCode = tx.category_human || tx.category_ai || '—';
-                    const isNegative = tx.amount < 0;
-
-                    return (
-                      <React.Fragment key={tx.id}>
-                        {/* Main row */}
-                        <tr
-                          onClick={() => setExpandedId(isExpanded ? null : tx.id)}
-                          style={{
-                            borderBottom: isExpanded ? 'none' : '1px solid var(--border-primary)',
-                            cursor: 'pointer',
-                            background: isExpanded ? 'var(--bg-glass-hover)' : 'transparent',
-                            transition: 'background 150ms ease',
-                          }}
-                          onMouseEnter={e => { if (!isExpanded) (e.currentTarget as HTMLElement).style.background = 'var(--bg-glass)'; }}
-                          onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+          {/* ── Transaction Table ──────────────────────────────────────── */}
+          {!isLoading && transactions.length > 0 && (
+            <Card padding="sm" className={styles.tableCard}>
+              {/* Desktop Table */}
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      {['Date', 'Merchant', 'Amount', 'Category', 'Status', 'Confidence', 'Actions'].map(col => (
+                        <th
+                          key={col}
+                          className={col === 'Amount' || col === 'Confidence' ? styles.thRight : styles.th}
                         >
-                          {/* Date */}
-                          <td style={{ padding: '14px 16px', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
-                            {formatDate(tx.date)}
-                          </td>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => {
+                      const isExpanded = expandedId === tx.id;
+                      const statusCfg = STATUS_BADGE_MAP[tx.status] || { label: tx.status, variant: 'default' as const };
+                      const conf = tx.confidence ?? 0;
+                      const glCode = tx.category_human || tx.category_ai || '—';
+                      const isNegative = tx.amount < 0;
 
-                          {/* Merchant */}
-                          <td style={{ padding: '14px 16px', maxWidth: '240px' }}>
-                            <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {tx.merchant_name || tx.merchant_raw || 'Unknown'}
-                            </div>
-                            {tx.merchant_raw && tx.merchant_name && tx.merchant_raw !== tx.merchant_name && (
-                              <div className="text-caption" style={{ fontSize: '0.7rem', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {tx.merchant_raw}
+                      return (
+                        <React.Fragment key={tx.id}>
+                          <tr
+                            className={isExpanded ? styles.trExpanded : styles.tr}
+                            onClick={() => setExpandedId(isExpanded ? null : tx.id)}
+                          >
+                            <td className={styles.td}>{formatDate(tx.date)}</td>
+                            <td className={styles.tdMerchant}>
+                              <div className={styles.merchantName}>
+                                {tx.merchant_name || tx.merchant_raw || 'Unknown'}
                               </div>
-                            )}
-                          </td>
-
-                          {/* Amount */}
-                          <td style={{
-                            padding: '14px 16px',
-                            textAlign: 'right',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                            color: isNegative ? 'var(--destructive)' : 'var(--success)',
-                          }}>
-                            {isNegative ? '−' : '+'}{fmtCurrency(Math.abs(tx.amount))}
-                          </td>
-
-                          {/* Category (GL Code) */}
-                          <td style={{ padding: '14px 16px' }}>
-                            <span style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.8rem',
-                              padding: '2px 8px',
-                              background: 'var(--bg-elevated)',
-                              borderRadius: 'var(--radius-sm)',
-                              color: 'var(--text-secondary)',
-                            }}>
-                              {glCode}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td style={{ padding: '14px 16px' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '3px 10px',
-                              borderRadius: '9999px',
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.02em',
-                              color: statusCfg.color,
-                              background: statusCfg.bg,
-                              border: `1px solid ${statusCfg.border}`,
-                              whiteSpace: 'nowrap',
-                            }}>
-                              {statusCfg.label}
-                            </span>
-                          </td>
-
-                          {/* Confidence */}
-                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                            <span style={{
-                              fontWeight: 600,
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.8rem',
-                              color: getConfidenceColor(conf),
-                            }}>
-                              {conf}%
-                            </span>
-                          </td>
-
-                          {/* Actions */}
-                          <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                              {(tx.status === 'pending' || tx.status === 'human_review') && (
-                                <Link
-                                  href="/dashboard"
-                                  className="btn btn-primary btn-sm"
-                                  style={{ fontSize: '0.7rem', padding: '4px 10px' }}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Review
-                                </Link>
+                              {tx.merchant_raw && tx.merchant_name && tx.merchant_raw !== tx.merchant_name && (
+                                <div className={styles.merchantRaw}>{tx.merchant_raw}</div>
                               )}
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setExpandedId(isExpanded ? null : tx.id);
-                                }}
-                                title="Expand details"
-                              >
-                                {isExpanded ? '▲' : '▼'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* Expanded details row */}
-                        {isExpanded && (
-                          <tr style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                            <td colSpan={7} style={{ padding: 0 }}>
-                              <div style={{
-                                padding: '20px 24px',
-                                background: 'var(--bg-secondary)',
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr 1fr',
-                                gap: '20px',
-                                animation: 'slide-up-fade 0.2s ease-out',
-                              }}>
-                                {/* AI Reasoning */}
-                                <div>
-                                  <div className="text-caption" style={{ marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                                    🤖 AI Reasoning
-                                  </div>
-                                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                                    {tx.ai_reasoning || 'No AI analysis available for this transaction.'}
-                                  </p>
-                                </div>
-
-                                {/* Raw Data */}
-                                <div>
-                                  <div className="text-caption" style={{ marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                                    📄 Raw Data
-                                  </div>
-                                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                                    <div><span style={{ color: 'var(--text-tertiary)' }}>Bank Desc:</span> {tx.raw_bank_description || tx.merchant_raw || '—'}</div>
-                                    <div><span style={{ color: 'var(--text-tertiary)' }}>MCC:</span> {tx.mcc_code || '—'}</div>
-                                    <div><span style={{ color: 'var(--text-tertiary)' }}>Currency:</span> {tx.currency || 'USD'}</div>
-                                    {tx.card_holder && <div><span style={{ color: 'var(--text-tertiary)' }}>Card:</span> {tx.card_holder}{tx.card_last4 ? ` (••••${tx.card_last4})` : ''}</div>}
-                                  </div>
-                                </div>
-
-                                {/* Receipt & Status */}
-                                <div>
-                                  <div className="text-caption" style={{ marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                                    🧾 Receipt Status
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <span style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '3px 10px',
-                                      borderRadius: '9999px',
-                                      fontSize: '0.7rem',
-                                      fontWeight: 600,
-                                      ...(tx.document_status === 'found'
-                                        ? { color: 'var(--success)', background: 'var(--success-subtle)', border: '1px solid var(--success-border)' }
-                                        : tx.document_status === 'partial'
-                                        ? { color: 'var(--warning)', background: 'var(--warning-subtle)', border: '1px solid var(--warning-border)' }
-                                        : { color: 'var(--destructive)', background: 'var(--destructive-subtle)', border: '1px solid var(--destructive-border)' }
-                                      ),
-                                    }}>
-                                      {tx.document_status === 'found' ? '✅ Attached' : tx.document_status === 'partial' ? '⏳ Partial' : '❌ Missing'}
-                                    </span>
-                                  </div>
-                                  {tx.description && (
-                                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                                      <span style={{ color: 'var(--text-tertiary)' }}>Notes:</span> {tx.description}
-                                    </div>
-                                  )}
-                                </div>
+                            </td>
+                            <td className={styles.tdAmount} style={{ color: isNegative ? 'var(--color-destructive)' : 'var(--color-success)' }}>
+                              {isNegative ? '−' : '+'}{fmtCurrency(Math.abs(tx.amount))}
+                            </td>
+                            <td className={styles.td}>
+                              <span className={styles.glCode}>{glCode}</span>
+                            </td>
+                            <td className={styles.td}>
+                              <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
+                            </td>
+                            <td className={styles.tdConfidence}>
+                              <span className={styles.confidenceValue} style={{ color: getConfidenceColor(conf) }}>
+                                {conf}%
+                              </span>
+                            </td>
+                            <td className={styles.actionCell}>
+                              <div className={styles.actionGroup}>
+                                {(tx.status === 'pending' || tx.status === 'human_review') && (
+                                  <Button
+                                    as={Link}
+                                    href="/dashboard"
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  >
+                                    Review
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    setExpandedId(isExpanded ? null : tx.id);
+                                  }}
+                                >
+                                  {isExpanded ? '▲' : '▼'}
+                                </Button>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
 
-            {/* ── Pagination ──────────────────────────────────────────────── */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 16px',
-              borderTop: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)',
-            }}>
-              <span className="text-caption">
-                Showing {showFrom}–{showTo} of {pagination.total.toLocaleString()}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  disabled={page === 0}
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  style={{ opacity: page === 0 ? 0.4 : 1 }}
-                >
-                  ← Previous
-                </button>
-                <span className="text-caption" style={{ padding: '0 8px', fontFamily: 'var(--font-mono)' }}>
-                  {page + 1} / {Math.max(1, totalPages)}
-                </span>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  disabled={!pagination.hasMore}
-                  onClick={() => setPage(p => p + 1)}
-                  style={{ opacity: !pagination.hasMore ? 0.4 : 1 }}
-                >
-                  Next →
-                </button>
+                          {isExpanded && (
+                            <tr className={styles.expandedRow}>
+                              <td colSpan={7}>
+                                <div className={styles.expandedContent}>
+                                  <div className={styles.expandedSection}>
+                                    <div className={styles.expandedLabel}>🤖 AI Reasoning</div>
+                                    <p className={styles.expandedText}>
+                                      {tx.ai_reasoning || 'No AI analysis available for this transaction.'}
+                                    </p>
+                                  </div>
+                                  <div className={styles.expandedSection}>
+                                    <div className={styles.expandedLabel}>📄 Raw Data</div>
+                                    <div className={styles.expandedField}>
+                                      <div><span className={styles.expandedFieldLabel}>Bank Desc:</span> {tx.raw_bank_description || tx.merchant_raw || '—'}</div>
+                                      <div><span className={styles.expandedFieldLabel}>MCC:</span> {tx.mcc_code || '—'}</div>
+                                      <div><span className={styles.expandedFieldLabel}>Currency:</span> {tx.currency || 'USD'}</div>
+                                      {tx.card_holder && <div><span className={styles.expandedFieldLabel}>Card:</span> {tx.card_holder}{tx.card_last4 ? ` (••••${tx.card_last4})` : ''}</div>}
+                                    </div>
+                                  </div>
+                                  <div className={styles.expandedSection}>
+                                    <div className={styles.expandedLabel}>🧾 Receipt Status</div>
+                                    <div>
+                                      <Badge
+                                        variant={
+                                          tx.document_status === 'found' ? 'success'
+                                            : tx.document_status === 'partial' ? 'warning'
+                                            : 'destructive'
+                                        }
+                                        size="sm"
+                                      >
+                                        {tx.document_status === 'found' ? '✅ Attached' : tx.document_status === 'partial' ? '⏳ Partial' : '❌ Missing'}
+                                      </Badge>
+                                    </div>
+                                    {tx.description && (
+                                      <div className={styles.expandedField}>
+                                        <span className={styles.expandedFieldLabel}>Notes:</span> {tx.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </div>
-        )}
-      </main>
 
-      {/* Spin keyframe (matches dashboard pattern) */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+              {/* Mobile Cards */}
+              <div className={styles.mobileCards}>
+                {transactions.map((tx) => {
+                  const isExpanded = expandedId === tx.id;
+                  const statusCfg = STATUS_BADGE_MAP[tx.status] || { label: tx.status, variant: 'default' as const };
+                  const conf = tx.confidence ?? 0;
+                  const isNegative = tx.amount < 0;
+
+                  return (
+                    <Card
+                      key={tx.id}
+                      variant="interactive"
+                      padding="md"
+                      className={styles.mobileCard}
+                      onClick={() => setExpandedId(isExpanded ? null : tx.id)}
+                    >
+                      <div className={styles.mobileCardHeader}>
+                        <span className={styles.mobileCardMerchant}>
+                          {tx.merchant_name || tx.merchant_raw || 'Unknown'}
+                        </span>
+                        <span
+                          className={styles.mobileCardAmount}
+                          style={{ color: isNegative ? 'var(--color-destructive)' : 'var(--color-success)' }}
+                        >
+                          {isNegative ? '−' : '+'}{fmtCurrency(Math.abs(tx.amount))}
+                        </span>
+                      </div>
+                      <div className={styles.mobileCardMeta}>
+                        <span className={styles.mobileCardDate}>{formatDate(tx.date)}</span>
+                        <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
+                        <Badge variant={getConfidenceVariant(conf)} size="sm">{conf}%</Badge>
+                      </div>
+                      {isExpanded && (
+                        <div className={styles.mobileCardExpanded}>
+                          <div className={styles.expandedSection}>
+                            <div className={styles.expandedLabel}>🤖 AI Reasoning</div>
+                            <p className={styles.expandedText}>
+                              {tx.ai_reasoning || 'No AI analysis available.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* ── Pagination ──────────────────────────────────────────── */}
+              <div className={styles.pagination}>
+                <span className={styles.paginationInfo}>
+                  Showing {showFrom}–{showTo} of {pagination.total.toLocaleString()}
+                </span>
+                <div className={styles.paginationControls}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                  >
+                    ← Previous
+                  </Button>
+                  <span className={styles.pageIndicator}>
+                    {page + 1} / {Math.max(1, totalPages)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!pagination.hasMore}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    Next →
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      </AppShell>
     </ErrorBoundary>
   );
 }

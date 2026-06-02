@@ -1,0 +1,100 @@
+/* ============================================
+   Badge Component Styles
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+/* ─── Sizes ────────────────────────────────── */
+
+.sm {
+  padding: var(--space-0-5) var(--space-2);
+  font-size: var(--text-xs);
+  gap: var(--space-1);
+}
+
+.md {
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--text-sm);
+}
+
+/* ─── Dot indicator ────────────────────────── */
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* ─── Variants ─────────────────────────────── */
+
+.default {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.default .dot {
+  background-color: var(--color-text-tertiary);
+}
+
+.success {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+
+.success .dot {
+  background-color: var(--color-success);
+}
+
+.warning {
+  background-color: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}
+
+.warning .dot {
+  background-color: var(--color-warning);
+}
+
+.destructive {
+  background-color: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  border-color: var(--color-destructive-border);
+}
+
+.destructive .dot {
+  background-color: var(--color-destructive);
+}
+
+.info {
+  background-color: var(--color-info-subtle);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+
+.info .dot {
+  background-color: var(--color-info);
+}
+
+.accent {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  border-color: var(--color-border-accent);
+}
+
+.accent .dot {
+  background-color: var(--color-accent);
+}

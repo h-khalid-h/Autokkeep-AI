@@ -1,0 +1,282 @@
+/* ============================================
+   FORGOT PASSWORD PAGE — CSS Module
+   Uses Autokkeep design tokens exclusively
+   ============================================ */
+
+/* ─── Background layers ───────────────────── */
+
+.background {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, var(--color-accent-subtle) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 245, 255, 0.05) 0%, transparent 50%);
+  z-index: var(--z-hide);
+}
+
+.gridOverlay {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 64px 64px;
+  z-index: var(--z-hide);
+}
+
+/* ─── Page container ──────────────────────── */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: var(--z-base);
+  padding: var(--space-6);
+}
+
+/* ─── Card ────────────────────────────────── */
+
+.card {
+  max-width: 440px;
+  width: 100%;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), var(--shadow-glow);
+  animation: cardFadeIn var(--duration-slower) var(--ease-out) forwards;
+  opacity: 0;
+}
+
+/* ─── Logo row ────────────────────────────── */
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.logoText {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Icon boxes ──────────────────────────── */
+
+.iconBox {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-6);
+}
+
+.iconBoxLock {
+  composes: iconBox;
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-accent);
+}
+
+.iconBoxSuccess {
+  composes: iconBox;
+  background: var(--color-success-subtle);
+  border: 1px solid var(--color-success-border);
+  animation: checkBounce 0.5s var(--ease-out);
+}
+
+/* ─── Heading & subtitle ─────────────────── */
+
+.heading {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-8);
+}
+
+/* ─── Form fields ─────────────────────────── */
+
+.emailGroup {
+  margin-bottom: var(--space-6);
+}
+
+.submitButton {
+  width: 100%;
+}
+
+/* ─── Success state ───────────────────────── */
+
+.successSubtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-3);
+}
+
+.emailDisplay {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
+  word-break: break-all;
+}
+
+.successHint {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-8);
+}
+
+.tryAgainButton {
+  width: 100%;
+  margin-bottom: var(--space-4);
+}
+
+/* ─── Divider ─────────────────────────────── */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ─── Back-to-login row ───────────────────── */
+
+.backToLoginRow {
+  text-align: center;
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+}
+
+.backToLoginLink {
+  color: var(--color-accent-text);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.backToLoginLink:hover {
+  color: var(--color-accent-hover);
+}
+
+/* ─── Back to home ────────────────────────── */
+
+.backLink {
+  margin-top: var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.backLink:hover {
+  color: var(--color-text-secondary);
+}
+
+/* ─── Error toast ─────────────────────────── */
+
+.errorToast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+  background: var(--color-destructive-subtle);
+  border: 1px solid var(--color-destructive-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-destructive-text);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-lg);
+  animation: toastIn var(--duration-moderate) var(--ease-out) forwards;
+}
+
+.errorToastContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.errorToastIcon {
+  flex-shrink: 0;
+}
+
+/* ─── Keyframe animations ─────────────────── */
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes checkBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

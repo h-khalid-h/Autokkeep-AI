@@ -3,8 +3,9 @@
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
-import './insights.css';
+import AppShell from '@/components/layout/AppShell';
+import { Button, Badge, Skeleton } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -46,13 +47,13 @@ const SUGGESTED_QUESTIONS = [
 
 function TypingIndicator() {
   return (
-    <div className="insights-message insights-message-assistant">
-      <div className="insights-message-avatar insights-avatar-ai">🤖</div>
-      <div className="insights-message-bubble">
-        <div className="insights-typing-indicator">
-          <span className="insights-typing-dot" />
-          <span className="insights-typing-dot" />
-          <span className="insights-typing-dot" />
+    <div className={styles.messageAssistant}>
+      <div className={styles.avatarAi}>🤖</div>
+      <div className={styles.messageBubble}>
+        <div className={styles.typingIndicator}>
+          <span className={styles.typingDot} />
+          <span className={styles.typingDot} />
+          <span className={styles.typingDot} />
         </div>
       </div>
     </div>
@@ -64,18 +65,19 @@ function TypingIndicator() {
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
 
+  const confidenceVariant = message.confidence === 'high' ? 'success'
+    : message.confidence === 'medium' ? 'warning' : 'destructive';
+
   return (
-    <div className={`insights-message ${isUser ? 'insights-message-user' : 'insights-message-assistant'}`}>
-      {!isUser && (
-        <div className="insights-message-avatar insights-avatar-ai">🤖</div>
-      )}
-      <div className="insights-message-bubble">
-        <div className="insights-message-content">
+    <div className={isUser ? styles.messageUser : styles.messageAssistant}>
+      {!isUser && <div className={styles.avatarAi}>🤖</div>}
+      <div className={styles.messageBubble}>
+        <div className={styles.messageContent}>
           {message.content.split('\n').map((line, i) => {
             if (line.startsWith('• ') || line.startsWith('- ')) {
               return (
-                <div key={i} className="insights-message-bullet">
-                  <span className="insights-bullet-dot">•</span>
+                <div key={i} className={styles.messageBullet}>
+                  <span className={styles.bulletDot}>•</span>
                   <span>{line.substring(2)}</span>
                 </div>
               );
@@ -87,16 +89,16 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
         {/* Data Citations */}
         {!isUser && message.data_citations && message.data_citations.length > 0 && (
-          <div className="insights-citations">
-            <div className="insights-citations-header">
+          <div className={styles.citations}>
+            <div className={styles.citationsHeader}>
               <span>📊</span> Data Points
             </div>
-            <div className="insights-citations-grid">
+            <div className={styles.citationsGrid}>
               {message.data_citations.map((citation, i) => (
-                <div key={i} className="insights-citation-card">
-                  <div className="insights-citation-metric">{citation.metric}</div>
-                  <div className="insights-citation-value">{citation.value}</div>
-                  <div className="insights-citation-period">{citation.period}</div>
+                <div key={i} className={styles.citationCard}>
+                  <div className={styles.citationMetric}>{citation.metric}</div>
+                  <div className={styles.citationValue}>{citation.value}</div>
+                  <div className={styles.citationPeriod}>{citation.period}</div>
                 </div>
               ))}
             </div>
@@ -105,18 +107,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
         {/* Confidence badge */}
         {!isUser && message.confidence && (
-          <div className={`insights-confidence badge badge-${
-            message.confidence === 'high' ? 'success' :
-            message.confidence === 'medium' ? 'warning' : 'destructive'
-          }`}>
-            {message.confidence === 'high' ? '✅' : message.confidence === 'medium' ? '⚡' : '⚠️'}
-            {' '}{message.confidence} confidence
+          <div className={styles.confidence}>
+            <Badge variant={confidenceVariant} size="sm">
+              {message.confidence === 'high' ? '✅' : message.confidence === 'medium' ? '⚡' : '⚠️'}
+              {' '}{message.confidence} confidence
+            </Badge>
           </div>
         )}
       </div>
-      {isUser && (
-        <div className="insights-message-avatar insights-avatar-user">👤</div>
-      )}
+      {isUser && <div className={styles.avatarUser}>👤</div>}
     </div>
   );
 }
@@ -277,45 +276,40 @@ export default function InsightsPage() {
 
   return (
     <ErrorBoundary componentName="AI Financial Analyst">
-      <div className="dashboard-layout">
-        <GlobalDashboardHeader />
-
-        <div className="dashboard-main">
+      <AppShell fullWidth>
+        <div className={styles.page}>
           {/* ── Conversation Sidebar ── */}
-          <aside className={`insights-sidebar ${sidebarOpen ? '' : 'insights-sidebar-collapsed'}`}>
-            <div className="insights-sidebar-header">
-              <h3 className="insights-sidebar-title">
+          <aside className={`${styles.sidebar} ${sidebarOpen ? '' : styles.sidebarCollapsed}`}>
+            <div className={styles.sidebarHeader}>
+              <h3 className={styles.sidebarTitle}>
                 <span>💬</span> Conversations
               </h3>
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={startNewConversation}
-              >
+              <Button variant="primary" size="sm" onClick={startNewConversation}>
                 + New
-              </button>
+              </Button>
             </div>
 
-            <div className="insights-sidebar-list">
+            <div className={styles.sidebarList}>
               {isSidebarLoading ? (
-                <div className="insights-sidebar-loading">
+                <div>
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="skeleton" style={{ height: '48px', marginBottom: '8px' }} />
+                    <Skeleton key={i} height={48} variant="rect" />
                   ))}
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="insights-sidebar-empty">
-                  <p className="text-caption">No conversations yet</p>
-                  <p className="text-caption">Ask your first question below!</p>
+                <div className={styles.sidebarEmpty}>
+                  <p className={styles.sidebarItemDate}>No conversations yet</p>
+                  <p className={styles.sidebarItemDate}>Ask your first question below!</p>
                 </div>
               ) : (
                 conversations.map((conv) => (
                   <button
                     key={conv.id}
-                    className={`insights-sidebar-item ${activeConversationId === conv.id ? 'active' : ''}`}
+                    className={activeConversationId === conv.id ? styles.sidebarItemActive : styles.sidebarItem}
                     onClick={() => loadConversation(conv.id)}
                   >
-                    <div className="insights-sidebar-item-title">{conv.title}</div>
-                    <div className="insights-sidebar-item-date">
+                    <div className={styles.sidebarItemTitle}>{conv.title}</div>
+                    <div className={styles.sidebarItemDate}>
                       {new Date(conv.updated_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -328,7 +322,7 @@ export default function InsightsPage() {
 
             {/* Sidebar collapse toggle (mobile) */}
             <button
-              className="insights-sidebar-toggle"
+              className={styles.sidebarToggle}
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
@@ -337,27 +331,27 @@ export default function InsightsPage() {
           </aside>
 
           {/* ── Chat Area ── */}
-          <div className="insights-chat-area">
+          <div className={styles.chatArea}>
             {/* Messages */}
-            <div className="insights-messages">
+            <div className={styles.messages}>
               {showEmptyState && (
-                <div className="insights-empty-state">
-                  <div className="insights-empty-icon">🧠</div>
-                  <h2 className="insights-empty-title">AI Financial Analyst</h2>
-                  <p className="insights-empty-subtitle">
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>🧠</div>
+                  <h2 className={styles.emptyTitle}>AI Financial Analyst</h2>
+                  <p className={styles.emptySubtitle}>
                     Ask me anything about your business finances. I&apos;ll analyze your
                     transaction data and provide actionable insights.
                   </p>
 
-                  <div className="insights-suggestions-grid">
+                  <div className={styles.suggestionsGrid}>
                     {SUGGESTED_QUESTIONS.map((q, i) => (
                       <button
                         key={i}
-                        className="insights-suggestion-card"
+                        className={styles.suggestionCard}
                         onClick={() => sendMessage(q.text)}
                       >
-                        <span className="insights-suggestion-icon">{q.icon}</span>
-                        <span className="insights-suggestion-text">{q.text}</span>
+                        <span className={styles.suggestionIcon}>{q.icon}</span>
+                        <span className={styles.suggestionText}>{q.text}</span>
                       </button>
                     ))}
                   </div>
@@ -372,13 +366,13 @@ export default function InsightsPage() {
 
               {/* Follow-up suggestions */}
               {!isLoading && followUpSuggestions.length > 0 && (
-                <div className="insights-follow-ups">
-                  <div className="insights-follow-ups-label">Suggested follow-ups:</div>
-                  <div className="insights-follow-ups-list">
+                <div className={styles.followUps}>
+                  <div className={styles.followUpsLabel}>Suggested follow-ups:</div>
+                  <div className={styles.followUpsList}>
                     {followUpSuggestions.map((q, i) => (
                       <button
                         key={i}
-                        className="insights-follow-up-chip"
+                        className={styles.followUpChip}
                         onClick={() => sendMessage(q)}
                       >
                         {q}
@@ -393,10 +387,10 @@ export default function InsightsPage() {
 
             {/* Error banner */}
             {error && (
-              <div className="insights-error" role="alert">
+              <div className={styles.errorBanner} role="alert">
                 ⚠️ {error}
                 <button
-                  className="insights-error-dismiss"
+                  className={styles.errorDismiss}
                   onClick={() => setError(null)}
                 >
                   ✕
@@ -405,11 +399,11 @@ export default function InsightsPage() {
             )}
 
             {/* Input area */}
-            <div className="insights-input-area">
-              <div className="insights-input-container">
+            <div className={styles.inputArea}>
+              <div className={styles.inputContainer}>
                 <textarea
                   ref={inputRef}
-                  className="insights-input"
+                  className={styles.textareaInput}
                   placeholder="Ask about your finances..."
                   aria-label="Ask about your finances"
                   value={inputValue}
@@ -419,26 +413,28 @@ export default function InsightsPage() {
                   disabled={isLoading}
                   maxLength={2000}
                 />
-                <button
-                  className="insights-send-btn btn-primary"
+                <Button
+                  variant="primary"
+                  size="md"
+                  className={styles.sendButton}
                   onClick={() => sendMessage(inputValue)}
                   disabled={isLoading || !inputValue.trim()}
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <span className="insights-send-spinner" />
+                    <span className={styles.sendSpinner} />
                   ) : (
                     <span>➤</span>
                   )}
-                </button>
+                </Button>
               </div>
-              <div className="insights-input-hint">
+              <div className={styles.inputHint}>
                 Press Enter to send • Shift+Enter for new line
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </AppShell>
     </ErrorBoundary>
   );
 }

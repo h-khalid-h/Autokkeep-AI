@@ -1,0 +1,119 @@
+/* ============================================
+   Toggle (Switch) Component Styles
+   ============================================ */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Track ────────────────────────────────── */
+
+.track {
+  position: relative;
+  flex-shrink: 0;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-normal) var(--ease-out),
+    border-color var(--duration-normal) var(--ease-out);
+  cursor: inherit;
+  padding: 0;
+  appearance: none;
+}
+
+.track:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Track sizes ──────────────────────────── */
+
+.trackSm {
+  width: 36px;
+  height: 20px;
+}
+
+.trackMd {
+  width: 44px;
+  height: 24px;
+}
+
+/* ─── Knob ─────────────────────────────────── */
+
+.knob {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-normal) var(--ease-spring);
+  pointer-events: none;
+}
+
+/* ─── Knob sizes ───────────────────────────── */
+
+.knobSm {
+  width: 14px;
+  height: 14px;
+  left: 2px;
+}
+
+.knobMd {
+  width: 18px;
+  height: 18px;
+  left: 2px;
+}
+
+/* ─── Checked state ────────────────────────── */
+
+.checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.checked .knobSm {
+  transform: translateY(-50%) translateX(16px);
+}
+
+.checked .knobMd {
+  transform: translateY(-50%) translateX(20px);
+}
+
+.checked .knob {
+  background-color: var(--color-text-on-accent);
+}
+
+/* ─── Label ────────────────────────────────── */
+
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+}
+
+.labelSm {
+  font-size: var(--text-sm);
+}
+
+/* ─── Reduced motion ──────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    transition: none;
+  }
+
+  .knob {
+    transition: none;
+  }
+}

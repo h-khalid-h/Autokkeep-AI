@@ -1,0 +1,400 @@
+/* ============================================
+   CLOSE PAGE — Module CSS
+   Uses Autokkeep design tokens exclusively
+   ============================================ */
+
+/* ─── Page layout ─────────────────────────── */
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+/* ─── Header ──────────────────────────────── */
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: clamp(1.5rem, 3vw, var(--text-3xl));
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+/* ─── Period selector ─────────────────────── */
+
+.periodSelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.periodLabel {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.periodSelect {
+  width: auto;
+  min-width: 160px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.periodSelect:focus {
+  border-color: var(--color-border-input-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.periodSelectSmall {
+  min-width: 100px;
+}
+
+.selectOption {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+/* ─── Alert banners ───────────────────────── */
+
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-destructive-border);
+}
+
+.successBanner {
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-success-border);
+}
+
+/* ─── Loading state ───────────────────────── */
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-16);
+  gap: var(--space-6);
+}
+
+.loadingText {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ─── Locked notice ───────────────────────── */
+
+.lockedNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.lockedIcon {
+  font-size: var(--text-2xl);
+  flex-shrink: 0;
+}
+
+.lockedTitle {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.lockedDescription {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ─── Report grid ─────────────────────────── */
+
+.reportGrid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .reportGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Score panel ─────────────────────────── */
+
+.scorePanel {
+  text-align: center;
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-8));
+}
+
+.gaugeWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.scoreSummary {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin: var(--space-4) 0;
+}
+
+.checkCounter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.checkCountValue {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+}
+
+.checkCountValueComplete {
+  color: var(--color-success);
+}
+
+.checkCountLabel {
+  color: var(--color-text-tertiary);
+}
+
+.progressWrapper {
+  margin-bottom: var(--space-4);
+}
+
+.closeButtonWrapper {
+  width: 100%;
+}
+
+.closeButtonWrapper button {
+  width: 100%;
+}
+
+.readinessHint {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2);
+}
+
+/* ─── Checklist section ───────────────────── */
+
+.checklistTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-primary);
+}
+
+.checklistContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Check item (timeline) ───────────────── */
+
+.checkItem {
+  display: flex;
+  gap: var(--space-4);
+  position: relative;
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+.checkItem:nth-child(1) { animation-delay: 0s; }
+.checkItem:nth-child(2) { animation-delay: 0.06s; }
+.checkItem:nth-child(3) { animation-delay: 0.12s; }
+.checkItem:nth-child(4) { animation-delay: 0.18s; }
+.checkItem:nth-child(5) { animation-delay: 0.24s; }
+.checkItem:nth-child(6) { animation-delay: 0.30s; }
+.checkItem:nth-child(7) { animation-delay: 0.36s; }
+.checkItem:nth-child(8) { animation-delay: 0.42s; }
+.checkItem:nth-child(9) { animation-delay: 0.48s; }
+.checkItem:nth-child(10) { animation-delay: 0.54s; }
+
+/* ─── Timeline connector ─────────────────── */
+
+.timelineConnector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 32px;
+}
+
+.timelineNode {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  position: relative;
+  z-index: var(--z-base);
+  transition: all var(--duration-moderate) var(--ease-out);
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.timelineNodePass {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success);
+  box-shadow: 0 0 12px var(--color-success-subtle);
+}
+
+.timelineNodeWarning {
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning);
+}
+
+.timelineNodeFail {
+  background: var(--color-destructive-subtle);
+  border-color: var(--color-destructive);
+}
+
+.timelineLine {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: var(--color-border);
+  opacity: 0.3;
+  transition: background var(--duration-slower) var(--ease-out);
+}
+
+.timelineLinePass {
+  background: var(--color-success);
+  opacity: 0.5;
+}
+
+/* ─── Check content card ─────────────────── */
+
+.checkContent {
+  flex: 1;
+  margin-bottom: var(--space-2);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.checkContentPass {
+  border-left: 3px solid var(--color-success) !important;
+}
+
+.checkHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.checkHeaderClickable {
+  cursor: pointer;
+}
+
+.checkHeaderClickable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.checkBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.checkName {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.checkCount {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.checkDescription {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  margin: var(--space-1) 0 0;
+}
+
+.chevron {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+/* ─── Check details ───────────────────────── */
+
+.checkDetails {
+  margin-top: var(--space-3);
+  padding-left: var(--space-6);
+  list-style: disc;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+}
+
+/* ─── Animations ──────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

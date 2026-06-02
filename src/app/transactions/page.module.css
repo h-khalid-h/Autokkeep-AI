@@ -1,0 +1,453 @@
+/* ============================================
+   TRANSACTIONS PAGE — CSS Module
+   ============================================ */
+
+/* ─── Page Layout ─────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ─── Filters ─────────────────────────────── */
+.filtersCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.filterRow {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchWrapper {
+  flex: 1 1 280px;
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: var(--space-9) !important;
+}
+
+.statusSelect {
+  flex: 0 1 200px;
+  cursor: pointer;
+}
+
+.dateGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dateLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.dateInput {
+  width: 160px;
+}
+
+.sortSelect {
+  flex: 0 1 220px;
+  cursor: pointer;
+}
+
+/* ─── Summary Stats ───────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.statLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.statValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.statMono {
+  font-family: var(--font-mono);
+}
+
+/* ─── Error Banner ────────────────────────── */
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── Table Container ─────────────────────── */
+.tableCard {
+  overflow: hidden;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+/* ─── Table ───────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.th {
+  padding: var(--space-3-5) var(--space-4);
+  text-align: left;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  white-space: nowrap;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thRight {
+  composes: th;
+  text-align: right;
+}
+
+.tr {
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.trExpanded {
+  composes: tr;
+  background: var(--color-bg-active);
+}
+
+.trExpanded:hover {
+  background: var(--color-bg-active);
+}
+
+.td {
+  padding: var(--space-3-5) var(--space-4);
+  white-space: nowrap;
+}
+
+.tdMerchant {
+  composes: td;
+  max-width: 240px;
+  white-space: normal;
+}
+
+.merchantName {
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchantRaw {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdAmount {
+  composes: td;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.tdConfidence {
+  composes: td;
+  text-align: right;
+}
+
+.confidenceValue {
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.glCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 2px var(--space-2);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+}
+
+.actionCell {
+  composes: td;
+  white-space: nowrap;
+}
+
+.actionGroup {
+  display: flex;
+  gap: var(--space-1-5);
+  justify-content: flex-end;
+}
+
+/* ─── Expanded Detail Row ─────────────────── */
+.expandedRow td {
+  padding: 0;
+}
+
+.expandedContent {
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-bg-secondary);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-5);
+  animation: slideUpFade var(--duration-normal) var(--ease-out);
+}
+
+.expandedSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.expandedLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.expandedText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.expandedField {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.expandedFieldLabel {
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Pagination ──────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3-5) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.paginationInfo {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pageIndicator {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+}
+
+/* ─── Mobile Card View ────────────────────── */
+.mobileCards {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mobileCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.mobileCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.mobileCardMerchant {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+}
+
+.mobileCardAmount {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  white-space: nowrap;
+}
+
+.mobileCardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.mobileCardDate {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.mobileCardExpanded {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ─── Animations ──────────────────────────── */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tableScroll {
+    display: none;
+  }
+
+  .mobileCards {
+    display: flex;
+  }
+
+  .expandedContent {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filterRow {
+    flex-direction: column;
+  }
+
+  .searchWrapper,
+  .statusSelect,
+  .sortSelect {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .dateInput {
+    width: 100%;
+  }
+}

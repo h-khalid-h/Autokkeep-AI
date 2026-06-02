@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Input, Progress, Skeleton, EmptyState } from '@/components/ui';
+import styles from './portfolio.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -48,25 +50,32 @@ function timeAgo(dateStr: string | null): string {
   return `${days}d ago`;
 }
 
-function getStatusColor(value: number): string {
-  if (value >= 95) return 'var(--success)';
-  if (value >= 80) return 'var(--accent-primary)';
-  if (value >= 60) return 'var(--warning)';
-  return 'var(--destructive)';
+function getProgressColor(value: number): 'success' | 'accent' | 'warning' | 'destructive' {
+  if (value >= 95) return 'success';
+  if (value >= 80) return 'accent';
+  if (value >= 60) return 'warning';
+  return 'destructive';
 }
 
-function getBankStatusBadge(status: EntityStats['bankStatus']): { label: string; className: string } {
+function getStatusColor(value: number): string {
+  if (value >= 95) return 'var(--color-success)';
+  if (value >= 80) return 'var(--color-accent)';
+  if (value >= 60) return 'var(--color-warning)';
+  return 'var(--color-destructive)';
+}
+
+function getBankBadge(status: EntityStats['bankStatus']): { label: string; variant: 'success' | 'default' | 'destructive'; dot: boolean } {
   switch (status) {
-    case 'connected': return { label: '● Connected', className: 'badge badge-success' };
-    case 'disconnected': return { label: '○ Not Connected', className: 'badge' };
-    case 'error': return { label: '⚠ Error', className: 'badge badge-destructive' };
+    case 'connected': return { label: 'Connected', variant: 'success', dot: true };
+    case 'disconnected': return { label: 'Not Connected', variant: 'default', dot: true };
+    case 'error': return { label: 'Error', variant: 'destructive', dot: true };
   }
 }
 
-function getLedgerStatusBadge(status: EntityStats['ledgerStatus']): { label: string; className: string } {
+function getLedgerBadge(status: EntityStats['ledgerStatus']): { label: string; variant: 'success' | 'default'; dot: boolean } {
   switch (status) {
-    case 'connected': return { label: '● Synced', className: 'badge badge-success' };
-    case 'disconnected': return { label: '○ Not Connected', className: 'badge' };
+    case 'connected': return { label: 'Synced', variant: 'success', dot: true };
+    case 'disconnected': return { label: 'Not Connected', variant: 'default', dot: true };
   }
 }
 
@@ -159,291 +168,235 @@ export default function PortfolioPage() {
   if (isLoading) {
     return (
       <ErrorBoundary componentName="Portfolio">
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: 'var(--space-8)' }}>
-        <div className="container">
-          <div className="flex-center" style={{ flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-20)' }}>
-            <div style={{
-              width: '40px', height: '40px',
-              border: '3px solid var(--border-primary)',
-              borderTopColor: 'var(--accent-primary)',
-              borderRadius: '50%',
-              animation: 'spin-slow 0.8s linear infinite',
-            }} />
-            <p className="text-caption">Loading portfolio data…</p>
+        <AppShell>
+          <div className={styles.pageContainer}>
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingGrid}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <Card key={i} variant="elevated" padding="md">
+                    <Skeleton width="50%" height={12} />
+                    <Skeleton width="60%" height={28} />
+                  </Card>
+                ))}
+              </div>
+              <Card padding="lg">
+                <Skeleton variant="rect" height={300} />
+              </Card>
+            </div>
           </div>
-        </div>
-      </div>
+        </AppShell>
       </ErrorBoundary>
     );
   }
 
   return (
     <ErrorBoundary componentName="Portfolio">
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>
-      <div className="container">
-        {/* ─── Header ─────────────────────────────────────────────────────── */}
-        <header style={{ marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-6)' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-                <Link href="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textDecoration: 'none' }}>
-                  ← Back to Dashboard
-                </Link>
+      <AppShell>
+        <div className={styles.pageContainer}>
+          {/* ─── Header ─────────────────────────────────────────────────────── */}
+          <header className={styles.pageHeader}>
+            <div className={styles.headerRow}>
+              <div>
+                <h1 className={styles.headerTitle}>
+                  <span aria-hidden="true">📊 </span>Entity Portfolio
+                </h1>
+                <p className={styles.headerDesc}>
+                  All client entities at a glance — exception queues, booking rates, and close readiness.
+                </p>
               </div>
-              <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, letterSpacing: '-0.03em' }}>
-                <span aria-hidden="true">📊 </span>Entity Portfolio
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginTop: 'var(--space-1)' }}>
-                All client entities at a glance — exception queues, booking rates, and close readiness.
-              </p>
+              <Button variant="secondary" onClick={fetchPortfolio} aria-label="Refresh portfolio data">
+                ↻ Refresh
+              </Button>
             </div>
-            <button className="btn btn-secondary" onClick={fetchPortfolio} aria-label="Refresh portfolio data">
-              ↻ Refresh
-            </button>
-          </div>
-        </header>
+          </header>
 
-        {/* ─── Error Banner ───────────────────────────────────────────────── */}
-        {error && (
-          <div role="alert" style={{
-            background: 'var(--destructive-subtle)',
-            border: '1px solid var(--destructive-border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-4) var(--space-6)',
-            marginBottom: 'var(--space-6)',
-            color: 'var(--destructive)',
-            fontSize: '0.875rem',
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
+          {/* ─── Error Banner ───────────────────────────────────────────────── */}
+          {error && (
+            <div role="alert" className={styles.errorBanner}>
+              ⚠️ {error}
+            </div>
+          )}
 
-        {/* ─── Summary Cards ──────────────────────────────────────────────── */}
-        {summary && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-8)',
-          }}>
-            <SummaryCard
-              label="Total Entities"
-              value={String(summary.totalEntities)}
+          {/* ─── Summary Cards ──────────────────────────────────────────────── */}
+          {summary && (
+            <div className={styles.summaryGrid}>
+              <SummaryCard
+                label="Total Entities"
+                value={String(summary.totalEntities)}
+                icon="🏢"
+                color="var(--color-accent)"
+              />
+              <SummaryCard
+                label="Pending Review"
+                value={String(summary.totalPending)}
+                icon="⚡"
+                color={summary.totalPending > 0 ? 'var(--color-warning)' : 'var(--color-success)'}
+                highlight={summary.totalPending > 0}
+              />
+              <SummaryCard
+                label="Avg. ABR"
+                value={`${summary.avgAbr}%`}
+                icon="🤖"
+                color={getStatusColor(summary.avgAbr)}
+              />
+              <SummaryCard
+                label="Close Readiness"
+                value={`${summary.avgCloseReadiness}%`}
+                icon="✅"
+                color={getStatusColor(summary.avgCloseReadiness)}
+              />
+              <SummaryCard
+                label="Banks Connected"
+                value={`${summary.connectedBanks}/${summary.totalEntities}`}
+                icon="🏦"
+                color="var(--color-info)"
+              />
+            </div>
+          )}
+
+          {/* ─── Search ─────────────────────────────────────────────────────── */}
+          <div className={styles.searchSection}>
+            <Input
+              placeholder="Search entities…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search entities by name"
+              id="portfolio-search"
+              leftIcon={<span aria-hidden="true">🔍</span>}
+            />
+          </div>
+
+          {/* ─── Entity Table ───────────────────────────────────────────────── */}
+          {filteredEntities.length === 0 && !isLoading ? (
+            <EmptyState
               icon="🏢"
-              color="var(--accent-primary)"
+              title="No entities found"
+              description={searchQuery ? 'No entities match your search.' : 'Add your first client entity to get started.'}
+              action={!searchQuery ? (
+                <Button onClick={() => router.push('/onboarding')}>
+                  + Add Entity
+                </Button>
+              ) : undefined}
             />
-            <SummaryCard
-              label="Pending Review"
-              value={String(summary.totalPending)}
-              icon="⚡"
-              color={summary.totalPending > 0 ? 'var(--warning)' : 'var(--success)'}
-              highlight={summary.totalPending > 0}
-            />
-            <SummaryCard
-              label="Avg. ABR"
-              value={`${summary.avgAbr}%`}
-              icon="🤖"
-              color={getStatusColor(summary.avgAbr)}
-            />
-            <SummaryCard
-              label="Close Readiness"
-              value={`${summary.avgCloseReadiness}%`}
-              icon="✅"
-              color={getStatusColor(summary.avgCloseReadiness)}
-            />
-            <SummaryCard
-              label="Banks Connected"
-              value={`${summary.connectedBanks}/${summary.totalEntities}`}
-              icon="🏦"
-              color="var(--info)"
-            />
-          </div>
-        )}
+          ) : (
+            <Card padding="sm">
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr className={styles.tableHeadRow}>
+                      <SortableHeader label="Entity" field="name" currentSort={sortField} dir={sortDir} onSort={handleSort} />
+                      <SortableHeader label="Exceptions" field="pending" currentSort={sortField} dir={sortDir} onSort={handleSort} />
+                      <SortableHeader label="ABR" field="abr" currentSort={sortField} dir={sortDir} onSort={handleSort} />
+                      <SortableHeader label="Close Readiness" field="closeReadiness" currentSort={sortField} dir={sortDir} onSort={handleSort} />
+                      <SortableHeader label="Last Sync" field="lastSync" currentSort={sortField} dir={sortDir} onSort={handleSort} />
+                      <th className={styles.th}>Bank</th>
+                      <th className={styles.th}>Ledger</th>
+                      <th className={styles.th}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEntities.map((entity) => {
+                      const bankBadge = getBankBadge(entity.bankStatus);
+                      const ledgerBadge = getLedgerBadge(entity.ledgerStatus);
 
-        {/* ─── Search ─────────────────────────────────────────────────────── */}
-        <div style={{ marginBottom: 'var(--space-6)' }}>
-          <input
-            type="text"
-            className="input"
-            placeholder="Search entities…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search entities by name"
-            id="portfolio-search"
-            style={{ maxWidth: '400px' }}
-          />
-        </div>
-
-        {/* ─── Entity Table ───────────────────────────────────────────────── */}
-        {filteredEntities.length === 0 && !isLoading ? (
-          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
-            <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>🏢</span>
-            <h3>No entities found</h3>
-            <p className="text-caption" style={{ marginTop: 'var(--space-2)' }}>
-              {searchQuery ? 'No entities match your search.' : 'Add your first client entity to get started.'}
-            </p>
-            {!searchQuery && (
-              <Link href="/onboarding" className="btn btn-primary" style={{ marginTop: 'var(--space-6)', textDecoration: 'none' }}>
-                + Add Entity
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '0.875rem',
-              }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                    <SortableHeader label="Entity" field="name" currentSort={sortField} dir={sortDir} onSort={handleSort} />
-                    <SortableHeader label="Exceptions" field="pending" currentSort={sortField} dir={sortDir} onSort={handleSort} />
-                    <SortableHeader label="ABR" field="abr" currentSort={sortField} dir={sortDir} onSort={handleSort} />
-                    <SortableHeader label="Close Readiness" field="closeReadiness" currentSort={sortField} dir={sortDir} onSort={handleSort} />
-                    <SortableHeader label="Last Sync" field="lastSync" currentSort={sortField} dir={sortDir} onSort={handleSort} />
-                    <th style={thStyle}>Bank</th>
-                    <th style={thStyle}>Ledger</th>
-                    <th style={thStyle}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEntities.map((entity) => {
-                    const bankBadge = getBankStatusBadge(entity.bankStatus);
-                    const ledgerBadge = getLedgerStatusBadge(entity.ledgerStatus);
-
-                    return (
-                      <tr
-                        key={entity.entityId}
-                        style={{
-                          borderBottom: '1px solid var(--border-primary)',
-                          transition: 'background var(--duration-fast)',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-glass-hover)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                        onClick={() => handleEntityClick(entity.entityId)}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`View ${entity.entityName}`}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityClick(entity.entityId);
-                        }}
-                      >
-                        {/* Entity Name */}
-                        <td style={{ ...tdStyle, fontWeight: 600 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                            <span
-                              style={{
-                                width: '32px', height: '32px', borderRadius: 'var(--radius-md)',
-                                background: 'var(--accent-subtle)', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center', fontSize: '14px',
-                                flexShrink: 0,
-                              }}
-                              aria-hidden="true"
-                            >
-                              🏢
-                            </span>
-                            <div>
-                              <div>{entity.entityName}</div>
-                              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', fontWeight: 400 }}>
-                                {entity.totalTransactions} txns · {entity.currency}
+                      return (
+                        <tr
+                          key={entity.entityId}
+                          className={styles.tableRow}
+                          onClick={() => handleEntityClick(entity.entityId)}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`View ${entity.entityName}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEntityClick(entity.entityId);
+                          }}
+                        >
+                          {/* Entity Name */}
+                          <td className={styles.tdName}>
+                            <div className={styles.entityNameCell}>
+                              <span className={styles.entityAvatar} aria-hidden="true">
+                                🏢
+                              </span>
+                              <div>
+                                <div>{entity.entityName}</div>
+                                <div className={styles.entityMeta}>
+                                  {entity.totalTransactions} txns · {entity.currency}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Pending Exceptions */}
-                        <td style={tdStyle}>
-                          {entity.pendingExceptions > 0 ? (
-                            <span className="badge badge-warning">{entity.pendingExceptions} pending</span>
-                          ) : (
-                            <span className="badge badge-success">0 pending</span>
-                          )}
-                        </td>
+                          {/* Pending Exceptions */}
+                          <td className={styles.td}>
+                            <Badge variant={entity.pendingExceptions > 0 ? 'warning' : 'success'}>
+                              {entity.pendingExceptions} pending
+                            </Badge>
+                          </td>
 
-                        {/* ABR */}
-                        <td style={tdStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                            <div style={{
-                              width: '48px', height: '6px', borderRadius: '3px',
-                              background: 'var(--bg-elevated)', overflow: 'hidden',
-                            }}>
-                              <div style={{
-                                width: `${entity.abr}%`, height: '100%',
-                                background: getStatusColor(entity.abr),
-                                borderRadius: '3px',
-                                transition: 'width 0.6s var(--ease-out)',
-                              }} />
+                          {/* ABR */}
+                          <td className={styles.td}>
+                            <div className={styles.progressCell}>
+                              <Progress value={entity.abr} size="sm" color={getProgressColor(entity.abr)} />
+                              <span className={styles.progressLabel} style={{ color: getStatusColor(entity.abr) }}>
+                                {entity.abr}%
+                              </span>
                             </div>
-                            <span style={{ color: getStatusColor(entity.abr), fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
-                              {entity.abr}%
-                            </span>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Close Readiness */}
-                        <td style={tdStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                            <div style={{
-                              width: '48px', height: '6px', borderRadius: '3px',
-                              background: 'var(--bg-elevated)', overflow: 'hidden',
-                            }}>
-                              <div style={{
-                                width: `${entity.closeReadiness}%`, height: '100%',
-                                background: getStatusColor(entity.closeReadiness),
-                                borderRadius: '3px',
-                                transition: 'width 0.6s var(--ease-out)',
-                              }} />
+                          {/* Close Readiness */}
+                          <td className={styles.td}>
+                            <div className={styles.progressCell}>
+                              <Progress value={entity.closeReadiness} size="sm" color={getProgressColor(entity.closeReadiness)} />
+                              <span className={styles.progressLabel} style={{ color: getStatusColor(entity.closeReadiness) }}>
+                                {entity.closeReadiness}%
+                              </span>
                             </div>
-                            <span style={{ color: getStatusColor(entity.closeReadiness), fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
-                              {entity.closeReadiness}%
-                            </span>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Last Sync */}
-                        <td style={{ ...tdStyle, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
-                          {timeAgo(entity.lastSync)}
-                        </td>
+                          {/* Last Sync */}
+                          <td className={styles.tdSync}>
+                            {timeAgo(entity.lastSync)}
+                          </td>
 
-                        {/* Bank Status */}
-                        <td style={tdStyle}>
-                          <span className={bankBadge.className}>{bankBadge.label}</span>
-                        </td>
+                          {/* Bank Status */}
+                          <td className={styles.td}>
+                            <Badge variant={bankBadge.variant} dot={bankBadge.dot}>
+                              {bankBadge.label}
+                            </Badge>
+                          </td>
 
-                        {/* Ledger Status */}
-                        <td style={tdStyle}>
-                          <span className={ledgerBadge.className}>{ledgerBadge.label}</span>
-                        </td>
+                          {/* Ledger Status */}
+                          <td className={styles.td}>
+                            <Badge variant={ledgerBadge.variant} dot={ledgerBadge.dot}>
+                              {ledgerBadge.label}
+                            </Badge>
+                          </td>
 
-                        {/* Actions */}
-                        <td style={tdStyle}>
-                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                            <Link
-                              href="/dashboard"
-                              className="btn btn-sm btn-secondary"
-                              style={{ textDecoration: 'none', fontSize: '0.75rem' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEntityClick(entity.entityId);
-                              }}
-                            >
-                              Review
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                          {/* Actions */}
+                          <td className={styles.td}>
+                            <div className={styles.actionsCell}>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEntityClick(entity.entityId);
+                                }}
+                              >
+                                Review
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      </AppShell>
     </ErrorBoundary>
   );
 }
@@ -464,24 +417,19 @@ function SummaryCard({
   highlight?: boolean;
 }) {
   return (
-    <div
-      className="card"
-      style={{
-        padding: 'var(--space-5)',
-        borderColor: highlight ? 'var(--warning-border)' : undefined,
-        background: highlight ? 'var(--warning-subtle)' : undefined,
-      }}
+    <Card
+      variant="default"
+      padding="md"
+      className={highlight ? styles.highlightCard : undefined}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-        <span aria-hidden="true">{icon}</span>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          {label}
-        </span>
+      <div className={styles.summaryIconRow}>
+        <span className={styles.summaryIcon} aria-hidden="true">{icon}</span>
+        <span className={styles.summaryLabel}>{label}</span>
       </div>
-      <div style={{ fontSize: '1.75rem', fontWeight: 800, color, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
+      <div className={styles.summaryValue} style={{ color }}>
         {value}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -501,12 +449,7 @@ function SortableHeader({
   const isActive = currentSort === field;
   return (
     <th
-      style={{
-        ...thStyle,
-        cursor: 'pointer',
-        userSelect: 'none',
-        color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-      }}
+      className={`${styles.thSortable} ${isActive ? styles.thActive : ''}`}
       onClick={() => onSort(field)}
       aria-sort={isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
@@ -514,21 +457,3 @@ function SortableHeader({
     </th>
   );
 }
-
-// ─── Styles ─────────────────────────────────────────────────────────────────────
-
-const thStyle: React.CSSProperties = {
-  padding: 'var(--space-3) var(--space-4)',
-  textAlign: 'left',
-  fontWeight: 600,
-  fontSize: '0.75rem',
-  color: 'var(--text-secondary)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: 'var(--space-4)',
-  whiteSpace: 'nowrap',
-};

@@ -1,0 +1,65 @@
+/* ============================================
+   Tooltip Component Styles
+   ============================================ */
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ─── Tooltip Bubble ─────────────────────────── */
+.tooltip {
+  position: absolute;
+  z-index: var(--z-tooltip);
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
+  /* Inverted colors: dark bg in light mode, light bg in dark mode */
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-md);
+}
+
+.tooltipVisible {
+  opacity: 1;
+}
+
+/* ─── Positions ──────────────────────────────── */
+.top {
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bottom {
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.left {
+  right: calc(100% + var(--space-2));
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.right {
+  left: calc(100% + var(--space-2));
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ─── Reduced Motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    transition: none;
+  }
+}

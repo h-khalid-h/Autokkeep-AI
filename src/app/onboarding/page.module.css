@@ -1,0 +1,578 @@
+/* ============================================
+   ONBOARDING PAGE — CSS Module
+   Uses Autokkeep design tokens from tokens.css
+   ============================================ */
+
+/* ─── Page layout ─────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+}
+
+/* ─── Header ──────────────────────────────── */
+.header {
+  padding: var(--space-5) var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerBrand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.headerTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Progress area ───────────────────────── */
+.progressArea {
+  padding: 0 var(--space-8);
+  margin-top: var(--space-6);
+}
+
+/* ─── Step indicators ─────────────────────── */
+.stepIndicators {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+}
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  transition: opacity var(--duration-moderate) var(--ease-out);
+}
+
+.stepIndicator[data-state="future"] {
+  opacity: 0.35;
+}
+
+.stepIndicator[data-state="current"],
+.stepIndicator[data-state="past"] {
+  opacity: 1;
+}
+
+.stepIcon {
+  font-size: var(--text-base);
+}
+
+.stepLabel {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-regular);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.stepIndicator[data-state="current"] .stepLabel {
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+/* ─── Content area ────────────────────────── */
+.content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-8);
+}
+
+.contentInner {
+  max-width: 560px;
+  width: 100%;
+}
+
+/* ─── Error banner ────────────────────────── */
+.errorBanner {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-destructive-subtle);
+  border: 1px solid var(--color-destructive-border);
+  color: var(--color-destructive-text);
+  font-size: var(--text-base);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  animation: slideDown var(--duration-moderate) var(--ease-out);
+}
+
+.errorDismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--text-lg);
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
+  transition: background var(--duration-fast) var(--ease-out);
+  line-height: 1;
+}
+
+.errorDismiss:hover {
+  background: var(--color-destructive-subtle);
+}
+
+/* ─── Welcome step ────────────────────────── */
+.welcomeWrapper {
+  text-align: center;
+  animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.welcomeEmoji {
+  font-size: var(--text-5xl);
+  margin-bottom: var(--space-6);
+  display: block;
+}
+
+.welcomeHeading {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.welcomeDescription {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  max-width: 400px;
+  margin: 0 auto var(--space-10);
+  line-height: var(--leading-relaxed);
+}
+
+/* ─── Step heading + description ──────────── */
+.stepHeading {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.stepDescription {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-normal);
+}
+
+/* ─── Form field group ────────────────────── */
+.fieldGroup {
+  margin-bottom: var(--space-5);
+}
+
+.fieldGroup:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Select styling ──────────────────────── */
+.selectLabel {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1-5);
+  letter-spacing: var(--tracking-wide);
+}
+
+.select {
+  width: 100%;
+  padding: var(--space-2-5) var(--space-3);
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+  transition: border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.select:hover {
+  border-color: var(--color-border-strong);
+}
+
+.select:focus {
+  border-color: var(--color-border-input-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Helper text ─────────────────────────── */
+.helperText {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-1);
+  line-height: var(--leading-normal);
+}
+
+/* ─── Navigation buttons row ──────────────── */
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-6);
+}
+
+.navButtonsRight {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ─── Bank step ───────────────────────────── */
+.bankCenter {
+  text-align: center;
+}
+
+.bankEmoji {
+  font-size: var(--text-5xl);
+  margin-bottom: var(--space-4);
+  display: block;
+}
+
+.bankSuccessText {
+  font-size: var(--text-md);
+  color: var(--color-success-text);
+  margin-bottom: var(--space-2);
+}
+
+.bankCaption {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  line-height: var(--leading-normal);
+}
+
+.bankBody {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-relaxed);
+}
+
+.bankSupportedText {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-4);
+}
+
+/* ─── Ledger options ──────────────────────── */
+.ledgerList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ledgerOption {
+  padding: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  transition: all var(--duration-normal) var(--ease-out);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+}
+
+.ledgerOption:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.ledgerOption[data-selected="true"] {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow), inset 0 0 12px var(--color-accent-subtle);
+  background: var(--color-accent-subtle);
+  transform: translateY(-1px);
+}
+
+.ledgerOption:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ledgerIcon {
+  font-size: var(--text-3xl);
+  flex-shrink: 0;
+}
+
+.ledgerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.ledgerName {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ledgerDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-0-5);
+}
+
+.ledgerCheck {
+  margin-left: auto;
+  color: var(--color-success-text);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+/* ─── Channel grid ────────────────────────── */
+.channelGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.channelOption {
+  padding: var(--space-6);
+  cursor: pointer;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+}
+
+.channelOption:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.channelOption[data-selected="true"] {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow), inset 0 0 12px var(--color-accent-subtle);
+  background: var(--color-accent-subtle);
+  transform: translateY(-1px);
+}
+
+.channelOption:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.channelSoon {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  font-size: var(--text-xs);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+}
+
+.channelIcon {
+  font-size: var(--text-4xl);
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.channelName {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.channelDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-0-5);
+}
+
+.channelSelected {
+  color: var(--color-success-text);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* ─── Complete step ───────────────────────── */
+.completeWrapper {
+  text-align: center;
+  animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.completeEmojiCircle {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--color-success-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-6);
+  font-size: var(--text-4xl);
+}
+
+.completeHeading {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.completeDescription {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  margin: 0 auto var(--space-3);
+  line-height: var(--leading-relaxed);
+}
+
+.completeListCard {
+  text-align: left;
+  margin-bottom: var(--space-8);
+}
+
+.completeList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.completeListItem {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+/* ─── Animations ──────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .header {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .progressArea {
+    padding: 0 var(--space-5);
+  }
+
+  .content {
+    padding: var(--space-8) var(--space-5);
+  }
+
+  .stepLabel {
+    display: none;
+  }
+
+  .stepIcon {
+    font-size: var(--text-lg);
+  }
+
+  .welcomeHeading,
+  .completeHeading {
+    font-size: var(--text-3xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .progressArea {
+    padding: 0 var(--space-4);
+  }
+
+  .content {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .channelGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcomeHeading,
+  .completeHeading {
+    font-size: var(--text-2xl);
+  }
+
+  .navButtons {
+    flex-direction: column-reverse;
+    gap: var(--space-3);
+  }
+
+  .navButtons > * {
+    width: 100%;
+  }
+
+  .navButtonsRight {
+    width: 100%;
+    flex-direction: column;
+  }
+}

@@ -1,58 +1,83 @@
 import Link from 'next/link';
 import Logo from '@/components/ui/Logo';
+import styles from './Footer.module.css';
+
+const linkGroups = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Features', href: '/#features' },
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Demo', href: '/demo/shadow-audit' },
+      { label: 'Changelog', href: '/changelog' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { label: 'About', href: '/about' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Careers', href: '/careers' },
+      { label: 'Contact', href: '/contact' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Security', href: '/security' },
+    ],
+  },
+];
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="footer">
-      <div className="container">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <div className="footer-brand-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Logo size={28} />
-              <span>Auto<span className="text-gradient">kkeep</span></span>
-            </div>
-            <p className="footer-brand-desc">
-              Understand your business finances without understanding accounting. AI-powered financial operations for small businesses.
+    <footer className={styles.footer}>
+      <div className={styles.container}>
+        <div className={styles.top}>
+          {/* Brand column */}
+          <div className={styles.brand}>
+            <Link href="/" className={styles.logo} aria-label="Autokkeep Home">
+              <Logo size={24} />
+              <span>
+                Auto<span className={styles.logoGradient}>kkeep</span>
+              </span>
+            </Link>
+            <p className={styles.brandDesc}>
+              AI-powered bookkeeping that categorizes transactions, chases receipts, and closes
+              your books automatically.
             </p>
           </div>
 
-          <div>
-            <div className="footer-col-title">Product</div>
-            <div className="footer-links">
-              <Link href="/#solution" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>How It Works</Link>
-              <Link href="/#architecture" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Architecture</Link>
-              <Link href="/pricing" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Pricing</Link>
-              <Link href="/changelog" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Changelog</Link>
-              <Link href="/status" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>System Status</Link>
-              <Link href="/dashboard" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Live Dashboard Demo</Link>
-              <Link href="/demo/shadow-audit" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Shadow Audit Demo</Link>
-              <Link href="/#cta" className="footer-link" style={{ transition: 'color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)', display: 'inline-block' }}>Request Access</Link>
+          {/* Link columns */}
+          {linkGroups.map((group) => (
+            <div key={group.title} className={styles.linkGroup}>
+              <p className={styles.linkGroupTitle}>{group.title}</p>
+              {group.links.map((link) => (
+                <Link key={link.href} href={link.href} className={styles.link}>
+                  {link.label}
+                </Link>
+              ))}
             </div>
-          </div>
-
-          <div>
-            <div className="footer-col-title">Company</div>
-            <div className="footer-links">
-              <Link href="/about" className="footer-link">About</Link>
-              <Link href="/partners" className="footer-link">Partners</Link>
-              <Link href="/resources" className="footer-link">Resources</Link>
-              <Link href="/contact" className="footer-link">Contact</Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="footer-col-title">Legal & Security</div>
-            <div className="footer-links">
-              <Link href="/security" className="footer-link">Security Overview</Link>
-              <Link href="/privacy" className="footer-link">Privacy Policy</Link>
-              <Link href="/terms" className="footer-link">Terms of Service</Link>
-            </div>
-          </div>
+          ))}
         </div>
 
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} Autokkeep, Inc. All rights reserved.</span>
-          <span>Built with precision. <span className="text-gradient">Powered by AI.</span></span>
+        {/* Bottom bar */}
+        <div className={styles.bottom}>
+          <p className={styles.copyright}>
+            © {currentYear} Autokkeep. All rights reserved.
+          </p>
+          <div className={styles.bottomLinks}>
+            <Link href="/privacy" className={styles.bottomLink}>
+              Privacy
+            </Link>
+            <Link href="/terms" className={styles.bottomLink}>
+              Terms
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

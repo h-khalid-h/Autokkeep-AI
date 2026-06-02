@@ -1,0 +1,119 @@
+/* ============================================
+   Avatar Component Styles
+   ============================================ */
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  user-select: none;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.wrapper:hover .avatar {
+  transform: scale(1.05);
+}
+
+/* ─── Sizes ──────────────────────────────────── */
+.xs {
+  width: 24px;
+  height: 24px;
+  font-size: var(--text-xs);
+}
+
+.sm {
+  width: 32px;
+  height: 32px;
+  font-size: var(--text-sm);
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+  font-size: var(--text-base);
+}
+
+.lg {
+  width: 48px;
+  height: 48px;
+  font-size: var(--text-lg);
+}
+
+.xl {
+  width: 64px;
+  height: 64px;
+  font-size: var(--text-xl);
+}
+
+/* ─── Image ──────────────────────────────────── */
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ─── Initials ───────────────────────────────── */
+.initials {
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+/* ─── Status Indicator ───────────────────────── */
+.status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-primary);
+  box-sizing: content-box;
+}
+
+.statusXs,
+.statusSm {
+  width: 8px;
+  height: 8px;
+}
+
+.statusMd {
+  width: 10px;
+  height: 10px;
+}
+
+.statusLg,
+.statusXl {
+  width: 12px;
+  height: 12px;
+}
+
+.online {
+  background: var(--color-success);
+}
+
+.offline {
+  background: var(--color-text-tertiary);
+}
+
+.away {
+  background: var(--color-warning);
+}
+
+/* ─── Reduced Motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .avatar {
+    transition: none;
+  }
+}

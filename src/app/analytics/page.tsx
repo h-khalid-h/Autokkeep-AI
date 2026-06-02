@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
-import Logo from '@/components/ui/Logo';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Progress, Skeleton, EmptyState } from '@/components/ui';
+import styles from './analytics.module.css';
 
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
 
@@ -24,9 +26,6 @@ interface AnalyticsData {
   topCategories: { name: string; code: string; count: number; amount: number }[];
   recentExceptions: { merchant: string; amount: number; confidence: number; reason: string }[];
 }
-
-
-
 
 interface RawTxn {
   date: string;
@@ -59,6 +58,7 @@ const EMPTY_DATA: Record<TimeRange, AnalyticsData> = {
 
 export default function AnalyticsPage() {
   const { selectedEntity } = useEntity();
+  const router = useRouter();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [analyticsData, setAnalyticsData] = useState<Record<TimeRange, AnalyticsData>>(EMPTY_DATA);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,256 +184,261 @@ export default function AnalyticsPage() {
     : '0.0';
   const maxVolume = Math.max(...data.dailyVolume, 1);
 
+  // Determine accuracy color class
+  const getAccuracyClass = () => {
+    if (data.accuracy >= 95) return styles.kpiValueSuccess;
+    if (data.accuracy >= 90) return styles.kpiValueWarning;
+    return styles.kpiValueDestructive;
+  };
+
+  const receiptRate = (data.receiptsCaptured + data.receiptsMissing) > 0
+    ? ((data.receiptsCaptured / (data.receiptsCaptured + data.receiptsMissing)) * 100).toFixed(0)
+    : '0';
+
+  const timeRangeButtons: { id: TimeRange; label: string }[] = [
+    { id: '7d', label: '7 Days' },
+    { id: '30d', label: '30 Days' },
+    { id: '90d', label: '90 Days' },
+    { id: 'ytd', label: 'YTD' },
+  ];
+
+  // Pipeline stages config
+  const pipelineStages = [
+    { label: 'Imported', value: data.totalTransactions, boxClass: styles.pipelineBoxAccent, valueClass: styles.pipelineValueAccent },
+    { label: 'Auto-Approved', value: data.autoApproved, boxClass: styles.pipelineBoxSuccess, valueClass: styles.pipelineValueSuccess },
+    { label: 'Human-Reviewed', value: data.humanReviewed, boxClass: styles.pipelineBoxWarning, valueClass: styles.pipelineValueWarning },
+    { label: 'Pending', value: data.pending, boxClass: styles.pipelineBoxDestructive, valueClass: styles.pipelineValueDestructive },
+  ];
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <ErrorBoundary>
+        <AppShell>
+          <div className={styles.pageContainer}>
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingGrid}>
+                {Array.from({ length: 4 }, (_, i) => (
+                  <Card key={i} variant="elevated" padding="lg">
+                    <Skeleton width="60%" height={14} />
+                    <Skeleton width="40%" height={32} />
+                    <Skeleton width="80%" height={12} />
+                  </Card>
+                ))}
+              </div>
+              <Card padding="lg">
+                <Skeleton width="30%" height={18} />
+                <Skeleton variant="rect" height={160} />
+              </Card>
+            </div>
+          </div>
+        </AppShell>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header className="dashboard-header">
-        <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <h1 className="text-h3" style={{ margin: 0 }}>Analytics & Reports</h1>
-        <Link href="/dashboard" className="btn btn-ghost btn-sm">← Dashboard</Link>
-      </header>
+      <AppShell>
+        <div className={styles.pageContainer}>
+          {/* Empty state banner */}
+          {!hasData && (
+            <EmptyState
+              icon="📊"
+              title="No transaction data yet"
+              description="Connect your bank account to start seeing real analytics. All charts will populate automatically as transactions flow in."
+              action={
+                <Button onClick={() => router.push('/onboarding')}>
+                  Connect Bank Account →
+                </Button>
+              }
+            />
+          )}
 
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 24px)', maxWidth: '1100px' }}>
-        {/* Empty state banner */}
-        {!isLoading && !hasData && (
-          <div
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-primary)',
-              borderRadius: '12px',
-              padding: '32px',
-              textAlign: 'center',
-              marginBottom: '24px',
-            }}
-          >
-            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
-            <h3 className="text-h3" style={{ marginBottom: '8px' }}>No transaction data yet</h3>
-            <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '16px', maxWidth: '400px', margin: '0 auto 16px' }}>
-              Connect your bank account to start seeing real analytics. All charts will populate automatically as transactions flow in.
-            </p>
-            <Link href="/onboarding" className="btn btn-primary">
-              Connect Bank Account →
-            </Link>
+          {/* Time Range Selector */}
+          <div className={styles.toolbar}>
+            <h2 className={styles.toolbarTitle}>Performance Overview</h2>
+            <div className={styles.timeRangeGroup}>
+              {timeRangeButtons.map((range) => (
+                <Button
+                  key={range.id}
+                  variant={timeRange === range.id ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTimeRange(range.id)}
+                >
+                  {range.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        )}
-        {/* Time Range Selector */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="text-h2">Performance Overview</h2>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {([
-              { id: '7d', label: '7 Days' },
-              { id: '30d', label: '30 Days' },
-              { id: '90d', label: '90 Days' },
-              { id: 'ytd', label: 'YTD' },
-            ] as { id: TimeRange; label: string }[]).map((range) => (
-              <button
-                key={range.id}
-                className={`btn ${timeRange === range.id ? 'btn-primary' : 'btn-ghost'} btn-sm`}
-                onClick={() => setTimeRange(range.id)}
+
+          {/* KPI Cards */}
+          <div className={styles.kpiGrid}>
+            <Card variant="elevated" padding="lg">
+              <div className={styles.kpiLabel}>Total Transactions</div>
+              <div className={styles.kpiValue}>
+                {data.totalTransactions.toLocaleString()}
+              </div>
+              <div className={styles.kpiSubSuccess}>
+                {data.syncedToLedger} synced to ledger
+              </div>
+            </Card>
+
+            <Card variant="elevated" padding="lg">
+              <div className={styles.kpiLabel}>AI Accuracy</div>
+              <div className={getAccuracyClass()}>
+                {data.accuracy}%
+              </div>
+              <div className={styles.kpiSub}>
+                {autoRate}% auto-approved
+              </div>
+            </Card>
+
+            <Card variant="elevated" padding="lg">
+              <div className={styles.kpiLabel}>Avg Processing Time</div>
+              <div className={styles.kpiValueMuted}>
+                N/A
+              </div>
+              <div className={styles.kpiSub}>
+                Not yet tracked
+              </div>
+            </Card>
+
+            <Card variant="elevated" padding="lg">
+              <div className={styles.kpiLabel}>Receipts Captured</div>
+              <div className={styles.kpiValue}>
+                {receiptRate}%
+              </div>
+              <div className={styles.kpiSub}>
+                {data.receiptsMissing} still missing
+              </div>
+            </Card>
+          </div>
+
+          {/* Processing Pipeline */}
+          <Card padding="lg" className={styles.pipelineCard}>
+            <div className={styles.sectionTitle}>Processing Pipeline</div>
+            <div className={styles.pipelineFlow}>
+              {pipelineStages.map((stage, i) => (
+                <div key={stage.label} className={styles.pipelineStage}>
+                  <div className={stage.boxClass}>
+                    <div className={stage.valueClass}>
+                      {stage.value}
+                    </div>
+                    <div className={styles.pipelineLabel}>{stage.label}</div>
+                  </div>
+                  {i < pipelineStages.length - 1 && (
+                    <div className={styles.pipelineArrow}>→</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Two Column: Volume Chart + Top Categories */}
+          <div className={styles.twoColumnGrid}>
+            {/* Volume Chart (CSS bars) */}
+            <Card padding="lg">
+              <div className={styles.sectionTitle}>Daily Transaction Volume</div>
+              <div className={styles.chartContainer}>
+                {data.dailyVolume.slice(-30).map((v, i) => (
+                  <div
+                    key={i}
+                    className={styles.chartBar}
+                    style={{
+                      '--bar-height': `${(v / maxVolume) * 100}%`,
+                      height: `${(v / maxVolume) * 100}%`,
+                      opacity: 0.7 + (v / maxVolume) * 0.3,
+                    } as React.CSSProperties}
+                    title={`${v} transactions`}
+                  />
+                ))}
+              </div>
+              <div className={styles.chartCaption}>
+                Last {Math.min(30, data.dailyVolume.length)} days
+              </div>
+            </Card>
+
+            {/* Top Categories */}
+            <Card padding="lg">
+              <div className={styles.sectionTitle}>Top GL Categories</div>
+              <div className={styles.categoryList}>
+                {data.topCategories.map((cat, i) => (
+                  <div key={cat.code}>
+                    <div className={styles.categoryRow}>
+                      <span className={styles.categoryName}>
+                        {i + 1}. {cat.name}
+                      </span>
+                      <span className={styles.categoryAmount}>
+                        {fmtCurrency(cat.amount)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={data.topCategories[0].count > 0 ? (cat.count / data.topCategories[0].count) * 100 : 0}
+                      size="sm"
+                      color="accent"
+                    />
+                    <div className={styles.categoryCount}>
+                      {cat.count} transactions
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Recent Exceptions */}
+          <Card padding="lg" className={styles.exceptionsCard}>
+            <div className={styles.exceptionsHeader}>
+              <div className={styles.sectionTitle}>Recent Exceptions</div>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
+                View All →
+              </Button>
+            </div>
+            <div className={styles.exceptionsList}>
+              {data.recentExceptions.map((ex, i) => (
+                <div key={i} className={styles.exceptionRow}>
+                  <div className={styles.exceptionInfo}>
+                    <span className={styles.exceptionMerchant}>{ex.merchant}</span>
+                    <span className={styles.exceptionReason}>{ex.reason}</span>
+                  </div>
+                  <div className={styles.exceptionMeta}>
+                    <span className={styles.exceptionAmount}>
+                      {fmtCurrency(ex.amount)}
+                    </span>
+                    <Badge variant={ex.confidence >= 80 ? 'warning' : 'destructive'}>
+                      {ex.confidence}%
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Monthly Close Status */}
+          <Card variant="accent" padding="lg" className={styles.closeStatusCard}>
+            <div className={styles.closeStatusInner}>
+              <div>
+                <div className={styles.closeStatusTitle}>
+                  📊 Monthly Close Status — {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                </div>
+                <p className={styles.closeStatusDesc}>
+                  {data.pending > 0
+                    ? `${data.pending} transactions pending review. Resolve them to close the month.`
+                    : '✅ All transactions processed! Ready to close.'}
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={data.pending > 0}
               >
-                {range.label}
-              </button>
-            ))}
-          </div>
+                {data.pending > 0 ? `${data.pending} Pending` : 'Close Month ✓'}
+              </Button>
+            </div>
+          </Card>
         </div>
-
-        {/* KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-          <div className="card-elevated" style={{ padding: '24px' }}>
-            <div className="text-caption">Total Transactions</div>
-            <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px' }}>
-              {data.totalTransactions.toLocaleString()}
-            </div>
-            <div className="text-caption" style={{ color: 'var(--success)' }}>
-              {data.syncedToLedger} synced to ledger
-            </div>
-          </div>
-
-          <div className="card-elevated" style={{ padding: '24px' }}>
-            <div className="text-caption">AI Accuracy</div>
-            <div className="stat-value" style={{
-              fontSize: '2rem', margin: '8px 0 4px',
-              color: data.accuracy >= 95 ? 'var(--success)' : data.accuracy >= 90 ? 'var(--warning)' : 'var(--destructive)',
-            }}>
-              {data.accuracy}%
-            </div>
-            <div className="text-caption">
-              {autoRate}% auto-approved
-            </div>
-          </div>
-
-          <div className="card-elevated" style={{ padding: '24px' }}>
-            <div className="text-caption">Avg Processing Time</div>
-            <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px', color: 'var(--text-secondary)' }}>
-              N/A
-            </div>
-            <div className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
-              Not yet tracked
-            </div>
-          </div>
-
-          <div className="card-elevated" style={{ padding: '24px' }}>
-            <div className="text-caption">Receipts Captured</div>
-            <div className="stat-value" style={{ fontSize: '2rem', margin: '8px 0 4px' }}>
-              {((data.receiptsCaptured + data.receiptsMissing) > 0
-                ? ((data.receiptsCaptured / (data.receiptsCaptured + data.receiptsMissing)) * 100).toFixed(0)
-                : '0')}%
-            </div>
-            <div className="text-caption">
-              {data.receiptsMissing} still missing
-            </div>
-          </div>
-        </div>
-
-        {/* Processing Pipeline */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <div className="text-h4" style={{ marginBottom: '20px' }}>Processing Pipeline</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {[
-              { label: 'Imported', value: data.totalTransactions, color: 'var(--accent-primary)' },
-              { label: 'Auto-Approved', value: data.autoApproved, color: 'var(--success)' },
-              { label: 'Human-Reviewed', value: data.humanReviewed, color: 'var(--warning)' },
-              { label: 'Pending', value: data.pending, color: 'var(--destructive)' },
-            ].map((stage, i) => (
-              <div key={stage.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  flex: 1, padding: '16px', borderRadius: '12px',
-                  background: `${stage.color}15`,
-                  border: `1px solid ${stage.color}30`,
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: stage.color }}>
-                    {stage.value}
-                  </div>
-                  <div className="text-caption">{stage.label}</div>
-                </div>
-                {i < 3 && (
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '18px', flexShrink: 0 }}>→</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Two Column: Volume Chart + Top Categories */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          {/* Volume Chart (CSS bars) */}
-          <div className="card" style={{ padding: '24px' }}>
-            <div className="text-h4" style={{ marginBottom: '16px' }}>Daily Transaction Volume</div>
-            <div style={{
-              display: 'flex', alignItems: 'flex-end', gap: '2px', height: '160px',
-              borderBottom: '1px solid var(--border-primary)',
-              paddingBottom: '4px',
-            }}>
-              {data.dailyVolume.slice(-30).map((v, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: `${(v / maxVolume) * 100}%`,
-                    minHeight: '4px',
-                    background: 'var(--accent-gradient)',
-                    borderRadius: '2px 2px 0 0',
-                    transition: 'height 0.3s ease',
-                    opacity: 0.7 + (v / maxVolume) * 0.3,
-                  }}
-                  title={`${v} transactions`}
-                />
-              ))}
-            </div>
-            <div className="text-caption" style={{ marginTop: '8px', textAlign: 'center' }}>
-              Last {Math.min(30, data.dailyVolume.length)} days
-            </div>
-          </div>
-
-          {/* Top Categories */}
-          <div className="card" style={{ padding: '24px' }}>
-            <div className="text-h4" style={{ marginBottom: '16px' }}>Top GL Categories</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {data.topCategories.map((cat, i) => (
-                <div key={cat.code}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span className="text-caption" style={{ fontWeight: 500 }}>
-                      {i + 1}. {cat.name}
-                    </span>
-                    <span className="text-caption" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {fmtCurrency(cat.amount)}
-                    </span>
-                  </div>
-                  <div style={{
-                    height: '6px', borderRadius: '3px',
-                    background: 'var(--bg-surface)',
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: '3px',
-                      background: 'var(--accent-gradient)',
-                      width: `${(data.topCategories[0].count > 0 ? (cat.count / data.topCategories[0].count) * 100 : 0)}%`,
-                      transition: 'width 0.5s ease',
-                    }} />
-                  </div>
-                  <div className="text-caption" style={{ marginTop: '2px' }}>
-                    {cat.count} transactions
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Exceptions */}
-        <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div className="text-h4">Recent Exceptions</div>
-            <Link href="/dashboard" className="btn btn-ghost btn-sm">View All →</Link>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {data.recentExceptions.map((ex, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 16px', borderRadius: '8px',
-                background: 'var(--bg-secondary)',
-              }}>
-                <div>
-                  <span className="text-body" style={{ fontWeight: 600 }}>{ex.merchant}</span>
-                  <span className="text-caption" style={{ marginLeft: '12px' }}>{ex.reason}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <span className="text-body" style={{ fontFamily: 'var(--font-mono)' }}>
-                    {fmtCurrency(ex.amount)}
-                  </span>
-                  <span className={`badge ${ex.confidence >= 80 ? 'badge-warning' : 'badge-danger'}`}>
-                    {ex.confidence}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Monthly Close Status */}
-        <div className="card-accent" style={{ padding: '24px', marginBottom: '48px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div className="text-h4" style={{ marginBottom: '4px' }}>
-                📊 Monthly Close Status — {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-              </div>
-              <div className="text-body">
-                {data.pending > 0
-                  ? `${data.pending} transactions pending review. Resolve them to close the month.`
-                  : '✅ All transactions processed! Ready to close.'}
-              </div>
-            </div>
-            <button className="btn btn-primary btn-sm" disabled={data.pending > 0}>
-              {data.pending > 0 ? `${data.pending} Pending` : 'Close Month ✓'}
-            </button>
-          </div>
-        </div>
-      </main>
-    </div>
+      </AppShell>
     </ErrorBoundary>
   );
 }

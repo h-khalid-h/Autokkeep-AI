@@ -3,6 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient as getSupabase } from '@/lib/supabase/client';
+import { useTheme } from '@/components/providers/ThemeProvider';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Button, Input, Modal, Toggle, Skeleton } from '@/components/ui';
+import styles from './page.module.css';
 
 
 interface UserProfile {
@@ -21,14 +25,10 @@ export default function AccountPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Preferences state — persisted to localStorage (lazy initialization)
-  const [theme, setThemeRaw] = useState<'dark' | 'light' | 'system'>(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('autokkeep-theme') : null;
-      if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
-    } catch {}
-    return 'dark';
-  });
+  // Theme from provider
+  const { theme, setTheme } = useTheme();
+
+  // Notification preferences — persisted to localStorage
   const [notifPrefs, setNotifPrefsRaw] = useState(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('autokkeep-notif-prefs') : null;
@@ -36,12 +36,6 @@ export default function AccountPage() {
     } catch {}
     return { email: true, slack: false, sms: false };
   });
-
-  // Wrap setters to persist
-  const setTheme = useCallback((t: 'dark' | 'light' | 'system') => {
-    setThemeRaw(t);
-    try { localStorage.setItem('autokkeep-theme', t); } catch {}
-  }, []);
 
   const setNotifPrefs: React.Dispatch<React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>> = useCallback(
     (action: React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>) => {
@@ -135,346 +129,107 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '18px',
-              margin: '0 auto 16px',
-              animation: 'pulse 1.5s ease-in-out infinite',
-            }}
-          >
-            AK
+      <AppShell>
+        <div className={styles.loadingPage}>
+          <div className={styles.loadingCenter}>
+            <Skeleton variant="rect" width={48} height={48} />
+            <p className={styles.loadingText}>Loading account...</p>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Loading account...
-          </p>
-          <style>{`
-            @keyframes pulse {
-              0%, 100% { opacity: 1; transform: scale(1); }
-              50% { opacity: 0.6; transform: scale(0.95); }
-            }
-          `}</style>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <h2 style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-            Unable to Load Account
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
-            {error || 'Please sign in to view your account settings.'}
-          </p>
-          <Link
-            href="/auth/login"
-            className="btn btn-primary"
-            style={{ display: 'inline-block', padding: '10px 24px', fontSize: '14px' }}
-          >
-            Sign In
-          </Link>
+      <AppShell>
+        <div className={styles.errorPage}>
+          <div className={styles.errorCenter}>
+            <div className={styles.errorIcon}>⚠️</div>
+            <h2 className={styles.errorTitle}>Unable to Load Account</h2>
+            <p className={styles.errorMsg}>
+              {error || 'Please sign in to view your account settings.'}
+            </p>
+            <Button as={Link} href="/auth/login">
+              Sign In
+            </Button>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg-primary)',
-        padding: 'var(--space-8)',
-      }}
-    >
-      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-        {/* Back link */}
-        <Link
-          href="/dashboard"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'var(--text-secondary)',
-            fontSize: '13px',
-            textDecoration: 'none',
-            marginBottom: 'var(--space-6)',
-            transition: 'color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-        >
-          ← Back to Dashboard
-        </Link>
+    <AppShell>
+      <div className={styles.page}>
+        <h1 className={styles.pageTitle}>Account Settings</h1>
 
-        {/* Page title */}
-        <h1
-          style={{
-            fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            marginBottom: 'var(--space-8)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Account Settings
-        </h1>
-
-        {/* ─── Section: Profile ─────────────────────────────────────────── */}
-        <section
-          style={{
-            background: 'var(--bg-glass)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            marginBottom: 'var(--space-6)',
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--space-5)',
-            }}
-          >
-            Profile
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
-            {/* Avatar */}
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '16px',
-                background: 'var(--accent-gradient)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '22px',
-                flexShrink: 0,
-              }}
-            >
-              {user.initials}
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '4px',
-                }}
-              >
-                {user.fullName}
-              </div>
-              <div
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  marginBottom: '4px',
-                }}
-              >
-                {user.email}
-              </div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--text-tertiary)',
-                }}
-              >
+        {/* ─── Section: Profile ─── */}
+        <Card>
+          <h2 className={styles.sectionTitle}>Profile</h2>
+          <div className={styles.profileRow}>
+            <div className={styles.avatar}>{user.initials}</div>
+            <div className={styles.profileInfo}>
+              <div className={styles.profileName}>{user.fullName}</div>
+              <div className={styles.profileEmail}>{user.email}</div>
+              <div className={styles.profileSince}>
                 Member since {formatDate(user.memberSince)}
               </div>
             </div>
           </div>
-        </section>
+        </Card>
 
-        {/* ─── Section: Security ────────────────────────────────────────── */}
-        <section
-          style={{
-            background: 'var(--bg-glass)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            marginBottom: 'var(--space-6)',
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--space-5)',
-            }}
-          >
-            Security
-          </h2>
+        {/* ─── Section: Security ─── */}
+        <Card>
+          <h2 className={styles.sectionTitle}>Security</h2>
 
           {/* Change password */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 'var(--space-5)',
-              paddingBottom: 'var(--space-5)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
+          <div className={styles.securityRow}>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                Password
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              <div className={styles.securityLabel}>Password</div>
+              <div className={styles.securityHint}>
                 {passwordResetSent
                   ? '✅ Password reset email sent!'
                   : 'Send a password reset link to your email'}
               </div>
             </div>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handlePasswordReset}
               disabled={passwordResetSent}
-              className="btn btn-secondary btn-sm"
-              style={{
-                opacity: passwordResetSent ? 0.6 : 1,
-                cursor: passwordResetSent ? 'default' : 'pointer',
-              }}
             >
               {passwordResetSent ? 'Sent ✓' : 'Change Password'}
-            </button>
+            </Button>
           </div>
 
           {/* Sessions */}
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-              Sessions
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginTop: 'var(--space-3)',
-                padding: 'var(--space-3) var(--space-4)',
-                background: 'var(--bg-elevated)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <span style={{ fontSize: '16px' }}>🖥️</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  Current session
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                  Active now
-                </div>
+            <div className={styles.securityLabel}>Sessions</div>
+            <div className={styles.sessionRow}>
+              <span className={styles.sessionIcon}>🖥️</span>
+              <div className={styles.sessionInfo}>
+                <div className={styles.sessionLabel}>Current session</div>
+                <div className={styles.sessionStatus}>Active now</div>
               </div>
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: 'var(--success)',
-                }}
-              />
+              <span className={styles.sessionDot} />
             </div>
           </div>
-        </section>
+        </Card>
 
-        {/* ─── Section: Preferences ─────────────────────────────────────── */}
-        <section
-          style={{
-            background: 'var(--bg-glass)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            marginBottom: 'var(--space-6)',
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--space-5)',
-            }}
-          >
-            Preferences
-          </h2>
+        {/* ─── Section: Preferences ─── */}
+        <Card>
+          <h2 className={styles.sectionTitle}>Preferences</h2>
 
           {/* Theme */}
-          <div
-            style={{
-              marginBottom: 'var(--space-5)',
-              paddingBottom: 'var(--space-5)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 500,
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--space-3)',
-              }}
-            >
-              Theme
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <div className={styles.prefsGroup}>
+            <div className={styles.prefsLabel}>Theme</div>
+            <div className={styles.themeOptions}>
               {(['dark', 'light', 'system'] as const).map((opt) => (
                 <button
                   key={opt}
                   onClick={() => setTheme(opt)}
-                  style={{
-                    padding: 'var(--space-2) var(--space-4)',
-                    borderRadius: 'var(--radius-md)',
-                    border: `1px solid ${theme === opt ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
-                    background: theme === opt ? 'var(--accent-subtle)' : 'var(--bg-elevated)',
-                    color: theme === opt ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textTransform: 'capitalize',
-                  }}
+                  className={theme === opt ? styles.themeBtnActive : styles.themeBtn}
                 >
                   {opt === 'dark' ? '🌙' : opt === 'light' ? '☀️' : '💻'} {opt}
                 </button>
@@ -484,214 +239,89 @@ export default function AccountPage() {
 
           {/* Notification preferences */}
           <div>
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 500,
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--space-3)',
-              }}
-            >
-              Notification Channels
-            </div>
-            {([
-              { key: 'email' as const, label: 'Email notifications', icon: '📧' },
-              { key: 'slack' as const, label: 'Slack notifications', icon: '💬' },
-              { key: 'sms' as const, label: 'SMS notifications', icon: '📱' },
-            ]).map(({ key, label, icon }) => (
-              <label
-                key={key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-3)',
-                  padding: 'var(--space-3) 0',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <input
-                  type="checkbox"
+            <div className={styles.prefsLabel}>Notification Channels</div>
+            <div className={styles.notifList}>
+              {([
+                { key: 'email' as const, label: '📧 Email notifications' },
+                { key: 'slack' as const, label: '💬 Slack notifications' },
+                { key: 'sms' as const, label: '📱 SMS notifications' },
+              ]).map(({ key, label }) => (
+                <Toggle
+                  key={key}
                   checked={notifPrefs[key]}
-                  onChange={(e) =>
-                    setNotifPrefs((prev) => ({ ...prev, [key]: e.target.checked }))
+                  onChange={(checked) =>
+                    setNotifPrefs((prev) => ({ ...prev, [key]: checked }))
                   }
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    accentColor: 'var(--accent-primary)',
-                    cursor: 'pointer',
-                  }}
+                  label={label}
                 />
-                <span>{icon}</span>
-                {label}
-              </label>
-            ))}
+              ))}
+            </div>
           </div>
-        </section>
+        </Card>
 
-        {/* ─── Section: Danger Zone ─────────────────────────────────────── */}
-        <section
-          style={{
-            background: 'var(--destructive-subtle)',
-            border: '1px solid var(--destructive-border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-6)',
-            marginBottom: 'var(--space-10)',
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--destructive)',
-              marginBottom: 'var(--space-3)',
-            }}
-          >
-            Danger Zone
-          </h2>
-          <p
-            style={{
-              fontSize: '13px',
-              color: 'var(--text-secondary)',
-              marginBottom: 'var(--space-4)',
-            }}
-          >
+        {/* ─── Section: Danger Zone ─── */}
+        <Card className={styles.dangerCard}>
+          <h2 className={styles.dangerTitle}>Danger Zone</h2>
+          <p className={styles.dangerDesc}>
             Once you delete your account, there is no going back. All your data will be permanently
             removed.
           </p>
-          <button
+          <Button
+            variant="destructive"
             onClick={() => setShowDeleteModal(true)}
-            style={{
-              padding: 'var(--space-2) var(--space-5)',
-              borderRadius: 'var(--radius-md)',
-              background: 'transparent',
-              border: '1px solid var(--destructive)',
-              color: 'var(--destructive)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--destructive)';
-              e.currentTarget.style.color = '#fff';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--destructive)';
-            }}
           >
             Delete Account
-          </button>
-        </section>
+          </Button>
+        </Card>
       </div>
 
-      {/* ─── Delete Confirmation Modal ──────────────────────────────────── */}
-      {showDeleteModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            animation: 'accountModalFadeIn 0.2s ease-out',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowDeleteModal(false);
-          }}
-        >
-          <div
-            style={{
-              width: '420px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 'var(--space-8)',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-            }}
-          >
-            <h3
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                color: 'var(--destructive)',
-                marginBottom: 'var(--space-3)',
+      {/* ─── Delete Confirmation Modal ─── */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteConfirmText('');
+        }}
+        title="Delete Account"
+        size="sm"
+        footer={
+          <div className={styles.modalFooter}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteConfirmText('');
               }}
             >
-              Delete Account
-            </h3>
-            <p
-              style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6,
-                marginBottom: 'var(--space-5)',
-              }}
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== 'DELETE' || deleting}
+              isLoading={deleting}
             >
-              This action is <strong style={{ color: 'var(--text-primary)' }}>irreversible</strong>.
-              All your data, transactions, and settings will be permanently deleted.
-            </p>
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'var(--text-secondary)',
-                marginBottom: 'var(--space-3)',
-              }}
-            >
-              Type <strong style={{ color: 'var(--text-primary)' }}>DELETE</strong> to confirm:
-            </p>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="DELETE"
-              className="input"
-              style={{ marginBottom: 'var(--space-5)' }}
-            />
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmText('');
-                }}
-                className="btn btn-secondary btn-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirmText !== 'DELETE' || deleting}
-                style={{
-                  padding: 'var(--space-2) var(--space-5)',
-                  borderRadius: 'var(--radius-md)',
-                  background: deleteConfirmText === 'DELETE' ? 'var(--destructive)' : 'var(--bg-elevated)',
-                  color: deleteConfirmText === 'DELETE' ? '#fff' : 'var(--text-tertiary)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: deleteConfirmText === 'DELETE' && !deleting ? 'pointer' : 'not-allowed',
-                  border: 'none',
-                  opacity: deleting ? 0.6 : 1,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {deleting ? '⏳ Deleting...' : 'Delete My Account'}
-              </button>
-            </div>
+              Delete My Account
+            </Button>
           </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes accountModalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
         }
-      `}</style>
-    </div>
+      >
+        <p className={styles.modalText}>
+          This action is <strong className={styles.modalStrong}>irreversible</strong>.
+          All your data, transactions, and settings will be permanently deleted.
+        </p>
+        <p className={styles.modalPrompt}>
+          Type <strong className={styles.modalStrong}>DELETE</strong> to confirm:
+        </p>
+        <Input
+          value={deleteConfirmText}
+          onChange={(e) => setDeleteConfirmText(e.target.value)}
+          placeholder="DELETE"
+          className={styles.confirmInput}
+        />
+      </Modal>
+    </AppShell>
   );
 }

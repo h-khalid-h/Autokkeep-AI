@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
-import Logo from '@/components/ui/Logo';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Button, Input, Modal, Skeleton, EmptyState } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Account {
@@ -22,13 +23,13 @@ type SortField = 'code' | 'name';
 type SortDir = 'asc' | 'desc';
 
 // ─── Type badge config ──────────────────────────────────────────────────────
-const TYPE_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
-  asset:     { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.25)' },
-  liability: { color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)' },
-  equity:    { color: '#14b8a6', bg: 'rgba(20,184,166,0.12)',  border: 'rgba(20,184,166,0.25)' },
-  revenue:   { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.25)' },
-  expense:   { color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.25)' },
-  cogs:      { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.25)' },
+const TYPE_BADGE_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'destructive' | 'default'> = {
+  asset:     'info',
+  liability: 'warning',
+  equity:    'success',
+  revenue:   'success',
+  expense:   'destructive',
+  cogs:      'destructive',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -39,7 +40,6 @@ const TYPE_LABELS: Record<string, string> = {
   expense: 'Expense',
   cogs: 'COGS',
 };
-
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function normalizeType(t: string): string {
@@ -209,7 +209,6 @@ export default function ChartOfAccountsPage() {
     if (!formCode.trim()) { setFormError('GL Code is required'); return; }
     if (!formName.trim()) { setFormError('Account Name is required'); return; }
 
-    // Check for duplicate code (client-side)
     const duplicate = accounts.find(a => a.code === formCode.trim() && a.id !== editingAccount?.id);
     if (duplicate) { setFormError(`Code "${formCode.trim()}" already exists`); return; }
 
@@ -217,7 +216,6 @@ export default function ChartOfAccountsPage() {
     setFormError(null);
 
     if (editingAccount) {
-      // Persist edit via API
       try {
         const res = await fetch('/api/chart-of-accounts', {
           method: 'PUT',
@@ -252,7 +250,6 @@ export default function ChartOfAccountsPage() {
             a.id === editingAccount.id ? mapApiAccount(data.account) : a
           ));
         } else {
-          // Fallback: update locally
           setAccounts(prev => prev.map(a =>
             a.id === editingAccount.id
               ? { ...a, code: formCode.trim(), name: formName.trim(), type: formType, description: formDescription, active: formActive }
@@ -266,7 +263,6 @@ export default function ChartOfAccountsPage() {
         setIsSaving(false);
       }
     } else {
-      // Create via API
       try {
         const res = await fetch('/api/chart-of-accounts', {
           method: 'POST',
@@ -339,8 +335,6 @@ export default function ChartOfAccountsPage() {
     if (!account) return;
 
     const newActive = !account.active;
-
-    // Optimistically update UI
     setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: newActive } : a));
 
     try {
@@ -351,13 +345,11 @@ export default function ChartOfAccountsPage() {
       });
 
       if (!res.ok) {
-        // Revert on failure
         setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
         const data = await res.json();
         setError(data.error || 'Failed to update account status');
       }
     } catch {
-      // Revert on network error
       setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
       setError('Network error — could not update account status');
     }
@@ -381,7 +373,6 @@ export default function ChartOfAccountsPage() {
       })
     );
 
-    // Remove only successfully deleted accounts from state
     const deletedIds = new Set(idsToDelete.filter(id => !failed.includes(id)));
     setAccounts(prev => prev.filter(a => !deletedIds.has(a.id)));
     setSelectedIds(prev => {
@@ -414,7 +405,6 @@ export default function ChartOfAccountsPage() {
       })
     );
 
-    // Only deactivate successfully updated accounts in state
     const deactivatedIds = new Set(idsToDeactivate.filter(id => !failed.includes(id)));
     setAccounts(prev => prev.map(a => deactivatedIds.has(a.id) ? { ...a, active: false } : a));
     setSelectedIds(new Set());
@@ -432,9 +422,8 @@ export default function ChartOfAccountsPage() {
     reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       const lines = text.split('\n').filter(l => l.trim());
-      if (lines.length < 2) return; // need header + at least 1 row
+      if (lines.length < 2) return;
 
-      // Parse header
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
       const codeIdx = header.findIndex(h => h === 'code' || h === 'gl code' || h === 'gl_code');
       const nameIdx = header.findIndex(h => h === 'name' || h === 'account name' || h === 'account_name');
@@ -452,7 +441,7 @@ export default function ChartOfAccountsPage() {
         const name = cols[nameIdx];
         const type = cols[typeIdx] || 'Expense';
         if (!code || !name) continue;
-        if (existingCodes.has(code)) continue; // skip duplicates
+        if (existingCodes.has(code)) continue;
         existingCodes.add(code);
 
         try {
@@ -473,7 +462,6 @@ export default function ChartOfAccountsPage() {
             if (data.account) {
               importedAccounts.push(mapApiAccount(data.account));
             } else {
-              // No account returned but success — re-fetch will pick it up
               importedAccounts.push({
                 id: `import-${Date.now()}-${i}`,
                 code,
@@ -484,11 +472,9 @@ export default function ChartOfAccountsPage() {
             }
           } else {
             failedImports++;
-            // Do NOT create phantom local accounts on API failure
           }
         } catch {
           failedImports++;
-          // Do NOT create phantom local accounts on network error
         }
       }
 
@@ -500,7 +486,6 @@ export default function ChartOfAccountsPage() {
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-imported
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -530,434 +515,269 @@ export default function ChartOfAccountsPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <ErrorBoundary>
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="dashboard-header">
-        <Link href="/dashboard" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <h1 className="text-h3" style={{ margin: 0 }}>Chart of Accounts</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button className="btn btn-primary btn-sm" onClick={openAddModal}>
-            + Add Account
-          </button>
-          <Link href="/dashboard" className="btn btn-ghost btn-sm">← Dashboard</Link>
-        </div>
-      </header>
-
-      {/* ── Main ───────────────────────────────────────────────────────────── */}
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 24px)', maxWidth: '1200px', paddingBottom: '48px' }}>
-
-        {/* ── Error Banner ─────────────────────────────────────────────────── */}
-        {error && (
-          <div
-            role="alert"
-            style={{
-              background: 'var(--destructive-subtle)',
-              color: 'var(--destructive)',
-              padding: '12px 20px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '13px',
-              marginBottom: '16px',
-              border: '1px solid var(--destructive-border)',
-            }}
-          >
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* ── Search & Filter Bar ──────────────────────────────────────────── */}
-        <div className="card" style={{ padding: '20px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ flex: '1 1 280px', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: '14px' }}>🔍</span>
-              <input
-                className="input"
-                type="text"
-                placeholder="Search by code, name, or type…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: '36px' }}
-              />
-            </div>
-            {/* Import / Export */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              style={{ display: 'none' }}
-              onChange={handleImportCSV}
-            />
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              📤 Import CSV
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleExportCSV}
-              disabled={sorted.length === 0}
-            >
-              📥 Export CSV
-            </button>
-            {/* Bulk actions */}
-            {selectedIds.size > 0 && (
-              <>
-                <button className="btn btn-ghost btn-sm" onClick={bulkDeactivate} style={{ color: 'var(--warning)' }}>
-                  ⏸ Deactivate ({selectedIds.size})
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={bulkDelete} style={{ color: 'var(--destructive)' }}>
-                  🗑 Delete ({selectedIds.size})
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* ── Summary Bar ──────────────────────────────────────────────────── */}
-        {!isLoading && accounts.length > 0 && (
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            <div className="card-elevated" style={{ padding: '14px 20px', flex: '0 0 auto' }}>
-              <div className="text-caption">Total</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '2px' }}>{totalAccounts}</div>
-            </div>
-            <div className="card-elevated" style={{ padding: '14px 20px', flex: '0 0 auto' }}>
-              <div className="text-caption">Active</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '2px', color: 'var(--success)' }}>{activeAccounts}</div>
-            </div>
-            {Object.entries(typeCounts).map(([type, count]) => {
-              const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.expense;
-              return (
-                <div key={type} className="card-elevated" style={{ padding: '14px 20px', flex: '0 0 auto' }}>
-                  <div className="text-caption">{TYPE_LABELS[type] || type}</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '2px', color: cfg.color }}>{count}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Loading State ────────────────────────────────────────────────── */}
-        {isLoading && (
-          <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid var(--bg-elevated)',
-                borderTopColor: 'var(--accent-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                margin: '0 auto 16px',
-              }}
-            />
-            <p className="text-caption">Loading chart of accounts…</p>
-          </div>
-        )}
-
-        {/* ── Empty State ──────────────────────────────────────────────────── */}
-        {!isLoading && sorted.length === 0 && (
-          <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📒</div>
-            <h3 className="text-h4" style={{ marginBottom: '8px' }}>No Accounts Found</h3>
-            <p className="text-caption" style={{ marginBottom: '16px' }}>
-              {search ? 'Try adjusting your search.' : 'Add your first GL account to get started.'}
+    <AppShell>
+      <ErrorBoundary componentName="ChartOfAccounts">
+        <div className={styles.page}>
+          {/* ── Header ─────────────────────────────────────────────────── */}
+          <div className={styles.header}>
+            <h1 className={styles.title}>Chart of Accounts</h1>
+            <p className={styles.subtitle}>
+              Manage GL accounts for {selectedEntity?.name || 'your entity'}
             </p>
-            {!search && (
-              <button className="btn btn-primary btn-sm" onClick={openAddModal}>
-                + Add Account
-              </button>
-            )}
           </div>
-        )}
 
-        {/* ── Accounts Table ───────────────────────────────────────────────── */}
-        {!isLoading && sorted.length > 0 && (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                    {/* Select All */}
-                    <th style={{ padding: '14px 16px', width: '40px', background: 'var(--bg-secondary)' }}>
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        style={{ cursor: 'pointer', accentColor: 'var(--accent-primary)' }}
-                      />
-                    </th>
-                    {/* Code */}
-                    <th
-                      onClick={() => toggleSort('code')}
-                      style={{
-                        padding: '14px 16px',
-                        textAlign: 'left',
-                        fontWeight: 600,
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        whiteSpace: 'nowrap',
-                        background: 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                      }}
-                    >
-                      Code {sortField === 'code' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                    {/* Name */}
-                    <th
-                      onClick={() => toggleSort('name')}
-                      style={{
-                        padding: '14px 16px',
-                        textAlign: 'left',
-                        fontWeight: 600,
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        whiteSpace: 'nowrap',
-                        background: 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                      }}
-                    >
-                      Name {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                    {/* Type */}
-                    <th style={{
-                      padding: '14px 16px', textAlign: 'left', fontWeight: 600,
-                      color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase',
-                      letterSpacing: '0.05em', whiteSpace: 'nowrap', background: 'var(--bg-secondary)',
-                    }}>
-                      Type
-                    </th>
-                    {/* Status */}
-                    <th style={{
-                      padding: '14px 16px', textAlign: 'left', fontWeight: 600,
-                      color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase',
-                      letterSpacing: '0.05em', whiteSpace: 'nowrap', background: 'var(--bg-secondary)',
-                    }}>
-                      Status
-                    </th>
-                    {/* Actions */}
-                    <th style={{
-                      padding: '14px 16px', textAlign: 'right', fontWeight: 600,
-                      color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase',
-                      letterSpacing: '0.05em', whiteSpace: 'nowrap', background: 'var(--bg-secondary)',
-                    }}>
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((account) => {
-                    const typeCfg = TYPE_CONFIG[normalizeType(account.type)] || TYPE_CONFIG.expense;
-                    const isSelected = selectedIds.has(account.id);
-
-                    return (
-                      <tr
-                        key={account.id}
-                        style={{
-                          borderBottom: '1px solid var(--border-primary)',
-                          background: isSelected ? 'var(--bg-glass-hover)' : 'transparent',
-                          transition: 'background 150ms ease',
-                        }}
-                        onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--bg-glass)'; }}
-                        onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                      >
-                        {/* Checkbox */}
-                        <td style={{ padding: '14px 16px' }}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelect(account.id)}
-                            style={{ cursor: 'pointer', accentColor: 'var(--accent-primary)' }}
-                          />
-                        </td>
-                        {/* Code */}
-                        <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                          {account.code}
-                        </td>
-                        {/* Name */}
-                        <td style={{ padding: '14px 16px', fontWeight: 500 }}>
-                          {account.name}
-                        </td>
-                        {/* Type badge */}
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '3px 10px',
-                            borderRadius: '9999px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            letterSpacing: '0.02em',
-                            color: typeCfg.color,
-                            background: typeCfg.bg,
-                            border: `1px solid ${typeCfg.border}`,
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {displayType(account.type)}
-                          </span>
-                        </td>
-                        {/* Status badge */}
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '3px 10px',
-                            borderRadius: '9999px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            letterSpacing: '0.02em',
-                            whiteSpace: 'nowrap',
-                            ...(account.active
-                              ? { color: 'var(--success)', background: 'var(--success-subtle)', border: '1px solid var(--success-border)' }
-                              : { color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }
-                            ),
-                          }}>
-                            {account.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        {/* Actions */}
-                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                            {/* Edit */}
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => openEditModal(account)}
-                              title="Edit"
-                              style={{ fontSize: '0.8rem', padding: '4px 8px' }}
-                            >
-                              ✏️
-                            </button>
-                            {/* Toggle active */}
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => toggleActive(account.id)}
-                              title={account.active ? 'Deactivate' : 'Activate'}
-                              style={{ fontSize: '0.8rem', padding: '4px 8px' }}
-                            >
-                              {account.active ? '⏸' : '▶️'}
-                            </button>
-                            {/* Delete */}
-                            {deleteConfirmId === account.id ? (
-                              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                <button
-                                  className="btn btn-ghost btn-sm"
-                                  onClick={() => handleDelete(account.id)}
-                                  style={{ fontSize: '0.7rem', padding: '4px 8px', color: 'var(--destructive)' }}
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  className="btn btn-ghost btn-sm"
-                                  onClick={() => setDeleteConfirmId(null)}
-                                  style={{ fontSize: '0.7rem', padding: '4px 8px' }}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => setDeleteConfirmId(account.id)}
-                                title="Delete"
-                                style={{ fontSize: '0.8rem', padding: '4px 8px', color: 'var(--destructive)' }}
-                              >
-                                🗑️
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ── Table Footer ──────────────────────────────────────────────── */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 16px',
-              borderTop: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)',
-            }}>
-              <span className="text-caption">
-                Showing {sorted.length} of {accounts.length} accounts
-              </span>
-              {search && (
-                <button className="btn btn-ghost btn-sm" onClick={() => setSearch('')}>
-                  ✕ Clear Search
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* ── Add/Edit Modal ───────────────────────────────────────────────────── */}
-      {modalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
-        >
-          <div
-            className="card"
-            style={{
-              width: '100%',
-              maxWidth: '480px',
-              padding: '32px',
-              animation: 'slide-up-fade 0.2s ease-out',
-            }}
-          >
-            <h2 className="text-h3" style={{ marginBottom: '24px' }}>
-              {editingAccount ? 'Edit Account' : 'Add Account'}
-            </h2>
-
-            {formError && (
-              <div
-                role="alert"
-                style={{
-                  background: 'var(--destructive-subtle)',
-                  color: 'var(--destructive)',
-                  padding: '10px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '13px',
-                  marginBottom: '16px',
-                  border: '1px solid var(--destructive-border)',
-                }}
+          {/* ── Error Banner ──────────────────────────────────────────── */}
+          {error && (
+            <div role="alert" className={styles.errorBanner}>
+              ⚠️ {error}
+              <button
+                className={styles.actionBtn}
+                onClick={() => setError(null)}
+                aria-label="Dismiss error"
               >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* ── Toolbar ───────────────────────────────────────────────── */}
+          <Card padding="md">
+            <div className={styles.toolbar}>
+              <div className={styles.searchWrapper}>
+                <Input
+                  placeholder="Search by code, name, or type…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  aria-label="Search accounts"
+                />
+              </div>
+              <div className={styles.toolbarActions}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className={styles.hiddenInput}
+                  onChange={handleImportCSV}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  📤 Import CSV
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  disabled={sorted.length === 0}
+                >
+                  📥 Export CSV
+                </Button>
+                <Button variant="primary" size="sm" onClick={openAddModal}>
+                  + Add Account
+                </Button>
+              </div>
+            </div>
+            {selectedIds.size > 0 && (
+              <div className={styles.toolbarActions}>
+                <Button variant="ghost" size="sm" onClick={bulkDeactivate}>
+                  ⏸ Deactivate ({selectedIds.size})
+                </Button>
+                <Button variant="destructive" size="sm" onClick={bulkDelete}>
+                  🗑 Delete ({selectedIds.size})
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* ── Summary Bar ───────────────────────────────────────────── */}
+          {!isLoading && accounts.length > 0 && (
+            <div className={styles.summaryBar}>
+              <Card variant="elevated" padding="sm" className={styles.summaryCard}>
+                <div className={styles.summaryLabel}>Total</div>
+                <div className={styles.summaryValue}>{totalAccounts}</div>
+              </Card>
+              <Card variant="elevated" padding="sm" className={styles.summaryCard}>
+                <div className={styles.summaryLabel}>Active</div>
+                <div className={`${styles.summaryValue} ${styles.summaryValueSuccess}`}>{activeAccounts}</div>
+              </Card>
+              {Object.entries(typeCounts).map(([type, count]) => (
+                <Card key={type} variant="elevated" padding="sm" className={styles.summaryCard}>
+                  <div className={styles.summaryLabel}>{TYPE_LABELS[type] || type}</div>
+                  <div className={styles.summaryValue}>{count}</div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* ── Loading State ─────────────────────────────────────────── */}
+          {isLoading && (
+            <Card>
+              <div className={styles.toolbar}>
+                <Skeleton width="100%" height={40} />
+              </div>
+              <Skeleton variant="rect" width="100%" height={300} />
+            </Card>
+          )}
+
+          {/* ── Empty State ───────────────────────────────────────────── */}
+          {!isLoading && sorted.length === 0 && (
+            <EmptyState
+              icon="📒"
+              title={search ? 'No matching accounts' : 'No Accounts Found'}
+              description={search ? 'Try adjusting your search.' : 'Add your first GL account to get started.'}
+              action={!search ? (
+                <Button variant="primary" size="sm" onClick={openAddModal}>
+                  + Add Account
+                </Button>
+              ) : undefined}
+            />
+          )}
+
+          {/* ── Accounts Table ────────────────────────────────────────── */}
+          {!isLoading && sorted.length > 0 && (
+            <Card className={styles.tableContainer}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th className={styles.thCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className={styles.cellCheckbox}
+                          aria-label="Select all"
+                        />
+                      </th>
+                      <th
+                        className={styles.thSortable}
+                        onClick={() => toggleSort('code')}
+                      >
+                        Code {sortField === 'code' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        className={styles.thSortable}
+                        onClick={() => toggleSort('name')}
+                      >
+                        Name {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th className={styles.thRight}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((account) => {
+                      const isSelected = selectedIds.has(account.id);
+                      const badgeVariant = TYPE_BADGE_VARIANT[normalizeType(account.type)] || 'default';
+
+                      return (
+                        <tr
+                          key={account.id}
+                          className={isSelected ? styles.rowSelected : undefined}
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelect(account.id)}
+                              className={styles.cellCheckbox}
+                            />
+                          </td>
+                          <td className={styles.cellCode}>{account.code}</td>
+                          <td className={styles.cellName}>{account.name}</td>
+                          <td>
+                            <Badge variant={badgeVariant} size="sm">
+                              {displayType(account.type)}
+                            </Badge>
+                          </td>
+                          <td>
+                            <button
+                              className={`${styles.statusToggle} ${account.active ? styles.statusActive : styles.statusInactive}`}
+                              onClick={() => toggleActive(account.id)}
+                              title={account.active ? 'Click to deactivate' : 'Click to activate'}
+                            >
+                              {account.active ? '● Active' : '○ Inactive'}
+                            </button>
+                          </td>
+                          <td>
+                            <div className={styles.rowActions}>
+                              <button
+                                className={styles.actionBtn}
+                                onClick={() => openEditModal(account)}
+                                title="Edit"
+                                aria-label={`Edit ${account.name}`}
+                              >
+                                ✏️
+                              </button>
+                              {deleteConfirmId === account.id ? (
+                                <div className={styles.deleteConfirmInline}>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDelete(account.id)}
+                                  >
+                                    Confirm
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeleteConfirmId(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <button
+                                  className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                                  onClick={() => setDeleteConfirmId(account.id)}
+                                  title="Delete"
+                                  aria-label={`Delete ${account.name}`}
+                                >
+                                  🗑️
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Footer */}
+              <div className={styles.toolbar}>
+                <span className={styles.summaryLabel}>
+                  Showing {sorted.length} of {accounts.length} accounts
+                </span>
+                {search && (
+                  <Button variant="ghost" size="sm" onClick={() => setSearch('')}>
+                    ✕ Clear Search
+                  </Button>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* ── Add/Edit Modal ────────────────────────────────────────── */}
+          <Modal
+            isOpen={modalOpen}
+            onClose={closeModal}
+            title={editingAccount ? 'Edit Account' : 'Add Account'}
+          >
+            {formError && (
+              <div role="alert" className={styles.formError}>
                 {formError}
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* GL Code */}
-              <div>
-                <label className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                  GL Code <span style={{ color: 'var(--destructive)' }}>*</span>
-                </label>
-                <input
-                  className="input"
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <Input
+                  label="GL Code *"
                   type="text"
                   placeholder="e.g., 6110"
                   value={formCode}
@@ -965,31 +785,21 @@ export default function ChartOfAccountsPage() {
                   autoFocus
                 />
               </div>
-
-              {/* Account Name */}
-              <div>
-                <label className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                  Account Name <span style={{ color: 'var(--destructive)' }}>*</span>
-                </label>
-                <input
-                  className="input"
+              <div className={styles.formGroup}>
+                <Input
+                  label="Account Name *"
                   type="text"
                   placeholder="e.g., Software & SaaS"
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                 />
               </div>
-
-              {/* Type */}
-              <div>
-                <label className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                  Type
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Type</label>
                 <select
-                  className="input"
+                  className={styles.formSelect}
                   value={formType}
                   onChange={e => setFormType(e.target.value as AccountType)}
-                  style={{ cursor: 'pointer' }}
                 >
                   <option value="Asset">Asset</option>
                   <option value="Liability">Liability</option>
@@ -999,72 +809,44 @@ export default function ChartOfAccountsPage() {
                   <option value="COGS">COGS</option>
                 </select>
               </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-caption" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                  Description
-                </label>
+              <div className={`${styles.formGroup} ${styles.formFullWidth}`}>
+                <label className={styles.formLabel}>Description</label>
                 <textarea
-                  className="input"
+                  className={styles.formTextarea}
                   placeholder="Optional description…"
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
                   rows={3}
-                  style={{ resize: 'vertical' }}
                 />
               </div>
-
-              {/* Active */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className={styles.activeToggle}>
                 <input
                   type="checkbox"
                   id="form-active"
                   checked={formActive}
                   onChange={e => setFormActive(e.target.checked)}
-                  style={{ cursor: 'pointer', accentColor: 'var(--accent-primary)', width: '16px', height: '16px' }}
+                  className={styles.cellCheckbox}
                 />
-                <label htmlFor="form-active" className="text-caption" style={{ cursor: 'pointer', fontWeight: 500 }}>
-                  Active
-                </label>
+                <label htmlFor="form-active">Active</label>
               </div>
             </div>
 
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '28px' }}>
-              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
+            <div className={styles.formActions}>
+              <Button variant="ghost" onClick={closeModal}>
                 Cancel
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSave}
                 disabled={isSaving}
-                style={{ opacity: isSaving ? 0.6 : 1 }}
+                isLoading={isSaving}
               >
-                {isSaving ? '⏳ Saving…' : editingAccount ? 'Update' : 'Save'}
-              </button>
+                {editingAccount ? 'Update' : 'Save'}
+              </Button>
             </div>
-          </div>
+          </Modal>
         </div>
-      )}
-
-      {/* Spin + slide keyframes */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes slide-up-fade {
-          from {
-            opacity: 0;
-            transform: translateY(12px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </AppShell>
   );
 }

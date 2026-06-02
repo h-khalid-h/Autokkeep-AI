@@ -1,0 +1,298 @@
+/* ============================================
+   Dashboard Page — CSS Module
+   2-panel layout: Exception Queue + Detail
+   ============================================ */
+
+/* ─── Page wrapper ─────────────────────────── */
+.pageWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ─── Stats bar ────────────────────────────── */
+.statsBar {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.statCard {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.statCard:hover {
+  background: var(--color-bg-hover);
+}
+
+.statIcon {
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+.statContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  line-height: var(--leading-none);
+}
+
+.statValue {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+}
+
+/* ─── Module Quick Access ──────────────────── */
+.moduleGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.moduleCard {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.moduleCardInner {
+  padding: var(--space-5);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.moduleCardInner:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.moduleCardIcon {
+  font-size: 1.75rem;
+  margin-bottom: var(--space-2);
+}
+
+.moduleCardTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.moduleCardDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+  line-height: var(--leading-normal);
+}
+
+.moduleCardCta {
+  font-size: var(--text-sm);
+  color: var(--color-accent-text);
+  font-weight: var(--weight-semibold);
+}
+
+/* ─── 2-Panel Layout ──────────────────────── */
+.panelLayout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: var(--space-5);
+  min-height: 0;
+  /* Let children set their own height */
+}
+
+/* ─── Left panel — Exception Queue ─────────── */
+.queuePanel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--header-height) - 280px);
+  min-height: 400px;
+  overflow: hidden;
+}
+
+/* ─── Right panel — Detail ─────────────────── */
+.detailPanel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--header-height) - 280px);
+  min-height: 400px;
+  overflow-y: auto;
+}
+
+/* ─── Error banner ─────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-destructive-border);
+}
+
+.errorBannerIcon {
+  flex-shrink: 0;
+}
+
+/* ─── Loading state ────────────────────────── */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16);
+  width: 100%;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+.loadingText {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Empty state wrapper ──────────────────── */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16);
+  width: 100%;
+}
+
+.emptyIcon {
+  font-size: var(--text-5xl);
+}
+
+.emptyTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.emptyDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Skeleton rows for loading ────────────── */
+.skeletonRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* ─── Mobile detail overlay ────────────────── */
+.mobileDetailOverlay {
+  display: none;
+}
+
+.mobileBackButton {
+  display: none;
+}
+
+/* ─── Responsive: single panel < 1024px ────── */
+@media (max-width: 1023px) {
+  .panelLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .queuePanel {
+    max-height: none;
+  }
+
+  /* Hide detail panel by default on mobile */
+  .detailPanel {
+    display: none;
+    max-height: none;
+  }
+
+  /* Show detail when active (JS toggles this) */
+  .detailPanelActive {
+    display: flex;
+  }
+
+  /* When detail is active, hide queue */
+  .queuePanelHidden {
+    display: none;
+  }
+
+  /* Show back button on mobile */
+  .mobileBackButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: var(--space-1-5) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    margin-bottom: var(--space-3);
+    transition: color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .mobileBackButton:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+  }
+}
+
+@media (max-width: 767px) {
+  .moduleGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .statsBar {
+    gap: var(--space-2);
+  }
+
+  .statCard {
+    min-width: 100px;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+@media (max-width: 479px) {
+  .moduleGrid {
+    grid-template-columns: 1fr;
+  }
+}

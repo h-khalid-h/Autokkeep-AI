@@ -1,0 +1,265 @@
+/* ============================================
+   HEALTH PAGE — Module CSS
+   Uses Autokkeep design tokens exclusively
+   ============================================ */
+
+/* ─── Page layout ─────────────────────────── */
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+/* ─── Header ──────────────────────────────── */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.headerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: clamp(1.5rem, 3vw, var(--text-3xl));
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+/* ─── Refresh button spinner ──────────────── */
+
+.refreshIcon {
+  display: inline-block;
+}
+
+.refreshIconSpinning {
+  animation: spin 1s linear infinite;
+}
+
+/* ─── Alert banners ───────────────────────── */
+
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-destructive-border);
+}
+
+/* ─── Loading state ───────────────────────── */
+
+.loadingContainer {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.loadingGauge {
+  flex-shrink: 0;
+}
+
+.loadingAlerts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .loadingContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* ─── Empty state wrapper ─────────────────── */
+
+.emptyStateWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) 0;
+}
+
+/* ─── Main content grid ───────────────────── */
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Score panel ─────────────────────────── */
+
+.scorePanel {
+  text-align: center;
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-8));
+}
+
+.gaugeWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.scoreBadges {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ─── Alert sections ──────────────────────── */
+
+.alertSections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.sectionHeader {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionHeaderCritical {
+  color: var(--color-destructive-text);
+}
+
+.sectionHeaderWarning {
+  color: var(--color-warning-text);
+}
+
+.sectionHeaderInfo {
+  color: var(--color-info-text);
+}
+
+.sectionIcon {
+  font-size: var(--text-base);
+}
+
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ─── Alert card ──────────────────────────── */
+
+.alertCard {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+.alertCard:nth-child(1) { animation-delay: 0s; }
+.alertCard:nth-child(2) { animation-delay: 0.05s; }
+.alertCard:nth-child(3) { animation-delay: 0.10s; }
+.alertCard:nth-child(4) { animation-delay: 0.15s; }
+.alertCard:nth-child(5) { animation-delay: 0.20s; }
+
+.alertCardCritical {
+  border-left: 3px solid var(--color-destructive) !important;
+}
+
+.alertCardWarning {
+  border-left: 3px solid var(--color-warning) !important;
+}
+
+.alertCardInfo {
+  border-left: 3px solid var(--color-info) !important;
+}
+
+.alertIconWrapper {
+  font-size: var(--text-2xl);
+  flex-shrink: 0;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.alertBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.alertTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.alertTitle {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.alertDescription {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.dismissButton {
+  flex-shrink: 0;
+}
+
+/* ─── Animations ──────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

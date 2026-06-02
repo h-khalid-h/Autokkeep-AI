@@ -1,0 +1,369 @@
+/* ============================================
+   SIGNUP PAGE — CSS Module
+   Uses Autokkeep design tokens (tokens.css)
+   ============================================ */
+
+/* ─── Keyframes ───────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Page wrapper ────────────────────────── */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-6);
+}
+
+/* ─── Background decorations ──────────────── */
+
+.bgGradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(59, 130, 246, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 245, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 10% 60%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.bgGrid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 64px 64px;
+  pointer-events: none;
+}
+
+/* ─── Card override ───────────────────────── */
+
+.card {
+  position: relative;
+  max-width: 440px;
+  width: 100%;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-xl), var(--shadow-glow);
+  animation: fadeInUp 0.5s var(--ease-out) both;
+}
+
+/* ─── Logo row ────────────────────────────── */
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.logoText {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Heading / subtitle ──────────────────── */
+
+.heading {
+  text-align: center;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+}
+
+.subtitle {
+  text-align: center;
+  margin-bottom: var(--space-8);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+/* ─── Error toast ─────────────────────────── */
+
+.errorToast {
+  background: var(--color-destructive-subtle);
+  border: 1px solid var(--color-destructive-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  color: var(--color-destructive-text);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  animation: fadeInUp 0.25s var(--ease-out) both;
+}
+
+.errorIcon {
+  flex-shrink: 0;
+}
+
+/* ─── Form spacing ────────────────────────── */
+
+.fieldGroup {
+  margin-bottom: var(--space-5);
+}
+
+.fieldGroupLast {
+  margin-bottom: var(--space-6);
+}
+
+/* ─── Password wrapper (for toggle button) ── */
+
+.passwordWrapper {
+  position: relative;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.passwordToggle:hover {
+  color: var(--color-text-secondary);
+}
+
+/* ─── Password strength indicator ─────────── */
+
+.strengthContainer {
+  margin-top: var(--space-2);
+}
+
+.strengthBars {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1-5);
+}
+
+.strengthBar {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.strengthLabel {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+/* ─── Password requirements checklist ─────── */
+
+.requirementsList {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.requirementItem {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.requirementMet {
+  color: var(--color-success-text);
+}
+
+.requirementUnmet {
+  color: var(--color-text-secondary);
+}
+
+.requirementIcon {
+  font-size: var(--text-xs);
+  line-height: var(--leading-none);
+  flex-shrink: 0;
+}
+
+/* ─── Password match indicator ────────────── */
+
+.matchIndicator {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.matchSuccess {
+  color: var(--color-success-text);
+}
+
+.matchError {
+  color: var(--color-destructive-text);
+}
+
+.matchIcon {
+  font-size: var(--text-xs);
+  line-height: var(--leading-none);
+  flex-shrink: 0;
+}
+
+/* ─── Submit button override ──────────────── */
+
+.submitButton {
+  width: 100%;
+}
+
+/* ─── Terms text ──────────────────────────── */
+
+.termsText {
+  text-align: center;
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--leading-normal);
+}
+
+.termsLink {
+  color: var(--color-accent-text);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.termsLink:hover {
+  color: var(--color-accent-hover);
+}
+
+/* ─── Sign-in link row ────────────────────── */
+
+.signinRow {
+  text-align: center;
+  margin-top: var(--space-6);
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
+}
+
+.signinLink {
+  color: var(--color-accent-text);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.signinLink:hover {
+  color: var(--color-accent-hover);
+}
+
+/* ─── Confirmation view ───────────────────── */
+
+.confirmation {
+  text-align: center;
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+
+.confirmIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--color-success-subtle);
+  border: 2px solid var(--color-success-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-6);
+}
+
+.confirmHeading {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  line-height: var(--leading-tight);
+}
+
+.confirmText {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-relaxed);
+}
+
+.confirmEmail {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.backToSignin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-accent-text);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+  font-size: var(--text-md);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.backToSignin:hover {
+  color: var(--color-accent-hover);
+}
+
+/* ─── Back to home link ───────────────────── */
+
+.backToHome {
+  position: relative;
+  margin-top: var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.backToHome:hover {
+  color: var(--color-text-secondary);
+}

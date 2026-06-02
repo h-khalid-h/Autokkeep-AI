@@ -4,12 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/lib/types/transaction';
-import GlobalDashboardHeader from '@/components/dashboard/GlobalDashboardHeader';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Skeleton, EmptyState } from '@/components/ui';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
-import DashboardStatsBar from '@/components/dashboard/DashboardStatsBar';
+
 import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import styles from './page.module.css';
 
 // ─── Helpers: map API response → Transaction interface ──────────────────────
 
@@ -117,54 +119,71 @@ const MODULE_CARDS = [
 
 function ModuleQuickAccess() {
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
-      gap: '16px',
-      padding: '0 var(--space-5, 20px)',
-      marginBottom: '16px',
-    }}>
+    <div className={styles.moduleGrid}>
       {MODULE_CARDS.map((card) => (
         <Link
           key={card.href}
           href={card.href}
-          style={{ textDecoration: 'none', color: 'inherit' }}
+          className={styles.moduleCard}
         >
-          <div
-            className="card-elevated"
-            style={{
-              padding: '20px',
-              cursor: 'pointer',
-              transition: 'transform 150ms ease, box-shadow 150ms ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-            }}
-          >
-            <div style={{ fontSize: '1.75rem', marginBottom: '8px' }}>{card.icon}</div>
-            <div className="text-h4" style={{ marginBottom: '4px' }}>{card.title}</div>
-            <div className="text-caption" style={{ marginBottom: '12px', lineHeight: 1.4 }}>
+          <Card variant="interactive" padding="md" className={styles.moduleCardInner}>
+            <div className={styles.moduleCardIcon}>{card.icon}</div>
+            <div className={styles.moduleCardTitle}>{card.title}</div>
+            <div className={styles.moduleCardDesc}>
               {card.description}
             </div>
-            <div className="text-caption" style={{
-              color: 'var(--accent-primary)',
-              fontWeight: 600,
-            }}>
+            <div className={styles.moduleCardCta}>
               {card.cta}
             </div>
-          </div>
+          </Card>
         </Link>
       ))}
-      <style>{`
-        @media (max-width: 768px) {
-          div[style*="grid-template-columns: repeat(4"] {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-      `}</style>
+    </div>
+  );
+}
+
+// ─── Stats Bar (using design tokens) ────────────────────────────────────────
+
+function StatsBar({
+  stats,
+  loading,
+}: {
+  stats: { total: number; pending: number; approved: number; rejected: number; autoRate: number } | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className={styles.statsBar} role="status" aria-label="Loading dashboard statistics">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className={styles.statCard}>
+            <Skeleton variant="rect" width="100%" height={40} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!stats) return null;
+
+  const items = [
+    { label: 'Total', value: stats.total, icon: '📊' },
+    { label: 'Pending', value: stats.pending, icon: '⏳' },
+    { label: 'Approved', value: stats.approved, icon: '✅' },
+    { label: 'Rejected', value: stats.rejected, icon: '❌' },
+    { label: 'Auto Rate', value: `${stats.autoRate}%`, icon: '🤖' },
+  ];
+
+  return (
+    <div className={styles.statsBar} role="region" aria-label="Dashboard statistics">
+      {items.map((item) => (
+        <div key={item.label} className={styles.statCard}>
+          <span className={styles.statIcon} aria-hidden="true">{item.icon}</span>
+          <div className={styles.statContent}>
+            <span className={styles.statLabel}>{item.label}</span>
+            <span className={styles.statValue}>{item.value}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -183,6 +202,7 @@ export default function DashboardPage() {
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
 
   // ─── Compute stats from transactions ────────────────────────────────────────
   const stats = React.useMemo(() => {
@@ -260,9 +280,14 @@ export default function DashboardPage() {
   const handleSelectTransaction = React.useCallback(
     (transaction: Transaction) => {
       setSelectedTransaction(transaction);
+      setMobileDetailOpen(true);
     },
     []
   );
+
+  const handleMobileBack = React.useCallback(() => {
+    setMobileDetailOpen(false);
+  }, []);
 
   // ─── Batch selection handlers ───────────────────────────────────────────────
   const handleToggleSelect = React.useCallback((id: string) => {
@@ -501,34 +526,15 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <ErrorBoundary componentName="Dashboard">
-      <div className="dashboard-layout">
-        <GlobalDashboardHeader />
-        <DashboardStatsBar stats={null} loading={true} />
-        <div className="dashboard-main">
-          <div
-            className="flex-center"
-            style={{
-              width: '100%',
-              flexDirection: 'column',
-              gap: 'var(--space-4)',
-              padding: 'var(--space-10)',
-            }}
-          >
-            <div
-              className="loading-spinner"
-              style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid var(--bg-hover)',
-                borderTopColor: 'var(--accent-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <p className="text-caption">Loading transactions…</p>
+        <AppShell pendingCount={0}>
+          <div className={styles.pageWrapper}>
+            <StatsBar stats={null} loading={true} />
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingSpinner} />
+              <p className={styles.loadingText}>Loading transactions…</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </AppShell>
       </ErrorBoundary>
     );
   }
@@ -537,85 +543,89 @@ export default function DashboardPage() {
   if (transactions.length === 0 && !error) {
     return (
       <ErrorBoundary componentName="Dashboard">
-      <div className="dashboard-layout">
-        <GlobalDashboardHeader />
-        <DashboardStatsBar stats={stats} loading={false} />
-        <ModuleQuickAccess />
-        <div className="dashboard-main">
-          <div
-            className="flex-center"
-            style={{
-              width: '100%',
-              flexDirection: 'column',
-              gap: 'var(--space-4)',
-              padding: 'var(--space-10)',
-            }}
-          >
-            <span style={{ fontSize: '48px' }}>✅</span>
-            <h2>All caught up!</h2>
-            <p className="text-caption">
-              No transactions need review right now. Check back later.
-            </p>
+        <AppShell pendingCount={0}>
+          <div className={styles.pageWrapper}>
+            <StatsBar stats={stats} loading={false} />
+            <ModuleQuickAccess />
+            <Card variant="default" padding="lg">
+              <EmptyState
+                icon="✅"
+                title="All caught up!"
+                description="No transactions need review right now. Check back later."
+              />
+            </Card>
           </div>
-        </div>
-      </div>
+        </AppShell>
       </ErrorBoundary>
     );
   }
 
   return (
     <ErrorBoundary componentName="Dashboard">
-    <div className="dashboard-layout">
-      <GlobalDashboardHeader />
+      <AppShell pendingCount={stats?.pending ?? 0}>
+        <div className={styles.pageWrapper}>
+          <StatsBar stats={stats} loading={false} />
 
-      <DashboardStatsBar stats={stats} loading={false} />
+          <ModuleQuickAccess />
 
-      <ModuleQuickAccess />
+          {/* Error banner */}
+          {error && (
+            <div className={styles.errorBanner} role="alert">
+              <span className={styles.errorBannerIcon}>⚠️</span>
+              Could not load transactions. Please try refreshing. ({error})
+            </div>
+          )}
 
-      {/* Error banner */}
-      {error && (
-        <div
-          role="alert"
-          style={{
-            background: 'var(--danger-dim, #2a1215)',
-            color: 'var(--danger, #ff6b6b)',
-            padding: 'var(--space-3) var(--space-5)',
-            fontSize: '13px',
-            textAlign: 'center',
-            borderBottom: '1px solid var(--danger, #ff6b6b)',
-          }}
-        >
-          ⚠️ Could not load transactions. Please try refreshing. ({error})
+          {/* 2-Panel Layout */}
+          <div className={styles.panelLayout}>
+            {/* Left Panel: Exception Queue */}
+            <Card
+              variant="default"
+              padding="sm"
+              className={`${styles.queuePanel} ${mobileDetailOpen ? styles.queuePanelHidden : ''}`}
+            >
+              <ExceptionQueueList
+                transactions={transactions}
+                selectedTransaction={selectedTransaction}
+                onSelectTransaction={handleSelectTransaction}
+                exitingId={exitingId}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onSelectAll={handleSelectAll}
+                onClearSelection={handleClearSelection}
+                onBatchAction={handleBatchAction}
+                batchLoading={batchLoading}
+              />
+            </Card>
+
+            {/* Right Panel: Transaction Detail + Actions */}
+            <Card
+              variant="default"
+              padding="sm"
+              className={`${styles.detailPanel} ${mobileDetailOpen ? styles.detailPanelActive : ''}`}
+            >
+              {mobileDetailOpen && (
+                <button
+                  className={styles.mobileBackButton}
+                  onClick={handleMobileBack}
+                  aria-label="Back to queue"
+                >
+                  ← Back to queue
+                </button>
+              )}
+              <TransactionDetailPanel
+                transaction={selectedTransaction}
+                onApprove={handleApproveById}
+                onReject={handleRejectById}
+                onChangeCategory={handleChangeCategoryById}
+                chartOfAccounts={chartOfAccounts}
+              />
+            </Card>
+          </div>
+
+          <KeyboardShortcuts />
         </div>
-      )}
-
-      <div className="dashboard-main">
-        {/* Left Sidebar: Exception Queue */}
-        <ExceptionQueueList
-          transactions={transactions}
-          selectedTransaction={selectedTransaction}
-          onSelectTransaction={handleSelectTransaction}
-          exitingId={exitingId}
-          selectedIds={selectedIds}
-          onToggleSelect={handleToggleSelect}
-          onSelectAll={handleSelectAll}
-          onClearSelection={handleClearSelection}
-          onBatchAction={handleBatchAction}
-          batchLoading={batchLoading}
-        />
-
-        {/* Center + Bottom: Transaction Detail Panel */}
-        <TransactionDetailPanel
-          transaction={selectedTransaction}
-          onApprove={handleApproveById}
-          onReject={handleRejectById}
-          onChangeCategory={handleChangeCategoryById}
-          chartOfAccounts={chartOfAccounts}
-        />
-      </div>
-
-      <KeyboardShortcuts />
-    </div>
+      </AppShell>
     </ErrorBoundary>
   );
 }

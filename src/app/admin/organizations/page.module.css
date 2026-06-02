@@ -1,0 +1,172 @@
+/* ============================================
+   Admin Organizations Page Styles
+   ============================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+/* Search bar */
+.searchBar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+.totalCount {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* Org list */
+.orgList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.orgRow {
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.orgRow:hover {
+  background: var(--color-bg-hover);
+}
+
+.orgRowInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .orgRowInner {
+    flex-wrap: wrap;
+  }
+}
+
+.orgInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.orgName {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.orgMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-1);
+}
+
+.orgStat {
+  text-align: center;
+  min-width: 60px;
+}
+
+.orgStatValue {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.orgStatLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.orgStatWide {
+  composes: orgStat;
+  min-width: 80px;
+}
+
+.expandIcon {
+  opacity: 0.4;
+  font-size: var(--text-sm);
+}
+
+/* Expanded details */
+.expandedDetails {
+  border-top: 2px solid var(--color-accent);
+  margin-top: var(--space-0-5);
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detailLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.detailValue {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.detailMono {
+  composes: detailValue;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+}
+
+.detailCapitalize {
+  composes: detailValue;
+  text-transform: capitalize;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.paginationText {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* Skeleton stack */
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

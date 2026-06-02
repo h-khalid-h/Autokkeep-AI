@@ -1,0 +1,213 @@
+/* ============================================
+   NAVBAR — Sticky transparent → solid on scroll
+   Mercury/Linear aesthetic
+   ============================================ */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 var(--space-6);
+  background: transparent;
+  transition: background var(--duration-moderate) var(--ease-out),
+              box-shadow var(--duration-moderate) var(--ease-out),
+              backdrop-filter var(--duration-moderate) var(--ease-out);
+}
+
+.scrolled {
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── Logo ─────────────────────────────────── */
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  flex-shrink: 0;
+}
+
+.logoGradient {
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Desktop nav links ────────────────────── */
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.navLink {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+
+.navLink:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+/* ─── Desktop actions ──────────────────────── */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ─── Hamburger (mobile) ───────────────────── */
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: calc(var(--z-overlay) + 2);
+}
+
+.hamburgerLine {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-moderate) var(--ease-out),
+              opacity var(--duration-fast) var(--ease-out);
+}
+
+.hamburgerOpen .hamburgerLine:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburgerOpen .hamburgerLine:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburgerOpen .hamburgerLine:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ─── Mobile overlay ───────────────────────── */
+
+.mobileOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-overlay);
+  z-index: var(--z-overlay);
+}
+
+/* ─── Mobile menu panel ────────────────────── */
+
+.mobileMenu {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
+  padding: calc(var(--header-height) + var(--space-6)) var(--space-6) var(--space-6);
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: calc(var(--z-overlay) + 1);
+  overflow-y: auto;
+}
+
+.mobileLink {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+
+.mobileLink:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.mobileActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ─── Responsive ───────────────────────────── */
+
+@media (max-width: 1024px) {
+  .navLinks {
+    display: none;
+  }
+
+  .actions {
+    display: none;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .mobileOverlay.open {
+    display: block;
+  }
+
+  .mobileMenu.open {
+    display: flex;
+  }
+}
+
+@media (min-width: 1025px) {
+  .mobileMenu,
+  .mobileOverlay,
+  .hamburger {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar {
+    padding: 0 var(--space-4);
+  }
+}

@@ -1,0 +1,352 @@
+/* ─── Chart of Accounts Page ────────────────────── */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ─── Header ──────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+/* ─── Toolbar ─────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.searchWrapper {
+  flex: 1 1 280px;
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+/* ─── Summary Bar ─────────────────────────────────── */
+.summaryBar {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.summaryCard {
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.summaryLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--weight-medium);
+}
+
+.summaryValue {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  margin-top: var(--space-1);
+  color: var(--color-text-primary);
+}
+
+.summaryValueSuccess {
+  color: var(--color-success);
+}
+
+/* ─── Table ───────────────────────────────────────── */
+.tableContainer {
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table thead tr {
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  background: var(--color-bg-secondary);
+}
+
+.thSortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.thSortable:hover {
+  color: var(--color-text-primary);
+}
+
+.thRight {
+  text-align: right;
+}
+
+.thCheckbox {
+  width: 40px;
+}
+
+/* ─── Table Rows ──────────────────────────────────── */
+.table tbody tr {
+  border-bottom: 1px solid var(--color-border-primary);
+  transition: background 150ms ease;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.rowSelected {
+  background: var(--color-bg-hover) !important;
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+}
+
+.cellCode {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.cellName {
+  font-weight: var(--weight-medium);
+}
+
+.cellCheckbox {
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+/* ─── Type Badge ──────────────────────────────────── */
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Status Toggle ───────────────────────────────── */
+.statusToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border: none;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.statusToggle:hover {
+  opacity: 0.8;
+}
+
+.statusActive {
+  color: var(--color-success);
+  background: var(--color-success-subtle);
+}
+
+.statusInactive {
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+}
+
+/* ─── Row Actions ─────────────────────────────────── */
+.rowActions {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.actionBtn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.actionBtnDanger:hover {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+}
+
+/* ─── Delete Confirm Inline ───────────────────────── */
+.deleteConfirmInline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-destructive);
+}
+
+/* ─── Error / Success Banners ─────────────────────── */
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+}
+
+/* ─── Modal Form ──────────────────────────────────── */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.formFullWidth {
+  grid-column: 1 / -1;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.formLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.formSelect {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.formSelect:focus {
+  border-color: var(--color-accent);
+}
+
+.formTextarea {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  transition: border-color 200ms ease;
+}
+
+.formTextarea:focus {
+  border-color: var(--color-accent);
+}
+
+.activeToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.formError {
+  grid-column: 1 / -1;
+  color: var(--color-destructive);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-destructive-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* ─── Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryBar {
+    flex-direction: column;
+  }
+}

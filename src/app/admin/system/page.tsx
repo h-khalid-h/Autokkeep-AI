@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import Logo from '@/components/ui/Logo';
+import AppShell from '@/components/layout/AppShell';
+import { Card, Badge, Skeleton, EmptyState } from '@/components/ui';
+import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,20 +32,6 @@ function formatUptime(seconds: number): string {
   if (h > 0) parts.push(`${h}h`);
   parts.push(`${m}m`);
   return parts.join(' ');
-}
-
-function Skeleton({ width, height = '20px' }: { width?: string; height?: string }) {
-  return (
-    <div
-      style={{
-        width: width || '100%',
-        height,
-        borderRadius: '6px',
-        background: 'var(--bg-elevated)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}
-    />
-  );
 }
 
 function statusIcon(status: string) {
@@ -95,100 +82,85 @@ export default function AdminSystemPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header className="dashboard-header">
-        <Link href="/admin" className="navbar-logo" style={{ textDecoration: 'none' }}>
-          <Logo size={32} />
-          <span>Auto<span className="text-gradient">kkeep</span></span>
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="badge badge-warning" style={{ fontSize: '11px' }}>ADMIN</span>
+    <AppShell>
+      <div className={styles.page}>
+        <div>
+          <h1 className={styles.pageTitle}>⚙️ System Health</h1>
+          <p className={styles.pageDescription}>
+            Monitor service health, environment configuration, and system status.
+          </p>
         </div>
-        <Link href="/admin" className="btn btn-ghost btn-sm">
-          ← Back to Admin
-        </Link>
-      </header>
-
-      <main className="container" style={{ paddingTop: 'calc(var(--header-height) + 32px)', maxWidth: '1100px' }}>
-        <h1 className="text-h2" style={{ marginBottom: '32px' }}>
-          ⚙️ System Health
-        </h1>
 
         {error && (
-          <div className="card" style={{
-            padding: '16px',
-            marginBottom: '24px',
-            borderLeft: '4px solid var(--destructive)',
-          }}>
-            <div className="text-body" style={{ color: 'var(--destructive)' }}>
-              ⚠️ {error}
-            </div>
-          </div>
+          <Card className={styles.errorBanner} padding="sm">
+            <span className={styles.errorText}>⚠️ {error}</span>
+          </Card>
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className={styles.skeletonStack}>
             {[1, 2, 3].map((i) => (
-              <div key={i} className="card" style={{ padding: '24px' }}>
-                <Skeleton width="40%" height="24px" />
-                <div style={{ marginTop: '12px' }}><Skeleton width="80%" /></div>
-                <div style={{ marginTop: '8px' }}><Skeleton width="60%" /></div>
-              </div>
+              <Card key={i}>
+                <div className={styles.skeletonCardInner}>
+                  <Skeleton width="40%" height={24} />
+                  <Skeleton width="80%" />
+                  <Skeleton width="60%" />
+                </div>
+              </Card>
             ))}
           </div>
         ) : data ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <>
             {/* Health Overview */}
-            <div className="card-elevated" style={{ padding: '24px' }}>
-              <div className="text-h4" style={{ marginBottom: '16px' }}>Service Health</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-                <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
+            <Card variant="elevated">
+              <h2 className={styles.sectionTitle}>Service Health</h2>
+              <div className={styles.healthGrid}>
+                <Card className={styles.healthItem} padding="sm">
+                  <div className={styles.healthIcon}>
                     {statusIcon(data.database.status)}
                   </div>
-                  <div className="text-h4">Database</div>
-                  <div className="text-caption">{data.database.latencyMs}ms</div>
-                </div>
-                <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
+                  <div className={styles.healthLabel}>Database</div>
+                  <div className={styles.healthCaption}>{data.database.latencyMs}ms</div>
+                </Card>
+                <Card className={styles.healthItem} padding="sm">
+                  <div className={styles.healthIcon}>
                     {statusIcon(data.redis.status)}
                   </div>
-                  <div className="text-h4">Redis</div>
-                  <div className="text-caption">{data.redis.status}</div>
-                </div>
-                <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>⏱️</div>
-                  <div className="text-h4">Uptime</div>
-                  <div className="text-caption">{formatUptime(data.uptime)}</div>
-                </div>
-                <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>📝</div>
-                  <div className="text-h4">Audit (24h)</div>
-                  <div className="text-caption">{formatNumber(data.audit.actionsLast24h)} actions</div>
-                </div>
+                  <div className={styles.healthLabel}>Redis</div>
+                  <div className={styles.healthCaption}>{data.redis.status}</div>
+                </Card>
+                <Card className={styles.healthItem} padding="sm">
+                  <div className={styles.healthIcon}>⏱️</div>
+                  <div className={styles.healthLabel}>Uptime</div>
+                  <div className={styles.healthCaption}>{formatUptime(data.uptime)}</div>
+                </Card>
+                <Card className={styles.healthItem} padding="sm">
+                  <div className={styles.healthIcon}>📝</div>
+                  <div className={styles.healthLabel}>Audit (24h)</div>
+                  <div className={styles.healthCaption}>{formatNumber(data.audit.actionsLast24h)} actions</div>
+                </Card>
               </div>
-            </div>
+            </Card>
 
             {/* Cron Status */}
-            <div className="card" style={{ padding: '24px' }}>
-              <div className="text-h4" style={{ marginBottom: '16px' }}>Cron / Sync Status</div>
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Card>
+              <h2 className={styles.sectionTitle}>Cron / Sync Status</h2>
+              <div className={styles.cronRow}>
                 <div>
-                  <div className="text-caption" style={{ marginBottom: '4px' }}>Last Transaction Sync</div>
-                  <div className="text-body">
+                  <div className={styles.cronLabel}>Last Transaction Sync</div>
+                  <div className={styles.cronValue}>
                     {data.cron.lastTransactionSync
                       ? new Date(data.cron.lastTransactionSync).toLocaleString()
                       : 'No sync activity recorded'}
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Environment Variables */}
-            <div className="card" style={{ padding: '24px' }}>
-              <div className="text-h4" style={{ marginBottom: '16px' }}>Environment Configuration</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Card>
+              <h2 className={styles.sectionTitle}>Environment Configuration</h2>
+              <div className={styles.envGroups}>
                 {data.environment.map((group) => {
                   const setCount = group.vars.filter((v) => v.set).length;
                   const totalCount = group.vars.length;
@@ -196,74 +168,53 @@ export default function AdminSystemPage() {
 
                   return (
                     <div key={group.group}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <div className={styles.envGroupHeader}>
                         <span>{allSet ? '✅' : '⚠️'}</span>
-                        <span className="text-h4" style={{ fontSize: '14px' }}>
-                          {group.group}
-                        </span>
-                        <span className="text-caption">
+                        <span className={styles.envGroupName}>{group.group}</span>
+                        <span className={styles.envGroupCount}>
                           ({setCount}/{totalCount})
                         </span>
                       </div>
-                      <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        paddingLeft: '28px',
-                      }}>
+                      <div className={styles.envVars}>
                         {group.vars.map((v) => (
-                          <span
+                          <Badge
                             key={v.name}
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontFamily: 'var(--font-mono, monospace)',
-                              background: v.set
-                                ? 'var(--success-subtle)'
-                                : 'var(--destructive-subtle)',
-                              color: v.set ? 'var(--success)' : 'var(--destructive)',
-                              border: `1px solid ${v.set ? 'var(--success-border)' : 'var(--destructive-border)'}`,
-                            }}
+                            variant={v.set ? 'success' : 'destructive'}
+                            size="sm"
                           >
                             {v.set ? '✓' : '✗'} {v.name}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
             {/* Server Info */}
-            <div className="card" style={{ padding: '24px' }}>
-              <div className="text-h4" style={{ marginBottom: '12px' }}>Server Info</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Card>
+              <h2 className={styles.sectionTitle}>Server Info</h2>
+              <div className={styles.serverGrid}>
                 <div>
-                  <div className="text-caption">Timestamp</div>
-                  <div className="text-body">{new Date(data.timestamp).toLocaleString()}</div>
+                  <div className={styles.serverLabel}>Timestamp</div>
+                  <div className={styles.serverValue}>{new Date(data.timestamp).toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-caption">Runtime</div>
-                  <div className="text-body">Node.js (Next.js)</div>
+                  <div className={styles.serverLabel}>Runtime</div>
+                  <div className={styles.serverValue}>Node.js (Next.js)</div>
                 </div>
               </div>
-            </div>
-          </div>
+            </Card>
+          </>
         ) : (
-          <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div className="text-caption">Failed to load system status</div>
-          </div>
+          <EmptyState
+            icon="⚠️"
+            title="Failed to load system status"
+            description="Unable to retrieve system health data. Please try again later."
+          />
         )}
-      </main>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+      </div>
+    </AppShell>
   );
 }
