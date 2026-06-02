@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import styles from './UserMenu.module.css';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -68,7 +69,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
     }
   }, []);
 
-  // Focus management when dropdown opens/closes
+  // Focus management
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -78,14 +79,13 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
     }
   }, [isOpen]);
 
-  // Focus the active item when focusedIndex changes
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
       itemRefs.current[focusedIndex]?.focus();
     }
   }, [isOpen, focusedIndex]);
 
-  const MENU_ITEM_COUNT = 4; // Settings, Account, Analytics, Sign Out
+  const MENU_ITEM_COUNT = 4;
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -112,81 +112,37 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
   }, [focusedIndex]);
 
   return (
-    <div ref={menuRef} style={{ position: 'relative' }}>
+    <div ref={menuRef} className={styles.menuWrapper}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="slack-avatar"
+        className={styles.avatarBtn}
         aria-label="User menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        style={{ cursor: 'pointer', border: 'none' }}
       >
         {userInitials}
       </button>
 
       {isOpen && (
         <div
+          className={styles.dropdown}
           role="menu"
           onKeyDown={handleKeyDown}
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: 0,
-            minWidth: '220px',
-            background: 'var(--bg-surface, #1a1a2e)',
-            border: '1px solid var(--border-primary, rgba(255,255,255,0.08))',
-            borderRadius: '12px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            overflow: 'hidden',
-            zIndex: 1000,
-            animation: 'menuFadeIn 0.15s ease-out',
-          }}
         >
           {/* User Info */}
-          <div
-            style={{
-              padding: '16px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              marginBottom: '2px',
-            }}>
-              {userEmail || 'User'}
-            </div>
-            <div style={{
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-            }}>
-              Signed in
-            </div>
+          <div className={styles.userInfo}>
+            <div className={styles.userName}>{userEmail || 'User'}</div>
+            <div className={styles.userStatus}>Signed in</div>
           </div>
 
           {/* Menu Items */}
-          <div style={{ padding: '4px' }}>
+          <div className={styles.menuItems}>
             <a
               href="/settings"
               role="menuitem"
               tabIndex={-1}
               ref={(el) => { itemRefs.current[0] = el; }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                fontSize: '13px',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className={styles.menuItem}
             >
               ⚙️ Settings
             </a>
@@ -195,19 +151,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               role="menuitem"
               tabIndex={-1}
               ref={(el) => { itemRefs.current[1] = el; }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                fontSize: '13px',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className={styles.menuItem}
             >
               👤 Account
             </a>
@@ -216,62 +160,27 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               role="menuitem"
               tabIndex={-1}
               ref={(el) => { itemRefs.current[2] = el; }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                fontSize: '13px',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className={styles.menuItem}
             >
               📊 Analytics
             </a>
           </div>
 
           {/* Logout */}
-          <div style={{ padding: '4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className={styles.logoutSection}>
             <button
               role="menuitem"
               tabIndex={-1}
               ref={(el) => { itemRefs.current[3] = el; }}
               onClick={handleLogout}
               disabled={loggingOut}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                color: 'var(--destructive)',
-                fontSize: '13px',
-                width: '100%',
-                border: 'none',
-                background: 'transparent',
-                cursor: loggingOut ? 'wait' : 'pointer',
-                transition: 'background 0.15s ease',
-                opacity: loggingOut ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => !loggingOut && (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className={styles.logoutBtn}
             >
               {loggingOut ? '⏳ Signing out...' : '🚪 Sign Out'}
             </button>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes menuFadeIn {
-          from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
     </div>
   );
 }

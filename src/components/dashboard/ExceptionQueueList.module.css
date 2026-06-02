@@ -1,0 +1,49 @@
+/* ─── Exception Queue List ────────────────────── */
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.selectAllCheckbox {
+  cursor: pointer;
+  accent-color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+.countBadge {
+  padding: var(--space-3) var(--space-5);
+}
+
+/* ─── Batch Action Bar ────────────────────────── */
+.batchBar {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-accent-subtle);
+  border-top: 1px solid var(--color-accent);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.batchCount {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.batchActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rejectBtn {
+  color: var(--color-destructive) !important;
+  border-color: var(--color-destructive) !important;
+}

@@ -40,3 +40,5 @@ export type { TabsProps, TabsListProps, TabsTabProps, TabsPanelProps, TabsVarian
 
 export { ToastProvider } from './ToastProvider';
 export { useToast } from './useToast';
+
+export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';

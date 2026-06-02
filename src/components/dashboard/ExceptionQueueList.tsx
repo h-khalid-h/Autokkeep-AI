@@ -3,6 +3,7 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import TransactionCard from './TransactionCard';
+import styles from './ExceptionQueueList.module.css';
 
 type FilterType = 'all' | 'critical' | 'review' | 'missing';
 
@@ -107,27 +108,22 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
     <aside className="dashboard-sidebar" aria-label="Exception queue">
       {/* Search */}
       <div className="dashboard-sidebar-header">
-        <div className="category-search" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className={styles.searchRow}>
           <input
             type="checkbox"
             checked={allFilteredSelected}
             onChange={handleSelectAllToggle}
             aria-label="Select all transactions"
             title="Select all"
-            style={{
-              cursor: 'pointer',
-              accentColor: 'var(--accent-primary)',
-              flexShrink: 0,
-            }}
+            className={styles.selectAllCheckbox}
           />
           <input
             type="search"
-            className="dashboard-sidebar-search"
+            className={`dashboard-sidebar-search ${styles.searchInput}`}
             placeholder="🔍 Search transactions..."
             value={searchQuery}
             onChange={handleSearchChange}
             aria-label="Search exception queue"
-            style={{ flex: 1 }}
           />
         </div>
       </div>
@@ -157,8 +153,7 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
       {/* Count badge */}
       <div className="flex-between" aria-live="polite">
         <span
-          className="text-caption"
-          style={{ padding: 'var(--space-3) var(--space-5)' }}
+          className={`text-caption ${styles.countBadge}`}
         >
           <span className="badge badge-accent">
             {filteredTransactions.length}
@@ -195,28 +190,16 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
       {/* Floating batch action bar */}
       {selectedIds.size > 0 && (
         <div
-          style={{
-            position: 'sticky',
-            bottom: 0,
-            background: 'rgba(30, 111, 255, 0.12)',
-            borderTop: '1px solid rgba(30, 111, 255, 0.3)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            backdropFilter: 'blur(12px)',
-          }}
+          className={styles.batchBar}
           role="toolbar"
           aria-label="Batch actions"
         >
           <span
-            className="text-caption"
-            style={{ fontWeight: 600, color: 'var(--text-primary, #e2e8f0)' }}
+            className={`text-caption ${styles.batchCount}`}
           >
             {selectedIds.size} selected
           </span>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className={styles.batchActions}>
             <button
               className="btn btn-sm btn-primary"
               onClick={() => onBatchAction('approve')}
@@ -226,14 +209,10 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
               {batchLoading ? '…' : '✓ Approve All'}
             </button>
             <button
-              className="btn btn-sm btn-ghost"
+              className={`btn btn-sm btn-ghost ${styles.rejectBtn}`}
               onClick={() => onBatchAction('reject')}
               disabled={batchLoading}
               aria-label={`Reject ${selectedIds.size} transactions`}
-              style={{
-                color: 'var(--danger, #ff6b6b)',
-                borderColor: 'var(--danger, #ff6b6b)',
-              }}
             >
               {batchLoading ? '…' : '✕ Reject All'}
             </button>

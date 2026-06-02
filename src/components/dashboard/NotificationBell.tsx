@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient as getSupabase } from '@/lib/supabase/client';
+import styles from './NotificationBell.module.css';
 
+// ─── Types ──────────────────────────────────────────────────────────────────
 interface Notification {
   id: string;
   type: 'transaction' | 'sync' | 'receipt' | 'review' | 'system';
@@ -19,6 +22,7 @@ const NOTIFICATION_ICONS: Record<Notification['type'], string> = {
   system: '🔔',
 };
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -32,7 +36,8 @@ function timeAgo(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-function getMockNotifications(): Notification[] {
+// ─── Initial notifications (seeded until real data flows) ───────────────────
+function getInitialNotifications(): Notification[] {
   const now = Date.now();
   return [
     {
@@ -78,17 +83,77 @@ function getMockNotifications(): Notification[] {
   ];
 }
 
+// ─── Component ──────────────────────────────────────────────────────────────
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const bellRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Load initial notifications
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNotifications(() => getMockNotifications());
+    setNotifications(() => getInitialNotifications());
+  }, []);
+
+  // ─── Supabase Realtime subscription ─────────────────────────────────────
+  useEffect(() => {
+    let channel: ReturnType<ReturnType<typeof getSupabase>['channel']> | null = null;
+
+    try {
+      const supabase = getSupabase();
+      channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'transactions',
+          },
+          (payload) => {
+            const newNotif: Notification = {
+              id: `rt-${Date.now()}`,
+              type: 'transaction',
+              title: 'New transaction',
+              message: `${payload.new?.merchant || 'Unknown'} — ${payload.new?.amount || ''}`,
+              timestamp: new Date().toISOString(),
+              read: false,
+            };
+            setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'health_alerts',
+          },
+          (payload) => {
+            const newNotif: Notification = {
+              id: `rt-health-${Date.now()}`,
+              type: 'review',
+              title: 'Health alert',
+              message: payload.new?.message || 'New health alert',
+              timestamp: new Date().toISOString(),
+              read: false,
+            };
+            setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+          }
+        )
+        .subscribe();
+    } catch {
+      // Supabase not configured or realtime not available — silent fallback
+    }
+
+    return () => {
+      if (channel) {
+        const supabase = getSupabase();
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -112,7 +177,7 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus management when dropdown opens/closes
+  // Focus management
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -122,7 +187,6 @@ export default function NotificationBell() {
     }
   }, [isOpen]);
 
-  // Focus the active item when focusedIndex changes
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
       itemRefs.current[focusedIndex]?.focus();
@@ -131,7 +195,6 @@ export default function NotificationBell() {
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const visibleNotifications = notifications.slice(0, 5);
-    // Include "Mark all as read" button as the last focusable item
     const hasMarkAllButton = notifications.length > 0 && notifications.some(n => !n.read);
     const totalItems = visibleNotifications.length + (hasMarkAllButton ? 1 : 0);
 
@@ -159,123 +222,39 @@ export default function NotificationBell() {
   }, [notifications, focusedIndex]);
 
   return (
-    <div ref={bellRef} style={{ position: 'relative' }}>
+    <div ref={bellRef} className={styles.bellWrapper}>
       <button
         onClick={toggleDropdown}
+        className={styles.bellButton}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '36px',
-          height: '36px',
-          borderRadius: 'var(--radius-md)',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '18px',
-          transition: 'background 0.15s ease',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-glass)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         🔔
         {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '2px',
-              right: '2px',
-              minWidth: '16px',
-              height: '16px',
-              borderRadius: '9999px',
-              background: 'var(--destructive, #dc3c3c)',
-              color: '#fff',
-              fontSize: '10px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 4px',
-              lineHeight: 1,
-            }}
-          >
-            {unreadCount}
-          </span>
+          <span className={styles.unreadBadge}>{unreadCount}</span>
         )}
       </button>
 
       {isOpen && (
         <div
-          ref={dropdownRef}
+          className={styles.dropdown}
           role="menu"
           onKeyDown={handleKeyDown}
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: 0,
-            width: '340px',
-            background: 'var(--bg-surface, #1a1a2e)',
-            border: '1px solid var(--border-primary, rgba(255,255,255,0.08))',
-            borderRadius: '12px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            overflow: 'hidden',
-            zIndex: 1000,
-            animation: 'bellDropdownFadeIn 0.15s ease-out',
-          }}
         >
           {/* Header */}
-          <div
-            style={{
-              padding: '14px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-              }}
-            >
-              Notifications
-            </span>
+          <div className={styles.header}>
+            <span className={styles.headerTitle}>Notifications</span>
             {unreadCount > 0 && (
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  background: 'var(--accent-subtle)',
-                  color: 'var(--accent-primary)',
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                }}
-              >
-                {unreadCount} new
-              </span>
+              <span className={styles.newBadge}>{unreadCount} new</span>
             )}
           </div>
 
           {/* Notification List */}
-          <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+          <div className={styles.list}>
             {notifications.length === 0 ? (
-              <div
-                style={{
-                  padding: '32px 16px',
-                  textAlign: 'center',
-                  color: 'var(--text-secondary)',
-                  fontSize: '13px',
-                }}
-              >
-                <span style={{ fontSize: '28px', display: 'block', marginBottom: '8px' }}>✨</span>
+              <div className={styles.emptyState}>
+                <span className={styles.emptyIcon}>✨</span>
                 All caught up! No new notifications.
               </div>
             ) : (
@@ -285,99 +264,24 @@ export default function NotificationBell() {
                   role="menuitem"
                   tabIndex={-1}
                   ref={(el) => { itemRefs.current[index] = el; }}
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: notif.read ? 'transparent' : 'rgba(30, 111, 255, 0.04)',
-                    transition: 'background 0.15s ease',
-                    cursor: 'pointer',
-                    outline: focusedIndex === index ? '2px solid var(--accent-primary)' : 'none',
-                    outlineOffset: '-2px',
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = notif.read
-                      ? 'transparent'
-                      : 'rgba(30, 111, 255, 0.04)')
-                  }
+                  className={[
+                    styles.notifItem,
+                    !notif.read ? styles.notifItemUnread : '',
+                    focusedIndex === index ? styles.notifItemFocused : '',
+                  ].filter(Boolean).join(' ')}
                 >
-                  {/* Icon */}
-                  <span
-                    style={{
-                      fontSize: '16px',
-                      flexShrink: 0,
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: 'var(--bg-elevated)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <span className={styles.notifIcon}>
                     {NOTIFICATION_ICONS[notif.type]}
                   </span>
-
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: notif.read ? 500 : 600,
-                          color: 'var(--text-primary)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                  <div className={styles.notifContent}>
+                    <div className={styles.notifTitleRow}>
+                      <span className={`${styles.notifTitle} ${!notif.read ? styles.notifTitleUnread : ''}`}>
                         {notif.title}
                       </span>
-                      {!notif.read && (
-                        <span
-                          style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: 'var(--accent-primary)',
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
+                      {!notif.read && <span className={styles.unreadDot} />}
                     </div>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--text-secondary)',
-                        margin: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {notif.message}
-                    </p>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--text-tertiary)',
-                        marginTop: '4px',
-                        display: 'block',
-                      }}
-                    >
-                      {timeAgo(notif.timestamp)}
-                    </span>
+                    <p className={styles.notifMessage}>{notif.message}</p>
+                    <span className={styles.notifTime}>{timeAgo(notif.timestamp)}</span>
                   </div>
                 </div>
               ))
@@ -386,35 +290,13 @@ export default function NotificationBell() {
 
           {/* Footer */}
           {notifications.length > 0 && unreadCount > 0 && (
-            <div
-              style={{
-                padding: '10px 16px',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
+            <div className={styles.footer}>
               <button
                 onClick={markAllAsRead}
+                className={styles.markAllBtn}
                 role="menuitem"
                 tabIndex={-1}
                 ref={(el) => { itemRefs.current[notifications.slice(0, 5).length] = el as HTMLDivElement | null; }}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--accent-primary)',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'var(--accent-subtle)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = 'transparent')
-                }
               >
                 Mark all as read
               </button>
@@ -422,13 +304,6 @@ export default function NotificationBell() {
           )}
         </div>
       )}
-
-      <style>{`
-        @keyframes bellDropdownFadeIn {
-          from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
     </div>
   );
 }

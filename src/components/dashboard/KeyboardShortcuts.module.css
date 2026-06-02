@@ -1,0 +1,41 @@
+/* ─── Dashboard Keyboard Shortcuts ────────────── */
+
+.shortcutsPill {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all 200ms ease;
+  opacity: 0.7;
+}
+
+.shortcutsPill:hover {
+  opacity: 1;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.12);
+}
+
+.pillKbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { useNavigationShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import styles from './AppShell.module.css';
 
 export interface AppShellProps {
@@ -33,8 +35,18 @@ export default function AppShell({
   fullWidth = false,
   topBarActions,
 }: AppShellProps) {
-  const [sidebarCollapsed, _setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [_mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Global keyboard shortcuts
+  useNavigationShortcuts();
+
+  // Listen for sidebar toggle events from keyboard shortcut
+  useEffect(() => {
+    const handler = () => setSidebarCollapsed(prev => !prev);
+    window.addEventListener('autokkeep-toggle-sidebar', handler);
+    return () => window.removeEventListener('autokkeep-toggle-sidebar', handler);
+  }, []);
 
   const handleMobileMenuToggle = useCallback(() => {
     setMobileMenuOpen(prev => !prev);
@@ -67,6 +79,8 @@ export default function AppShell({
           {children}
         </div>
       </div>
+
+      <KeyboardShortcutsHelp />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { createClient as getSupabase } from '@/lib/supabase/client';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Button, Input, Modal, Toggle, Skeleton } from '@/components/ui';
+import { Card, Button, Input, Modal, Toggle, Skeleton, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 
@@ -27,6 +27,7 @@ export default function AccountPage() {
 
   // Theme from provider
   const { theme, setTheme } = useTheme();
+  const toast = useToast();
 
   // Notification preferences — persisted to localStorage
   const [notifPrefs, setNotifPrefsRaw] = useState(() => {
@@ -115,9 +116,9 @@ export default function AccountPage() {
       window.location.href = '/';
     } catch (err) {
       setDeleting(false);
-      alert(`Account deletion failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Account deletion failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [deleteConfirmText]);
+  }, [deleteConfirmText, toast]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

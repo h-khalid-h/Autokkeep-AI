@@ -5,7 +5,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Button, Gauge, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Button, Gauge, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -114,6 +114,8 @@ export default function TaxPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
 
+  const toast = useToast();
+
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   // ─── Fetch tax readiness report ──────────────────────────────────────────
@@ -188,7 +190,7 @@ export default function TaxPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    alert('Export functionality will generate a tax-ready CSV/PDF report for your accountant.');
+                    toast.info('Export functionality will generate a tax-ready CSV/PDF report for your accountant.');
                   }}
                 >
                   📤 Export for Accountant
