@@ -35,6 +35,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_error`);
+  // Return the user to the error page with the error code
+  return NextResponse.redirect(`${origin}/auth/error?error_code=auth_callback_error&error_description=Authentication+failed.+Please+try+signing+in+again.`);
 }

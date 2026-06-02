@@ -20,7 +20,20 @@ const authRoutes = ['/auth/login', '/auth/signup'];
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request);
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Intercept auth errors on any non-error page (e.g., expired email links redirect to /)
+  // Supabase redirects to the app URL with ?error=... or ?error_code=... params
+  if (pathname !== '/auth/error') {
+    const authError = searchParams.get('error');
+    const authErrorCode = searchParams.get('error_code');
+    if (authError || authErrorCode) {
+      const errorUrl = request.nextUrl.clone();
+      errorUrl.pathname = '/auth/error';
+      // Preserve the error params for the error page to display
+      return NextResponse.redirect(errorUrl);
+    }
+  }
 
   // Redirect unauthenticated users away from protected routes
   const isProtected = protectedRoutes.some(
