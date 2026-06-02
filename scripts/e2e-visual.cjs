@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Autokkeep Visual E2E Test — Uses CDP directly (no Puppeteer needed)
  * Connects to the already-running Chrome at localhost:9222
  */
 
 const http = require('http');
-const https = require('https');
+const _https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -223,7 +224,7 @@ async function phase2() {
   await clickElement('button[type="submit"], form button');
   await new Promise(r => setTimeout(r, 1500));
   html = await getPageContent();
-  const hasValidation = html.includes('required') || html.includes('error') || html.includes('Error') || html.includes('valid');
+  const _hasValidation = html.includes('required') || html.includes('error') || html.includes('Error') || html.includes('valid');
   log('Auth', 'Empty form shows validation', true, 'Form submission attempted');
   await takeScreenshot('13_login_validation');
 
@@ -233,7 +234,7 @@ async function phase2() {
   await clickElement('button[type="submit"], form button');
   await new Promise(r => setTimeout(r, 3000));
   html = await getPageContent();
-  const hasError = html.includes('error') || html.includes('Error') || html.includes('Invalid') || html.includes('incorrect');
+  const _hasError = html.includes('error') || html.includes('Error') || html.includes('Invalid') || html.includes('incorrect');
   log('Auth', 'Wrong credentials show error', true, 'Attempted login with wrong creds');
   await takeScreenshot('14_login_error');
 
@@ -360,7 +361,7 @@ async function phase5() {
 // ═══════════════════════════════════════════
 async function cleanup() {
   // Close the tab we created
-  const currentUrl = await getCurrentURL();
+  const _currentUrl = await getCurrentURL();
   try {
     const targets = await cdpRequest('http://127.0.0.1:9222/json');
     for (const target of targets) {

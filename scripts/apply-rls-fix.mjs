@@ -38,7 +38,7 @@ async function main() {
   console.log('Attempting to execute SQL via creating a helper RPC...');
   
   // Create a temporary function that applies the migration
-  const createFnSql = `
+  const _createFnSql = `
     CREATE OR REPLACE FUNCTION apply_onboarding_rls_fix()
     RETURNS void AS $$
     BEGIN

@@ -27,10 +27,7 @@ interface EntityRow {
   org_id: string;
 }
 
-interface TxRow {
-  entity_id: string;
-  created_at: string;
-}
+
 
 export async function GET(request: NextRequest) {
   try {

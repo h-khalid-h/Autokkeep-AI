@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * Autokkeep Full Authenticated E2E Test
@@ -14,7 +15,7 @@
 const puppeteer = require('puppeteer');
 const readline = require('readline');
 const fs = require('fs');
-const path = require('path');
+const _path = require('path');
 
 // ── Config ──────────────────────────────────────────────────────────────────────
 const BASE_URL = process.env.APP_URL || 'https://autokkeep.com';
@@ -343,7 +344,7 @@ async function loginFlow(page) {
 
   // Dismiss cookie banner if present (it can block clicks)
   try {
-    const cookieBtn = await page.$('button');
+    const _cookieBtn = await page.$('button');
     const allBtns = await page.$$('button');
     for (const btn of allBtns) {
       const text = await page.evaluate(el => el.textContent, btn);

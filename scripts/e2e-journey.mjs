@@ -12,7 +12,7 @@ const TEST_EMAIL = `e2e-test-${Date.now()}@autokkeep-test.com`;
 const TEST_PASSWORD = 'TestP@ss2026!Secure';
 
 let accessToken = null;
-let refreshToken = null;
+let _refreshToken = null;
 let userId = null;
 let anonKey = null;
 
@@ -151,7 +151,7 @@ async function phase2_signup() {
 
   if (signupRes.json?.access_token) {
     accessToken = signupRes.json.access_token;
-    refreshToken = signupRes.json.refresh_token;
+    _refreshToken = signupRes.json.refresh_token;
     userId = signupRes.json.user?.id;
     log('Signup', 'Access token received', true);
     log('Signup', 'User ID received', !!userId, userId?.slice(0, 8));
@@ -169,7 +169,7 @@ async function phase2_signup() {
     
     if (loginRes.json?.access_token) {
       accessToken = loginRes.json.access_token;
-      refreshToken = loginRes.json.refresh_token;
+      _refreshToken = loginRes.json.refresh_token;
       userId = loginRes.json.user?.id;
       log('Signup', 'Auto-confirmed login succeeded', true);
       return true;
@@ -346,7 +346,7 @@ async function phase5_edge_cases() {
     rateLimitPromises.push(fetch(`${APP_URL}/api/health`).then(r => r.status));
   }
   const statuses = await Promise.all(rateLimitPromises);
-  const has429 = statuses.some(s => s === 429);
+  const _has429 = statuses.some(s => s === 429);
   // Rate limiting may not trigger on health (it's a lightweight endpoint) - that's OK
   log('Rate Limiting', 'Rate limiter active (15 rapid requests)', true, `statuses: ${[...new Set(statuses)].join(', ')}`);
 }

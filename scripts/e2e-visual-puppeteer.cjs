@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Autokkeep Visual E2E Test — Puppeteer-based
  * Connects to existing Chrome at localhost:9222
@@ -55,7 +56,7 @@ async function main() {
       browserURL: 'http://127.0.0.1:9222',
       defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 2 },
     });
-  } catch (e) {
+  } catch (_e) {
     // Launch new Chrome if connection fails
     console.log('   Launching new Chrome instance...');
     browser = await puppeteer.launch({

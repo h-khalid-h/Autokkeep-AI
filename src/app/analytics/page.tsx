@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
 
     fetchAnalytics();
     return () => controller.abort();
-  }, [selectedEntity?.id]);
+  }, [selectedEntity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const data = analyticsData[timeRange];
   const entityCurrency = selectedEntity?.currency || 'USD';

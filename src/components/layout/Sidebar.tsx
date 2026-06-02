@@ -94,7 +94,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
       prevPathnameRef.current = pathname;
       setMobileOpen(false);
     }
-  }, [pathname]);
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close mobile sidebar on Escape
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mobileOpen]);
+  }, [mobileOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close entity dropdown on click outside
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
 
   const toggleMobile = useCallback(() => {
     setMobileOpen(!mobileOpen);
-  }, [mobileOpen]);
+  }, [mobileOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';

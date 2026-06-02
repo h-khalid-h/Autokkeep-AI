@@ -1,4 +1,5 @@
 // Extract the anon key from the deployed app's browser runtime
+/* eslint-disable @typescript-eslint/no-require-imports */
 const puppeteer = require('puppeteer');
 
 async function main() {
