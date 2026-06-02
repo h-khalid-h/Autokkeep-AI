@@ -76,7 +76,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: CreateAccountBody = await request.json();
+    let body: CreateAccountBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { code, name, type, description, active, entityId } = body;
 
     if (!code || !name || !type) {
@@ -209,7 +214,12 @@ export async function PUT(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, db, entityIds } = ctx;
 
-    const body: UpdateAccountBody = await request.json();
+    let body: UpdateAccountBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { id, code, name, type, is_active, entityId: _entityId } = body;
 
     if (!id) {
@@ -217,6 +227,17 @@ export async function PUT(request: NextRequest) {
         { error: 'Account id is required' },
         { status: 400 }
       );
+    }
+
+    // Validate account type if being updated
+    if (type !== undefined) {
+      const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+      if (!validTypes.includes(type.toLowerCase())) {
+        return NextResponse.json(
+          { error: `Invalid account type. Must be one of: ${validTypes.join(', ')}` },
+          { status: 400 }
+        );
+      }
     }
 
     // Verify the account belongs to an entity in this org

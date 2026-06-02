@@ -50,7 +50,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: CategorizeRequestBody = await request.json();
+    let body: CategorizeRequestBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { transaction, entityId } = body;
 
     if (!transaction || !entityId) {

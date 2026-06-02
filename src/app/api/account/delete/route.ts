@@ -18,7 +18,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user } = ctx;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     if (body.confirmation !== 'DELETE') {
       return NextResponse.json({ error: 'Confirmation required' }, { status: 400 });
     }

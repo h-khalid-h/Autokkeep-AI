@@ -12,7 +12,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { transactionIds, action, entityId } = body;
 
     if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
@@ -21,10 +26,14 @@ export async function POST(request: NextRequest) {
     if (transactionIds.length > 100) {
       return NextResponse.json({ error: 'Maximum 100 transactions per batch' }, { status: 400 });
     }
+    // Validate all IDs are non-empty strings (prevents type confusion)
+    if (!transactionIds.every((id: unknown) => typeof id === 'string' && id.length > 0)) {
+      return NextResponse.json({ error: 'All transactionIds must be non-empty strings' }, { status: 400 });
+    }
     if (!['approve', 'reject'].includes(action)) {
       return NextResponse.json({ error: 'Action must be "approve" or "reject"' }, { status: 400 });
     }
-    if (!entityId) {
+    if (!entityId || typeof entityId !== 'string') {
       return NextResponse.json({ error: 'entityId is required' }, { status: 400 });
     }
 

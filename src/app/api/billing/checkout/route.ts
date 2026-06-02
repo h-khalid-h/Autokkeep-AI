@@ -21,8 +21,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { planId, entityCount = 1 } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { planId } = body;
+    const entityCount = typeof body.entityCount === 'number' && Number.isInteger(body.entityCount)
+      ? body.entityCount
+      : 1;
 
     if (!planId || !PLAN_PRICES[planId as PlanId]) {
       return NextResponse.json(
@@ -78,6 +86,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         org_id: orgId || '',
         user_id: user.id,
+        plan_id: planId,
       },
     });
 

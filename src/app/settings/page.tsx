@@ -815,13 +815,13 @@ function TeamTab({
   const canManageTeam = userRole === 'owner' || userRole === 'admin';
 
   // Seat limit enforcement
+  // Plan keys match DB values set by Stripe webhook via PLAN_DB_NAMES
   const PLAN_SEAT_LIMITS: Record<string, number> = {
-    starter_monthly: 3,
-    starter_yearly: 3,
-    growth_monthly: 10,
-    growth_yearly: 10,
-    pro_monthly: Infinity,
-    pro_yearly: Infinity,
+    free: 3,
+    starter: 3,
+    smb_growth: 10,
+    cpa_professional: Infinity,
+    cpa_enterprise: Infinity,
   };
   const seatLimit = PLAN_SEAT_LIMITS[plan] ?? 3;
   const currentSeats = teamMembers.length;
@@ -847,30 +847,17 @@ function TeamTab({
     }
 
     try {
-      const supabase = createClient();
-      const db = supabase as unknown as SupabaseQueryClient;
-      const { error: insertError } = await db
-        .from('team_members')
-        .insert({
-          org_id: orgId,
-          role: role,
-          invited_email: email,
-        });
+      // Use the server-side API exclusively — it validates role, checks duplicates, enforces seat limits
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), role }),
+      });
 
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
+      const data = await res.json();
 
-      // Send invite email via Resend (fire-and-forget)
-      try {
-        await fetch('/api/team/invite', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), role }),
-        });
-      } catch {
-        // Email delivery failure is non-blocking
-        console.warn('[Settings] Invite email could not be sent');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send invite');
       }
 
       setEmail('');

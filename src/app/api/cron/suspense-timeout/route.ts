@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
         description: string;
       }> = [];
 
-      for (const txn of staleTransactions) {
+      for (const txn of validatedTxns) {
         const jeId = jeMap.get(txn.id);
         if (!jeId) continue;
         const absAmount = Math.abs(txn.amount);

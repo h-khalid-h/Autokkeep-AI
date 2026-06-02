@@ -89,18 +89,24 @@ export async function POST(request: NextRequest) {
             .from('organizations')
             .select('id')
             .eq('stripe_customer_id', subscription.customer as string)
-            .single();
+            .maybeSingle();
           orgId = org?.id;
         }
 
         if (orgId) {
           const status = subscription.status;
+          // Extract plan from subscription metadata if available
+          const planId = subscription.metadata?.plan_id;
+          const updateFields: Record<string, unknown> = {
+            subscription_status: status,
+            updated_at: new Date().toISOString(),
+          };
+          if (planId) {
+            updateFields.plan = PLAN_DB_NAMES[planId as PlanId] || planId;
+          }
           await db
             .from('organizations')
-            .update({
-              subscription_status: status,
-              updated_at: new Date().toISOString(),
-            })
+            .update(updateFields)
             .eq('id', orgId);
         }
         break;
@@ -116,7 +122,7 @@ export async function POST(request: NextRequest) {
             .from('organizations')
             .select('id')
             .eq('stripe_customer_id', subscription.customer as string)
-            .single();
+            .maybeSingle();
           orgId = org?.id;
         }
 
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
           .from('organizations')
           .select('id')
           .eq('stripe_customer_id', customerId)
-          .single();
+          .maybeSingle();
 
         if (failedOrg) {
           await db

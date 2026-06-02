@@ -2,11 +2,12 @@
 // GET /api/admin/system — System health & configuration status
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/lib/admin';
 import { captureException } from '@/lib/sentry';
+import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export const dynamic = 'force-dynamic';
@@ -60,8 +61,10 @@ const ENV_GROUPS: { group: string; vars: string[] }[] = [
   },
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'admin-system' });
+    if (limited) return limited;
     // ── Auth check ────────────────────────────────────────────────────────────
     const supabase = await createServerClient();
     const {
@@ -99,17 +102,21 @@ export async function GET() {
     let redisStatus: 'connected' | 'not_configured' | 'disconnected' = 'not_configured';
     if (process.env.REDIS_URL) {
       try {
-        const { default: Redis } = await import('ioredis');
-        const redis = new Redis(process.env.REDIS_URL, { connectTimeout: 3000 });
-        await redis.ping();
-        redisStatus = 'connected';
-        await redis.quit();
+        // Use singleton client to avoid connection leak per health check
+        const { getRedisClient } = await import('@/lib/redis');
+        const redis = getRedisClient();
+        if (redis) {
+          await redis.ping();
+          redisStatus = 'connected';
+        } else {
+          redisStatus = 'disconnected';
+        }
       } catch {
         redisStatus = 'disconnected';
       }
     }
 
-    // ── Last cron activity (approximate from latest transaction timestamps) ───
+    // Reuse admin client for all subsequent queries
     const admin = createAdminClient() as unknown as SupabaseQueryClient;
     let lastTransactionSync: string | null = null;
 

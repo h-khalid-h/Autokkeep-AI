@@ -7,7 +7,12 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'contact' });
     if (limited) return limited;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { name, email, company, type, entityCount, message } = body;
 
     if (!name || !email || !message) {
@@ -15,6 +20,14 @@ export async function POST(request: NextRequest) {
         { error: 'Name, email, and message are required' },
         { status: 400 }
       );
+    }
+
+    // Input length limits
+    if (typeof name !== 'string' || name.length > 200) {
+      return NextResponse.json({ error: 'Name too long (max 200 chars)' }, { status: 400 });
+    }
+    if (typeof email !== 'string' || email.length > 320) {
+      return NextResponse.json({ error: 'Email too long (max 320 chars)' }, { status: 400 });
     }
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

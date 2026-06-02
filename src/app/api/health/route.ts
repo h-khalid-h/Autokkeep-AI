@@ -58,14 +58,17 @@ export async function GET(request: NextRequest) {
       const redisUrl = process.env.REDIS_URL;
       if (redisUrl) {
         const redisStart = Date.now();
-        const { default: Redis } = await import('ioredis');
-        const redis = new Redis(redisUrl, { connectTimeout: 3000 });
-        await redis.ping();
-        checks.redis = {
-          status: 'connected',
-          latency: Date.now() - redisStart,
-        };
-        await redis.quit();
+        const { getRedisClient } = await import('@/lib/redis');
+        const redis = getRedisClient();
+        if (redis) {
+          await redis.ping();
+          checks.redis = {
+            status: 'connected',
+            latency: Date.now() - redisStart,
+          };
+        } else {
+          checks.redis = { status: 'disconnected' };
+        }
       } else {
         checks.redis = { status: 'not_configured' };
       }

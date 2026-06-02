@@ -16,7 +16,13 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    const { email, role } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { email, role } = body;
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -50,12 +56,15 @@ export async function POST(request: NextRequest) {
       .select('plan')
       .eq('org_id', membership.org_id)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
+    // Plan keys match DB values set by Stripe webhook via PLAN_DB_NAMES
     const PLAN_SEAT_LIMITS: Record<string, number> = {
-      starter_monthly: 3, starter_yearly: 3,
-      growth_monthly: 10, growth_yearly: 10,
-      pro_monthly: Infinity, pro_yearly: Infinity,
+      free: 3,
+      starter: 3,
+      smb_growth: 10,
+      cpa_professional: Infinity,
+      cpa_enterprise: Infinity,
     };
     const limit = PLAN_SEAT_LIMITS[sub?.plan || ''] ?? 3;
     if ((memberCount ?? 0) >= limit) {
@@ -65,9 +74,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user is already a member or already invited
+    const { data: existingMember } = await db
+      .from('team_members')
+      .select('id, user_id, invited_email')
+      .eq('org_id', membership.org_id)
+      .or(`invited_email.eq.${normalizedEmail}`)
+      .maybeSingle();
+
+    if (existingMember) {
+      return NextResponse.json(
+        { error: 'This user is already a member or has a pending invite.' },
+        { status: 409 }
+      );
+    }
+
+    // Create a pending team_members record so the invite check in onboarding can link them
+    const { error: insertError } = await db
+      .from('team_members')
+      .insert({
+        org_id: membership.org_id,
+        invited_email: normalizedEmail,
+        role: role || 'viewer',
+        // user_id is NULL — will be set when the invited user accepts
+      });
+
+    if (insertError) {
+      console.error('[Team Invite] Failed to create pending member:', insertError);
+      return NextResponse.json(
+        { error: 'Failed to create invite record.' },
+        { status: 500 }
+      );
+    }
+
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-      // Gracefully skip if Resend is not configured
+      // Gracefully skip email if Resend is not configured — record was still created
       console.warn('[Team Invite] RESEND_API_KEY not configured, skipping email');
       return NextResponse.json({ success: true, skipped: true });
     }
@@ -99,7 +141,7 @@ export async function POST(request: NextRequest) {
                 Autokkeep is an AI-powered financial operations platform that automatically categorizes transactions, monitors financial health, and keeps your books close-ready.
               </p>
               <div style="margin-top: 24px; text-align: center;">
-                <a href="${appUrl}/auth/login"
+                <a href="${appUrl}/auth/signup"
                    style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px;">
                   Accept Invitation →
                 </a>
@@ -118,7 +160,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[Team Invite] Email send failed:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      // Don't delete the team_members record — they can still sign up and be linked
+      return NextResponse.json({ success: true, emailFailed: true });
     }
 
     return NextResponse.json({ success: true });

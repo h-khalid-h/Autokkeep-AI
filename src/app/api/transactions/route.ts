@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     const confidenceMin = searchParams.get('confidenceMin');
     const confidenceMax = searchParams.get('confidenceMax');
     const search = searchParams.get('search');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10) || 50, 200);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
 
     // If entityId provided, validate access; otherwise use all org entities
     let entityIds: string[] = [];
@@ -163,7 +163,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: CreateTransactionBody = await request.json();
+    let body: CreateTransactionBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { entityId, merchant, amount, date, glCode, glName, cardHolder, notes } =
       body;
 

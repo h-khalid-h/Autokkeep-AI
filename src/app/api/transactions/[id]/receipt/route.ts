@@ -29,11 +29,25 @@ export async function POST(
 
     const { id: transactionId } = await params;
 
-    // Validate transaction access
+    // Validate transaction access — single scoped query to prevent IDOR
+    const { data: entityList } = await db
+      .from('entities')
+      .select('id')
+      .eq('org_id', membership.org_id);
+
+    const entityIds = (entityList || []).map((e: { id: string }) => e.id);
+    if (entityIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
     const { data: transaction } = await db
       .from('transactions')
       .select('id, entity_id, document_status')
       .eq('id', transactionId)
+      .in('entity_id', entityIds)
       .single();
 
     if (!transaction) {
@@ -41,17 +55,6 @@ export async function POST(
         { error: 'Transaction not found' },
         { status: 404 }
       );
-    }
-
-    const { data: entity } = await db
-      .from('entities')
-      .select('id')
-      .eq('id', transaction.entity_id)
-      .eq('org_id', membership.org_id)
-      .single();
-
-    if (!entity) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Parse the multipart form data

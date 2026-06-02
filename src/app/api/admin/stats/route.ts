@@ -2,11 +2,12 @@
 // GET /api/admin/stats — Platform-wide statistics
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/lib/admin';
 import { captureException } from '@/lib/sentry';
+import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export const dynamic = 'force-dynamic';
@@ -21,8 +22,10 @@ const PLAN_PRICES: Record<string, number> = {
   cpa_enterprise: 499,
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 15, windowSeconds: 60, prefix: 'admin-stats' });
+    if (limited) return limited;
     // ── Auth check ────────────────────────────────────────────────────────────
     const supabase = await createServerClient();
     const {

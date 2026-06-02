@@ -80,11 +80,25 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    // Fetch existing transaction
+    // Fetch existing transaction scoped to user's entities
+    const { data: entityList } = await db
+      .from('entities')
+      .select('id')
+      .eq('org_id', membership.org_id);
+
+    const entityIds = (entityList || []).map((e: { id: string }) => e.id);
+    if (entityIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
     const { data: existing, error: fetchError } = await db
       .from('transactions')
       .select('*')
       .eq('id', id)
+      .in('entity_id', entityIds)
       .single();
 
     if (fetchError || !existing) {
@@ -94,22 +108,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Validate entity access
-    const { data: entity } = await db
-      .from('entities')
-      .select('id, org_id')
-      .eq('id', existing.entity_id)
-      .eq('org_id', membership.org_id)
-      .single();
-
-    if (!entity) {
-      return NextResponse.json(
-        { error: 'Entity access denied' },
-        { status: 403 }
-      );
+    let body: UpdateTransactionBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
-
-    const body: UpdateTransactionBody = await request.json();
     const {
       glCode,
       glName,
@@ -296,32 +300,31 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    // Fetch existing transaction
-    const { data: existing, error: fetchError } = await db
-      .from('transactions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // Fetch existing transaction scoped to user's entities
+    const { data: entityList } = await db
+      .from('entities')
+      .select('id')
+      .eq('org_id', membership.org_id);
 
-    if (fetchError || !existing) {
+    const entityIds = (entityList || []).map((e: { id: string }) => e.id);
+    if (entityIds.length === 0) {
       return NextResponse.json(
         { error: 'Transaction not found' },
         { status: 404 }
       );
     }
 
-    // Validate entity access
-    const { data: entity } = await db
-      .from('entities')
-      .select('id, org_id')
-      .eq('id', existing.entity_id)
-      .eq('org_id', membership.org_id)
+    const { data: existing, error: fetchError } = await db
+      .from('transactions')
+      .select('*')
+      .eq('id', id)
+      .in('entity_id', entityIds)
       .single();
 
-    if (!entity) {
+    if (fetchError || !existing) {
       return NextResponse.json(
-        { error: 'Entity access denied' },
-        { status: 403 }
+        { error: 'Transaction not found' },
+        { status: 404 }
       );
     }
 
