@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/ui/Logo';
 import { useEntity } from '@/lib/context/EntityContext';
+import { createClient } from '@/lib/supabase/client';
 import styles from './Sidebar.module.css';
 
 /* ─── Navigation config ─── */
@@ -66,11 +67,13 @@ export interface SidebarProps {
 
 export default function Sidebar({ pendingCount, isConnected = false, collapsed: controlledCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { selectedEntity, entities, setSelectedEntityId } = useEntity();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const collapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [entityDropdownOpen, setEntityDropdownOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const prevPathnameRef = useRef(pathname);
   const entityDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -252,6 +255,32 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
               {isConnected ? 'Live · Plaid Connected' : 'No Bank Connected'}
             </span>
           </div>
+
+          {/* Sign out button */}
+          <button
+            id="sidebar-sign-out"
+            className={styles.signOutButton}
+            disabled={signingOut}
+            onClick={async () => {
+              setSigningOut(true);
+              try {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                router.push('/auth/login');
+              } catch (err) {
+                console.error('Sign out error:', err);
+                setSigningOut(false);
+              }
+            }}
+            aria-label="Sign out"
+          >
+            <svg className={styles.signOutIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span className={styles.signOutLabel}>{signingOut ? 'Signing out…' : 'Sign Out'}</span>
+          </button>
 
           {/* Collapse button */}
           <button

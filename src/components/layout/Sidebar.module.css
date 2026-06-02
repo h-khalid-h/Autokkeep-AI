@@ -228,6 +228,45 @@
   flex-shrink: 0;
 }
 
+.signOutButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+  margin-bottom: var(--space-1);
+}
+
+.signOutButton:hover {
+  background: hsla(0, 70%, 55%, 0.1);
+  color: hsl(0, 70%, 55%);
+}
+
+.signOutButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.signOutIcon {
+  flex-shrink: 0;
+}
+
+.signOutLabel {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.collapsed .signOutLabel {
+  opacity: 0;
+  width: 0;
+}
+
 .collapseButton {
   display: flex;
   align-items: center;
