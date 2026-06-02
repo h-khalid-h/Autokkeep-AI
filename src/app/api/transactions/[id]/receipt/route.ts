@@ -8,8 +8,7 @@
 // Also updates any pending receipt_requests for this transaction.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -24,19 +23,11 @@ export async function POST(
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'receipt-upload' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
+
     const { id: transactionId } = await params;
-
-    // Auth check
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // Validate transaction access
     const { data: transaction } = await db
@@ -50,17 +41,6 @@ export async function POST(
         { error: 'Transaction not found' },
         { status: 404 }
       );
-    }
-
-    // Verify user has access to this entity
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { data: entity } = await db
@@ -123,7 +103,7 @@ export async function POST(
 
         // Audit log
         await writeAuditLog({
-          supabase,
+          supabase: db,
           entityId: transaction.entity_id,
           actorId: user.id,
           actorType: 'human',
@@ -227,7 +207,7 @@ export async function POST(
 
     // Audit log
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: transaction.entity_id,
       actorId: user.id,
       actorType: 'human',

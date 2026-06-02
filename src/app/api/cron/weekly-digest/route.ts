@@ -39,26 +39,55 @@ export async function GET(request: NextRequest) {
       const supabase = createAdminClient();
       const db = supabase as unknown as SupabaseQueryClient;
 
-      for (const entity of digest.entities) {
-        // Get entity's org_id, then find admin/owner team members
-        const { data: entityRecord } = await db
-          .from('entities')
-          .select('org_id')
-          .eq('id', entity.entityId)
-          .single();
+      // ── Batch: fetch all entities and their org_ids in one query ──────
+      const entityIds = digest.entities.map(e => e.entityId);
+      const { data: allEntities } = await db
+        .from('entities')
+        .select('id, org_id')
+        .in('id', entityIds);
 
-        if (!entityRecord) {
+      const entityOrgMap = new Map<string, string>();
+      for (const e of allEntities || []) {
+        entityOrgMap.set(e.id as string, e.org_id as string);
+      }
+
+      // ── Batch: fetch all team members for all org_ids in one query ───
+      const uniqueOrgIds = [...new Set(entityOrgMap.values())];
+      const { data: allMembers } = await db
+        .from('team_members')
+        .select('user_id, role, org_id')
+        .in('org_id', uniqueOrgIds)
+        .in('role', ['owner', 'admin']);
+
+      // Group members by org_id
+      const membersByOrg = new Map<string, Array<{ user_id: string; role: string }>>();
+      for (const m of allMembers || []) {
+        const orgId = m.org_id as string;
+        if (!membersByOrg.has(orgId)) membersByOrg.set(orgId, []);
+        membersByOrg.get(orgId)!.push({ user_id: m.user_id as string, role: m.role as string });
+      }
+
+      // ── Batch: fetch all unique users in one parallel call ───────────
+      const uniqueUserIds: string[] = Array.from(new Set((allMembers || []).map((m: Record<string, unknown>) => String(m.user_id))));
+      const userResults = await Promise.all(
+        uniqueUserIds.map((uid: string) => supabase.auth.admin.getUserById(uid))
+      );
+      const userEmailMap = new Map<string, string>();
+      for (let i = 0; i < uniqueUserIds.length; i++) {
+        const email = userResults[i].data?.user?.email;
+        if (email) userEmailMap.set(uniqueUserIds[i] as string, email);
+      }
+
+      // ── Process entities using in-memory lookups ─────────────────────
+      for (const entity of digest.entities) {
+        const orgId = entityOrgMap.get(entity.entityId);
+        if (!orgId) {
           console.warn(`[Weekly Digest] Entity not found: ${entity.entityId}`);
           emailResults.push({ entity: entity.entityName, success: false, error: 'Entity not found' });
           continue;
         }
 
-        const { data: members } = await db
-          .from('team_members')
-          .select('user_id, role')
-          .eq('org_id', entityRecord.org_id)
-          .in('role', ['owner', 'admin']);
-
+        const members = membersByOrg.get(orgId);
         if (!members || members.length === 0) {
           console.warn(`[Weekly Digest] No admin users for entity ${entity.entityName}`);
           emailResults.push({ entity: entity.entityName, success: false, error: 'No admin users' });
@@ -66,8 +95,7 @@ export async function GET(request: NextRequest) {
         }
 
         for (const member of members) {
-          const { data: { user: memberUser } } = await supabase.auth.admin.getUserById(member.user_id);
-          const userEmail = memberUser?.email;
+          const userEmail = userEmailMap.get(member.user_id);
           if (!userEmail) continue;
 
           const result = await sendDigestEmail({

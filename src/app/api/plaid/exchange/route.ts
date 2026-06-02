@@ -4,10 +4,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
-import { createServerClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { encryptToken } from '@/lib/crypto';
@@ -30,17 +29,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'plaid-exchange' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const body: ExchangeRequestBody = await request.json();
     const { publicToken, entityId, institutionId } = body;
@@ -53,19 +44,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Entity access denied' },
-        { status: 403 }
-      );
-    }
-
     const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
@@ -81,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as never, membership.org_id, 'connect_bank');
+    const planCheck = await checkPlanLimits(db as never, membership.org_id, 'connect_bank');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
@@ -208,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',

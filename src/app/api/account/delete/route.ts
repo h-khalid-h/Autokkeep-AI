@@ -1,7 +1,7 @@
 // POST /api/account/delete — Delete user account and all associated data
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServerClient } from '@/lib/supabase/server';
+import { getApiAuthContext } from '@/lib/api-auth';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
@@ -13,11 +13,10 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 3, windowSeconds: 60, prefix: 'account-delete' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Use getApiAuthContext only for auth verification (user identity)
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user } = ctx;
 
     const body = await request.json();
     if (body.confirmation !== 'DELETE') {
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const db = admin as unknown as SupabaseQueryClient;
 
-    // 1. Find user's org memberships
+    // 1. Find user's org memberships (uses admin client to iterate ALL memberships)
     const { data: memberships } = await db
       .from('team_members')
       .select('org_id, role')

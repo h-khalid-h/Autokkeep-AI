@@ -13,6 +13,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 
 const SUSPENSE_GL_CODE = '2900'; // Suspense/Clearing account
+const CONTRA_GL_CODE = '1010';   // Cash & Bank — contra account
 const SUSPENSE_TIMEOUT_HOURS = 48;
 
 interface StaleTransaction {
@@ -79,8 +80,41 @@ export async function GET(request: NextRequest) {
     );
     await Promise.all(aiReasoningUpdates);
 
-    // 2. Batch insert all journal entries at once
-    const journalRecords = staleTransactions.map((txn) => ({
+    // 2. Validate GL codes exist per entity before creating journal entries
+    //    Group transactions by entity to batch-validate chart of accounts
+    const entitiesWithTxns = new Map<string, StaleTransaction[]>();
+    for (const txn of staleTransactions) {
+      const existing = entitiesWithTxns.get(txn.entity_id) || [];
+      existing.push(txn);
+      entitiesWithTxns.set(txn.entity_id, existing);
+    }
+
+    const validatedTxns: StaleTransaction[] = [];
+    const skippedEntities: string[] = [];
+
+    for (const [entityId, entityTxns] of entitiesWithTxns) {
+      // Check if suspense GL codes exist in this entity's chart of accounts
+      const { data: glAccounts } = await db
+        .from('chart_of_accounts')
+        .select('code')
+        .eq('entity_id', entityId)
+        .in('code', [SUSPENSE_GL_CODE, CONTRA_GL_CODE]);
+
+      const existingCodes = new Set((glAccounts || []).map((a: { code: string }) => a.code));
+      if (!existingCodes.has(SUSPENSE_GL_CODE) || !existingCodes.has(CONTRA_GL_CODE)) {
+        console.warn(
+          `[Suspense Timeout] Skipping ${entityTxns.length} txns for entity ${entityId}: ` +
+          `GL codes ${SUSPENSE_GL_CODE} and/or ${CONTRA_GL_CODE} not in chart of accounts`
+        );
+        skippedEntities.push(entityId);
+        continue;
+      }
+
+      validatedTxns.push(...entityTxns);
+    }
+
+    // 3. Batch insert journal entries for validated transactions only
+    const journalRecords = validatedTxns.map((txn) => ({
       entity_id: txn.entity_id,
       transaction_id: txn.id,
       entry_date: txn.date,
@@ -89,12 +123,16 @@ export async function GET(request: NextRequest) {
       created_at: now,
     }));
 
-    const { data: journalEntries } = await db
-      .from('journal_entries')
-      .insert(journalRecords)
-      .select('id, transaction_id');
+    let journalEntries: { id: string; transaction_id: string }[] | null = null;
+    if (journalRecords.length > 0) {
+      const result = await db
+        .from('journal_entries')
+        .insert(journalRecords)
+        .select('id, transaction_id');
+      journalEntries = result.data;
+    }
 
-    // 3. Batch insert all journal lines (debit + credit pairs)
+    // 4. Batch insert all journal lines (debit + credit pairs)
     if (journalEntries && journalEntries.length > 0) {
       // Build a map from transaction_id → journal_entry_id
       const jeMap = new Map<string, string>();
@@ -124,7 +162,7 @@ export async function GET(request: NextRequest) {
           },
           {
             journal_entry_id: jeId,
-            gl_code: '1010', // Cash & Bank — always use as contra
+            gl_code: CONTRA_GL_CODE, // Cash & Bank — always use as contra
             debit: 0,
             credit: absAmount,
             description: `Suspense contra: pending classification`,
@@ -137,7 +175,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Build a journal entry lookup for audit details
+    // 5. Build a journal entry lookup for audit details
     const jeMapForAudit = new Map<string, string>();
     if (journalEntries) {
       for (const je of journalEntries) {
@@ -151,7 +189,7 @@ export async function GET(request: NextRequest) {
         writeAuditLog({
           supabase: db,
           entityId: txn.entity_id,
-          actorId: 'system',
+          actorId: undefined,
           actorType: 'system',
           action: 'update',
           targetType: 'transaction',
@@ -175,6 +213,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       moved: movedCount,
       total_stale: staleTransactions.length,
+      skipped_entities: skippedEntities.length,
       errors,
     });
   } catch (error: unknown) {

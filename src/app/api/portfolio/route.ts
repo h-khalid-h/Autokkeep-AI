@@ -4,8 +4,7 @@
 // Returns per-entity stats for the organization's portfolio dashboard.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
 interface EntityStats {
@@ -33,29 +32,9 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'portfolio' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-
-    // Auth check
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Get user's org
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     // Get all entities for this org
     const { data: entities, error: entityError } = await db

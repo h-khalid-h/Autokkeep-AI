@@ -4,8 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -13,32 +12,12 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'dash-stats' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db, entityIds: allEntityIds } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
-
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
 
     // Resolve entity IDs
     let entityIds: string[] = [];
@@ -59,12 +38,7 @@ export async function GET(request: NextRequest) {
       }
       entityIds = [entity.id];
     } else {
-      const { data: orgEntities } = await db
-        .from('entities')
-        .select('id')
-        .eq('org_id', membership.org_id);
-
-      entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+      entityIds = allEntityIds;
       if (entityIds.length === 0) {
         return NextResponse.json({
           totalTransactions: 0,

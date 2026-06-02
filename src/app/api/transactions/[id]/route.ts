@@ -4,8 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
@@ -22,37 +21,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
-    const supabase = await createServerClient();
 
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { db, entityIds } = ctx;
 
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate org membership first (prevents ID enumeration)
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    // Get entity IDs for this org
-    const { data: orgEntities } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
     if (entityIds.length === 0) {
       return NextResponse.json(
         { error: 'Transaction not found' },
@@ -102,18 +75,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
-    const supabase = await createServerClient();
 
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const db = supabase as unknown as SupabaseQueryClient;
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     // Fetch existing transaction
     const { data: existing, error: fetchError } = await db
@@ -130,16 +95,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
@@ -163,6 +118,24 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       receiptUrl,
       receiptId: _receiptId,
     } = body;
+
+    // Validate GL code exists in chart of accounts for this entity
+    if (glCode) {
+      const { data: coaEntry } = await db
+        .from('chart_of_accounts')
+        .select('code')
+        .eq('entity_id', existing.entity_id)
+        .eq('code', glCode)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (!coaEntry?.length) {
+        return NextResponse.json(
+          { error: 'Invalid GL code — not found in chart of accounts' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Build update object
     const updateData: Record<string, unknown> = {
@@ -201,7 +174,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.confidence = 100;
     } else if (newStatus) {
       // Validate allowed status transitions
-      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'escrow_suspense', 'categorization_failed'];
+      const validStatuses = ['pending', 'auto_categorized', 'human_review', 'approved', 'escrow_suspense', 'categorization_failed', 'removed'];
       if (!validStatuses.includes(newStatus)) {
         return NextResponse.json(
           { error: `Invalid status: ${newStatus}` },
@@ -228,7 +201,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: existing.entity_id,
       actorId: user.id,
       actorType: 'human',
@@ -295,18 +268,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
-    const supabase = await createServerClient();
 
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const db = supabase as unknown as SupabaseQueryClient;
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     // Fetch existing transaction
     const { data: existing, error: fetchError } = await db
@@ -323,16 +288,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
@@ -367,7 +322,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: existing.entity_id,
       actorId: user.id,
       actorType: 'human',

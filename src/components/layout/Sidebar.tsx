@@ -58,15 +58,21 @@ const navGroups: NavGroup[] = [
 export interface SidebarProps {
   pendingCount?: number;
   isConnected?: boolean;
+  /** Controlled collapsed state from AppShell */
+  collapsed?: boolean;
+  /** Callback when collapse is toggled (controlled mode) */
+  onToggle?: () => void;
 }
 
-export default function Sidebar({ pendingCount, isConnected = false }: SidebarProps) {
+export default function Sidebar({ pendingCount, isConnected = false, collapsed: controlledCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { selectedEntity, entities, setSelectedEntityId } = useEntity();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [entityDropdownOpen, setEntityDropdownOpen] = useState(false);
   const prevPathnameRef = useRef(pathname);
+  const entityDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close mobile sidebar on route change using ref comparison
   useEffect(() => {
@@ -87,9 +93,27 @@ export default function Sidebar({ pendingCount, isConnected = false }: SidebarPr
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mobileOpen]);
 
-  const toggleCollapse = useCallback(() => {
-    setCollapsed(prev => !prev);
+  // Close entity dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (entityDropdownRef.current && !entityDropdownRef.current.contains(event.target as Node)) {
+        setEntityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const toggleCollapse = useCallback(() => {
+    if (onToggle) {
+      // Controlled mode — AppShell manages state directly, no event needed
+      onToggle();
+    } else {
+      // Uncontrolled mode — update internal state and dispatch event for external listeners
+      setInternalCollapsed(prev => !prev);
+      window.dispatchEvent(new Event('autokkeep-toggle-sidebar'));
+    }
+  }, [onToggle]);
 
   const toggleMobile = useCallback(() => {
     setMobileOpen(prev => !prev);
@@ -154,7 +178,7 @@ export default function Sidebar({ pendingCount, isConnected = false }: SidebarPr
         </div>
 
         {/* Entity Switcher */}
-        <div className={styles.entitySwitcher}>
+        <div className={styles.entitySwitcher} ref={entityDropdownRef}>
           <button
             className={styles.entityButton}
             onClick={() => setEntityDropdownOpen(!entityDropdownOpen)}

@@ -36,53 +36,6 @@ function timeAgo(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-// ─── Initial notifications (seeded until real data flows) ───────────────────
-function getInitialNotifications(): Notification[] {
-  const now = Date.now();
-  return [
-    {
-      id: 'n1',
-      type: 'transaction',
-      title: 'New transaction imported',
-      message: '12 transactions from Chase Business ••4821',
-      timestamp: new Date(now - 15 * 60000).toISOString(),
-      read: false,
-    },
-    {
-      id: 'n2',
-      type: 'transaction',
-      title: 'Transaction auto-categorized',
-      message: 'AWS $1,247.00 → Cloud Infrastructure (6210)',
-      timestamp: new Date(now - 45 * 60000).toISOString(),
-      read: false,
-    },
-    {
-      id: 'n3',
-      type: 'review',
-      title: 'Transaction flagged for review',
-      message: 'Unusual $3,500 charge from unknown vendor',
-      timestamp: new Date(now - 2 * 3600000).toISOString(),
-      read: false,
-    },
-    {
-      id: 'n4',
-      type: 'sync',
-      title: 'Bank sync completed',
-      message: 'Chase Business account synced successfully',
-      timestamp: new Date(now - 5 * 3600000).toISOString(),
-      read: true,
-    },
-    {
-      id: 'n5',
-      type: 'receipt',
-      title: 'Receipt captured',
-      message: 'Receipt matched to Uber $34.50 on May 24',
-      timestamp: new Date(now - 8 * 3600000).toISOString(),
-      read: true,
-    },
-  ];
-}
-
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -90,12 +43,6 @@ export default function NotificationBell() {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const bellRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Load initial notifications
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNotifications(() => getInitialNotifications());
-  }, []);
 
   // ─── Supabase Realtime subscription ─────────────────────────────────────
   useEffect(() => {

@@ -53,11 +53,13 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       }
 
       const db = supabase as unknown as SupabaseQueryClient;
-      const { data: membership } = await db
+      const { data: membershipData } = await db
         .from('team_members')
         .select('org_id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
+
+      const membership = membershipData?.[0] ?? null;
 
       if (!membership) {
         setIsLoading(false);

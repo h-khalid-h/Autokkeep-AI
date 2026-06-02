@@ -5,10 +5,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { analyzeFinancialQuestion } from '@/lib/ai/analyst';
 import { rateLimit } from '@/lib/rate-limit';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Request / Response Types ──────────────────────────────────────────────────
 
@@ -36,17 +35,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'ai-chat' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const body: ChatRequestBody = await request.json();
     const { message, conversationId, entityId } = body;
@@ -71,17 +62,6 @@ export async function POST(request: NextRequest) {
         { error: 'Message is too long. Maximum 2000 characters.' },
         { status: 400 }
       );
-    }
-
-    // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { data: entity } = await db
@@ -178,17 +158,9 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'ai-chat-get' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -199,17 +171,6 @@ export async function GET(request: NextRequest) {
         { error: 'entityId is required' },
         { status: 400 }
       );
-    }
-
-    // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { data: entity } = await db

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { getStripeClient } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -9,12 +8,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'portal' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const stripe = getStripeClient();
     if (!stripe) {
@@ -22,17 +18,6 @@ export async function POST(request: NextRequest) {
         { error: 'Billing is not configured' },
         { status: 503 }
       );
-    }
-
-    // Get the org's Stripe customer ID
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership?.org_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
     const { data: org } = await db

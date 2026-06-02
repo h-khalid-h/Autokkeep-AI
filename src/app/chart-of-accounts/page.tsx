@@ -421,10 +421,41 @@ export default function ChartOfAccountsPage() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const text = ev.target?.result as string;
+      // Parse CSV properly (handles quoted fields with commas)
+      const parseCSVLine = (line: string): string[] => {
+        const fields: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (inQuotes) {
+            if (char === '"' && line[j + 1] === '"') {
+              current += '"';
+              j++; // skip escaped quote
+            } else if (char === '"') {
+              inQuotes = false;
+            } else {
+              current += char;
+            }
+          } else {
+            if (char === '"') {
+              inQuotes = true;
+            } else if (char === ',') {
+              fields.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+        }
+        fields.push(current.trim());
+        return fields;
+      };
+
       const lines = text.split('\n').filter(l => l.trim());
       if (lines.length < 2) return;
 
-      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const header = parseCSVLine(lines[0]).map(h => h.toLowerCase());
       const codeIdx = header.findIndex(h => h === 'code' || h === 'gl code' || h === 'gl_code');
       const nameIdx = header.findIndex(h => h === 'name' || h === 'account name' || h === 'account_name');
       const typeIdx = header.findIndex(h => h === 'type' || h === 'account type' || h === 'account_type');
@@ -436,7 +467,7 @@ export default function ChartOfAccountsPage() {
       let failedImports = 0;
 
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        const cols = parseCSVLine(lines[i]);
         const code = cols[codeIdx];
         const name = cols[nameIdx];
         const type = cols[typeIdx] || 'Expense';

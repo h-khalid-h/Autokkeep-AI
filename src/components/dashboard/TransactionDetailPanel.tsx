@@ -22,7 +22,7 @@ export interface TransactionDetailPanelProps {
 const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
   transaction,
   onApprove,
-  onReject: _onReject,
+  onReject,
   onChangeCategory,
   chartOfAccounts = [],
   loading,
@@ -34,6 +34,13 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
       onApprove(tx.id);
     },
     [onApprove]
+  );
+
+  const handleReject = React.useCallback(
+    (tx: Transaction) => {
+      onReject(tx.id);
+    },
+    [onReject]
   );
 
   const handleChangeCategory = React.useCallback(
@@ -66,6 +73,7 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
       <ActionsConsole
         transaction={transaction}
         onAccept={handleAccept}
+        onReject={handleReject}
         onChangeCategory={handleChangeCategory}
         chartOfAccounts={chartOfAccounts}
       />

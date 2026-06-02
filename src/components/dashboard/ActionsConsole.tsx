@@ -7,19 +7,23 @@ import Logo from '@/components/ui/Logo';
 interface ActionsConsoleProps {
   transaction: Transaction | null;
   onAccept: (transaction: Transaction) => void;
+  onReject?: (transaction: Transaction) => void;
   onChangeCategory: (
     transaction: Transaction,
     glCode: string,
     glName: string
   ) => void;
   chartOfAccounts?: { code: string; name: string }[];
+  currency?: string;
 }
 
 const ActionsConsole: React.FC<ActionsConsoleProps> = ({
   transaction,
   onAccept,
+  onReject,
   onChangeCategory,
   chartOfAccounts = [],
+  currency = 'USD',
 }) => {
   const [showCategorySearch, setShowCategorySearch] = React.useState(false);
   const [categoryQuery, setCategoryQuery] = React.useState('');
@@ -29,10 +33,20 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
   const [slackSent, setSlackSent] = React.useState(false);
   const categoryInputRef = React.useRef<HTMLInputElement>(null);
 
+  const toastTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const triggerToast = React.useCallback((message: string) => {
     setShowToast(true);
     setToastMessage(message);
-    setTimeout(() => setShowToast(false), 3000);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setShowToast(false), 3000);
+  }, []);
+
+  // Cleanup toast timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, []);
 
   const handleAccept = React.useCallback(() => {
@@ -45,12 +59,26 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
     setShowSlackModal(false);
   }, [transaction, onAccept, triggerToast]);
 
-  // Keyboard shortcut: CMD+Enter to accept
+  const handleReject = React.useCallback(() => {
+    if (!transaction || !onReject) return;
+    onReject(transaction);
+    triggerToast(
+      `❌ Rejected: ${transaction.merchant}`
+    );
+    setShowCategorySearch(false);
+    setShowSlackModal(false);
+  }, [transaction, onReject, triggerToast]);
+
+  // Keyboard shortcut: CMD+Enter to accept, CMD+Backspace to reject
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && transaction) {
         e.preventDefault();
         handleAccept();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Backspace' && transaction && onReject) {
+        e.preventDefault();
+        handleReject();
       }
       if (e.key === 'Escape') {
         setShowCategorySearch(false);
@@ -59,7 +87,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [transaction, handleAccept]);
+  }, [transaction, handleAccept, handleReject, onReject]);
 
   const handleChangeCategoryClick = React.useCallback(() => {
     setShowCategorySearch((prev) => !prev);
@@ -149,6 +177,16 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
             ✅ Accept AI Proposal
             <span className="action-shortcut">⌘↵</span>
           </button>
+          {onReject && (
+            <button
+              className="action-btn action-btn-reject"
+              onClick={handleReject}
+              aria-label="Reject transaction, keyboard shortcut Command Backspace"
+            >
+              ❌ Reject
+              <span className="action-shortcut">⌘⌫</span>
+            </button>
+          )}
           <button
             className="action-btn action-btn-change"
             onClick={handleChangeCategoryClick}
@@ -238,7 +276,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
                   <span className="insight-row-value">
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
-                      currency: 'USD',
+                      currency: currency,
                     }).format(transaction.amount)}
                   </span>
                 </div>

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiAuthContext } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   syncJournalEntry,
@@ -8,31 +10,16 @@ import {
 } from '@/lib/ledger/sync';
 import { writeAuditLog } from '@/lib/audit';
 import { encryptToken, decryptToken } from '@/lib/crypto';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // POST /api/ledger/quickbooks/sync — Sync approved transactions to QuickBooks
 export async function POST(request: NextRequest) {
   try {
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'qbo-sync' });
+    if (limited) return limited;
 
-    // Auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const { entityId, transactionIds } = await request.json();
 
@@ -286,31 +273,17 @@ export async function POST(request: NextRequest) {
 // GET /api/ledger/quickbooks/sync — Sync Chart of Accounts from QBO
 export async function GET(request: NextRequest) {
   try {
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'qbo-coa-sync' });
+    if (limited) return limited;
 
-    // Auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const entityId = request.nextUrl.searchParams.get('entityId');
 
     if (!entityId) {
       return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
     }
 
     // Verify entity belongs to user's org

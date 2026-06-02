@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     // ── Audit log the cron run ─────────────────────────────────────────
     await writeAuditLog({
       supabase: db,
-      entityId: 'system',
+      entityId: undefined,
       actorId: 'system',
       actorType: 'system',
       action: 'sync',

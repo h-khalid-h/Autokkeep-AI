@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import styles from '../shared-error.module.css';
 
-export default function RouteError({
+export default function TaxError({
   error,
   reset,
 }: {
@@ -15,7 +15,7 @@ export default function RouteError({
     import('@/lib/sentry').then(({ captureException }) => {
       captureException(error);
     }).catch(() => { /* Sentry not available */ });
-    console.error('[Route Error]', error);
+    console.error('[Tax Error]', error);
   }, [error]);
 
   return (

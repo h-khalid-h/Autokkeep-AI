@@ -5,10 +5,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { generateMonthlyNarrative } from '@/lib/ai/narrative';
 import { rateLimit } from '@/lib/rate-limit';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import type { FinancialNarrative } from '@/lib/ai/narrative';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -23,44 +22,13 @@ function validateMonthYear(yearStr: string | null, monthStr: string | null): { y
   return { year, month };
 }
 
-async function validateAccess(
-  db: SupabaseQueryClient,
-  userId: string,
-  entityId: string
-): Promise<boolean> {
-  const { data: membership } = await db
-    .from('team_members')
-    .select('id, org_id')
-    .eq('user_id', userId)
-    .single();
-
-  if (!membership) return false;
-
-  const { data: entity } = await db
-    .from('entities')
-    .select('id')
-    .eq('id', entityId)
-    .eq('org_id', membership.org_id)
-    .single();
-
-  return !!entity;
-}
-
 // ─── GET: Fetch or generate narrative ──────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     // Rate limit: 15 requests per minute
     const limited = await rateLimit(request, { max: 15, windowSeconds: 60, prefix: 'narrative-get' });
@@ -86,9 +54,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate entity access
-    const hasAccess = await validateAccess(db, user.id, entityId);
-    if (!hasAccess) {
+    // Validate entity access against org
+    const { data: entity } = await db
+      .from('entities')
+      .select('id')
+      .eq('id', entityId)
+      .eq('org_id', membership.org_id)
+      .single();
+
+    if (!entity) {
       return NextResponse.json(
         { error: 'Entity not found or access denied' },
         { status: 403 }
@@ -142,17 +116,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'narrative-gen' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const body = await request.json();
     const { entityId, year, month } = body as {
@@ -179,9 +145,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate entity access
-    const hasAccess = await validateAccess(db, user.id, entityId);
-    if (!hasAccess) {
+    // Validate entity access against org
+    const { data: entity } = await db
+      .from('entities')
+      .select('id')
+      .eq('id', entityId)
+      .eq('org_id', membership.org_id)
+      .single();
+
+    if (!entity) {
       return NextResponse.json(
         { error: 'Entity not found or access denied' },
         { status: 403 }

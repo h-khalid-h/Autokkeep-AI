@@ -4,9 +4,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
-import { createServerClient } from '@/lib/supabase/server';
 import { createLinkToken } from '@/lib/plaid/client';
 
 interface LinkTokenRequestBody {
@@ -18,17 +17,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'plaid-link' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const body: LinkTokenRequestBody = await request.json();
     const { entityId } = body;
@@ -41,19 +32,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership, error: membershipError } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: 'Entity access denied' },
-        { status: 403 }
-      );
-    }
-
     const { data: entity, error: entityError } = await db
       .from('entities')
       .select('id, org_id')

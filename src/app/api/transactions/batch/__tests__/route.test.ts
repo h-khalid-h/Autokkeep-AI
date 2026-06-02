@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────────
 
@@ -8,16 +8,21 @@ vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-// Mock Supabase server client
-const mockGetUser = vi.fn();
-const mockFrom = vi.fn();
-const mockSupabase = {
-  auth: { getUser: mockGetUser },
-  from: mockFrom,
+// Mock getApiAuthContext
+const mockDb = {
+  from: vi.fn(),
 };
 
-vi.mock('@/lib/supabase/server', () => ({
-  createServerClient: vi.fn().mockResolvedValue(mockSupabase),
+const mockAuthContext = {
+  user: { id: 'user-1' },
+  membership: { id: 'tm-1', org_id: 'org-1', role: 'owner' },
+  db: mockDb,
+  entityIds: ['entity-1'],
+  error: null as NextResponse | null,
+};
+
+vi.mock('@/lib/api-auth', () => ({
+  getApiAuthContext: vi.fn().mockResolvedValue(mockAuthContext),
 }));
 
 // Mock AI categorizer
@@ -64,7 +69,6 @@ function createRequest(body: Record<string, unknown>): NextRequest {
 /** Fluent chain builder for Supabase query mocks */
 function createChainMock(resolvedValue: { data: unknown; error?: unknown }) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  const _handler = () => chain;
 
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
@@ -85,18 +89,20 @@ function createChainMock(resolvedValue: { data: unknown; error?: unknown }) {
 
 // Import the route handler AFTER mocks are set up
 const { POST } = await import('../../batch/../../../api/ai/batch/route');
+const { getApiAuthContext } = await import('@/lib/api-auth');
 
 describe('POST /api/ai/batch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset to default successful auth
+    (getApiAuthContext as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthContext);
   });
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
   it('should return 401 if no auth', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Not authenticated' },
+    (getApiAuthContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+      error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     });
 
     const req = createRequest({ entityId: 'entity-1' });
@@ -110,11 +116,6 @@ describe('POST /api/ai/batch', () => {
   // ── Validation ──────────────────────────────────────────────────────────────
 
   it('should return 400 if entityId is missing', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: 'user-1' } },
-      error: null,
-    });
-
     const req = createRequest({});
     const res = await POST(req);
 
@@ -124,20 +125,12 @@ describe('POST /api/ai/batch', () => {
   });
 
   it('should return 400 if transactionIds is empty array (no pending found)', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: 'user-1' } },
-      error: null,
-    });
-
-    // team_members lookup
-    const memberChain = createChainMock({ data: { id: 'tm-1', org_id: 'org-1' } });
     // entity lookup
     const entityChain = createChainMock({ data: { id: 'entity-1', org_id: 'org-1' } });
     // transactions query — returns empty for the given IDs
     const txChain = createChainMock({ data: [], error: null });
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'team_members') return memberChain;
+    mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'transactions') return txChain;
       return createChainMock({ data: null });
@@ -152,17 +145,10 @@ describe('POST /api/ai/batch', () => {
   });
 
   it('should return 403 if entity access is denied', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: 'user-1' } },
-      error: null,
-    });
-
-    // Member exists but entity not found for this org
-    const memberChain = createChainMock({ data: { id: 'tm-1', org_id: 'org-1' } });
+    // Entity not found for this org
     const entityChain = createChainMock({ data: null });
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'team_members') return memberChain;
+    mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       return createChainMock({ data: null });
     });
@@ -174,16 +160,8 @@ describe('POST /api/ai/batch', () => {
   });
 
   it('should return 403 if user has no team membership', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: 'user-1' } },
-      error: null,
-    });
-
-    const memberChain = createChainMock({ data: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'team_members') return memberChain;
-      return createChainMock({ data: null });
+    (getApiAuthContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+      error: NextResponse.json({ error: 'Access denied' }, { status: 403 }),
     });
 
     const req = createRequest({ entityId: 'entity-1' });

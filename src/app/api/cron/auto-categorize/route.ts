@@ -149,21 +149,24 @@ export async function POST(request: NextRequest) {
           history
         );
 
-        // Update each transaction with categorization results
+        // Update transactions with categorization results (parallelized)
+        const updatePromises: Promise<unknown>[] = [];
         for (const [txId, result] of results) {
           const confidencePercent = Math.round(result.confidence);
 
           if (result.confidence === 0 && !result.glCode) {
             totalFailed++;
-            await db
-              .from('transactions')
-              .update({
-                status: 'categorization_failed',
-                ai_reasoning: result.reasoning,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', txId)
-              .eq('entity_id', entityId);
+            updatePromises.push(
+              db
+                .from('transactions')
+                .update({
+                  status: 'categorization_failed',
+                  ai_reasoning: result.reasoning,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', txId)
+                .eq('entity_id', entityId)
+            );
           } else {
             const newStatus =
               confidencePercent >= AUTO_CATEGORIZE_THRESHOLD
@@ -176,22 +179,25 @@ export async function POST(request: NextRequest) {
               totalHumanReview++;
             }
 
-            await db
-              .from('transactions')
-              .update({
-                category_ai: result.glCode,
-                confidence: confidencePercent,
-                status: newStatus,
-                ai_reasoning: result.reasoning,
-                gl_name: result.glName || null,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', txId)
-              .eq('entity_id', entityId);
+            updatePromises.push(
+              db
+                .from('transactions')
+                .update({
+                  category_ai: result.glCode,
+                  confidence: confidencePercent,
+                  status: newStatus,
+                  ai_reasoning: result.reasoning,
+                  gl_name: result.glName || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', txId)
+                .eq('entity_id', entityId)
+            );
           }
 
           totalProcessed++;
         }
+        await Promise.all(updatePromises);
       } catch (entityErr) {
         console.error(
           `[Cron Auto-Categorize] Failed to process entity ${entityId}:`,
@@ -204,7 +210,7 @@ export async function POST(request: NextRequest) {
     // ── Audit log the cron run ─────────────────────────────────────────
     await writeAuditLog({
       supabase: db,
-      entityId: 'system',
+      entityId: undefined,
       actorId: 'system',
       actorType: 'system',
       action: 'categorize',

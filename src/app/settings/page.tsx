@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Input, Skeleton, Tabs } from '@/components/ui';
+import { Card, Badge, Button, Input, Skeleton, Tabs, Modal } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -97,14 +97,15 @@ export default function SettingsPage() {
       setUserEmail(user.email || '');
       setUserId(user.id);
 
-      // 2. Get team membership → org_id, role
+      // 2. Get team membership → org_id, role (multi-org safe)
       const db = supabase as unknown as SupabaseQueryClient;
-      const { data: membership, error: membershipError } = await db
+      const { data: membershipData, error: membershipError } = await db
         .from('team_members')
         .select('id, org_id, role')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
+      const membership = membershipData?.[0] ?? null;
       if (membershipError || !membership) {
         setError('No organization membership found.');
         setLoading(false);
@@ -162,8 +163,7 @@ export default function SettingsPage() {
             .select('plan, status, current_period_end, entity_count, transaction_count')
             .eq('org_id', orgId)
             .order('created_at', { ascending: false })
-            .limit(1)
-            .single(),
+            .limit(1),
           db
             .from('bank_connections')
             .select('id, entity_id, status')
@@ -190,8 +190,8 @@ export default function SettingsPage() {
             .eq('status', 'human_review'),
         ]);
 
-        if (subResult.data) {
-          setSubscription(subResult.data);
+        if (subResult.data?.[0]) {
+          setSubscription(subResult.data[0]);
         }
 
         setConnections({
@@ -205,16 +205,15 @@ export default function SettingsPage() {
         setHitlCount(reviewCountResult.count || 0);
       } else {
         // No entities — still fetch subscription
-        const { data: sub } = await db
+        const { data: subData } = await db
           .from('subscriptions')
           .select('plan, status, current_period_end, entity_count, transaction_count')
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
 
-        if (sub) {
-          setSubscription(sub);
+        if (subData?.[0]) {
+          setSubscription(subData[0]);
         }
       }
     } catch (err) {
@@ -282,6 +281,7 @@ export default function SettingsPage() {
               userId={userId}
               userRole={userRole}
               teamMembers={teamMembers}
+              plan={subscription?.plan || 'starter_monthly'}
               onRefresh={fetchData}
             />
           </Tabs.Panel>
@@ -795,6 +795,7 @@ function TeamTab({
   userId,
   userRole,
   teamMembers,
+  plan,
   onRefresh,
 }: {
   loading: boolean;
@@ -802,6 +803,7 @@ function TeamTab({
   userId: string;
   userRole: string;
   teamMembers: TeamMemberData[];
+  plan: string;
   onRefresh: () => void;
 }) {
   const [email, setEmail] = useState('');
@@ -811,6 +813,19 @@ function TeamTab({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const canManageTeam = userRole === 'owner' || userRole === 'admin';
+
+  // Seat limit enforcement
+  const PLAN_SEAT_LIMITS: Record<string, number> = {
+    starter_monthly: 3,
+    starter_yearly: 3,
+    growth_monthly: 10,
+    growth_yearly: 10,
+    pro_monthly: Infinity,
+    pro_yearly: Infinity,
+  };
+  const seatLimit = PLAN_SEAT_LIMITS[plan] ?? 3;
+  const currentSeats = teamMembers.length;
+  const isAtSeatLimit = currentSeats >= seatLimit;
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -823,6 +838,13 @@ function TeamTab({
     }
     setInviteLoading(true);
     setActionError(null);
+
+    // Enforce seat limit
+    if (isAtSeatLimit) {
+      setActionError(`Your plan allows up to ${seatLimit} seats. Upgrade to add more team members.`);
+      setInviteLoading(false);
+      return;
+    }
 
     try {
       const supabase = createClient();
@@ -860,8 +882,9 @@ function TeamTab({
     }
   };
 
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
   const handleRemove = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return;
     setRemoveLoading(memberId);
     setActionError(null);
 
@@ -883,6 +906,7 @@ function TeamTab({
       setActionError(err instanceof Error ? err.message : 'Failed to remove member');
     } finally {
       setRemoveLoading(null);
+      setConfirmRemoveId(null);
     }
   };
 
@@ -932,12 +956,16 @@ function TeamTab({
               <option value="viewer" className={styles.selectOption}>Viewer</option>
             </select>
           </div>
-          <Button type="submit" variant="primary" size="sm" disabled={inviteLoading || !canManageTeam} isLoading={inviteLoading}>
+          <Button type="submit" variant="primary" size="sm" disabled={inviteLoading || !canManageTeam || isAtSeatLimit} isLoading={inviteLoading}>
             Invite
           </Button>
         </form>
         <p className={styles.inviteHint}>
-          💡 {userRole === 'owner' || userRole === 'admin' ? 'Seat limits vary by plan: Starter (3 seats), Growth (10 seats), Pro (unlimited).' : 'Contact your admin for seat availability.'}
+          💡 {isAtSeatLimit
+            ? `Seat limit reached (${currentSeats}/${seatLimit === Infinity ? '∞' : seatLimit}). Upgrade your plan to add more members.`
+            : userRole === 'owner' || userRole === 'admin'
+            ? `${currentSeats}/${seatLimit === Infinity ? '∞' : seatLimit} seats used. Seat limits vary by plan: Starter (3), Growth (10), Pro (unlimited).`
+            : 'Contact your admin for seat availability.'}
         </p>
       </Card>
 
@@ -969,7 +997,7 @@ function TeamTab({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemove(member.id)}
+                      onClick={() => setConfirmRemoveId(member.id)}
                       disabled={removeLoading === member.id}
                       isLoading={removeLoading === member.id}
                     >
@@ -985,6 +1013,30 @@ function TeamTab({
           )}
         </div>
       </Card>
+      {/* Confirm Remove Modal */}
+      <Modal
+        isOpen={!!confirmRemoveId}
+        onClose={() => setConfirmRemoveId(null)}
+        title="Remove Team Member"
+        size="sm"
+        footer={
+          <div className={styles.modalFooter}>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => confirmRemoveId && handleRemove(confirmRemoveId)}
+              isLoading={!!removeLoading}
+            >
+              Remove
+            </Button>
+          </div>
+        }
+      >
+        <p>Are you sure you want to remove this team member? They will lose access to this organization immediately.</p>
+      </Modal>
     </div>
   );
 }

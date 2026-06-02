@@ -70,10 +70,10 @@ export default function Navbar() {
 
       {/* Desktop actions */}
       <div className={styles.actions}>
-        <Button variant="ghost" size="sm" as={Link} href="/login">
+        <Button variant="ghost" size="sm" as={Link} href="/auth/login">
           Log in
         </Button>
-        <Button variant="primary" size="sm" as={Link} href="/signup">
+        <Button variant="primary" size="sm" as={Link} href="/auth/signup">
           Start Free Trial
         </Button>
       </div>
@@ -110,10 +110,10 @@ export default function Navbar() {
           </Link>
         ))}
         <div className={styles.mobileActions}>
-          <Button variant="ghost" size="md" as={Link} href="/login" onClick={handleLinkClick}>
+          <Button variant="ghost" size="md" as={Link} href="/auth/login" onClick={handleLinkClick}>
             Log in
           </Button>
-          <Button variant="primary" size="md" as={Link} href="/signup" onClick={handleLinkClick}>
+          <Button variant="primary" size="md" as={Link} href="/auth/signup" onClick={handleLinkClick}>
             Start Free Trial
           </Button>
         </div>

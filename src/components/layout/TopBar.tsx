@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import NotificationBell from '@/components/dashboard/NotificationBell';
+import UserMenu from '@/components/dashboard/UserMenu';
 import styles from './TopBar.module.css';
 
 /* ─── Route → title mapping ─── */
@@ -44,9 +46,6 @@ export interface TopBarProps {
   sidebarCollapsed?: boolean;
   onMobileMenuToggle?: () => void;
   onSearchOpen?: () => void;
-  unreadCount?: number;
-  userInitials?: string;
-  userEmail?: string;
   actions?: React.ReactNode;
 }
 
@@ -54,8 +53,6 @@ export default function TopBar({
   sidebarCollapsed = false,
   onMobileMenuToggle,
   onSearchOpen,
-  unreadCount = 0,
-  userInitials = 'U',
   actions,
 }: TopBarProps) {
   const pathname = usePathname();
@@ -128,20 +125,10 @@ export default function TopBar({
         {actions}
 
         {/* Notification bell */}
-        <button className={styles.iconButton} aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          {unreadCount > 0 && <span className={styles.notificationDot} />}
-        </button>
+        <NotificationBell />
 
         {/* User menu */}
-        <button className={styles.userTrigger} aria-label="User menu" aria-haspopup="true">
-          <span className={styles.userAvatar}>
-            {userInitials}
-          </span>
-        </button>
+        <UserMenu />
       </div>
     </header>
   );

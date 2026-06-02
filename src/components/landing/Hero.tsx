@@ -32,7 +32,7 @@ export default function Hero() {
           <Button variant="primary" size="lg" href="/demo/shadow-audit">
             Try the Shadow Audit
           </Button>
-          <Button variant="secondary" size="lg" href="/signup">
+          <Button variant="secondary" size="lg" href="/auth/signup">
             Start Free Trial
           </Button>
         </div>

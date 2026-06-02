@@ -20,7 +20,7 @@ export default function CTASection() {
         </p>
 
         <div className={styles.ctas}>
-          <Button variant="primary" size="lg" href="/signup">
+          <Button variant="primary" size="lg" href="/auth/signup">
             Start Free Trial
           </Button>
           <Button variant="ghost" size="lg" href="/demo/shadow-audit">

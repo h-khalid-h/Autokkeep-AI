@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { getXeroAuthUrl, exchangeXeroCode, refreshXeroToken } from '@/lib/ledger/sync';
 import { encryptToken, decryptToken } from '@/lib/crypto';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -13,26 +14,9 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-auth' });
     if (limited) return limited;
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Auth check first
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     // Now validate input
     const entityId = request.nextUrl.searchParams.get('entityId');
@@ -116,26 +100,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     // Verify entity belongs to user's org
     if (entityId) {

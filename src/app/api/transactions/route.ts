@@ -4,8 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
@@ -17,16 +16,9 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 60, windowSeconds: 60, prefix: 'txn-list' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db, entityIds: allEntityIds } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -38,19 +30,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
-
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
 
     // If entityId provided, validate access; otherwise use all org entities
     let entityIds: string[] = [];
@@ -71,12 +50,7 @@ export async function GET(request: NextRequest) {
       }
       entityIds = [entity.id];
     } else {
-      const { data: orgEntities } = await db
-        .from('entities')
-        .select('id')
-        .eq('org_id', membership.org_id);
-
-      entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+      entityIds = allEntityIds;
       if (entityIds.length === 0) {
         return NextResponse.json({
           transactions: [],
@@ -185,16 +159,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'txn-create' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const body: CreateTransactionBody = await request.json();
     const { entityId, merchant, amount, date, glCode, glName, cardHolder, notes } =
@@ -228,19 +195,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = supabase as unknown as SupabaseQueryClient;
-
     // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
@@ -284,7 +239,7 @@ export async function POST(request: NextRequest) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',

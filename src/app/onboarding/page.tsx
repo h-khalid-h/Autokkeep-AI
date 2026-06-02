@@ -115,6 +115,58 @@ export default function OnboardingPage() {
   const [regionTimezone, setRegionTimezone] = useState('America/New_York');
   const supportedCurrencies = getSupportedCurrencies();
 
+  // ── Check for pending team invite on mount ─────────────────────────────
+  useEffect(() => {
+    const checkPendingInvite = async () => {
+      const db = createClient() as unknown as SupabaseQueryClient;
+      const { data: { user } } = await db.auth.getUser();
+      if (!user?.email) return;
+
+      // Check for pending invite
+      const { data: pendingInvites } = await db
+        .from('team_members')
+        .select('id, org_id, role')
+        .eq('invited_email', user.email)
+        .is('user_id', null)
+        .limit(1);
+
+      const pendingInvite = pendingInvites?.[0] ?? null;
+      if (pendingInvite) {
+        // Link user to existing org
+        await db
+          .from('team_members')
+          .update({
+            user_id: user.id,
+            accepted_at: new Date().toISOString(),
+          })
+          .eq('id', pendingInvite.id);
+
+        // Skip onboarding — redirect to dashboard
+        router.push('/dashboard');
+        return;
+      }
+    };
+    checkPendingInvite().catch((err) =>
+      console.warn('[Onboarding] Invite check failed:', err)
+    );
+  }, [router]);
+
+  // ── Load Plaid Link SDK when bank step is active ───────────────────────
+  useEffect(() => {
+    // Only load when we reach the bank connection step
+    if (currentStep !== 'bank') return;
+    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) return; // Already loaded
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      // Don't remove - let it persist for reconnection attempts
+    };
+  }, [currentStep]);
+
   // ── Persist state to localStorage ──────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -196,11 +248,13 @@ export default function OnboardingPage() {
       }
 
       // 2. Check if user already has an org, if not create one
-      const { data: existingMembership } = await (supabase as unknown as SupabaseQueryClient)
+      const { data: existingMemberships } = await (supabase as unknown as SupabaseQueryClient)
         .from('team_members')
         .select('id, org_id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
+
+      const existingMembership = existingMemberships?.[0] ?? null;
 
       let orgId: string;
 
@@ -241,12 +295,11 @@ export default function OnboardingPage() {
         }
       }
 
-      // 4. Create the entity
+      // 4. Create the entity (base_currency is set in the region step)
       const { data: newEntity, error: entityError } = await (supabase as unknown as SupabaseQueryClient)
         .from('entities')
         .insert({
           name: entityName.trim(),
-          base_currency: currency,
           fiscal_year_end: fiscalYearEnd,
           org_id: orgId,
         })

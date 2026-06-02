@@ -13,12 +13,6 @@ export interface AppShellProps {
   pendingCount?: number;
   /** Bank connection status */
   isConnected?: boolean;
-  /** Unread notification count */
-  unreadCount?: number;
-  /** User initials for avatar */
-  userInitials?: string;
-  /** User email */
-  userEmail?: string;
   /** Whether content should be full width */
   fullWidth?: boolean;
   /** Page-specific actions for the top bar */
@@ -29,9 +23,6 @@ export default function AppShell({
   children,
   pendingCount,
   isConnected = false,
-  unreadCount = 0,
-  userInitials = 'U',
-  userEmail,
   fullWidth = false,
   topBarActions,
 }: AppShellProps) {
@@ -41,12 +32,15 @@ export default function AppShell({
   // Global keyboard shortcuts
   useNavigationShortcuts();
 
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
+
   // Listen for sidebar toggle events from keyboard shortcut
   useEffect(() => {
-    const handler = () => setSidebarCollapsed(prev => !prev);
-    window.addEventListener('autokkeep-toggle-sidebar', handler);
-    return () => window.removeEventListener('autokkeep-toggle-sidebar', handler);
-  }, []);
+    window.addEventListener('autokkeep-toggle-sidebar', handleSidebarToggle);
+    return () => window.removeEventListener('autokkeep-toggle-sidebar', handleSidebarToggle);
+  }, [handleSidebarToggle]);
 
   const handleMobileMenuToggle = useCallback(() => {
     setMobileMenuOpen(prev => !prev);
@@ -62,15 +56,14 @@ export default function AppShell({
       <Sidebar
         pendingCount={pendingCount}
         isConnected={isConnected}
+        collapsed={sidebarCollapsed}
+        onToggle={handleSidebarToggle}
       />
 
       <TopBar
         sidebarCollapsed={sidebarCollapsed}
         onMobileMenuToggle={handleMobileMenuToggle}
         onSearchOpen={handleSearchOpen}
-        unreadCount={unreadCount}
-        userInitials={userInitials}
-        userEmail={userEmail}
         actions={topBarActions}
       />
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   syncJournalEntry,
@@ -13,25 +14,12 @@ import { encryptToken, decryptToken } from '@/lib/crypto';
 // POST /api/ledger/xero/sync — Sync approved transactions to Xero
 export async function POST(request: NextRequest) {
   try {
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'xero-sync' });
+    if (limited) return limited;
 
-    // Auth check first
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     // Parse and validate input
     const { entityId, transactionIds } = await request.json();
@@ -47,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enforce plan limits
-    const planCheck = await checkPlanLimits(supabase as never, membership.org_id, 'sync_ledger');
+    const planCheck = await checkPlanLimits(db, membership.org_id, 'sync_ledger');
     if (!planCheck.allowed) {
       return NextResponse.json({ error: planCheck.reason, plan: planCheck.currentPlan }, { status: 403 });
     }
@@ -186,7 +174,7 @@ export async function POST(request: NextRequest) {
           results.synced++;
 
           await writeAuditLog({
-            supabase,
+            supabase: db,
             entityId,
             actorId: user.id,
             actorType: 'system',
@@ -228,7 +216,7 @@ export async function POST(request: NextRequest) {
 
     // Audit log the sync
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId,
       actorId: user.id,
       actorType: 'human',
@@ -250,31 +238,17 @@ export async function POST(request: NextRequest) {
 // GET /api/ledger/xero/sync — Sync Chart of Accounts from Xero
 export async function GET(request: NextRequest) {
   try {
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-coa-sync' });
+    if (limited) return limited;
 
-    // Auth check first
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     // Now validate input
     const entityId = request.nextUrl.searchParams.get('entityId');
     if (!entityId) {
       return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
     }
 
     // Verify entity belongs to user's org

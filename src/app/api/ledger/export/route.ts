@@ -4,27 +4,18 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
 import { rateLimit } from '@/lib/rate-limit';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 export async function GET(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'ledger-export' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -45,17 +36,6 @@ export async function GET(request: NextRequest) {
         { error: 'format must be "csv" or "sql"' },
         { status: 400 }
       );
-    }
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Validate entity access

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import styles from './UserMenu.module.css';
 
@@ -137,7 +138,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
 
           {/* Menu Items */}
           <div className={styles.menuItems}>
-            <a
+            <Link
               href="/settings"
               role="menuitem"
               tabIndex={-1}
@@ -145,8 +146,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               className={styles.menuItem}
             >
               ⚙️ Settings
-            </a>
-            <a
+            </Link>
+            <Link
               href="/account"
               role="menuitem"
               tabIndex={-1}
@@ -154,8 +155,8 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               className={styles.menuItem}
             >
               👤 Account
-            </a>
-            <a
+            </Link>
+            <Link
               href="/analytics"
               role="menuitem"
               tabIndex={-1}
@@ -163,7 +164,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
               className={styles.menuItem}
             >
               📊 Analytics
-            </a>
+            </Link>
           </div>
 
           {/* Logout */}

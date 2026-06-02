@@ -4,8 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
@@ -14,37 +13,13 @@ import { captureException } from '@/lib/sentry';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
+    const limited = await rateLimit(request, { max: 60, windowSeconds: 60, prefix: 'coa-read' });
+    if (limited) return limited;
 
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { db, entityIds: allEntityIds } = ctx;
 
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    // Get all entities for this org
-    const { data: orgEntities } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const allEntityIds = (orgEntities || []).map((e: { id: string }) => e.id);
     if (allEntityIds.length === 0) {
       return NextResponse.json({ accounts: [] });
     }
@@ -97,18 +72,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'coa' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const db = supabase as unknown as SupabaseQueryClient;
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const body: CreateAccountBody = await request.json();
     const { code, name, type, description, active, entityId } = body;
@@ -120,15 +86,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // Validate account type
+    const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+    if (!validTypes.includes(type.toLowerCase())) {
+      return NextResponse.json(
+        { error: `Invalid account type. Must be one of: ${validTypes.join(', ')}` },
+        { status: 400 }
+      );
     }
 
     // Resolve entity_id: use provided entityId or default to first entity
@@ -203,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: resolvedEntityId!,
       actorId: user.id,
       actorType: 'human',
@@ -238,18 +202,12 @@ interface UpdateAccountBody {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
+    const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'coa-update' });
+    if (limited) return limited;
 
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const db = supabase as unknown as SupabaseQueryClient;
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, db, entityIds } = ctx;
 
     const body: UpdateAccountBody = await request.json();
     const { id, code, name, type, is_active, entityId: _entityId } = body;
@@ -260,25 +218,6 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    // Get all entities for this org to validate account ownership
-    const { data: orgEntities } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
 
     // Verify the account belongs to an entity in this org
     const { data: existing } = await db
@@ -344,7 +283,7 @@ export async function PUT(request: NextRequest) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: existing.entity_id,
       actorId: user.id,
       actorType: 'human',
@@ -370,16 +309,12 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'coa-delete' });
+    if (limited) return limited;
+
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, db, entityIds } = ctx;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -390,25 +325,6 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Validate org membership
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    // Get all entities for this org
-    const { data: orgEntities } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
 
     // Verify the account belongs to an entity in this org
     const { data: existing } = await db
@@ -478,7 +394,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log to audit
     await writeAuditLog({
-      supabase,
+      supabase: db,
       entityId: existing.entity_id,
       actorId: user.id,
       actorType: 'human',

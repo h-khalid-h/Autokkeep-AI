@@ -111,7 +111,7 @@ export default function PricingSection() {
                   variant={tier.ctaVariant}
                   size="md"
                  
-                  href="/signup"
+                  href="/auth/signup"
                   className={styles.tierCtaButton}
                 >
                   {tier.ctaLabel}

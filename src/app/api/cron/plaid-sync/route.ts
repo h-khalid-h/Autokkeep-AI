@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     if (connections.length > 0) {
       await writeAuditLog({
         supabase: db,
-        entityId: 'system',
+        entityId: undefined,
         actorId: 'system',
         actorType: 'system',
         action: 'sync',

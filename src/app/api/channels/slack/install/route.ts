@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { exchangeSlackCode, getSlackInstallUrl } from '@/lib/channels/slack';
 import { encryptToken } from '@/lib/crypto';
 
@@ -12,26 +13,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'slack-install' });
+    if (limited) return limited;
 
-    // Auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     // Verify entity belongs to user's org
     const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();
@@ -52,31 +39,17 @@ export async function GET(request: NextRequest) {
 // POST /api/channels/slack/install — Handle callback with code
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
-    const { createServerClient } = await import('@/lib/supabase/server');
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'slack-install' });
+    if (limited) return limited;
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const { code, entityId } = await request.json();
 
     if (!code || !entityId) {
       return NextResponse.json({ error: 'Missing code or entityId' }, { status: 400 });
-    }
-
-    // Org membership check
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'No organization membership' }, { status: 403 });
     }
 
     // Verify entity belongs to user's org

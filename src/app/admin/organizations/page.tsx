@@ -55,9 +55,11 @@ export default function AdminOrganizationsPage() {
   const [search, setSearch] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   const fetchOrgs = React.useCallback(async (page: number, searchTerm: string) => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -66,12 +68,16 @@ export default function AdminOrganizationsPage() {
       if (searchTerm) params.set('search', searchTerm);
 
       const res = await fetch(`/api/admin/organizations?${params}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        setError(`Failed to load organizations (${res.status})`);
+        return;
+      }
       const data = await res.json();
       setOrgs(data.organizations || []);
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, hasMore: false });
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.error('[Admin Orgs] Fetch error:', err);
+      setError('Network error — could not load organizations.');
     } finally {
       setLoading(false);
     }
@@ -115,6 +121,16 @@ export default function AdminOrganizationsPage() {
             </span>
           </div>
         </Card>
+
+        {/* Error Banner */}
+        {error && (
+          <Card padding="sm" className={styles.errorBanner}>
+            <span>⚠️ {error}</span>
+            <Button variant="ghost" size="sm" onClick={() => fetchOrgs(pagination.page, search)}>
+              Retry
+            </Button>
+          </Card>
+        )}
 
         {/* List */}
         {loading ? (

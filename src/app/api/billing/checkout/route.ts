@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
-import { createServerClient } from '@/lib/supabase/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { getStripeClient, PLAN_PRICES, type PlanId } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -10,12 +9,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'checkout' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, membership, db } = ctx;
 
     const stripe = getStripeClient();
     if (!stripe) {
@@ -43,14 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create Stripe customer
-    const { data: membership } = await db
-      .from('team_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    const orgId = membership?.org_id;
+    const orgId = membership.org_id;
 
     // Check for existing Stripe customer
     let customerId: string | undefined;

@@ -57,6 +57,21 @@ function buildTags(tx: RawTransaction): string[] {
   return tags;
 }
 
+function mapStatus(dbStatus: string): Transaction['status'] {
+  switch (dbStatus) {
+    case 'pending': return 'pending_human';
+    case 'human_review': return 'pending_human';
+    case 'auto_categorized': return 'verified_ai';
+    case 'approved': return 'approved';
+    case 'removed': return 'removed';
+    case 'escrow_suspense': return 'escrow_suspense';
+    case 'categorization_failed': return 'categorization_failed';
+    case 'syncing': return 'syncing';
+    case 'synced': return 'synced';
+    default: return 'pending_human';
+  }
+}
+
 const mapTransaction = (tx: RawTransaction): Transaction => ({
   id: tx.id,
   merchant: tx.merchant_name || tx.merchant_raw || 'Unknown',
@@ -67,7 +82,7 @@ const mapTransaction = (tx: RawTransaction): Transaction => ({
   glCode: tx.category_human || tx.category_ai || '',
   glName: '',
   confidence: tx.confidence || 0,
-  status: (tx.status === 'human_review' ? 'pending_human' : tx.status === 'auto_categorized' ? 'verified_ai' : 'pending_human') as Transaction['status'],
+  status: mapStatus(tx.status),
   icon: getTransactionIcon(tx.merchant_name || ''),
   tags: tx.tags && tx.tags.length > 0 ? tx.tags : buildTags(tx),
   aiReasoning: tx.ai_reasoning || 'No AI analysis available for this transaction.',
@@ -199,6 +214,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [_reasoningExpanded, setReasoningExpanded] = React.useState(false);
+  const [rejectedCount, setRejectedCount] = React.useState(0);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
@@ -210,12 +226,12 @@ export default function DashboardPage() {
     const total = transactions.length;
     const pending = transactions.filter((t) => t.status === 'pending_human').length;
     const approved = transactions.filter((t) => t.status === 'verified_human').length;
-    const rejected = 0; // No rejected status in current data model
+    const rejected = rejectedCount;
     const autoRate = total > 0
       ? Math.round((transactions.filter((t) => t.status === 'verified_ai').length / total) * 100)
       : 0;
     return { total, pending, approved, rejected, autoRate };
-  }, [transactions, isLoading]);
+  }, [transactions, isLoading, rejectedCount]);
 
   // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
@@ -402,7 +418,7 @@ export default function DashboardPage() {
         const res = await fetch(`/api/transactions/${transaction.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'rejected' }),
+          body: JSON.stringify({ status: 'removed' }),
         });
 
         if (!res.ok) {
@@ -412,6 +428,7 @@ export default function DashboardPage() {
         }
 
         setExitingId(transaction.id);
+        setRejectedCount((prev) => prev + 1);
 
         setTimeout(() => {
           setTransactions((prev) => {

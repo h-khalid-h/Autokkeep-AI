@@ -4,9 +4,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { captureException } from '@/lib/sentry';
-import { createServerClient } from '@/lib/supabase/server';
 import { ingestTransactions } from '@/lib/plaid/ingest';
 import { rateLimit } from '@/lib/rate-limit';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
@@ -27,17 +26,9 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'plaid-sync' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const db = supabase as unknown as SupabaseQueryClient;
-
-    // Validate auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const body: SyncRequestBody = await request.json();
     const { connectionId } = body;
@@ -64,16 +55,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate entity access
-    const { data: membership } = await db
-      .from('team_members')
-      .select('id, org_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     const { data: entity } = await db
       .from('entities')
       .select('id, org_id')
@@ -89,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 1. Sync + upsert + cursor via shared ingestion ──────────────────
-    const ingestResult = await ingestTransactions(supabase, connection);
+    const ingestResult = await ingestTransactions(db, connection);
 
     // ── 2. AI categorization pass on uncategorized pending transactions ──
     const { data: pendingTxns } = await db

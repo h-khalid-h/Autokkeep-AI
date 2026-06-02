@@ -6,15 +6,18 @@ import styles from './ContextInsightCard.module.css';
 
 interface ContextInsightCardProps {
   transaction: Transaction | null;
+  currency?: string;
 }
 
 const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
   transaction,
+  currency = 'USD',
 }) => {
+  const txCurrency = transaction?.rawData?.currency || currency;
   const formattedAmount = transaction
     ? new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: txCurrency,
       }).format(transaction.amount)
     : '';
 
