@@ -50,26 +50,25 @@ export async function GET(request: NextRequest) {
     const entityIds = entities.map((e: { id: string }) => e.id);
 
     // Batch fetch all transaction counts per entity + status
+    // Safety cap — aggregation should use COUNT() in future
     const { data: allTransactions } = await db
       .from('transactions')
       .select('entity_id, status, confidence')
       .in('entity_id', entityIds)
       .is('deleted_at', null)
-      .limit(100);
+      .limit(10000);
 
     // Batch fetch bank connection statuses
     const { data: bankConnections } = await db
       .from('bank_connections')
       .select('entity_id, status, last_synced_at')
-      .in('entity_id', entityIds)
-      .limit(100);
+      .in('entity_id', entityIds);
 
     // Batch fetch ledger connection statuses
     const { data: ledgerConnections } = await db
       .from('ledger_connections')
       .select('entity_id, is_active')
-      .in('entity_id', entityIds)
-      .limit(100);
+      .in('entity_id', entityIds);
 
     // Build per-entity stats
     const txByEntity = new Map<string, Array<{ entity_id: string; status: string; confidence: number | null }>>();

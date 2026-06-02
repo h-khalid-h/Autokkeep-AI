@@ -12,8 +12,12 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 
-const SUSPENSE_GL_CODE = '2900'; // Suspense/Clearing account
-const CONTRA_GL_CODE = '1010';   // Cash & Bank — contra account
+// TODO(tech-debt): These GL codes are hardcoded defaults. They should be
+// entity-configurable (e.g. stored in an entity_settings table). The
+// validation at step 2 below will skip entities whose CoA lacks these codes,
+// but ideally each entity would declare its own suspense/contra accounts.
+const SUSPENSE_GL_CODE = '2900'; // Default: Suspense/Clearing account
+const CONTRA_GL_CODE = '1010';   // Default: Cash & Bank — contra account
 const SUSPENSE_TIMEOUT_HOURS = 48;
 
 interface StaleTransaction {
@@ -46,7 +50,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, amount, merchant_name, date, category_ai')
       .eq('status', 'human_review')
-      .lt('created_at', cutoffDate);
+      .lt('updated_at', cutoffDate);
 
     const staleTransactions = data as StaleTransaction[] | null;
 
@@ -93,7 +97,8 @@ export async function GET(request: NextRequest) {
     const skippedEntities: string[] = [];
 
     for (const [entityId, entityTxns] of entitiesWithTxns) {
-      // Check if suspense GL codes exist in this entity's chart of accounts
+      // Check if the hardcoded default GL codes exist in this entity's CoA.
+      // Known limitation: codes are not yet entity-configurable (see constants above).
       const { data: glAccounts } = await db
         .from('chart_of_accounts')
         .select('code')

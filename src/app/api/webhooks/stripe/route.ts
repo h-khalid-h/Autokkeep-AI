@@ -5,9 +5,32 @@ import type { PlanId } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import getRedisClient from '@/lib/redis';
 
-// Idempotency guard: track recently processed Stripe event IDs
+// In-memory fallback if Redis is unavailable
 const processedEventIds = new Set<string>();
+const MAX_IN_MEMORY_EVENTS = 1000;
+
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      // SETNX with 24h TTL — returns 'OK' if key was set (new event), null if exists
+      const result = await redis.set(`stripe:event:${eventId}`, '1', 'EX', 86400, 'NX');
+      return result === null; // null means key already existed → duplicate
+    } catch {
+      // Redis error — fall through to in-memory
+    }
+  }
+  // In-memory fallback
+  if (processedEventIds.has(eventId)) return true;
+  processedEventIds.add(eventId);
+  if (processedEventIds.size > MAX_IN_MEMORY_EVENTS) {
+    const oldest = processedEventIds.values().next().value;
+    if (oldest) processedEventIds.delete(oldest);
+  }
+  return false;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,16 +55,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Idempotency: skip if we've already processed this event
-    if (processedEventIds.has(event.id)) {
+    // Idempotency: skip if we've already processed this event (Redis-backed with in-memory fallback)
+    if (await isEventProcessed(event.id)) {
       console.info(`[Stripe Webhook] Duplicate event ${event.id} — skipping`);
       return NextResponse.json({ received: true });
-    }
-    processedEventIds.add(event.id);
-    // Prevent unbounded memory growth
-    if (processedEventIds.size > 1000) {
-      const oldest = processedEventIds.values().next().value;
-      if (oldest) processedEventIds.delete(oldest);
     }
 
     const supabase = createAdminClient();

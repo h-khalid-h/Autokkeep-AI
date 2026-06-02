@@ -197,10 +197,14 @@ export async function POST(request: NextRequest) {
 
           // Fire-and-forget: trigger auto-categorization for new transactions
           if (ingestResult.added > 0) {
-            fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cron/auto-categorize`, {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            fetch(`${baseUrl}/api/cron/auto-categorize`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            }).catch(() => { /* non-blocking */ });
+              signal: AbortSignal.timeout(10000), // 10s timeout
+            }).catch((err) => {
+              console.warn('[Plaid Webhook] Auto-categorize trigger failed:', err instanceof Error ? err.message : 'unknown');
+            });
           }
         } catch (syncError) {
           console.error('[Plaid Webhook] Sync failed:', syncError);
@@ -320,10 +324,14 @@ export async function POST(request: NextRequest) {
 
           // Fire-and-forget: trigger auto-categorization for new transactions
           if (ingestResult.added > 0) {
-            fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cron/auto-categorize`, {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            fetch(`${baseUrl}/api/cron/auto-categorize`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            }).catch(() => { /* non-blocking */ });
+              signal: AbortSignal.timeout(10000), // 10s timeout
+            }).catch((err) => {
+              console.warn('[Plaid Webhook] Auto-categorize trigger failed:', err instanceof Error ? err.message : 'unknown');
+            });
           }
         } catch (syncError) {
           console.error(`[Plaid Webhook] ${webhook_code} sync failed:`, syncError);
