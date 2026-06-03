@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     // Auth check — only org admins/owners can invite
     const ctx = await getApiAuthContext(request, { requireRole: ['owner', 'admin'] });
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { membership, db, user } = ctx;
 
     let body;
     try {
@@ -105,6 +105,22 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create invite record.' },
         { status: 500 }
       );
+    }
+
+    // Create a team_invites record to track the invite lifecycle
+    const { error: inviteInsertError } = await db
+      .from('team_invites')
+      .insert({
+        org_id: membership.org_id,
+        email: normalizedEmail,
+        role: role || 'viewer',
+        invited_by: user.id,
+        status: 'pending',
+      });
+
+    if (inviteInsertError) {
+      // Non-fatal: the team_members record was created, so the invite can still work
+      console.error('[Team Invite] Failed to create team_invites record:', inviteInsertError);
     }
 
     const apiKey = process.env.RESEND_API_KEY;
