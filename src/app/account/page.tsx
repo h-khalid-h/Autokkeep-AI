@@ -34,6 +34,24 @@ export default function AccountPage() {
   const [notifPrefs, setNotifPrefsRaw] = useState({ email: true, slack: false, sms: false });
   const [notifLoading, setNotifLoading] = useState(true);
 
+  // Channel preferences — per-entity contact preferences
+  interface ChannelPref {
+    entityId: string;
+    preferredChannel: string;
+    channelIdentifier: string;
+    isActive: boolean;
+  }
+  interface UserEntity {
+    id: string;
+    name: string;
+  }
+  const [_channelPrefs, setChannelPrefs] = useState<ChannelPref[]>([]);
+  const [userEntities, setUserEntities] = useState<UserEntity[]>([]);
+  const [channelPrefsLoading, setChannelPrefsLoading] = useState(true);
+  const [channelPrefsSaving, setChannelPrefsSaving] = useState<Record<string, boolean>>({});
+  // Local edits keyed by entity ID
+  const [channelEdits, setChannelEdits] = useState<Record<string, { channel: string; identifier: string }>>({});
+
   // Fetch notification prefs from API on mount
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +84,97 @@ export default function AccountPage() {
     void loadNotifPrefs();
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch channel preferences and user entities on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadChannelPrefs() {
+      try {
+        // Fetch entities the user belongs to
+        const supabase = getSupabase();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) return;
+
+        const { data: memberships } = await (supabase as unknown as import('@/lib/supabase/query-client').SupabaseQueryClient)
+          .from('team_members')
+          .select('org_id')
+          .eq('user_id', authUser.id);
+
+        if (memberships && memberships.length > 0) {
+          const orgIds = memberships.map((m: { org_id: string }) => m.org_id);
+          const { data: entities } = await (supabase as unknown as import('@/lib/supabase/query-client').SupabaseQueryClient)
+            .from('entities')
+            .select('id, name')
+            .in('org_id', orgIds);
+          if (!cancelled && entities) {
+            setUserEntities(entities as UserEntity[]);
+          }
+        }
+
+        // Fetch channel preferences
+        const res = await fetch('/api/account/channel-preferences');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setChannelPrefs(data);
+            // Initialize edits from existing prefs
+            const edits: Record<string, { channel: string; identifier: string }> = {};
+            for (const pref of data as ChannelPref[]) {
+              edits[pref.entityId] = {
+                channel: pref.preferredChannel,
+                identifier: pref.channelIdentifier || '',
+              };
+            }
+            setChannelEdits(edits);
+          }
+        }
+      } catch {
+        // Non-fatal
+      } finally {
+        if (!cancelled) setChannelPrefsLoading(false);
+      }
+    }
+    void loadChannelPrefs();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSaveChannelPref = useCallback(async (entityId: string) => {
+    const edit = channelEdits[entityId];
+    if (!edit?.channel) return;
+
+    setChannelPrefsSaving((prev) => ({ ...prev, [entityId]: true }));
+    try {
+      const res = await fetch('/api/account/channel-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityId,
+          preferredChannel: edit.channel,
+          channelIdentifier: edit.identifier,
+        }),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        setChannelPrefs((prev) => {
+          const existing = prev.findIndex((p) => p.entityId === entityId);
+          if (existing >= 0) {
+            const next = [...prev];
+            next[existing] = saved;
+            return next;
+          }
+          return [...prev, saved];
+        });
+        toast.success('Contact preference saved!');
+      } else {
+        toast.error('Failed to save contact preference');
+      }
+    } catch {
+      toast.error('Failed to save contact preference');
+    } finally {
+      setChannelPrefsSaving((prev) => ({ ...prev, [entityId]: false }));
+    }
+  }, [channelEdits, toast]);
 
   const setNotifPrefs: React.Dispatch<React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>> = useCallback(
     (action: React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>) => {
@@ -310,6 +419,83 @@ export default function AccountPage() {
               ℹ️ Notification preferences are synced to your account and will persist across devices.
             </p>
           </div>
+        </Card>
+
+        {/* ─── Section: Contact Preferences ─── */}
+        <Card>
+          <h2 className={styles.sectionTitle}>Contact Preferences</h2>
+          <p className={styles.contactDesc}>
+            Choose how you want to be contacted for receipt requests and notifications.
+          </p>
+          {channelPrefsLoading ? (
+            <div className={styles.contactLoading}>
+              <Skeleton variant="rect" width="100%" height={60} />
+            </div>
+          ) : userEntities.length === 0 ? (
+            <p className={styles.contactEmpty}>
+              You are not a member of any entities yet.
+            </p>
+          ) : (
+            <div className={styles.contactList}>
+              {userEntities.map((entity) => {
+                const edit = channelEdits[entity.id] || { channel: 'slack', identifier: '' };
+                const isSaving = channelPrefsSaving[entity.id] || false;
+                return (
+                  <div key={entity.id} className={styles.contactRow}>
+                    <div className={styles.contactEntityName}>{entity.name}</div>
+                    <div className={styles.contactFields}>
+                      <select
+                        className={styles.contactSelect}
+                        value={edit.channel}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setChannelEdits((prev) => ({
+                            ...prev,
+                            [entity.id]: { ...edit, channel: e.target.value },
+                          }))
+                        }
+                        disabled={isSaving}
+                        aria-label={`Preferred channel for ${entity.name}`}
+                      >
+                        <option value="slack">💬 Slack</option>
+                        <option value="sms">📲 SMS</option>
+                        <option value="whatsapp">📱 WhatsApp</option>
+                        <option value="email">📧 Email</option>
+                        <option value="teams">🟣 Teams</option>
+                      </select>
+                      <Input
+                        type="text"
+                        placeholder={
+                          edit.channel === 'sms' || edit.channel === 'whatsapp'
+                            ? '+1 (555) 123-4567'
+                            : edit.channel === 'email'
+                            ? 'you@company.com'
+                            : 'Channel ID or username'
+                        }
+                        value={edit.identifier}
+                        onChange={(e) =>
+                          setChannelEdits((prev) => ({
+                            ...prev,
+                            [entity.id]: { ...edit, identifier: e.target.value },
+                          }))
+                        }
+                        disabled={isSaving}
+                        className={styles.contactInput}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleSaveChannelPref(entity.id)}
+                        disabled={isSaving || !edit.channel}
+                        isLoading={isSaving}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         {/* ─── Section: Danger Zone ─── */}

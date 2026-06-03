@@ -113,7 +113,33 @@ export async function getApiAuthContext(
       .select('id')
       .eq('org_id', membership.org_id);
 
-    const entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+    let entityIds = (orgEntities || []).map((e: { id: string }) => e.id);
+
+    // ── Per-entity access control ────────────────────────────────────────
+    // Owner/admin see all entities in their org (no filtering).
+    // Accountant/viewer only see entities they've been explicitly assigned
+    // to via the entity_assignments table. This avoids modifying the
+    // auth_user_entity_ids() RLS function used by 20+ financial-table policies.
+    if (
+      membership.role !== 'owner' &&
+      membership.role !== 'admin' &&
+      entityIds.length > 0
+    ) {
+      const { data: assignments } = await db
+        .from('entity_assignments')
+        .select('entity_id')
+        .eq('user_id', user.id);
+
+      if (assignments && assignments.length > 0) {
+        const assignedSet = new Set(
+          assignments.map((a: { entity_id: string }) => a.entity_id)
+        );
+        entityIds = entityIds.filter((id: string) => assignedSet.has(id));
+      } else {
+        // No assignments → no entity access
+        entityIds = [];
+      }
+    }
 
     return {
       user: { id: user.id, email: user.email },

@@ -145,6 +145,15 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Invite welcome step state
+  const [inviteClaimed, setInviteClaimed] = useState(false);
+  const [claimedOrgName, setClaimedOrgName] = useState('');
+  const [claimedEntityId, setClaimedEntityId] = useState<string | null>(null);
+  const [inviteDisplayName, setInviteDisplayName] = useState('');
+  const [inviteChannel, setInviteChannel] = useState('slack');
+  const [inviteChannelId, setInviteChannelId] = useState('');
+  const [inviteSaving, setInviteSaving] = useState(false);
+
   // Bank connection state
   const [bankConnected, setBankConnected] = useState(false);
   const [bankLinkToken, setBankLinkToken] = useState<string | null>(null);
@@ -229,8 +238,43 @@ export default function OnboardingPage() {
             });
 
             if (claimRes.ok) {
-              // Skip onboarding — redirect to dashboard
-              router.push('/dashboard');
+              // Fetch org name for the welcome screen
+              let orgName = 'your team';
+              try {
+                const { data: orgData } = await db
+                  .from('organizations')
+                  .select('name')
+                  .eq('id', pendingInvite.org_id)
+                  .single();
+                if (orgData?.name) orgName = orgData.name as string;
+              } catch {
+                // Non-fatal — use fallback name
+              }
+
+              // Fetch an entity for this org to use for channel preference
+              let entityIdForPref: string | null = null;
+              try {
+                const { data: entityData } = await db
+                  .from('entities')
+                  .select('id')
+                  .eq('org_id', pendingInvite.org_id)
+                  .limit(1);
+                if (entityData?.[0]?.id) entityIdForPref = entityData[0].id as string;
+              } catch {
+                // Non-fatal
+              }
+
+              // Show welcome step instead of redirect
+              setInviteClaimed(true);
+              setClaimedOrgName(orgName);
+              setClaimedEntityId(entityIdForPref);
+              // Pre-fill display name from email
+              if (user?.email) {
+                const parts = user.email.split('@')[0].split(/[._-]/);
+                const name = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+                setInviteDisplayName(name);
+              }
+              setIsCheckingInvite(false);
               return;
             }
 
@@ -627,7 +671,117 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {!isCheckingInvite && (
+          {/* Invite welcome step — shown after claiming an invite */}
+          {!isCheckingInvite && inviteClaimed && (
+            <div className={styles.welcomeWrapper}>
+              <span className={styles.welcomeEmoji}>🎉</span>
+              <h1 className={styles.welcomeHeading}>Welcome to {claimedOrgName}!</h1>
+              <p className={styles.welcomeDescription}>
+                You&apos;ve joined the team. Let&apos;s set up your profile and contact preferences.
+              </p>
+              <Card variant="elevated" padding="lg">
+                <div className={styles.fieldGroup}>
+                  <Input
+                    id="invite-display-name"
+                    label="Display Name"
+                    type="text"
+                    placeholder="Your name"
+                    value={inviteDisplayName}
+                    onChange={(e) => setInviteDisplayName(e.target.value)}
+                    disabled={inviteSaving}
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="invite-channel" className={styles.selectLabel}>
+                    Preferred Contact Channel
+                  </label>
+                  <select
+                    id="invite-channel"
+                    className={styles.select}
+                    value={inviteChannel}
+                    onChange={(e) => setInviteChannel(e.target.value)}
+                    disabled={inviteSaving}
+                    aria-label="Select your preferred contact channel"
+                  >
+                    <option value="slack">💬 Slack</option>
+                    <option value="sms">📲 SMS</option>
+                    <option value="whatsapp">📱 WhatsApp</option>
+                    <option value="email">📧 Email</option>
+                    <option value="teams">🟣 Teams</option>
+                  </select>
+                </div>
+                <div className={styles.fieldGroup}>
+                  <Input
+                    id="invite-channel-id"
+                    label={
+                      inviteChannel === 'sms' || inviteChannel === 'whatsapp'
+                        ? 'Phone Number'
+                        : inviteChannel === 'email'
+                        ? 'Email Address'
+                        : 'Channel ID or Username'
+                    }
+                    type="text"
+                    placeholder={
+                      inviteChannel === 'sms' || inviteChannel === 'whatsapp'
+                        ? '+1 (555) 123-4567'
+                        : inviteChannel === 'email'
+                        ? 'you@company.com'
+                        : 'e.g. @username'
+                    }
+                    value={inviteChannelId}
+                    onChange={(e) => setInviteChannelId(e.target.value)}
+                    disabled={inviteSaving}
+                  />
+                </div>
+              </Card>
+              <div className={styles.navButtons}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+                    router.push('/dashboard');
+                  }}
+                  disabled={inviteSaving}
+                >
+                  Skip for now →
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={async () => {
+                    setInviteSaving(true);
+                    try {
+                      // Save channel preference if entity is available
+                      if (claimedEntityId && inviteChannel) {
+                        await fetch('/api/account/channel-preferences', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            entityId: claimedEntityId,
+                            preferredChannel: inviteChannel,
+                            channelIdentifier: inviteChannelId || '',
+                          }),
+                        });
+                      }
+                      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+                      router.push('/dashboard');
+                    } catch {
+                      // Redirect anyway on failure — preference can be set later
+                      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+                      router.push('/dashboard');
+                    }
+                  }}
+                  isLoading={inviteSaving}
+                  disabled={inviteSaving}
+                >
+                  Get Started →
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!isCheckingInvite && !inviteClaimed && (
           <>
 
           {/* Error Banner */}

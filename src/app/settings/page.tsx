@@ -12,7 +12,7 @@ import type { OrgData, EntityData, TeamMemberData, SubscriptionData, ConnectionS
 import IntegrationsTab from './components/IntegrationsTab';
 import BillingTab from './components/BillingTab';
 import TeamTab from './components/TeamTab';
-import LocalizationTab from './components/LocalizationTab';
+import EntityTab from './components/EntityTab';
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
@@ -204,9 +204,9 @@ export default function SettingsPage() {
         <Tabs defaultValue="integrations">
           <Tabs.List>
             <Tabs.Tab value="integrations">🔌 Integrations</Tabs.Tab>
-            <Tabs.Tab value="billing">💳 Billing</Tabs.Tab>
             <Tabs.Tab value="team">👥 Team</Tabs.Tab>
-            <Tabs.Tab value="localization">🌍 Localization</Tabs.Tab>
+            <Tabs.Tab value="entity">🏢 Entity</Tabs.Tab>
+            <Tabs.Tab value="billing">💳 Billing</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="integrations">
@@ -215,18 +215,6 @@ export default function SettingsPage() {
               entities={entities}
               connections={connections}
               onRefresh={fetchData}
-            />
-          </Tabs.Panel>
-
-          <Tabs.Panel value="billing">
-            <BillingTab
-              loading={loading}
-              orgId={orgData?.id || ''}
-              userEmail={userEmail}
-              subscription={subscription}
-              entityCount={entities.length}
-              transactionCount={transactionCount}
-              hitlCount={hitlCount}
             />
           </Tabs.Panel>
 
@@ -242,10 +230,24 @@ export default function SettingsPage() {
             />
           </Tabs.Panel>
 
-          <Tabs.Panel value="localization">
-            <LocalizationTab
+          <Tabs.Panel value="entity">
+            <EntityTab
               loading={loading}
               entities={entities}
+              teamMembers={teamMembers}
+              userRole={userRole}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="billing">
+            <BillingTab
+              loading={loading}
+              orgId={orgData?.id || ''}
+              userEmail={userEmail}
+              subscription={subscription}
+              entityCount={entities.length}
+              transactionCount={transactionCount}
+              hitlCount={hitlCount}
             />
           </Tabs.Panel>
         </Tabs>

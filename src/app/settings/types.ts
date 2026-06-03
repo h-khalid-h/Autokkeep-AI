@@ -33,3 +33,48 @@ export interface ConnectionStatus {
   xero: boolean;
   slack: boolean;
 }
+
+// ─── Entity Tab Types ───────────────────────────────────────────────────────────
+
+export interface VendorManagerData {
+  id: string;
+  vendor_pattern: string;
+  manager_user_id: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface CardholderMappingData {
+  id: string;
+  card_holder: string;
+  card_last4: string | null;
+  mapped_user_id: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ChaseOptOutData {
+  id: string;
+  phone_number: string;
+  entity_id: string;
+  is_active: boolean;
+  opted_out_at: string | null;
+}
+
+export interface GLCodeConfig {
+  cash_gl: string;
+  suspense_gl: string;
+  default_expense_gl: string;
+  bank_fees_gl: string;
+}
+
+export interface EntityProfileData {
+  id: string;
+  name: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  fiscal_year_end: string | null;
+  base_currency: string;
+  country: string;
+  timezone: string;
+}

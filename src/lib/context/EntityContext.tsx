@@ -55,7 +55,7 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       const db = supabase as unknown as SupabaseQueryClient;
       const { data: membershipData, error: membershipError } = await db
         .from('team_members')
-        .select('org_id')
+        .select('org_id, role')
         .eq('user_id', user.id)
         .limit(1);
 
@@ -88,13 +88,35 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const items: EntityItem[] = (entityData || []).map(
+      let items: EntityItem[] = (entityData || []).map(
         (e: { id: string; name: string; base_currency?: string }) => ({
           id: e.id,
           name: e.name,
           currency: e.base_currency || 'USD',
         })
       );
+
+      // ── Per-entity access control ──────────────────────────────────────
+      // Owner/admin see all entities. Accountant/viewer only see entities
+      // they have been explicitly assigned to via entity_assignments.
+      const userRole = (membership as { org_id: string; role: string }).role;
+      if (userRole !== 'owner' && userRole !== 'admin' && items.length > 0) {
+        const { data: assignmentData } = await db
+          .from('entity_assignments')
+          .select('entity_id')
+          .eq('user_id', user.id);
+
+        if (assignmentData && assignmentData.length > 0) {
+          const assignedIds = new Set(
+            assignmentData.map((a: { entity_id: string }) => a.entity_id)
+          );
+          items = items.filter((e) => assignedIds.has(e.id));
+        } else {
+          // No assignments → no entities visible
+          items = [];
+        }
+      }
+
       setEntities(items);
 
       // Restore previous selection from localStorage

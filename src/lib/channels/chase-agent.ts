@@ -112,6 +112,20 @@ async function resolveCardHolderToTeamMember(
 ): Promise<string | null> {
   if (!cardHolderName || cardHolderName === 'Unknown') return null;
 
+  // Check explicit cardholder mapping first
+  const { data: mapping } = await supabase
+    .from('cardholder_mappings')
+    .select('mapped_user_id')
+    .eq('entity_id', entityId)
+    .eq('card_holder', cardHolderName)
+    .limit(1);
+
+  if (mapping?.[0]?.mapped_user_id) {
+    return mapping[0].mapped_user_id as string;
+  }
+
+  // Fall back to fuzzy name matching
+
   // Look up the entity's org to find team members
   const { data: entity } = await supabase
     .from('entities')
@@ -141,6 +155,7 @@ async function resolveCardHolderToTeamMember(
 
   return null;
 }
+
 
 // ============================================
 // Types
