@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
+import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 
@@ -186,6 +187,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         escrow_suspense: ['pending', 'approved'],
         categorization_failed: ['pending', 'human_review'],
         removed: [], // terminal — no transitions allowed
+        pending_approval: ['approved', 'rejected'], // approval workflow
       };
 
       const currentStatus = existing.status as string;
@@ -208,6 +210,56 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.status = newStatus;
       if (newStatus === 'approved') {
         updateData.confidence = 100;
+
+        // ── Approval hierarchy gate ────────────────────────────────────
+        const txAmount = typeof existing.amount === 'number'
+          ? existing.amount
+          : parseFloat(String(existing.amount ?? '0'));
+
+        const approvalCheck = await checkApprovalRequired(
+          db,
+          existing.entity_id as string,
+          Math.abs(txAmount),
+        );
+
+        if (approvalCheck) {
+          // Check whether an approved approval_request already exists
+          const { data: existingApproval } = await db
+            .from('approval_requests')
+            .select('id, status')
+            .eq('transaction_id', id)
+            .eq('status', 'approved')
+            .limit(1);
+
+          if (!existingApproval || existingApproval.length === 0) {
+            // No approved request — create a pending one and return early
+            const pending = await requestApproval(
+              db,
+              existing.entity_id as string,
+              id,
+              approvalCheck.role,
+              approvalCheck.thresholdId,
+            );
+
+            // Set transaction to pending_approval instead of approved
+            await db
+              .from('transactions')
+              .update({
+                status: 'pending_approval',
+                updated_at: new Date().toISOString(),
+                updated_by: user.id,
+              })
+              .eq('id', id);
+
+            return NextResponse.json({
+              status: 'pending_approval',
+              approvalId: pending.id,
+              requiredRole: approvalCheck.role,
+              dualApproval: approvalCheck.dual,
+            });
+          }
+          // An approved approval_request exists — allow the status change
+        }
       }
     }
 

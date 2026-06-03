@@ -32,6 +32,11 @@ vi.mock('./twilio', () => ({
   buildReceiptRequestMessage: (...args: unknown[]) => mockBuildReceiptRequestMessage(...args),
 }));
 
+const mockSendEmailReceiptRequest = vi.fn();
+vi.mock('./email', () => ({
+  sendEmailReceiptRequest: (...args: unknown[]) => mockSendEmailReceiptRequest(...args),
+}));
+
 vi.mock('@/lib/notifications/micro-card', () => ({
   buildSlackCard: vi.fn().mockReturnValue([{ type: 'section', text: { type: 'mrkdwn', text: 'mock' } }]),
   buildSMSCard: vi.fn().mockReturnValue('Mock SMS card'),
@@ -135,11 +140,29 @@ describe('dispatchReceiptRequest', () => {
       expect(result.channel).toBe('sms');
       expect(result.messageId).toBe('SM456');
     });
+
+    it('dispatches to Email channel', async () => {
+      mockSendEmailReceiptRequest.mockResolvedValue({
+        success: true,
+        messageId: 'email-123',
+      });
+
+      const connection = makeConnection({
+        channelType: 'email',
+        channelId: 'user@example.com',
+      });
+      const context = makeContext();
+      const result = await dispatchReceiptRequest(connection, context);
+
+      expect(result.success).toBe(true);
+      expect(result.channel).toBe('email');
+      expect(result.messageId).toBe('email-123');
+    });
   });
 
   describe('handles errors', () => {
     it('returns error for unsupported channel type', async () => {
-      const connection = makeConnection({ channelType: 'email' as ChannelConnection['channelType'] });
+      const connection = makeConnection({ channelType: 'pigeon' as ChannelConnection['channelType'] });
       const context = makeContext();
       const result = await dispatchReceiptRequest(connection, context);
 

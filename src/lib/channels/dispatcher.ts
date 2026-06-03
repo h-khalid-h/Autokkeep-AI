@@ -6,10 +6,11 @@
 import { sendSlackReceiptRequest, type ReceiptRequestPayload } from './slack';
 import { sendTeamsMessage, type TeamsAdaptiveCardPayload } from './teams';
 import { sendSMS, sendWhatsApp, buildReceiptRequestMessage, type ReceiptRequestContext } from './twilio';
+import { sendEmailReceiptRequest } from './email';
 import { buildSlackCard, buildSMSCard, type TransactionData, type ConfidenceBreakdown } from '@/lib/notifications/micro-card';
 import { formatCurrency } from '@/lib/currency/converter';
 
-export type ChannelType = 'slack' | 'teams' | 'whatsapp' | 'sms';
+export type ChannelType = 'slack' | 'teams' | 'whatsapp' | 'sms' | 'email';
 
 export interface ChannelConnection {
   channelType: ChannelType;
@@ -52,6 +53,8 @@ export async function dispatchReceiptRequest(
         return await dispatchSlack(connection, context);
       case 'teams':
         return await dispatchTeams(connection, context);
+      case 'email':
+        return await dispatchEmail(connection, context);
       case 'whatsapp':
         return await dispatchWhatsApp(connection, context);
       case 'sms':
@@ -247,6 +250,28 @@ async function dispatchWhatsApp(
   }
 }
 
+async function dispatchEmail(
+  connection: ChannelConnection,
+  context: TransactionContext
+): Promise<DispatchResult> {
+  const result = await sendEmailReceiptRequest(connection.channelId, {
+    transactionId: context.transactionId,
+    merchantName: context.merchantName,
+    amount: context.amount,
+    date: context.date,
+    cardLast4: context.cardLast4,
+    cardHolder: context.cardHolder,
+    currency: context.currency,
+  });
+
+  return {
+    success: result.success,
+    channel: 'email',
+    messageId: result.messageId,
+    error: result.error,
+  };
+}
+
 async function dispatchSMS(
   connection: ChannelConnection,
   context: TransactionContext
@@ -326,12 +351,13 @@ export async function dispatchWithFallback(
   const sorted = [...connections].sort((a, b) => {
     if (a.channelType === preferredChannel) return -1;
     if (b.channelType === preferredChannel) return 1;
-    // Priority order: slack > teams > whatsapp > sms
+    // Priority order: slack > teams > email > whatsapp > sms
     const priority: Record<ChannelType, number> = {
       slack: 0,
       teams: 1,
-      whatsapp: 2,
-      sms: 3,
+      email: 2,
+      whatsapp: 3,
+      sms: 4,
     };
     return priority[a.channelType] - priority[b.channelType];
   });

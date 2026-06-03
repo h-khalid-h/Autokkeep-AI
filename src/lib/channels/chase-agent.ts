@@ -14,6 +14,8 @@ import {
 import { formatCurrency } from '@/lib/currency/converter';
 import { sendSMS, sendWhatsApp } from './twilio';
 import { writeAuditLog } from '@/lib/audit';
+import { resolveVendorManager } from '@/lib/vendor-manager';
+import { getUserChannelPreference } from '@/lib/user-channel-prefs';
 
 // Module-level idempotency guard (E9)
 let lastRunTimestamp = 0;
@@ -126,6 +128,8 @@ interface PriorChaseAttempt {
   sent_at: string;
 }
 
+type RoutingReason = 'vendor_manager' | 'card_holder' | 'entity_admin';
+
 interface CardholderGroup {
   cardHolder: string;
   resolvedUserId: string | null; // G1: team_member user_id if resolved from card_holder name
@@ -135,6 +139,7 @@ interface CardholderGroup {
   transactions: OutstandingTransaction[];
   chaseCount: number;
   escalationLevel: EscalationLevel;
+  routingReason: RoutingReason;
 }
 
 // ============================================
@@ -444,12 +449,40 @@ export async function runReceiptChase(
 
     for (const tx of transactions as OutstandingTransaction[]) {
       const cardHolder = tx.card_holder || 'Unknown';
+      const merchantName = tx.merchant_name || tx.merchant_raw || '';
 
-      // G1 improvement: attempt to resolve card_holder name to a team member
-      // This is best-effort — if no match, we still chase with the text name
-      const resolvedUserId = await resolveCardHolderToTeamMember(
-        supabase, entityId, cardHolder
-      );
+      // WS-A: Resolve vendor manager for this merchant — takes priority over card_holder
+      let routingReason: RoutingReason = 'entity_admin';
+      let resolvedUserId: string | null = null;
+
+      const vendorManager = await resolveVendorManager(supabase, entityId, merchantName);
+      if (vendorManager) {
+        resolvedUserId = vendorManager.userId;
+        routingReason = 'vendor_manager';
+      } else {
+        // G1 improvement: attempt to resolve card_holder name to a team member
+        // This is best-effort — if no match, we still chase with the text name
+        resolvedUserId = await resolveCardHolderToTeamMember(
+          supabase, entityId, cardHolder
+        );
+        if (resolvedUserId) {
+          routingReason = 'card_holder';
+        }
+      }
+
+      // WS-C: Check user channel preference for the resolved target user
+      let userPrefChannel: ChannelConnection | null = null;
+      const targetUserId = resolvedUserId;
+      if (targetUserId) {
+        const pref = await getUserChannelPreference(supabase, targetUserId, entityId);
+        if (pref) {
+          userPrefChannel = {
+            channelType: pref.channel as ChannelType,
+            channelId: pref.identifier,
+          };
+        }
+      }
+
       const priorAttempts = chaseMap.get(tx.id) || [];
       const sentAttempts = priorAttempts.filter((a) => a.status === 'sent');
       const chaseCount = sentAttempts.length;
@@ -488,8 +521,11 @@ export async function runReceiptChase(
 
       const escalationLevel = getEscalationLevel(chaseCount);
 
-      // Group by cardholder
-      const existingGroup = cardholderGroups.get(cardHolder);
+      // Determine the grouping key — vendor manager routing uses userId, otherwise card_holder
+      const groupKey = vendorManager ? `vm:${vendorManager.userId}` : cardHolder;
+
+      // Group by resolved key
+      const existingGroup = cardholderGroups.get(groupKey);
       if (existingGroup) {
         existingGroup.transactions.push(tx);
         // Use the highest escalation level in the group
@@ -501,8 +537,9 @@ export async function runReceiptChase(
           existingGroup.chaseCount = chaseCount;
         }
       } else {
-        // Select the best channel for this escalation level
-        const targetChannel = getEscalationChannel(escalationLevel, availableConnections);
+        // WS-C: If user has a channel preference, use it; otherwise fall back to entity channels
+        const targetChannel = userPrefChannel
+          || getEscalationChannel(escalationLevel, availableConnections);
         if (!targetChannel) {
           // G7 improvement: explicitly record 'unresolved' chase instead of silently skipping
           if (cardHolder === 'Unknown') {
@@ -526,8 +563,11 @@ export async function runReceiptChase(
           continue;
         }
 
-        cardholderGroups.set(cardHolder, {
-          cardHolder,
+        // Use vendor manager's name if available, otherwise card holder
+        const displayName = vendorManager?.name || cardHolder;
+
+        cardholderGroups.set(groupKey, {
+          cardHolder: displayName,
           resolvedUserId,
           phoneNumber: targetChannel.channelId,
           channelType: targetChannel.channelType,
@@ -535,6 +575,7 @@ export async function runReceiptChase(
           transactions: [tx],
           chaseCount,
           escalationLevel,
+          routingReason,
         });
       }
     }
@@ -597,6 +638,12 @@ export async function runReceiptChase(
     }
 
     // ── Step 8: Audit log the chase run ─────────────────────────────────
+    // Collect routing reasons for the audit log
+    const routingReasons: Record<string, number> = {};
+    for (const group of cardholderGroups.values()) {
+      routingReasons[group.routingReason] = (routingReasons[group.routingReason] || 0) + group.transactions.length;
+    }
+
     await writeAuditLog({
       supabase,
       entityId,
@@ -609,6 +656,7 @@ export async function runReceiptChase(
         skipped: report.skipped,
         byChannel: report.byChannel,
         errorCount: report.errors.length,
+        routingReasons,
       },
     });
   } catch (error) {
