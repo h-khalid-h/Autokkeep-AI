@@ -1378,3 +1378,7 @@ CREATE POLICY "document_anchors_insert" ON document_anchors
 DROP POLICY IF EXISTS "document_anchors_update" ON document_anchors;
 CREATE POLICY "document_anchors_update" ON document_anchors
   FOR UPDATE USING (entity_id IN (SELECT auth_user_entity_ids()));
+
+DROP POLICY IF EXISTS "document_anchors_delete" ON document_anchors;
+CREATE POLICY "document_anchors_delete" ON document_anchors
+  FOR DELETE USING (entity_id IN (SELECT auth_user_entity_ids()));

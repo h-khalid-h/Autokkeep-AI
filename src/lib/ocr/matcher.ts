@@ -19,6 +19,11 @@ interface TransactionRecord {
   date: string;
 }
 
+// ─── Configuration ─────────────────────────────────────────────────────────────
+
+/** How many days back to search for matching transactions. Configurable via env var. */
+const OCR_LOOKBACK_DAYS = parseInt(process.env.OCR_LOOKBACK_DAYS || '30', 10);
+
 // ─── Scoring Weights ───────────────────────────────────────────────────────────
 
 const VENDOR_WEIGHT = 0.40;
@@ -130,10 +135,10 @@ export async function matchReceiptToTransaction(
   entityId: string,
   extractedData: ExtractedReceiptData
 ): Promise<MatchResult | null> {
-  // Query recent transactions (last 30 days) for this entity
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const cutoffDate = thirtyDaysAgo.toISOString().split('T')[0];
+  // Query recent transactions within the configurable lookback window
+  const lookbackDate = new Date();
+  lookbackDate.setDate(lookbackDate.getDate() - OCR_LOOKBACK_DAYS);
+  const cutoffDate = lookbackDate.toISOString().split('T')[0];
 
   const { data: transactions, error } = await db
     .from('transactions')

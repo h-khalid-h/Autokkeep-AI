@@ -47,11 +47,11 @@ const nextConfig: NextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+            "script-src 'self' 'unsafe-inline' https://cdn.plaid.com https://static.cloudflareinsights.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https:",
-            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.host.datac.com wss://*.host.datac.com https://cdn.plaid.com https://api.openai.com https://static.cloudflareinsights.com",
+            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.host.datac.com wss://*.host.datac.com https://cdn.plaid.com https://api.openai.com https://static.cloudflareinsights.com https://*.ingest.sentry.io",
             "frame-src 'self' https://cdn.plaid.com https://checkout.stripe.com",
             "frame-ancestors 'none'",
           ].join('; '),
