@@ -541,9 +541,10 @@ export function buildJournalEntryFromTransaction(
     category_ai?: string;
     id: string;
   },
-  bankAccountGLCode: string
+  bankAccountGLCode: string,
+  defaultExpenseGLCode: string = '6510'
 ): JournalEntryData {
-  const glCode = transaction.category_human || transaction.category_ai || '6510';
+  const glCode = transaction.category_human || transaction.category_ai || defaultExpenseGLCode;
   const isExpense = transaction.amount > 0;
 
   return {

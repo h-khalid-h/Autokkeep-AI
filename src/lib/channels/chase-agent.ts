@@ -44,6 +44,49 @@ const DEFAULT_CONFIG: ChaseConfig = {
   timezone: 'America/New_York',
 };
 
+/**
+ * Attempt to resolve a card_holder name to a team_member user_id.
+ * This is best-effort fuzzy matching: if the card_holder text matches
+ * a team member's invited_email or display name, we can associate it.
+ * Returns the user_id if found, null otherwise.
+ */
+async function resolveCardHolderToTeamMember(
+  supabase: SupabaseQueryClient,
+  entityId: string,
+  cardHolderName: string
+): Promise<string | null> {
+  if (!cardHolderName || cardHolderName === 'Unknown') return null;
+
+  // Look up the entity's org to find team members
+  const { data: entity } = await supabase
+    .from('entities')
+    .select('org_id')
+    .eq('id', entityId)
+    .single();
+  if (!entity) return null;
+
+  const { data: members } = await supabase
+    .from('team_members')
+    .select('user_id, invited_email')
+    .eq('org_id', entity.org_id);
+  if (!members?.length) return null;
+
+  // Normalize the card holder name for fuzzy comparison
+  const normalizedName = cardHolderName.toLowerCase().trim();
+
+  for (const member of members) {
+    // Match against email prefix (e.g., "john.doe@company.com" → "john.doe")
+    if (member.invited_email) {
+      const emailPrefix = member.invited_email.split('@')[0].toLowerCase().replace(/[._]/g, ' ');
+      if (normalizedName.includes(emailPrefix) || emailPrefix.includes(normalizedName)) {
+        return member.user_id;
+      }
+    }
+  }
+
+  return null;
+}
+
 // ============================================
 // Types
 // ============================================
@@ -85,6 +128,7 @@ interface PriorChaseAttempt {
 
 interface CardholderGroup {
   cardHolder: string;
+  resolvedUserId: string | null; // G1: team_member user_id if resolved from card_holder name
   phoneNumber: string | null;
   channelType: ChannelType;
   channelId: string;
@@ -400,6 +444,12 @@ export async function runReceiptChase(
 
     for (const tx of transactions as OutstandingTransaction[]) {
       const cardHolder = tx.card_holder || 'Unknown';
+
+      // G1 improvement: attempt to resolve card_holder name to a team member
+      // This is best-effort — if no match, we still chase with the text name
+      const resolvedUserId = await resolveCardHolderToTeamMember(
+        supabase, entityId, cardHolder
+      );
       const priorAttempts = chaseMap.get(tx.id) || [];
       const sentAttempts = priorAttempts.filter((a) => a.status === 'sent');
       const chaseCount = sentAttempts.length;
@@ -454,6 +504,17 @@ export async function runReceiptChase(
         // Select the best channel for this escalation level
         const targetChannel = getEscalationChannel(escalationLevel, availableConnections);
         if (!targetChannel) {
+          // G7 improvement: explicitly record 'unresolved' chase instead of silently skipping
+          if (cardHolder === 'Unknown') {
+            await supabase.from('receipt_requests').insert({
+              transaction_id: tx.id,
+              channel_type: 'slack', // placeholder — no channel available
+              status: 'unresolved',
+              sent_at: new Date().toISOString(),
+              escalation_level: escalationLevel,
+              chase_count: chaseCount,
+            });
+          }
           report.errors.push(`No suitable channel for ${cardHolder} at ${escalationLevel} level`);
           report.skipped++;
           continue;
@@ -467,6 +528,7 @@ export async function runReceiptChase(
 
         cardholderGroups.set(cardHolder, {
           cardHolder,
+          resolvedUserId,
           phoneNumber: targetChannel.channelId,
           channelType: targetChannel.channelType,
           channelId: targetChannel.channelId,
