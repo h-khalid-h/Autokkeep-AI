@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,6 +13,8 @@ export const runtime = 'nodejs';
  */
 export async function GET(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'health' });
+    if (limited) return limited;
     const start = Date.now();
     const checks: Record<string, { status: string; latency?: number }> = {};
 

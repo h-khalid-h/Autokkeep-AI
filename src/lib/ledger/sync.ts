@@ -131,6 +131,8 @@ export async function exchangeXeroCode(code: string): Promise<{
   accessToken: string;
   refreshToken: string;
   tenantId: string;
+  tenantName: string;
+  tenantCount: number;
   expiresIn: number;
 }> {
   const clientId = process.env.XERO_CLIENT_ID!;
@@ -160,12 +162,28 @@ export async function exchangeXeroCode(code: string): Promise<{
   });
 
   const connections = await connectionsRes.json();
-  const tenantId = connections[0]?.tenantId || '';
+
+  if (!Array.isArray(connections) || connections.length === 0) {
+    throw new Error('No Xero organizations found. The user must have at least one Xero org.');
+  }
+
+  // Log warning for multi-tenant accounts — operator awareness
+  if (connections.length > 1) {
+    console.warn(
+      `[Xero Auth] Account has ${connections.length} organizations. Auto-selecting first: ` +
+      `"${connections[0]?.tenantName}" (${connections[0]?.tenantId}). ` +
+      `Other orgs: ${connections.slice(1).map((c: { tenantName: string }) => c.tenantName).join(', ')}`
+    );
+  }
+
+  const selectedTenant = connections[0];
 
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
-    tenantId,
+    tenantId: selectedTenant.tenantId,
+    tenantName: selectedTenant.tenantName || 'Unknown',
+    tenantCount: connections.length,
     expiresIn: data.expires_in,
   };
 }
