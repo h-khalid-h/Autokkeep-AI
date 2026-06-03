@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import crypto from 'crypto';
+import type { NextRequest } from 'next/server';
 
 // ============================================
 // Module mocks — must be declared before imports
@@ -146,7 +147,7 @@ describe('POST /api/channels/slack/interact — Entity Isolation', () => {
     vi.mocked(createAdminClient).mockReturnValue(db);
 
     const req = makeRequest(body, timestamp, signature);
-    const response = await POST(req as any);
+    const response = await POST(req as unknown as NextRequest);
 
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -164,7 +165,7 @@ describe('POST /api/channels/slack/interact — Entity Isolation', () => {
     const invalidSignature = 'v0=invalid_signature_that_is_definitely_wrong_ab';
 
     const req = makeRequest(body, timestamp, invalidSignature);
-    const response = await POST(req as any);
+    const response = await POST(req as unknown as NextRequest);
 
     expect(response.status).toBe(401);
     const json = await response.json();
@@ -188,7 +189,7 @@ describe('POST /api/channels/slack/interact — Entity Isolation', () => {
     vi.mocked(createAdminClient).mockReturnValue(db);
 
     const req = makeRequest(body, timestamp, signature);
-    const response = await POST(req as any);
+    const response = await POST(req as unknown as NextRequest);
 
     expect(response.status).toBe(403);
     const json = await response.json();
@@ -212,7 +213,7 @@ describe('POST /api/channels/slack/interact — Entity Isolation', () => {
     vi.mocked(createAdminClient).mockReturnValue(db);
 
     const req = makeRequest(body, timestamp, signature);
-    const response = await POST(req as any);
+    const response = await POST(req as unknown as NextRequest);
 
     expect(response.status).toBe(403);
     const json = await response.json();

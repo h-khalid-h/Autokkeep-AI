@@ -23,7 +23,6 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { computeCompositeScore, calculateRuleScore, AUTO_COMMIT_THRESHOLD } from '@/lib/ai/confidence';
 
 const BATCH_LIMIT = 50;
-const AUTO_CATEGORIZE_THRESHOLD = 80;
 
 export interface AutoCategorizeResult {
   processed: number;

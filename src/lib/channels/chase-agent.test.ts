@@ -375,6 +375,7 @@ describe('buildChaseMessage', () => {
 // We test the lock functions by mocking the Redis client module.
 // The chase-agent module imports getRedisClient from '@/lib/redis'.
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock', () => {
   // We need to test the internal acquireChaseRunLock and releaseChaseRunLock
   // functions. Since they are not exported, we test them through runReceiptChase.
@@ -419,7 +420,7 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
 
     // Reset the in-memory guard by using a unique entity ID
     const entityId = `test-lock-acquire-${Date.now()}`;
-    const report = await runReceiptChase(entityId, mockSupabase);
+    const _report = await runReceiptChase(entityId, mockSupabase);
 
     // Lock was acquired (returned true) so the function proceeded
     // Verify SET was called with NX
@@ -533,4 +534,4 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     expect(report.entityId).toBe(entityId);
   });
 });
-
+/* eslint-enable @typescript-eslint/no-explicit-any */
