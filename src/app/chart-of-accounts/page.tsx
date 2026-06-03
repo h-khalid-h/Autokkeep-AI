@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
@@ -134,18 +134,18 @@ export default function ChartOfAccountsPage() {
   }, [fetchAccounts]);
 
   // ─── Filtering & sorting ────────────────────────────────────────────────
-  const filtered = accounts.filter(a => {
+  const filtered = useMemo(() => accounts.filter(a => {
     if (!search) return true;
     const q = search.toLowerCase();
     return a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q);
-  });
+  }), [accounts, search]);
 
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
     const av = sortField === 'code' ? a.code : a.name.toLowerCase();
     const bv = sortField === 'code' ? b.code : b.name.toLowerCase();
     const cmp = av.localeCompare(bv);
     return sortDir === 'asc' ? cmp : -cmp;
-  });
+  }), [filtered, sortField, sortDir]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -560,12 +560,15 @@ export default function ChartOfAccountsPage() {
 
   // ─── Summary stats ─────────────────────────────────────────────────────
   const totalAccounts = accounts.length;
-  const activeAccounts = accounts.filter(a => a.active).length;
-  const typeCounts: Record<string, number> = {};
-  accounts.forEach(a => {
-    const key = normalizeType(a.type);
-    typeCounts[key] = (typeCounts[key] || 0) + 1;
-  });
+  const activeAccounts = useMemo(() => accounts.filter(a => a.active).length, [accounts]);
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    accounts.forEach(a => {
+      const key = normalizeType(a.type);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [accounts]);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -636,10 +639,14 @@ export default function ChartOfAccountsPage() {
             </div>
             {selectedIds.size > 0 && (
               <div className={styles.toolbarActions}>
-                <Button variant="ghost" size="sm" onClick={bulkDeactivate}>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  if (window.confirm(`Deactivate ${selectedIds.size} account(s)? They will be hidden from dropdowns.`)) bulkDeactivate();
+                }}>
                   ⏸ Deactivate ({selectedIds.size})
                 </Button>
-                <Button variant="destructive" size="sm" onClick={bulkDelete}>
+                <Button variant="destructive" size="sm" onClick={() => {
+                  if (window.confirm(`Permanently delete ${selectedIds.size} account(s)? This cannot be undone.`)) bulkDelete();
+                }}>
                   🗑 Delete ({selectedIds.size})
                 </Button>
               </div>

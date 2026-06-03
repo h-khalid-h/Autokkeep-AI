@@ -203,6 +203,9 @@ export default function ClosePage() {
   const handleClosePeriod = React.useCallback(async () => {
     if (!selectedEntity?.id || !data?.report.isReady) return;
 
+    const periodLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
+    if (!window.confirm(`Close ${periodLabel}? This will lock all transactions for this period. This action cannot be undone.`)) return;
+
     setIsClosing(true);
     setCloseResult(null);
     setCloseError(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
@@ -187,10 +187,10 @@ export default function AnalyticsPage() {
 
   const fmtCurrency = (n: number) => formatCurrency(n, entityCurrency);
 
-  const autoRate = data.totalTransactions > 0
+  const autoRate = useMemo(() => data.totalTransactions > 0
     ? ((data.autoApproved / data.totalTransactions) * 100).toFixed(1)
-    : '0.0';
-  const maxVolume = Math.max(...data.dailyVolume, 1);
+    : '0.0', [data.totalTransactions, data.autoApproved]);
+  const maxVolume = useMemo(() => Math.max(...data.dailyVolume, 1), [data.dailyVolume]);
 
   // Determine accuracy color class
   const getAccuracyClass = () => {
@@ -199,9 +199,9 @@ export default function AnalyticsPage() {
     return styles.kpiValueDestructive;
   };
 
-  const receiptRate = (data.receiptsCaptured + data.receiptsMissing) > 0
+  const receiptRate = useMemo(() => (data.receiptsCaptured + data.receiptsMissing) > 0
     ? ((data.receiptsCaptured / (data.receiptsCaptured + data.receiptsMissing)) * 100).toFixed(0)
-    : '0';
+    : '0', [data.receiptsCaptured, data.receiptsMissing]);
 
   const timeRangeButtons: { id: TimeRange; label: string }[] = [
     { id: '7d', label: '7 Days' },
@@ -211,12 +211,12 @@ export default function AnalyticsPage() {
   ];
 
   // Pipeline stages config
-  const pipelineStages = [
+  const pipelineStages = useMemo(() => [
     { label: 'Imported', value: data.totalTransactions, boxClass: styles.pipelineBoxAccent, valueClass: styles.pipelineValueAccent },
     { label: 'Auto-Approved', value: data.autoApproved, boxClass: styles.pipelineBoxSuccess, valueClass: styles.pipelineValueSuccess },
     { label: 'Human-Reviewed', value: data.humanReviewed, boxClass: styles.pipelineBoxWarning, valueClass: styles.pipelineValueWarning },
     { label: 'Pending', value: data.pending, boxClass: styles.pipelineBoxDestructive, valueClass: styles.pipelineValueDestructive },
-  ];
+  ], [data.totalTransactions, data.autoApproved, data.humanReviewed, data.pending]);
 
   // Loading state
   if (isLoading) {

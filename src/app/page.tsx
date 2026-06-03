@@ -11,14 +11,14 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main>
+      <div>
         <Hero />
         <SocialProof />
         <HowItWorks />
         <FeaturesGrid />
         <PricingSection />
         <CTASection />
-      </main>
+      </div>
       <Footer />
     </>
   );

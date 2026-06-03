@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
@@ -276,15 +276,15 @@ export default function TransactionsPage() {
     }
   };
 
-  // Summary stats
-  const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-  const avgConfidence = transactions.length > 0
+  // Summary stats (memoized)
+  const totalAmount = useMemo(() => transactions.reduce((sum, tx) => sum + tx.amount, 0), [transactions]);
+  const avgConfidence = useMemo(() => transactions.length > 0
     ? Math.round(transactions.reduce((sum, tx) => sum + (tx.confidence ?? 0), 0) / transactions.length)
-    : 0;
-  const pendingCount = transactions.filter(tx => tx.status === 'pending' || tx.status === 'human_review').length;
+    : 0, [transactions]);
+  const pendingCount = useMemo(() => transactions.filter(tx => tx.status === 'pending' || tx.status === 'human_review').length, [transactions]);
 
-  // Pagination
-  const totalPages = Math.ceil(pagination.total / PAGE_SIZE);
+  // Pagination (memoized)
+  const totalPages = useMemo(() => Math.ceil(pagination.total / PAGE_SIZE), [pagination.total]);
   const showFrom = pagination.total > 0 ? page * PAGE_SIZE + 1 : 0;
   const showTo = Math.min((page + 1) * PAGE_SIZE, pagination.total);
 
