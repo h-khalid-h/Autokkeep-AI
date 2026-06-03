@@ -54,7 +54,9 @@ export default function TeamTab({
           }
           setEntityAssignments(map);
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('[TeamTab] Failed to load entity assignments:', err);
+      }
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAssignments();

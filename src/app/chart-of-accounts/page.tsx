@@ -258,7 +258,8 @@ export default function ChartOfAccountsPage() {
           ));
         }
         closeModal();
-      } catch {
+      } catch (err) {
+        console.error("[ChartOfAccounts] Save error:", err);
         setFormError('Network error — could not save changes');
       } finally {
         setIsSaving(false);
@@ -299,7 +300,8 @@ export default function ChartOfAccountsPage() {
           }
         }
         closeModal();
-      } catch {
+      } catch (err) {
+        console.error('[ChartOfAccounts] Create error:', err);
         setFormError('Network error — could not create account. Please try again.');
       } finally {
         setIsSaving(false);
@@ -324,7 +326,8 @@ export default function ChartOfAccountsPage() {
       setAccounts(prev => prev.filter(a => a.id !== id));
       setDeleteConfirmId(null);
       setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-    } catch {
+    } catch (err) {
+      console.error('[ChartOfAccounts] Delete error:', err);
       setError('Network error — could not delete account');
       setDeleteConfirmId(null);
     }
@@ -350,7 +353,8 @@ export default function ChartOfAccountsPage() {
         const data = await res.json();
         setError(data.error || 'Failed to update account status');
       }
-    } catch {
+    } catch (err) {
+      console.error('[ChartOfAccounts] Toggle active error:', err);
       setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
       setError('Network error — could not update account status');
     }
@@ -368,7 +372,8 @@ export default function ChartOfAccountsPage() {
             method: 'DELETE',
           });
           if (!res.ok) failed.push(id);
-        } catch {
+        } catch (err) {
+          console.error('[ChartOfAccounts] Bulk operation error:', err);
           failed.push(id);
         }
       })
@@ -400,7 +405,8 @@ export default function ChartOfAccountsPage() {
             body: JSON.stringify({ id, is_active: false }),
           });
           if (!res.ok) failed.push(id);
-        } catch {
+        } catch (err) {
+          console.error('[ChartOfAccounts] Bulk deactivate error:', err);
           failed.push(id);
         }
       })
@@ -521,7 +527,8 @@ export default function ChartOfAccountsPage() {
           } else {
             failedImports++;
           }
-        } catch {
+        } catch (err) {
+          console.error('[ChartOfAccounts] Import error:', err);
           failedImports++;
         }
       }

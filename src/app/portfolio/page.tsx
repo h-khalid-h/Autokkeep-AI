@@ -162,7 +162,9 @@ export default function PortfolioPage() {
         if (data?.[0]) {
           setUserRole(data[0].role as string);
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('[Portfolio] Failed to load user role:', err);
+      }
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRole();
@@ -253,7 +255,9 @@ export default function PortfolioPage() {
             }))
         );
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error('[Portfolio] Failed to load available members:', err);
+    }
   }, []);
 
   const openAssignModal = useCallback(async (entity: { id: string; name: string }) => {

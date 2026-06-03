@@ -80,7 +80,8 @@ export default function SignupPage() {
       } else {
         setConfirmed(true)
       }
-    } catch {
+    } catch (err) {
+      console.error('[Signup] Error:', err)
       setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)

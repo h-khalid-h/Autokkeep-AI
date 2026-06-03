@@ -47,7 +47,8 @@ export default function ContactPage() {
         throw new Error('Failed to send message');
       }
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      console.error('[Contact] Submit error:', err);
       setFormError('Something went wrong sending your message. Please try again or email us at hello@autokkeep.com.');
     } finally {
       setIsSubmitting(false);

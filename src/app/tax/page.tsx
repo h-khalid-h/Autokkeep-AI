@@ -196,7 +196,8 @@ export default function TaxPage() {
             console.error(`[Tax] Upload failed for ${file.name}:`, err.error);
             failedCount++;
           }
-        } catch {
+        } catch (err) {
+          console.error('[Tax] Dismiss error:', err);
           failedCount++;
         }
       }
