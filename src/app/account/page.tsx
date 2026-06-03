@@ -29,20 +29,57 @@ export default function AccountPage() {
   const { theme, setTheme } = useTheme();
   const toast = useToast();
 
-  // Notification preferences — persisted to localStorage
-  const [notifPrefs, setNotifPrefsRaw] = useState(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('autokkeep-notif-prefs') : null;
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return { email: true, slack: false, sms: false };
-  });
+  // Notification preferences — synced to DB via API, localStorage fallback
+  const [notifPrefs, setNotifPrefsRaw] = useState({ email: true, slack: false, sms: false });
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  // Fetch notification prefs from API on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadNotifPrefs() {
+      try {
+        const res = await fetch('/api/account/notifications');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setNotifPrefsRaw(data);
+            try { localStorage.setItem('autokkeep-notif-prefs', JSON.stringify(data)); } catch {}
+          }
+        } else {
+          // Fallback to localStorage
+          try {
+            const saved = localStorage.getItem('autokkeep-notif-prefs');
+            if (saved && !cancelled) setNotifPrefsRaw(JSON.parse(saved));
+          } catch {}
+        }
+      } catch {
+        // Fallback to localStorage
+        try {
+          const saved = localStorage.getItem('autokkeep-notif-prefs');
+          if (saved && !cancelled) setNotifPrefsRaw(JSON.parse(saved));
+        } catch {}
+      } finally {
+        if (!cancelled) setNotifLoading(false);
+      }
+    }
+    void loadNotifPrefs();
+    return () => { cancelled = true; };
+  }, []);
 
   const setNotifPrefs: React.Dispatch<React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>> = useCallback(
     (action: React.SetStateAction<{ email: boolean; slack: boolean; sms: boolean }>) => {
       setNotifPrefsRaw((prev: { email: boolean; slack: boolean; sms: boolean }) => {
         const next = typeof action === 'function' ? action(prev) : action;
+        // Save to localStorage immediately
         try { localStorage.setItem('autokkeep-notif-prefs', JSON.stringify(next)); } catch {}
+        // Save to API in the background
+        fetch('/api/account/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next),
+        }).catch(() => {
+          // API save failed — localStorage still has the value
+        });
         return next;
       });
     },
@@ -259,11 +296,12 @@ export default function AccountPage() {
                     setNotifPrefs((prev) => ({ ...prev, [key]: checked }))
                   }
                   label={label}
+                  disabled={notifLoading}
                 />
               ))}
             </div>
             <p className={styles.notifDisclaimer}>
-              ℹ️ Notification preferences are stored locally on this device and will not sync across browsers or devices.
+              ℹ️ Notification preferences are synced to your account and will persist across devices.
             </p>
           </div>
         </Card>

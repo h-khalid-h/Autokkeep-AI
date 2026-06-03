@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Input, Progress, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Badge, Button, Input, Progress, Skeleton, EmptyState, Modal, useToast } from '@/components/ui';
 import styles from './portfolio.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -82,8 +82,9 @@ function getLedgerBadge(status: EntityStats['ledgerStatus']): { label: string; v
 // ─── Portfolio Page ─────────────────────────────────────────────────────────────
 
 export default function PortfolioPage() {
-  const { setSelectedEntityId } = useEntity();
+  const { setSelectedEntityId, refresh: refreshEntities } = useEntity();
   const router = useRouter();
+  const toast = useToast();
   const [entities, setEntities] = useState<EntityStats[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,6 +92,13 @@ export default function PortfolioPage() {
   const [sortField, setSortField] = useState<SortField>('pending');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Add Entity modal state
+  const [showAddEntity, setShowAddEntity] = useState(false);
+  const [newEntityName, setNewEntityName] = useState('');
+  const [newEntityFYE, setNewEntityFYE] = useState('12');
+  const [newEntityCurrency, setNewEntityCurrency] = useState('USD');
+  const [addEntitySubmitting, setAddEntitySubmitting] = useState(false);
 
   const fetchPortfolio = useCallback(async () => {
     try {
@@ -112,6 +120,46 @@ export default function PortfolioPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchPortfolio();
   }, [fetchPortfolio]);
+
+  const handleAddEntity = useCallback(async () => {
+    const trimmedName = newEntityName.trim();
+    if (!trimmedName) {
+      toast.error('Entity name is required');
+      return;
+    }
+
+    setAddEntitySubmitting(true);
+    try {
+      const res = await fetch('/api/entities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          fiscalYearEnd: newEntityFYE,
+          currency: newEntityCurrency,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Failed to create entity (${res.status})`);
+      }
+
+      toast.success(`Entity "${trimmedName}" created successfully!`);
+      setShowAddEntity(false);
+      setNewEntityName('');
+      setNewEntityFYE('12');
+      setNewEntityCurrency('USD');
+
+      // Refresh both portfolio data and entity context
+      void fetchPortfolio();
+      refreshEntities();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create entity');
+    } finally {
+      setAddEntitySubmitting(false);
+    }
+  }, [newEntityName, newEntityFYE, newEntityCurrency, fetchPortfolio, refreshEntities, toast]);
 
   // Sort and filter
   const filteredEntities = React.useMemo(() => {
@@ -280,7 +328,7 @@ export default function PortfolioPage() {
               title="No entities found"
               description={searchQuery ? 'No entities match your search.' : 'Add your first client entity to get started.'}
               action={!searchQuery ? (
-                <Button onClick={() => router.push('/onboarding')}>
+                <Button onClick={() => setShowAddEntity(true)}>
                   + Add Entity
                 </Button>
               ) : undefined}
@@ -402,6 +450,58 @@ export default function PortfolioPage() {
               </div>
             </Card>
           )}
+
+          {/* Add Entity Modal */}
+          <Modal
+            isOpen={showAddEntity}
+            onClose={() => setShowAddEntity(false)}
+            title="Add New Entity"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <Input
+                id="new-entity-name"
+                label="Entity Name"
+                placeholder="e.g. Acme Corp LLC"
+                value={newEntityName}
+                onChange={(e) => setNewEntityName(e.target.value)}
+                disabled={addEntitySubmitting}
+              />
+              <div>
+                <label htmlFor="new-entity-currency" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500 }}>Currency</label>
+                <select
+                  id="new-entity-currency"
+                  value={newEntityCurrency}
+                  onChange={(e) => setNewEntityCurrency(e.target.value)}
+                  disabled={addEntitySubmitting}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border-primary)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
+                >
+                  {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'NZD', 'INR', 'BRL', 'MXN'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="new-entity-fye" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500 }}>Fiscal Year End</label>
+                <select
+                  id="new-entity-fye"
+                  value={newEntityFYE}
+                  onChange={(e) => setNewEntityFYE(e.target.value)}
+                  disabled={addEntitySubmitting}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border-primary)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
+                >
+                  {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                    <option key={i+1} value={String(i+1)}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <Button variant="ghost" onClick={() => setShowAddEntity(false)} disabled={addEntitySubmitting}>Cancel</Button>
+                <Button variant="primary" onClick={handleAddEntity} disabled={!newEntityName.trim() || addEntitySubmitting} isLoading={addEntitySubmitting}>
+                  Create Entity
+                </Button>
+              </div>
+            </div>
+          </Modal>
         </div>
       </AppShell>
     </ErrorBoundary>

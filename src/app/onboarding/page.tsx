@@ -898,22 +898,19 @@ export default function OnboardingPage() {
               </p>
               <div className={styles.channelGrid}>
                 {[
-                  { id: 'slack', name: 'Slack', icon: '💬', desc: 'Interactive messages', available: true },
-                  { id: 'teams', name: 'Teams', icon: '🟣', desc: 'Adaptive Cards', available: false },
-                  { id: 'sms', name: 'SMS', icon: '📲', desc: 'Text messages', available: false },
-                  { id: 'whatsapp', name: 'WhatsApp', icon: '📱', desc: 'Business messaging', available: false },
+                  { id: 'slack', name: 'Slack', icon: '💬', desc: 'Interactive messages' },
+                  { id: 'teams', name: 'Teams', icon: '🟣', desc: 'Adaptive Cards' },
+                  { id: 'sms', name: 'SMS', icon: '📲', desc: 'Text messages' },
+                  { id: 'whatsapp', name: 'WhatsApp', icon: '📱', desc: 'Business messaging' },
                 ].map((channel) => (
                   <button
                     key={channel.id}
                     className={styles.channelOption}
-                    onClick={() => channel.available && setSelectedChannel(channel.id)}
-                    disabled={loading || !channel.available}
-                    aria-label={`Select ${channel.name} as receipt chase channel${!channel.available ? ' (coming soon)' : ''}`}
+                    onClick={() => setSelectedChannel(channel.id)}
+                    disabled={loading}
+                    aria-label={`Select ${channel.name} as receipt chase channel`}
                     data-selected={selectedChannel === channel.id ? 'true' : 'false'}
                   >
-                    {!channel.available && (
-                      <span className={styles.channelSoon}>Coming soon</span>
-                    )}
                     <span className={styles.channelIcon}>{channel.icon}</span>
                     <div className={styles.channelName}>{channel.name}</div>
                     <div className={styles.channelDesc}>{channel.desc}</div>
@@ -927,15 +924,20 @@ export default function OnboardingPage() {
                 <Button variant="ghost" onClick={goBack} disabled={loading} aria-label="Go back to previous step">
                   ← Back
                 </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleSetupChannel}
-                  disabled={!selectedChannel || loading}
-                  isLoading={loading}
-                  aria-label="Finish channel setup"
-                >
-                  {loading ? 'Setting up…' : 'Finish Setup →'}
-                </Button>
+                <div className={styles.navButtonsRight}>
+                  <Button variant="ghost" onClick={goNext} aria-label="Skip channel setup">
+                    Skip →
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleSetupChannel}
+                    disabled={!selectedChannel || loading}
+                    isLoading={loading}
+                    aria-label="Finish channel setup"
+                  >
+                    {loading ? 'Setting up…' : 'Finish Setup →'}
+                  </Button>
+                </div>
               </div>
             </div>
           )}

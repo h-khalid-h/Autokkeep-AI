@@ -66,6 +66,23 @@ export async function middleware(request: NextRequest) {
         onboardingUrl.pathname = '/onboarding';
         return NextResponse.redirect(onboardingUrl);
       }
+
+      // Admin route protection: only owners can access /admin
+      const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+      if (isAdminRoute) {
+        const { data: memberRole } = await supabase
+          .from('team_members')
+          .select('role')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (memberRole?.role !== 'owner') {
+          const dashboardUrl = request.nextUrl.clone();
+          dashboardUrl.pathname = '/dashboard';
+          return NextResponse.redirect(dashboardUrl);
+        }
+      }
     } catch (error) {
       // SECURITY: Fail-closed — redirect to onboarding on DB failure.
       // Rationale: If we can't verify org membership, we must NOT let the

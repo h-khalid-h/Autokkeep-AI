@@ -198,6 +198,9 @@ export default function IntegrationsTab({
     if (key === 'Microsoft Teams') return handleTeamsConnect;
     if (key === 'WhatsApp') return handleWhatsAppConnect;
     if (key === 'SMS') return handleSMSConnect;
+    if (key === 'OpenAI (GPT-4o)') return () => {
+      alert('OpenAI is configured server-side via environment variables.\n\nModel: GPT-4o\nConfidence threshold: 0.95\n\nContact your admin to change AI settings.');
+    };
     return undefined;
   };
 
@@ -328,7 +331,7 @@ export default function IntegrationsTab({
                           disabled
                           className={styles.comingSoon}
                         >
-                          Coming Soon
+                          Not Available
                         </Button>
                       )}
                     </div>
