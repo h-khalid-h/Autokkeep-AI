@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { Card, Badge, Button, Input, Modal } from '@/components/ui';
@@ -16,6 +16,7 @@ export default function TeamTab({
   teamMembers,
   plan,
   onRefresh,
+  entities,
 }: {
   loading: boolean;
   orgId: string;
@@ -24,12 +25,40 @@ export default function TeamTab({
   teamMembers: TeamMemberData[];
   plan: string;
   onRefresh: () => void;
+  entities: { id: string; name: string }[];
 }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('accountant');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [removeLoading, setRemoveLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [entityAssignments, setEntityAssignments] = useState<Record<string, string[]>>({});
+
+  // Load entity assignments for all entities
+  useEffect(() => {
+    async function loadAssignments() {
+      if (!entities || entities.length === 0) return;
+      try {
+        const supabase = createClient();
+        const db = supabase as unknown as SupabaseQueryClient;
+        const entityIds = entities.map(e => e.id);
+        const { data } = await db
+          .from('entity_assignments')
+          .select('user_id, entity_id')
+          .in('entity_id', entityIds);
+        if (data) {
+          const map: Record<string, string[]> = {};
+          for (const row of data as { user_id: string; entity_id: string }[]) {
+            if (!map[row.user_id]) map[row.user_id] = [];
+            map[row.user_id].push(row.entity_id);
+          }
+          setEntityAssignments(map);
+        }
+      } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAssignments();
+  }, [entities, teamMembers]);
 
   const canManageTeam = userRole === 'owner' || userRole === 'admin';
 
@@ -194,6 +223,18 @@ export default function TeamTab({
                     {displayName}{isCurrentUser ? ` (${member.role})` : ''}
                   </div>
                   <div className={styles.memberEmail}>{displayEmail}</div>
+                  <div className={styles.memberBadges}>
+                    {(member.role === 'owner' || member.role === 'admin') ? (
+                      <Badge variant="accent">All Entities</Badge>
+                    ) : (
+                      (entityAssignments[member.user_id || ''] || []).map(eid => {
+                        const ent = entities.find(e => e.id === eid);
+                        return ent ? (
+                          <Badge key={eid} variant="default">{ent.name}</Badge>
+                        ) : null;
+                      })
+                    )}
+                  </div>
                 </div>
                 <div className={styles.memberActions}>
                   <Badge variant={isAccepted ? 'success' : 'warning'}>

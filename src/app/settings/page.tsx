@@ -227,6 +227,7 @@ export default function SettingsPage() {
               teamMembers={teamMembers}
               plan={subscription?.plan || 'starter_monthly'}
               onRefresh={fetchData}
+              entities={entities}
             />
           </Tabs.Panel>
 

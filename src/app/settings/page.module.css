@@ -308,6 +308,13 @@
   color: var(--color-text-tertiary);
 }
 
+.memberBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
 .memberActions {
   display: flex;
   align-items: center;

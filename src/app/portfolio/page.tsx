@@ -6,6 +6,8 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Input, Progress, Skeleton, EmptyState, Modal, useToast } from '@/components/ui';
+import { createClient } from '@/lib/supabase/client';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import styles from './portfolio.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -35,6 +37,20 @@ interface PortfolioSummary {
 
 type SortField = 'name' | 'pending' | 'abr' | 'closeReadiness' | 'lastSync';
 type SortDir = 'asc' | 'desc';
+
+interface AssignmentData {
+  id: string;
+  entity_id: string;
+  user_id: string;
+  assigned_by: string | null;
+  created_at: string;
+}
+
+interface TeamMemberOption {
+  user_id: string;
+  email: string;
+  role: string;
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +116,15 @@ export default function PortfolioPage() {
   const [newEntityCurrency, setNewEntityCurrency] = useState('USD');
   const [addEntitySubmitting, setAddEntitySubmitting] = useState(false);
 
+  // Manage Access modal state
+  const [assignModalEntity, setAssignModalEntity] = useState<{ id: string; name: string } | null>(null);
+  const [assignments, setAssignments] = useState<AssignmentData[]>([]);
+  const [availableMembers, setAvailableMembers] = useState<TeamMemberOption[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
   const fetchPortfolio = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -120,6 +145,28 @@ export default function PortfolioPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchPortfolio();
   }, [fetchPortfolio]);
+
+  // Fetch user role for access control
+  useEffect(() => {
+    async function loadRole() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const db = supabase as unknown as SupabaseQueryClient;
+        const { data } = await db
+          .from('team_members')
+          .select('role')
+          .eq('user_id', user.id)
+          .limit(1);
+        if (data?.[0]) {
+          setUserRole(data[0].role as string);
+        }
+      } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadRole();
+  }, []);
 
   const handleAddEntity = useCallback(async () => {
     const trimmedName = newEntityName.trim();
@@ -160,6 +207,109 @@ export default function PortfolioPage() {
       setAddEntitySubmitting(false);
     }
   }, [newEntityName, newEntityFYE, newEntityCurrency, fetchPortfolio, refreshEntities, toast]);
+
+  const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
+
+  const fetchAssignments = useCallback(async (entityId: string) => {
+    try {
+      setAssignLoading(true);
+      setAssignError(null);
+      const res = await fetch(`/api/entities/${entityId}/assignments`);
+      if (!res.ok) throw new Error('Failed to load assignments');
+      const data = await res.json();
+      setAssignments(data || []);
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      setAssignLoading(false);
+    }
+  }, []);
+
+  const fetchAvailableMembers = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { data: membership } = await db
+        .from('team_members')
+        .select('org_id')
+        .eq('user_id', user.id)
+        .limit(1);
+      if (!membership?.[0]) return;
+      const { data: members } = await db
+        .from('team_members')
+        .select('user_id, invited_email, role, accepted_at')
+        .eq('org_id', membership[0].org_id)
+        .not('user_id', 'is', null);
+      if (members) {
+        setAvailableMembers(
+          members
+            .filter((m: Record<string, unknown>) => m.accepted_at)
+            .map((m: Record<string, unknown>) => ({
+              user_id: m.user_id as string,
+              email: (m.invited_email || m.user_id) as string,
+              role: m.role as string,
+            }))
+        );
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const openAssignModal = useCallback(async (entity: { id: string; name: string }) => {
+    setAssignModalEntity(entity);
+    setSelectedUserId('');
+    setAssignError(null);
+    await Promise.all([
+      fetchAssignments(entity.id),
+      fetchAvailableMembers(),
+    ]);
+  }, [fetchAssignments, fetchAvailableMembers]);
+
+  const handleAddAssignment = useCallback(async () => {
+    if (!assignModalEntity || !selectedUserId) return;
+    try {
+      setAssignLoading(true);
+      const res = await fetch(`/api/entities/${assignModalEntity.id}/assignments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add assignment');
+      }
+      toast.success('User assigned successfully');
+      setSelectedUserId('');
+      await fetchAssignments(assignModalEntity.id);
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Failed to add');
+    } finally {
+      setAssignLoading(false);
+    }
+  }, [assignModalEntity, selectedUserId, fetchAssignments, toast]);
+
+  const handleRemoveAssignment = useCallback(async (removeUserId: string) => {
+    if (!assignModalEntity) return;
+    try {
+      setAssignLoading(true);
+      const res = await fetch(`/api/entities/${assignModalEntity.id}/assignments`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: removeUserId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove assignment');
+      }
+      toast.success('Assignment removed');
+      await fetchAssignments(assignModalEntity.id);
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Failed to remove');
+    } finally {
+      setAssignLoading(false);
+    }
+  }, [assignModalEntity, fetchAssignments, toast]);
 
   // Sort and filter
   const filteredEntities = React.useMemo(() => {
@@ -430,6 +580,19 @@ export default function PortfolioPage() {
                           {/* Actions */}
                           <td className={styles.td}>
                             <div className={styles.actionsCell}>
+                              {isOwnerOrAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void openAssignModal({ id: entity.entityId, name: entity.entityName });
+                                  }}
+                                  aria-label={`Manage access for ${entity.entityName}`}
+                                >
+                                  👥
+                                </Button>
+                              )}
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -499,6 +662,86 @@ export default function PortfolioPage() {
                 <Button variant="primary" onClick={handleAddEntity} disabled={!newEntityName.trim() || addEntitySubmitting} isLoading={addEntitySubmitting}>
                   Create Entity
                 </Button>
+              </div>
+            </div>
+          </Modal>
+
+          {/* Manage Access Modal */}
+          <Modal
+            isOpen={!!assignModalEntity}
+            onClose={() => setAssignModalEntity(null)}
+            title={`Manage Access — ${assignModalEntity?.name || ''}`}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {assignError && (
+                <div role="alert" style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'var(--color-destructive-subtle)', color: 'var(--color-destructive)', fontSize: '0.875rem', border: '1px solid var(--color-destructive-border)' }}>
+                  {assignError}
+                </div>
+              )}
+
+              {/* Current Assignments */}
+              <div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-secondary)' }}>Assigned Users</h3>
+                {assignments.length === 0 && !assignLoading && (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-tertiary)' }}>No users assigned to this entity.</p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {assignments.map((a) => {
+                    const member = availableMembers.find(m => m.user_id === a.user_id);
+                    return (
+                      <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{member?.email || a.user_id}</span>
+                          {member && (
+                            <Badge variant="default">{member.role}</Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveAssignment(a.user_id)}
+                          disabled={assignLoading}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Assignment */}
+              <div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-secondary)' }}>Add User</h3>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border-primary)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: '0.875rem' }}
+                    >
+                      <option value="">Select a team member…</option>
+                      {availableMembers
+                        .filter(m => !assignments.some(a => a.user_id === m.user_id))
+                        .map(m => (
+                          <option key={m.user_id} value={m.user_id}>{m.email} ({m.role})</option>
+                        ))}
+                    </select>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleAddAssignment}
+                    disabled={!selectedUserId || assignLoading}
+                    isLoading={assignLoading}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <Button variant="ghost" onClick={() => setAssignModalEntity(null)}>Close</Button>
               </div>
             </div>
           </Modal>

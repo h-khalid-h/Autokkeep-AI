@@ -125,6 +125,20 @@ export default function EntityTab({
   const [optOutPhone, setOptOutPhone] = useState('');
   const [optOutAdding, setOptOutAdding] = useState(false);
 
+  // ── Approval Thresholds state ───────────────────────────────────────────────
+  interface ApprovalThresholdData {
+    id: string;
+    min_amount: string;
+    required_role: string;
+    requires_dual_approval: boolean;
+    created_at: string;
+  }
+  const [thresholds, setThresholds] = useState<ApprovalThresholdData[]>([]);
+  const [thrAmount, setThrAmount] = useState('');
+  const [thrRole, setThrRole] = useState('admin');
+  const [thrDual, setThrDual] = useState(false);
+  const [thrAdding, setThrAdding] = useState(false);
+
   // ── Feedback ────────────────────────────────────────────────────────────────
   const [saveResult, setSaveResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -144,7 +158,7 @@ export default function EntityTab({
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
 
-      const [profileRes, vmRes, chRes, optOutRes] = await Promise.all([
+      const [profileRes, vmRes, chRes, optOutRes, thrRes] = await Promise.all([
         // Entity profile
         db.from('entities')
           .select('id, name, legal_name, tax_id, fiscal_year_end, base_currency, country, timezone')
@@ -165,6 +179,11 @@ export default function EntityTab({
           .select('id, phone_number, entity_id, is_active, opted_out_at')
           .eq('entity_id', selectedEntityId)
           .eq('is_active', true),
+        // Approval thresholds
+        db.from('approval_thresholds')
+          .select('id, min_amount, required_role, requires_dual_approval, created_at')
+          .eq('entity_id', selectedEntityId)
+          .order('min_amount', { ascending: true }),
       ]);
 
       if (profileRes.data) {
@@ -184,6 +203,7 @@ export default function EntityTab({
       setVendorManagers((vmRes.data || []) as VendorManagerData[]);
       setCardholderMappings((chRes.data || []) as CardholderMappingData[]);
       setOptOuts((optOutRes.data || []) as ChaseOptOutData[]);
+      setThresholds((thrRes.data || []) as ApprovalThresholdData[]);
 
       // Load GL code overrides
       const { data: settingsData } = await db
@@ -414,6 +434,57 @@ export default function EntityTab({
       await loadEntityData();
     } catch (err) {
       console.error('[EntityTab] Failed to remove opt-out:', err);
+    }
+  };
+
+  // ── Add: Approval Threshold ─────────────────────────────────────────────────
+  const handleAddThreshold = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!thrAmount || !canManage) return;
+
+    const amount = parseFloat(thrAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setSaveResult({ type: 'error', message: 'Amount must be a positive number' });
+      return;
+    }
+
+    setThrAdding(true);
+    setSaveResult(null);
+
+    try {
+      const supabase = createClient();
+      const db = supabase as unknown as SupabaseQueryClient;
+      const { error: insertError } = await db
+        .from('approval_thresholds')
+        .insert({
+          entity_id: selectedEntityId,
+          min_amount: amount,
+          required_role: thrRole,
+          requires_dual_approval: thrDual,
+        });
+
+      if (insertError) throw new Error(insertError.message);
+      setThrAmount('');
+      setThrRole('admin');
+      setThrDual(false);
+      setSaveResult({ type: 'success', message: 'Approval threshold added!' });
+      await loadEntityData();
+    } catch (err) {
+      setSaveResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to add threshold' });
+    } finally {
+      setThrAdding(false);
+    }
+  };
+
+  const handleDeleteThreshold = async (id: string) => {
+    if (!canManage) return;
+    try {
+      const supabase = createClient();
+      const db = supabase as unknown as SupabaseQueryClient;
+      await db.from('approval_thresholds').delete().eq('id', id);
+      await loadEntityData();
+    } catch (err) {
+      console.error('[EntityTab] Failed to delete threshold:', err);
     }
   };
 
@@ -862,6 +933,85 @@ export default function EntityTab({
         )}
       </Card>
 
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* Section 6: Approval Thresholds                                         */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      <Card>
+        <h2 className={styles.sectionTitle}>✅ Approval Thresholds</h2>
+        <p className={styles.localeDescription}>
+          Transactions above a configured amount require explicit approval from a team member with the required role before they can be finalized.
+        </p>
+
+        {thresholds.length > 0 ? (
+          <div className={styles.memberList}>
+            {thresholds.map((thr) => (
+              <div key={thr.id} className={styles.memberRow}>
+                <div>
+                  <span className={styles.memberName}>
+                    ≥ {profile?.base_currency || '$'} {Number(thr.min_amount).toLocaleString()}
+                  </span>
+                  <span className={styles.memberEmail}>
+                    → requires {thr.required_role}
+                    {thr.requires_dual_approval && ' (dual approval)'}
+                  </span>
+                </div>
+                {canManage && (
+                  <div className={styles.memberActions}>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteThreshold(thr.id)}>
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.emptyText}>No approval thresholds configured. All transactions will be processed without approval requirements.</p>
+        )}
+
+        {canManage && (
+          <form onSubmit={handleAddThreshold} className={styles.inviteForm} style={{ marginTop: '1rem' }}>
+            <div style={{ flex: '0 0 10rem' }}>
+              <label htmlFor="thr-amount" className={styles.fieldLabel}>Minimum Amount</label>
+              <input
+                id="thr-amount"
+                type="number"
+                className={styles.select}
+                value={thrAmount}
+                onChange={(e) => setThrAmount(e.target.value)}
+                placeholder="e.g. 5000"
+                min="0.01"
+                step="0.01"
+              />
+            </div>
+            <div className={styles.inviteRoleField}>
+              <label htmlFor="thr-role" className={styles.fieldLabel}>Required Role</label>
+              <select
+                id="thr-role"
+                className={styles.select}
+                value={thrRole}
+                onChange={(e) => setThrRole(e.target.value)}
+              >
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', alignSelf: 'flex-end', paddingBottom: '0.25rem' }}>
+              <input
+                id="thr-dual"
+                type="checkbox"
+                checked={thrDual}
+                onChange={(e) => setThrDual(e.target.checked)}
+              />
+              <label htmlFor="thr-dual" className={styles.fieldLabel} style={{ margin: 0 }}>Dual approval</label>
+            </div>
+            <Button type="submit" variant="primary" disabled={thrAdding || !thrAmount} isLoading={thrAdding} style={{ alignSelf: 'flex-end' }}>
+              Add
+            </Button>
+          </form>
+        )}
+      </Card>
+
       {/* ── Info Card ── */}
       <Card variant="accent">
         <div className={styles.infoTitle}>💡 About Entity Settings</div>
@@ -869,6 +1019,7 @@ export default function EntityTab({
           Entity settings are scoped to the currently selected entity. Changes to GL codes, vendor managers, and cardholder mappings
           only affect how data is processed for this entity. Currency changes apply to new transactions only — existing data is not retroactively converted.
           Vendor manager patterns and cardholder mappings are used by the autonomous chase agent when routing receipt collection requests.
+          Approval thresholds enforce review workflows for high-value transactions.
         </div>
       </Card>
     </div>

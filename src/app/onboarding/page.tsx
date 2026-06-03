@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Progress } from '@/components/ui/Progress';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import styles from './page.module.css';
 
@@ -624,6 +625,7 @@ export default function OnboardingPage() {
   };
 
   return (
+    <ErrorBoundary componentName="Onboarding">
     <div className={styles.page}>
       {/* Header */}
       <header className={styles.header}>
@@ -1134,5 +1136,6 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
