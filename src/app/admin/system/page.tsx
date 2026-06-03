@@ -2,6 +2,7 @@
 
 import React from 'react';
 import AppShell from '@/components/layout/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Card, Badge, Skeleton, EmptyState } from '@/components/ui';
 import styles from './page.module.css';
 
@@ -82,6 +83,7 @@ export default function AdminSystemPage() {
   }, []);
 
   return (
+    <ErrorBoundary componentName="Admin System">
     <AppShell>
       <div className={styles.page}>
         <div>
@@ -216,5 +218,6 @@ export default function AdminSystemPage() {
         )}
       </div>
     </AppShell>
+    </ErrorBoundary>
   );
 }

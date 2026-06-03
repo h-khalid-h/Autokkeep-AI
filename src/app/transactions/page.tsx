@@ -6,7 +6,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Button, Card, Badge, Input, Skeleton, EmptyState } from '@/components/ui';
+import { Button, Card, Badge, Input, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ const getConfidenceColor = (conf: number) => {
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
   const { selectedEntity } = useEntity();
+  const toast = useToast();
   const entityCurrency = selectedEntity?.currency || 'USD';
   const fmtCurrency = (amount: number) => formatCurrency(amount, entityCurrency);
 
@@ -243,11 +244,13 @@ export default function TransactionsPage() {
         }),
       });
       if (!res.ok) throw new Error('Batch action failed');
+      const count = selectedIds.size;
       setSelectedIds(new Set());
+      toast.success(`${count} transaction${count > 1 ? 's' : ''} ${action === 'approve' ? 'approved' : 'rejected'}`);
       await fetchTransactions();
     } catch (err) {
       console.error('[Transactions] Batch error:', err);
-      setError('Batch action failed. Please try again.');
+      toast.error('Batch action failed. Please try again.');
     } finally {
       setBatchLoading(false);
     }
@@ -266,9 +269,10 @@ export default function TransactionsPage() {
         tx.id === txId ? { ...tx, category_human: newGlCode } : tx
       ));
       setEditingCategoryId(null);
+      toast.success('Category updated');
     } catch (err) {
       console.error('[Transactions] Category update error:', err);
-      setError('Failed to update category');
+      toast.error('Failed to update category');
     }
   };
 
@@ -323,6 +327,7 @@ export default function TransactionsPage() {
                   className={styles.statusSelect}
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                  aria-label="Filter by status"
                 >
                   <option value="">All Statuses</option>
                   <option value="pending">Pending</option>
@@ -341,6 +346,7 @@ export default function TransactionsPage() {
                     value={dateFrom}
                     onChange={e => setDateFrom(e.target.value)}
                     className={styles.dateInput}
+                    aria-label="Filter from date"
                   />
                 </div>
                 <div className={styles.dateGroup}>
@@ -350,12 +356,14 @@ export default function TransactionsPage() {
                     value={dateTo}
                     onChange={e => setDateTo(e.target.value)}
                     className={styles.dateInput}
+                    aria-label="Filter to date"
                   />
                 </div>
                 <select
                   className={styles.sortSelect}
                   value={sort}
                   onChange={e => setSort(e.target.value as SortOption)}
+                  aria-label="Sort order"
                 >
                   <option value="date_desc">Date (Newest First)</option>
                   <option value="date_asc">Date (Oldest First)</option>
@@ -544,6 +552,7 @@ export default function TransactionsPage() {
                                   onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
                                   onBlur={() => setEditingCategoryId(null)}
                                   autoFocus
+                                  aria-label={`Category for ${tx.merchant_name || 'transaction'}`}
                                 >
                                   <option value="">— Select —</option>
                                   {glAccounts.map(acct => (
@@ -556,7 +565,10 @@ export default function TransactionsPage() {
                                 <span
                                   className={styles.glCodeEditable}
                                   onClick={() => setEditingCategoryId(tx.id)}
-                                  title="Click to edit category"
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingCategoryId(tx.id); } }}
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label={`Edit category: ${glCode}`}
                                 >
                                   {glCode} ✏️
                                 </span>
