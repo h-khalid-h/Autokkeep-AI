@@ -3,13 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
-
-const VALID_CHANNELS = ['slack', 'sms', 'whatsapp', 'email', 'teams'] as const;
-type ValidChannel = typeof VALID_CHANNELS[number];
-
-function isValidChannel(value: unknown): value is ValidChannel {
-  return typeof value === 'string' && VALID_CHANNELS.includes(value as ValidChannel);
-}
+import { parseBody, schemas } from '@/lib/validation';
 
 interface ChannelPrefRow {
   entity_id: string;
@@ -76,29 +70,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const { entityId, preferredChannel, channelIdentifier } = body as {
-      entityId?: string;
-      preferredChannel?: string;
-      channelIdentifier?: string;
-    };
-
-    if (!entityId || typeof entityId !== 'string') {
-      return NextResponse.json({ error: 'entityId is required' }, { status: 400 });
-    }
-
-    if (!isValidChannel(preferredChannel)) {
-      return NextResponse.json(
-        { error: `preferredChannel must be one of: ${VALID_CHANNELS.join(', ')}` },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.channelPrefs);
+    if (!parsed.success) return parsed.error;
+    const { entityId, preferredChannel, channelIdentifier } = parsed.data;
 
     const db = supabase as unknown as SupabaseQueryClient;
     const { data, error: upsertError } = await db

@@ -156,7 +156,8 @@ describe('POST /api/chart-of-accounts', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('required');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toBeDefined();
   });
 
   it('should return 400 for invalid account type', async () => {
@@ -165,7 +166,8 @@ describe('POST /api/chart-of-accounts', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Invalid account type');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toBeDefined();
   });
 
   it('should create account and return 201', async () => {
@@ -213,15 +215,17 @@ describe('PUT /api/chart-of-accounts', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('id is required');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toBeDefined();
   });
 
   it('should update account and return 200', async () => {
-    const updatedAccount = { id: 'acc-1', code: '1000', name: 'Updated Cash', type: 'asset' };
+    const validId = '7d374be6-d01d-4dc2-84a6-69bd10cb12fa';
+    const updatedAccount = { id: validId, code: '1000', name: 'Updated Cash', type: 'asset' };
 
     // Existing account check
     const existingChain = createChainMock({
-      data: { id: 'acc-1', entity_id: 'entity-1' },
+      data: { id: validId, entity_id: 'entity-1' },
       error: null,
     });
     // Update chain
@@ -237,7 +241,7 @@ describe('PUT /api/chart-of-accounts', () => {
       return createChainMock({ data: null, error: null });
     });
 
-    const req = createPutRequest({ id: 'acc-1', name: 'Updated Cash' });
+    const req = createPutRequest({ id: validId, name: 'Updated Cash' });
     const res = await PUT(req);
 
     expect(res.status).toBe(200);

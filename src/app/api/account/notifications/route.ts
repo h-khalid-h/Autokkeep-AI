@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 interface NotificationPrefs {
   email: boolean;
@@ -65,17 +66,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.notificationPrefs);
+    if (!parsed.success) return parsed.error;
 
-    // Validate: only accept boolean values for known keys
-    const email = typeof body.email === 'boolean' ? body.email : DEFAULTS.email;
-    const slack = typeof body.slack === 'boolean' ? body.slack : DEFAULTS.slack;
-    const sms = typeof body.sms === 'boolean' ? body.sms : DEFAULTS.sms;
+    // Apply defaults for missing fields
+    const email = parsed.data.email ?? DEFAULTS.email;
+    const slack = parsed.data.slack ?? DEFAULTS.slack;
+    const sms = parsed.data.sms ?? DEFAULTS.sms;
 
     const db = supabase as unknown as SupabaseQueryClient;
     const { data, error: upsertError } = await db

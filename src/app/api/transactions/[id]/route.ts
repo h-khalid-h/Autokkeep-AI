@@ -9,6 +9,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody, schemas } from '@/lib/validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -61,14 +62,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 // ─── PUT: Update transaction (approve, change category, add receipt) ────────────
 
-interface UpdateTransactionBody {
-  glCode?: string;
-  glName?: string;
-  status?: string;
-  notes?: string;
-  receiptUrl?: string;
-  receiptId?: string;
-}
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
@@ -109,12 +102,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    let body: UpdateTransactionBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.updateTransaction);
+    if (!parsed.success) return parsed.error;
     const {
       glCode,
       glName,
@@ -122,7 +111,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       notes,
       receiptUrl,
       receiptId: _receiptId,
-    } = body;
+    } = parsed.data;
 
     // Validate GL code exists in chart of accounts for this entity
     if (glCode) {
@@ -291,7 +280,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       targetType: 'transaction',
       targetId: id,
       details: {
-        changes: body,
+        changes: parsed.data,
         previous_status: existing.status,
         previous_category_ai: existing.category_ai,
       },

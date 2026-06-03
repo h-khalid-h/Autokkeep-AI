@@ -146,7 +146,8 @@ describe('Channel Preferences API /api/account/channel-preferences', () => {
 
       expect(res.status).toBe(400);
       const json = await res.json();
-      expect(json.error).toContain('preferredChannel must be one of');
+      expect(json.error).toBe('Validation failed');
+      expect(json.details).toBeDefined();
     });
 
     it('should require entityId in body', async () => {
@@ -157,7 +158,8 @@ describe('Channel Preferences API /api/account/channel-preferences', () => {
 
       expect(res.status).toBe(400);
       const json = await res.json();
-      expect(json.error).toContain('entityId is required');
+      expect(json.error).toBe('Validation failed');
+      expect(json.details).toBeDefined();
     });
   });
 });

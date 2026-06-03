@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,17 +75,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Entity not found in your organization' }, { status: 404 });
     }
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
-    if (!userId || !UUID_RE.test(userId)) {
-      return NextResponse.json({ error: 'Valid userId (UUID) is required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.assignUser);
+    if (!parsed.success) return parsed.error;
+    const { userId } = parsed.data;
 
     // Validate user is a member of the same org
     const { data: targetMember } = await db
@@ -168,17 +161,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Entity not found in your organization' }, { status: 404 });
     }
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
-    if (!userId || !UUID_RE.test(userId)) {
-      return NextResponse.json({ error: 'Valid userId (UUID) is required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.removeUser);
+    if (!parsed.success) return parsed.error;
+    const { userId } = parsed.data;
 
     const { error: deleteError, count } = await db
       .from('entity_assignments')

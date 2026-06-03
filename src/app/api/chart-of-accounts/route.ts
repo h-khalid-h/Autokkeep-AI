@@ -8,6 +8,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: List all chart of accounts for user's entity ──────────────────────────
 
@@ -58,14 +59,7 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Create new GL account ────────────────────────────────────────────────
 
-interface CreateAccountBody {
-  code: string;
-  name: string;
-  type: string;
-  description?: string;
-  active?: boolean;
-  entityId?: string;
-}
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,29 +70,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: CreateAccountBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { code, name, type, description, active, entityId } = body;
-
-    if (!code || !name || !type) {
-      return NextResponse.json(
-        { error: 'code, name, and type are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate account type
-    const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-    if (!validTypes.includes(type.toLowerCase())) {
-      return NextResponse.json(
-        { error: `Invalid account type. Must be one of: ${validTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.createAccount);
+    if (!parsed.success) return parsed.error;
+    const { code, name, type, description, active, entityId, is_active } = parsed.data;
 
     // Resolve entity_id: use provided entityId or default to first entity
     let resolvedEntityId = entityId;
@@ -196,14 +170,7 @@ export async function POST(request: NextRequest) {
 
 // ─── PUT: Update an existing GL account ─────────────────────────────────────────
 
-interface UpdateAccountBody {
-  id: string;
-  code?: string;
-  name?: string;
-  type?: string;
-  is_active?: boolean;
-  entityId?: string;
-}
+
 
 export async function PUT(request: NextRequest) {
   try {
@@ -214,31 +181,9 @@ export async function PUT(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, db, entityIds } = ctx;
 
-    let body: UpdateAccountBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { id, code, name, type, is_active, entityId: _entityId } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Account id is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate account type if being updated
-    if (type !== undefined) {
-      const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-      if (!validTypes.includes(type.toLowerCase())) {
-        return NextResponse.json(
-          { error: `Invalid account type. Must be one of: ${validTypes.join(', ')}` },
-          { status: 400 }
-        );
-      }
-    }
+    const parsed = await parseBody(request, schemas.updateAccount);
+    if (!parsed.success) return parsed.error;
+    const { id, code, name, type, is_active, entityId: _entityId } = parsed.data;
 
     // Verify the account belongs to an entity in this org
     const { data: existing } = await db

@@ -11,12 +11,12 @@ vi.mock('@/lib/rate-limit', () => ({
 // Mock getApiAuthContext
 const mockDb = { from: vi.fn() };
 
-const VALID_ENTITY_ID = 'a0000000-0000-0000-0000-000000000010';
-const VALID_ENTITY_ID_2 = 'a0000000-0000-0000-0000-000000000020';
-const VALID_USER_ID = 'a0000000-0000-0000-0000-000000000001';
+const VALID_ENTITY_ID = 'c1a2b3c4-d5e6-4f78-9abc-def012345678';
+const VALID_ENTITY_ID_2 = 'd2b3c4d5-e6f7-4890-abcd-ef0123456789';
+const VALID_USER_ID = 'e3c4d5e6-f789-4012-bcde-f01234567890';
 
 const mockAuthContext = {
-  user: { id: 'b0000000-0000-0000-0000-000000000001', email: 'admin@example.com' },
+  user: { id: 'b0000000-0000-4000-8000-000000000001', email: 'admin@example.com' },
   membership: { id: 'tm-1', org_id: 'org-1', role: 'owner' },
   db: mockDb,
   entityIds: [VALID_ENTITY_ID, VALID_ENTITY_ID_2],
@@ -102,7 +102,7 @@ describe('Entity Assignments API /api/entities/[entityId]/assignments', () => {
   describe('GET', () => {
     it('should return assignments for an entity (owner/admin)', async () => {
       const assignments = [
-        { id: 'a1', entity_id: VALID_ENTITY_ID, user_id: VALID_USER_ID, assigned_by: 'b0000000-0000-0000-0000-000000000001', created_at: '2024-01-01' },
+        { id: 'a1', entity_id: VALID_ENTITY_ID, user_id: VALID_USER_ID, assigned_by: 'b0000000-0000-4000-8000-000000000001', created_at: '2024-01-01' },
       ];
       const chain = createChainMock({ data: assignments, error: null });
       mockDb.from.mockReturnValue(chain);
@@ -143,7 +143,7 @@ describe('Entity Assignments API /api/entities/[entityId]/assignments', () => {
       });
       // entity_assignments upsert
       const upsertChain = createChainMock({
-        data: { id: 'a1', entity_id: VALID_ENTITY_ID, user_id: VALID_USER_ID, assigned_by: 'b0000000-0000-0000-0000-000000000001', created_at: '2024-01-01' },
+        data: { id: 'a1', entity_id: VALID_ENTITY_ID, user_id: VALID_USER_ID, assigned_by: 'b0000000-0000-4000-8000-000000000001', created_at: '2024-01-01' },
         error: null,
       });
 
@@ -168,7 +168,8 @@ describe('Entity Assignments API /api/entities/[entityId]/assignments', () => {
 
       expect(res.status).toBe(400);
       const json = await res.json();
-      expect(json.error).toContain('Valid userId (UUID) is required');
+      expect(json.error).toBe('Validation failed');
+      expect(json.details).toBeDefined();
     });
 
     it('should auto-assign owner/admin to all entities', async () => {
@@ -217,7 +218,8 @@ describe('Entity Assignments API /api/entities/[entityId]/assignments', () => {
 
       expect(res.status).toBe(400);
       const json = await res.json();
-      expect(json.error).toContain('Valid userId (UUID) is required');
+      expect(json.error).toBe('Validation failed');
+      expect(json.details).toBeDefined();
     });
   });
 });

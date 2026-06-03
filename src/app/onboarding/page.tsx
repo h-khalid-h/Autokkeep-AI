@@ -170,9 +170,10 @@ export default function OnboardingPage() {
 
   // ── Auto-detect location from IP on mount ──────────────────────────────
   useEffect(() => {
+    const controller = new AbortController();
     const detectLocation = async () => {
       try {
-        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
         if (!res.ok) return;
         const geo = await res.json();
         const countryCode = (geo.country_code || '').toUpperCase();
@@ -193,11 +194,13 @@ export default function OnboardingPage() {
             setTimezone(defaults.timezone);
           }
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         // Silent — geo-detection is best-effort
       }
     };
     detectLocation();
+    return () => controller.abort();
   }, []);
 
   // ── Country change cascades to currency + timezone ─────────────────────
@@ -213,12 +216,13 @@ export default function OnboardingPage() {
 
   // ── Check for pending team invite on mount ─────────────────────────────
   useEffect(() => {
+    const controller = new AbortController();
     const checkPendingInvite = async () => {
       setIsCheckingInvite(true);
       try {
         const db = createClient() as unknown as SupabaseQueryClient;
         const { data: { user } } = await db.auth.getUser();
-        if (!user?.email) return;
+        if (controller.signal.aborted || !user?.email) return;
 
         // Check for pending invite
         const { data: pendingInvites } = await db
@@ -228,6 +232,7 @@ export default function OnboardingPage() {
           .is('user_id', null)
           .limit(1);
 
+        if (controller.signal.aborted) return;
         const pendingInvite = pendingInvites?.[0] ?? null;
         if (pendingInvite) {
           // Claim invite server-side (validates ownership + prevents double-claim)
@@ -236,6 +241,7 @@ export default function OnboardingPage() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ inviteId: pendingInvite.id }),
+              signal: controller.signal,
             });
 
             if (claimRes.ok) {
@@ -252,6 +258,8 @@ export default function OnboardingPage() {
                 // Non-fatal — use fallback name
               }
 
+              if (controller.signal.aborted) return;
+
               // Fetch an entity for this org to use for channel preference
               let entityIdForPref: string | null = null;
               try {
@@ -264,6 +272,8 @@ export default function OnboardingPage() {
               } catch {
                 // Non-fatal
               }
+
+              if (controller.signal.aborted) return;
 
               // Show welcome step instead of redirect
               setInviteClaimed(true);
@@ -283,16 +293,21 @@ export default function OnboardingPage() {
             const claimData = await claimRes.json().catch(() => ({}));
             console.warn('[Onboarding] Invite claim failed:', claimData.error);
           } catch (claimErr) {
+            if (claimErr instanceof Error && claimErr.name === 'AbortError') return;
             console.warn('[Onboarding] Invite claim network error:', claimErr);
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.warn('[Onboarding] Invite check failed:', err);
       } finally {
-        setIsCheckingInvite(false);
+        if (!controller.signal.aborted) {
+          setIsCheckingInvite(false);
+        }
       }
     };
     checkPendingInvite();
+    return () => controller.abort();
   }, [router]);
 
   // ── Load Plaid Link SDK when bank step is active ───────────────────────

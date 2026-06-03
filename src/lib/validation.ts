@@ -24,7 +24,7 @@ const uuid = z.string().uuid();
 const email = z.string().email().max(320);
 const nonEmptyString = z.string().min(1).max(1000);
 const safeString = z.string().max(5000);
-const positiveInt = z.number().int().positive();
+const _positiveInt = z.number().int().positive();
 const currency = z.enum([
   'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'NZD', 'INR', 'BRL', 'MXN',
 ]);
@@ -53,8 +53,11 @@ export const schemas = {
   updateTransaction: z.object({
     status: z.enum(['pending', 'approved', 'rejected', 'human_review']).optional(),
     glCode: z.string().max(50).optional(),
+    glName: z.string().max(200).optional(),
     notes: safeString.optional(),
     category: z.string().max(200).optional(),
+    receiptUrl: z.string().url().optional(),
+    receiptId: z.string().max(200).optional(),
   }).refine(data => Object.keys(data).length > 0, {
     message: 'At least one field must be provided',
   }),
@@ -72,6 +75,8 @@ export const schemas = {
     parent_code: z.string().max(20).optional().nullable(),
     description: safeString.optional(),
     is_active: z.boolean().optional().default(true),
+    active: z.boolean().optional(),
+    entityId: z.string().uuid().optional(),
   }),
 
   updateAccount: z.object({
@@ -82,6 +87,7 @@ export const schemas = {
     parent_code: z.string().max(20).optional().nullable(),
     description: safeString.optional(),
     is_active: z.boolean().optional(),
+    entityId: z.string().uuid().optional(),
   }),
 
   // Entity assignments
@@ -103,17 +109,16 @@ export const schemas = {
 
   // Notification preferences
   notificationPrefs: z.object({
-    email_digest: z.boolean().optional(),
-    slack_alerts: z.boolean().optional(),
-    sms_urgent: z.boolean().optional(),
+    email: z.boolean().optional(),
+    slack: z.boolean().optional(),
+    sms: z.boolean().optional(),
   }),
 
   // Channel preferences
   channelPrefs: z.object({
-    preferred_channels: z.array(z.enum(['email', 'sms', 'slack', 'teams', 'whatsapp'])).optional(),
-    quiet_hours_start: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-    quiet_hours_end: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-    timezone: z.string().max(50).optional(),
+    entityId: z.string().min(1),
+    preferredChannel: z.enum(['email', 'sms', 'slack', 'teams', 'whatsapp']),
+    channelIdentifier: z.string().max(200).optional(),
   }),
 
   // AI categorize

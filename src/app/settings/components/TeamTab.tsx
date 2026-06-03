@@ -36,6 +36,7 @@ export default function TeamTab({
 
   // Load entity assignments for all entities
   useEffect(() => {
+    let cancelled = false;
     async function loadAssignments() {
       if (!entities || entities.length === 0) return;
       try {
@@ -46,6 +47,7 @@ export default function TeamTab({
           .from('entity_assignments')
           .select('user_id, entity_id')
           .in('entity_id', entityIds);
+        if (cancelled) return;
         if (data) {
           const map: Record<string, string[]> = {};
           for (const row of data as { user_id: string; entity_id: string }[]) {
@@ -55,11 +57,13 @@ export default function TeamTab({
           setEntityAssignments(map);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error('[TeamTab] Failed to load entity assignments:', err);
       }
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAssignments();
+    return () => { cancelled = true; };
   }, [entities, teamMembers]);
 
   const canManageTeam = userRole === 'owner' || userRole === 'admin';
