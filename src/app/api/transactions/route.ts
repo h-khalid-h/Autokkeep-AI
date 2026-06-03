@@ -173,6 +173,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create manual transaction
+    const retentionDate = new Date();
+    retentionDate.setFullYear(retentionDate.getFullYear() + 7);
+
     const { data: transaction, error: txError } = await db
       .from('transactions')
       .insert({
@@ -187,6 +190,8 @@ export async function POST(request: NextRequest) {
         description: notes || null,
         status: glCode ? 'approved' : 'pending',
         confidence: glCode ? 100 : 0,
+        created_by: user.id,
+        retention_lock_until: retentionDate.toISOString().split('T')[0],
       })
       .select()
       .single();

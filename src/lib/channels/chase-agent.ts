@@ -421,14 +421,14 @@ export async function runReceiptChase(
   const now = Date.now();
   const lastRun = lastRunByEntity.get(entityId) || 0;
   if (now - lastRun < MIN_RUN_INTERVAL_MS) {
-    console.info(`[Chase Agent] Skipping entity ${entityId} — in-memory guard: another run started within the last 60s`);
+    console.error(`[Chase Agent] Skipping entity ${entityId} — in-memory guard: another run started within the last 60s`);
     return { entityId, totalChased: 0, byChannel: {}, skipped: 0, errors: [], timestamp: new Date().toISOString() };
   }
 
   // E9: Redis-based distributed lock (primary guard in serverless)
   const lockAcquired = await acquireChaseRunLock(entityId);
   if (!lockAcquired) {
-    console.info(`[Chase Agent] Skipping entity ${entityId} — Redis lock held by another instance`);
+    console.error(`[Chase Agent] Skipping entity ${entityId} — Redis lock held by another instance`);
     return { entityId, totalChased: 0, byChannel: {}, skipped: 0, errors: [], timestamp: new Date().toISOString() };
   }
 

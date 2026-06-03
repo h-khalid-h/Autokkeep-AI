@@ -14,11 +14,14 @@ import { rateLimit } from '@/lib/rate-limit';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+const MAX_RETRY_COUNT = 3;
+
 interface OcrQueueItem {
   id: string;
   entity_id: string;
   transaction_id: string | null;
   file_url: string;
+  retry_count: number;
 }
 
 interface ProcessingResult {
@@ -47,11 +50,25 @@ export async function POST(request: NextRequest) {
     const db = supabase as unknown as SupabaseQueryClient;
 
     // ── Fetch pending OCR queue items ───────────────────────────────────
-    const { data: queueItems, error: queueError } = await db
+    const { data: pendingItems, error: pendingError } = await db
       .from('receipt_ocr_queue')
-      .select('id, entity_id, transaction_id, file_url')
+      .select('id, entity_id, transaction_id, file_url, retry_count')
       .eq('status', 'pending')
       .limit(10);
+
+    // ── Fetch failed items eligible for retry ───────────────────────────
+    const { data: retryItems, error: retryError } = await db
+      .from('receipt_ocr_queue')
+      .select('id, entity_id, transaction_id, file_url, retry_count')
+      .eq('status', 'failed')
+      .lt('retry_count', MAX_RETRY_COUNT)
+      .limit(5);
+
+    const queueError = pendingError || retryError;
+    const queueItems = [
+      ...(pendingItems ?? []),
+      ...(retryItems ?? []),
+    ];
 
     if (queueError) {
       console.error('[Cron OCR] Failed to fetch queue:', queueError);
@@ -74,6 +91,12 @@ export async function POST(request: NextRequest) {
 
     for (const item of queueItems as OcrQueueItem[]) {
       try {
+        // Mark item as processing ─────────────────────────────────────────
+        await db
+          .from('receipt_ocr_queue')
+          .update({ status: 'processing' })
+          .eq('id', item.id);
+
         // Step 1: Extract receipt data via OCR
         const extractedData = await extractReceiptData(item.file_url);
 
@@ -128,18 +151,38 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (err: unknown) {
-        // ── Error: mark as failed ───────────────────────────────────────
+        // ── Error: retry or permanently fail ─────────────────────────────
         const errorMessage = err instanceof Error ? err.message : 'Unknown OCR error';
-        console.error(`[Cron OCR] Failed to process item ${item.id}:`, err);
+        const nextRetryCount = (item.retry_count ?? 0) + 1;
+        const isPermanentFailure = nextRetryCount >= MAX_RETRY_COUNT;
 
-        await db
-          .from('receipt_ocr_queue')
-          .update({
-            status: 'failed',
-            error_message: errorMessage,
-            processed_at: new Date().toISOString(),
-          })
-          .eq('id', item.id);
+        console.error(
+          `[Cron OCR] Failed to process item ${item.id} (attempt ${nextRetryCount}/${MAX_RETRY_COUNT}):`,
+          err
+        );
+
+        if (isPermanentFailure) {
+          // Max retries exhausted — mark as permanently failed
+          await db
+            .from('receipt_ocr_queue')
+            .update({
+              status: 'failed',
+              retry_count: nextRetryCount,
+              error_message: errorMessage,
+              processed_at: new Date().toISOString(),
+            })
+            .eq('id', item.id);
+        } else {
+          // Re-queue for retry with incremented retry_count
+          await db
+            .from('receipt_ocr_queue')
+            .update({
+              status: 'pending',
+              retry_count: nextRetryCount,
+              error_message: errorMessage,
+            })
+            .eq('id', item.id);
+        }
 
         results.push({
           id: item.id,

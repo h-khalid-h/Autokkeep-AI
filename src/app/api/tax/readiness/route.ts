@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { analyzeTaxReadiness } from '@/lib/tax/readiness';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { user, membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -55,6 +56,36 @@ export async function GET(request: NextRequest) {
 
     // Run tax readiness analysis
     const report = await analyzeTaxReadiness(entityId, taxYear, db);
+
+    // Audit log: tax readiness analysis executed (F24: persist full breakdown)
+    const receiptCompliancePct = report.missingReceipts.length > 0
+      ? Math.round(
+          ((report.deductionsByCategory.reduce((s, c) => s + c.count, 0) - report.missingReceipts.length) /
+           Math.max(1, report.deductionsByCategory.reduce((s, c) => s + c.count, 0))) * 100
+        )
+      : 100;
+
+    await writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'view',
+      targetType: 'tax_readiness',
+      details: {
+        taxYear,
+        readinessScore: report.readinessScore,
+        totalExpenses: report.totalExpenses,
+        totalDeductible: report.totalDeductible,
+        estimatedSavings: report.estimatedSavings,
+        categoryCount: report.deductionsByCategory.length,
+        missingReceiptCount: report.missingReceipts.length,
+        receiptCompliancePct,
+        topCategories: report.deductionsByCategory.slice(0, 5).map(c => c.category),
+        recommendationCount: report.recommendations.length,
+      },
+      request,
+    });
 
     return NextResponse.json({ report });
   } catch (error) {

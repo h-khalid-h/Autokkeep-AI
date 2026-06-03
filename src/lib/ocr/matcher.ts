@@ -135,6 +135,18 @@ export async function matchReceiptToTransaction(
   entityId: string,
   extractedData: ExtractedReceiptData
 ): Promise<MatchResult | null> {
+  // ── F22: Duplicate receipt detection ─────────────────────────────────
+  // Before matching, check if a receipt with the same extracted amount +
+  // vendor + date already exists in a 'matched' state.  This prevents the
+  // same physical receipt from being attached twice.
+  const isDuplicate = await checkDuplicateReceipt(db, entityId, extractedData);
+  if (isDuplicate) {
+    console.error(
+      `[OCR Matcher] Duplicate receipt detected: vendor="${extractedData.vendor}" amount=${extractedData.amount} date=${extractedData.date}`
+    );
+    return null;
+  }
+
   // Query recent transactions within the configurable lookback window
   const lookbackDate = new Date();
   lookbackDate.setDate(lookbackDate.getDate() - OCR_LOOKBACK_DAYS);
@@ -182,4 +194,56 @@ export async function matchReceiptToTransaction(
   }
 
   return bestMatch;
+}
+
+// ─── F22: Duplicate Receipt Detection ──────────────────────────────────────
+
+/**
+ * Checks if a receipt with the same extracted amount, vendor, and date has
+ * already been matched in `receipt_ocr_queue`. Uses the `extracted_data`
+ * JSONB column for comparison.
+ */
+async function checkDuplicateReceipt(
+  db: SupabaseQueryClient,
+  entityId: string,
+  extractedData: ExtractedReceiptData
+): Promise<boolean> {
+  try {
+    const { data: existing, error } = await db
+      .from('receipt_ocr_queue')
+      .select('id, extracted_data')
+      .eq('entity_id', entityId)
+      .eq('status', 'matched');
+
+    if (error || !existing || existing.length === 0) {
+      return false;
+    }
+
+    // Compare extracted data fields for duplicates
+    const targetVendor = extractedData.vendor.toLowerCase().trim();
+    const targetAmount = extractedData.amount;
+    const targetDate = extractedData.date;
+
+    for (const row of existing) {
+      const data = row.extracted_data as {
+        vendor?: string;
+        amount?: number;
+        date?: string;
+      } | null;
+      if (!data) continue;
+
+      const matchVendor = (data.vendor || '').toLowerCase().trim() === targetVendor;
+      const matchAmount = data.amount !== undefined && Math.abs(data.amount - targetAmount) < 0.01;
+      const matchDate = data.date === targetDate;
+
+      if (matchVendor && matchAmount && matchDate) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    // Non-fatal — allow matching to proceed if duplicate check fails
+    return false;
+  }
 }

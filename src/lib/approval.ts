@@ -158,6 +158,51 @@ export async function processApproval(
     );
   }
 
+  // ── F2: SOD — Creator cannot be the approver ──────────────────────────
+  // COSO principle: the person who initiates a transaction must not be the
+  // same person who approves it. This prevents self-dealing and embezzlement.
+  if (decision === 'approved') {
+    const { data: txn } = await db
+      .from('transactions')
+      .select('created_by')
+      .eq('id', req.transaction_id)
+      .single();
+
+    if (txn?.created_by && txn.created_by === userId) {
+      throw new Error(
+        'SOD violation: transaction creator cannot approve their own transaction',
+      );
+    }
+  }
+
+  // ── F3: Dual approval enforcement ─────────────────────────────────────
+  // If the matching threshold requires dual approval, check whether a prior
+  // approval from a DIFFERENT user already exists. If not, mark this as the
+  // first approval and keep the transaction in pending state.
+  let isDualApprovalPartial = false;
+  if (decision === 'approved' && req.threshold_id) {
+    const { data: threshold } = await db
+      .from('approval_thresholds')
+      .select('requires_dual_approval')
+      .eq('id', req.threshold_id)
+      .single();
+
+    if (threshold?.requires_dual_approval) {
+      // Check for a prior approval from a DIFFERENT user
+      const { data: priorApprovals } = await db
+        .from('approval_requests')
+        .select('id, approver_user_id')
+        .eq('transaction_id', req.transaction_id)
+        .eq('status', 'approved')
+        .neq('approver_user_id', userId);
+
+      if (!priorApprovals || priorApprovals.length === 0) {
+        // This is the first of two required approvals
+        isDualApprovalPartial = true;
+      }
+    }
+  }
+
   const decidedAt = new Date().toISOString();
 
   // Update approval_requests row
@@ -177,6 +222,39 @@ export async function processApproval(
   }
 
   // Update the underlying transaction status
+  // For dual approval: first approver keeps the transaction in 'human_review'
+  // and a new pending approval request is created for the second approver.
+  if (isDualApprovalPartial) {
+    // Create a second approval request for another qualified user
+    await db.from('approval_requests').insert({
+      entity_id: req.entity_id,
+      transaction_id: req.transaction_id,
+      requested_role: req.requested_role,
+      threshold_id: req.threshold_id,
+      status: 'pending',
+    });
+
+    await writeAuditLog({
+      supabase: db,
+      entityId: req.entity_id,
+      actorId: userId,
+      actorType: 'human',
+      action: 'approve',
+      targetType: 'approval_request',
+      targetId: approvalId,
+      details: {
+        decision: 'approved (1 of 2 — dual approval)',
+        transaction_id: req.transaction_id,
+        required_role: req.requested_role,
+        actor_role: userRole,
+        dual_approval: true,
+        awaiting_second_approver: true,
+      },
+    });
+
+    return updated as ApprovalRequest;
+  }
+
   const newTxStatus = decision === 'approved' ? 'approved' : 'removed';
 
   await db

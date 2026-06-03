@@ -9,6 +9,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { runHealthCheck, computeHealthScore } from '@/lib/ai/health-monitor';
 import type { HealthAlert } from '@/lib/ai/health-monitor';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 
 // ─── GET: Run or return cached health alerts ───────────────────────────────
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { user, membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -83,15 +84,29 @@ export async function GET(request: NextRequest) {
     const sorted = sortBySeverity(alerts);
     const score = computeHealthScore(sorted);
 
+    const alertCount = {
+      critical: sorted.filter((a) => a.severity === 'critical').length,
+      warning: sorted.filter((a) => a.severity === 'warning').length,
+      info: sorted.filter((a) => a.severity === 'info').length,
+    };
+
+    // Audit log: health check executed
+    await writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'view',
+      targetType: 'health_check',
+      details: { healthScore: score, alertCount, cached: false },
+      request,
+    });
+
     return NextResponse.json({
       alerts: sorted,
       healthScore: score,
       cached: false,
-      alertCount: {
-        critical: sorted.filter((a) => a.severity === 'critical').length,
-        warning: sorted.filter((a) => a.severity === 'warning').length,
-        info: sorted.filter((a) => a.severity === 'info').length,
-      },
+      alertCount,
     });
   } catch (error) {
     console.error('[Insights/Health] Error:', error);

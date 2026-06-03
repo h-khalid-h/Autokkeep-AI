@@ -16,6 +16,7 @@ import type {
   EntityComplianceConfig,
 } from '@/lib/compliance';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { user, membership, db } = ctx;
 
     // Parse body
     const parsed = await parseBody(request, schemas.complianceCheck);
@@ -97,6 +98,18 @@ export async function POST(request: NextRequest) {
 
     // Run the compliance check
     const result = runComplianceCheck(region, transactions, entityConfig);
+
+    // Audit log: compliance check executed
+    await writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'view',
+      targetType: 'compliance_check',
+      details: { region, score: result.score, violationCount: result.violations.length },
+      request,
+    });
 
     return NextResponse.json({
       result,

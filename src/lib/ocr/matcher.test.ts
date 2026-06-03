@@ -46,6 +46,7 @@ function makeExtractedData(
     tax: 2.0,
     currency: 'USD',
     lineItems: [],
+    businessPurpose: null,
     ...overrides,
   };
 }

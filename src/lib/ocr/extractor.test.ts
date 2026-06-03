@@ -40,6 +40,7 @@ describe('extractReceiptData', () => {
         { description: 'Office Paper', amount: 29.99 },
         { description: 'Pens', amount: 9.75 },
       ],
+      businessPurpose: 'Office supplies',
     };
 
     mockCreate.mockResolvedValue({
@@ -61,6 +62,7 @@ describe('extractReceiptData', () => {
     expect(result.currency).toBe('USD');
     expect(result.lineItems).toHaveLength(2);
     expect(result.lineItems[0].description).toBe('Office Paper');
+    expect(result.businessPurpose).toBe('Office supplies');
   });
 
   it('throws on OpenAI API error', async () => {
@@ -111,6 +113,7 @@ describe('extractReceiptData', () => {
       tax: null,
       currency: 'USD',
       lineItems: [],
+      businessPurpose: null,
     };
 
     mockCreate.mockResolvedValue({
@@ -136,6 +139,7 @@ describe('extractReceiptData', () => {
       tax: null,
       currency: '',
       lineItems: [],
+      businessPurpose: null,
     };
 
     mockCreate.mockResolvedValue({

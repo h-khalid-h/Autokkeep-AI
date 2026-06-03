@@ -9,6 +9,31 @@
 
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getGLCode } from '@/lib/entity-settings';
+
+// ─── F21: Entity-Configurable GL Codes ─────────────────────────────────────
+
+/**
+ * Reads reconciliation GL codes from `entity_settings`, falling back to
+ * hardcoded defaults when no overrides exist.
+ *
+ * Setting keys:
+ *  - `bank_fees_gl`  → default '6180'
+ *  - `suspense_gl`   → default '2900'
+ *  - `cash_gl`       → default '1010'
+ */
+export async function getEntityGLConfig(
+  db: SupabaseQueryClient,
+  entityId: string
+): Promise<Required<GLCodeOverrides>> {
+  const [bankFeesGL, suspenseGL, cashGL] = await Promise.all([
+    getGLCode(db, entityId, 'bank_fees_gl'),
+    getGLCode(db, entityId, 'suspense_gl'),
+    getGLCode(db, entityId, 'cash_gl'),
+  ]);
+
+  return { bankFeesGL, suspenseGL, cashGL };
+}
 
 /** Optional GL code overrides — callers can pass entity-specific codes */
 export interface GLCodeOverrides {
@@ -156,6 +181,11 @@ export async function createFeeAdjustingEntry(
     gl
   );
 
+  // F9: Auto-post guard — only auto-post known fees ≤$10.
+  // Larger known fees still get the correct GL code but require manual review
+  // to prevent systematic drainage through manipulated bank feed data.
+  const canAutoPost = analysis.isKnownFee && absVariance <= 10;
+
   // Create the adjusting journal entry
   const { data: journalEntry, error: jeError } = await supabase
     .from('journal_entries')
@@ -163,9 +193,9 @@ export async function createFeeAdjustingEntry(
       entity_id: input.entityId,
       transaction_id: input.transactionId,
       entry_date: input.date,
-      memo: `Auto-reconciliation: ${analysis.description} for ${input.merchantName} ($${absVariance.toFixed(2)})`,
-      status: analysis.isKnownFee ? 'posted' : 'draft',
-      posted_at: analysis.isKnownFee ? new Date().toISOString() : null,
+      memo: `Auto-reconciliation: ${analysis.description} for ${input.merchantName} ($${absVariance.toFixed(2)})${!canAutoPost && analysis.isKnownFee ? ' [pending review]' : ''}`,
+      status: canAutoPost ? 'posted' : 'draft',
+      posted_at: canAutoPost ? new Date().toISOString() : null,
       created_at: new Date().toISOString(),
     })
     .select('id')
@@ -218,7 +248,8 @@ export async function createFeeAdjustingEntry(
       expected_amount: input.expectedAmount,
       variance: absVariance,
       fee_type: analysis.description,
-      auto_posted: analysis.isKnownFee,
+      auto_posted: canAutoPost,
+      requires_review: analysis.isKnownFee && !canAutoPost,
     },
   });
 
@@ -228,8 +259,10 @@ export async function createFeeAdjustingEntry(
     varianceGlCode: analysis.glCode,
     varianceGlName: analysis.glName,
     journalEntryId: journalEntry.id,
-    reasoning: analysis.isKnownFee
+    reasoning: canAutoPost
       ? `Auto-reconciled: ${analysis.description}. Adjusting entry posted.`
-      : `Variance of $${absVariance.toFixed(2)} routed to ${analysis.glName} for manual review.`,
+      : analysis.isKnownFee
+        ? `Known fee (${analysis.description}) of $${absVariance.toFixed(2)} created as draft for review.`
+        : `Variance of $${absVariance.toFixed(2)} routed to ${analysis.glName} for manual review.`,
   };
 }

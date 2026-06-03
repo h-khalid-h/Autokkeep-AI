@@ -7,11 +7,25 @@ vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue(null),
 }));
 
+// Mock audit log — F15/F24 added audit logging to tax readiness
+vi.mock('@/lib/audit', () => ({
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockReport = {
   score: 85,
+  readinessScore: 85,
   category: 'Ready',
   issues: [],
   recommendations: ['Review depreciation schedules'],
+  totalExpenses: 10000,
+  totalDeductible: 7500,
+  estimatedSavings: 1875,
+  deductionsByCategory: [
+    { category: 'Office Supplies', amount: 3000, count: 15 },
+    { category: 'Software', amount: 4500, count: 8 },
+  ],
+  missingReceipts: [],
 };
 
 vi.mock('@/lib/tax/readiness', () => ({

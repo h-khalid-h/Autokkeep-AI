@@ -113,6 +113,14 @@ function createMockSupabase(opts: {
       } else if (table === 'bank_accounts') {
         chain.then = (resolve: any) =>
           resolve({ data: bankAccounts, error: null });
+      } else if (table === 'journal_entries') {
+        // Trial balance check queries journal entries — return empty
+        chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'journal_lines') {
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
       } else if (table === 'accounting_periods') {
         // Used by closePeriod
       }
@@ -168,12 +176,13 @@ describe('runMonthEndClose', () => {
       expect(report.readinessScore).toBeLessThanOrEqual(100);
     });
 
-    it('includes 5 check types', async () => {
+    it('includes 6 check types', async () => {
       const supabase = createMockSupabase({ transactions: [makeTx()] });
       const report = await runMonthEndClose('entity-1', 2025, 6, supabase);
 
-      expect(report.checks).toHaveLength(5);
+      expect(report.checks).toHaveLength(6);
       const checkNames = report.checks.map((c) => c.name);
+      expect(checkNames).toContain('Trial Balance');
       expect(checkNames).toContain('Bank Reconciliation');
       expect(checkNames).toContain('Receipt Documentation');
       expect(checkNames).toContain('Transaction Categorization');

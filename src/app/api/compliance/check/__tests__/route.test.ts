@@ -13,12 +13,17 @@ vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
 }));
 
+// Mock audit log — F15 added audit logging to compliance checks
+vi.mock('@/lib/audit', () => ({
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock compliance engine
 vi.mock('@/lib/compliance', () => ({
   runComplianceCheck: vi.fn().mockReturnValue({
     region: 'estonia',
     score: 85,
-    issues: [],
+    violations: [],
     passed: true,
   }),
 }));

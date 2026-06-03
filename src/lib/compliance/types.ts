@@ -2,7 +2,7 @@
 // Compliance Plugin System — Core Types
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export type ComplianceRegion = 'estonia' | 'qatar' | 'hong_kong' | 'japan' | 'india';
+export type ComplianceRegion = 'estonia' | 'qatar' | 'hong_kong' | 'japan' | 'india' | 'united_states';
 export type ComplianceSeverity = 'info' | 'warning' | 'violation';
 
 export interface ComplianceRule {
@@ -50,6 +50,7 @@ export interface TransactionForCompliance {
   category_human: string | null;
   document_status: string | null;
   gl_code: string | null;
+  notes?: string | null;
 }
 
 export interface EntityComplianceConfig {

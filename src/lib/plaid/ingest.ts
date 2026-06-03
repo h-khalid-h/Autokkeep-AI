@@ -77,6 +77,10 @@ export async function ingestTransactions(
 
   // ── 2. Upsert new transactions ────────────────────────────────────────
   if (syncResult.added.length > 0) {
+    const sevenYearsLater = new Date();
+    sevenYearsLater.setFullYear(sevenYearsLater.getFullYear() + 7);
+    const retentionDate = sevenYearsLater.toISOString().split('T')[0];
+
     const records = syncResult.added.map((t) => ({
       entity_id: entityId,
       bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
@@ -88,6 +92,7 @@ export async function ingestTransactions(
       currency: t.iso_currency_code || 'USD',
       status: 'pending',
       confidence: 0,
+      retention_lock_until: retentionDate,
     }));
 
     const { error } = await supabase

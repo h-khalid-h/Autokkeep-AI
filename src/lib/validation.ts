@@ -159,7 +159,7 @@ export const schemas = {
   // Compliance check (POST /api/compliance/check)
   complianceCheck: z.object({
     entityId: uuid,
-    region: z.enum(['estonia', 'qatar', 'hong_kong', 'japan', 'india']),
+    region: z.enum(['estonia', 'qatar', 'hong_kong', 'japan', 'india', 'united_states']),
   }),
 
   // Health alert action (PATCH /api/insights/health)
@@ -199,6 +199,28 @@ export const schemas = {
 
   deleteVendorManager: z.object({
     id: uuid,
+  }),
+
+  // Vendors
+  createVendor: z.object({
+    entityId: uuid,
+    name: nonEmptyString,
+    vendorType: z.enum(['individual', 'corporation', 'partnership', 'llc', 'nonprofit', 'government', 'unknown']).optional(),
+    email: email.optional(),
+    phone: z.string().max(30).optional(),
+    address: safeString.optional(),
+  }),
+
+  updateVendor: z.object({
+    vendorType: z.enum(['individual', 'corporation', 'partnership', 'llc', 'nonprofit', 'government', 'unknown']).optional(),
+    w9Status: z.enum(['not_collected', 'requested', 'received', 'verified', 'expired']).optional(),
+    email: email.optional().nullable(),
+    phone: z.string().max(30).optional().nullable(),
+    address: safeString.optional().nullable(),
+    notes: safeString.optional().nullable(),
+    isActive: z.boolean().optional(),
+  }).refine(data => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
   }),
 
   // Onboarding bootstrap

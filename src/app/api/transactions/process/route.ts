@@ -10,7 +10,10 @@ import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
+import { resolveOrCreateVendor } from '@/lib/vendors/service';
+import { applyFxConversion } from '@/lib/fx/service';
 import { parseBody, schemas } from '@/lib/validation';
 import type {
   TransactionInput,
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -104,6 +107,68 @@ export async function POST(request: NextRequest) {
           const errorMsg = `Failed to sync connection ${connection.id}: ${syncError instanceof Error ? syncError.message : 'Unknown error'}`;
           summary.sync.errors.push(errorMsg);
           console.error('[Process Pipeline]', errorMsg);
+        }
+      }
+    }
+
+    // ── Step 1.5: Post-sync enrichment ──────────────────────────────────────
+    // Wire F4 (vendor resolution), F8 (FX conversion), F12 (retention lock),
+    // and F13 (created_by) into newly ingested transactions.
+
+    const { data: freshTransactions } = await db
+      .from('transactions')
+      .select('id, merchant_name, currency, amount, vendor_id, created_by, retention_lock_until')
+      .eq('entity_id', entityId)
+      .eq('status', 'pending')
+      .is('vendor_id', null);
+
+    if (freshTransactions && freshTransactions.length > 0) {
+      const baseCurrency = (entity.base_currency as string) || 'USD';
+      const sevenYearsLater = new Date();
+      sevenYearsLater.setFullYear(sevenYearsLater.getFullYear() + 7);
+      const retentionDate = sevenYearsLater.toISOString().split('T')[0];
+
+      for (const tx of freshTransactions as { id: string; merchant_name: string | null; currency: string; amount: number; vendor_id: string | null; created_by: string | null; retention_lock_until: string | null }[]) {
+        const updates: Record<string, unknown> = {};
+
+        // F13: Set created_by if missing
+        if (!tx.created_by) {
+          updates.created_by = user.id;
+        }
+
+        // F12: Set retention lock if missing (IRS 7-year rule)
+        if (!tx.retention_lock_until) {
+          updates.retention_lock_until = retentionDate;
+        }
+
+        // F4: Resolve vendor
+        if (!tx.vendor_id && tx.merchant_name) {
+          try {
+            const vendor = await resolveOrCreateVendor(db, entityId, tx.merchant_name);
+            if (vendor) {
+              updates.vendor_id = vendor.id;
+            }
+          } catch (vendorErr) {
+            console.error('[Process Pipeline] Vendor resolution failed for tx', tx.id, vendorErr);
+          }
+        }
+
+        // F8: Apply FX conversion for multi-currency transactions
+        if (tx.currency && tx.currency !== baseCurrency) {
+          try {
+            await applyFxConversion(db, tx.id, tx.currency, tx.amount, baseCurrency);
+          } catch (fxErr) {
+            console.error('[Process Pipeline] FX conversion failed for tx', tx.id, fxErr);
+          }
+        }
+
+        // Batch update non-FX fields (FX already updates via applyFxConversion)
+        if (Object.keys(updates).length > 0) {
+          await db
+            .from('transactions')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', tx.id)
+            .eq('entity_id', entityId);
         }
       }
     }
@@ -217,13 +282,92 @@ export async function POST(request: NextRequest) {
         );
         triageCache.set(txId, triage);
 
-        const targetStatus = result.confidence === 0 && !result.glCode
+        let targetStatus = result.confidence === 0 && !result.glCode
           ? 'categorization_failed'
           : triage.targetStatus;
 
+        // ── F20: Approval threshold check during auto-categorization ──
+        // Even if confidence is high enough to auto-commit, the transaction
+        // may exceed an entity-level approval threshold that requires human
+        // sign-off.  Override the status and create an approval request.
+        let approvalOverridden = false;
+        if (triage.decision === 'auto_commit' && result.glCode) {
+          try {
+            const approvalCheck = await checkApprovalRequired(
+              db,
+              entityId,
+              typeof txAmount === 'number' ? Math.abs(txAmount) : 0,
+            );
+            if (approvalCheck?.required) {
+              targetStatus = 'human_review';
+              approvalOverridden = true;
+              await requestApproval(
+                db,
+                entityId,
+                txId,
+                approvalCheck.role,
+                approvalCheck.thresholdId,
+              );
+            }
+          } catch (approvalError) {
+            console.error(
+              '[Process Pipeline] Approval threshold check failed for tx',
+              txId,
+              approvalError,
+            );
+            // On error, fail safe: send to human review
+            targetStatus = 'human_review';
+            approvalOverridden = true;
+          }
+        }
+
+        // ── F11: Inline fraud scoring ──────────────────────────────────
+        // Before auto-approving, check for potential fraud signals:
+        // 1. Duplicate detection: same vendor + similar amount (±5%) within 7 days
+        // 2. Round-number suspicion: exact multiples of $100 over $500
+        let fraudFlagged = false;
+        if (triage.decision === 'auto_commit' && !approvalOverridden && originalTx) {
+          const merchantName = (originalTx.merchant_name || originalTx.merchant_raw || '') as string;
+          const absAmount = Math.abs(typeof txAmount === 'number' ? txAmount : 0);
+
+          // Check 1: Duplicate detection — same vendor, similar amount, within 7 days
+          if (merchantName && absAmount > 0) {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const { data: similarTxns } = await db
+              .from('transactions')
+              .select('id, amount')
+              .eq('entity_id', entityId)
+              .ilike('merchant_name', merchantName)
+              .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+              .neq('id', txId)
+              .neq('status', 'removed')
+              .limit(5);
+
+            if (similarTxns && similarTxns.length > 0) {
+              const duplicateMatch = similarTxns.find((s: { amount: number }) => {
+                const diff = Math.abs(Math.abs(s.amount) - absAmount);
+                return diff / absAmount <= 0.05; // within 5%
+              });
+
+              if (duplicateMatch && absAmount >= 50) {
+                fraudFlagged = true;
+                targetStatus = 'human_review';
+              }
+            }
+          }
+
+          // Check 2: Round-number suspicion — exact multiples of $100 above $500
+          if (!fraudFlagged && absAmount >= 500 && absAmount % 100 === 0) {
+            fraudFlagged = true;
+            targetStatus = 'human_review';
+          }
+        }
+
         if (result.confidence === 0 && !result.glCode) {
           summary.categorization.failed++;
-        } else if (triage.decision === 'auto_commit') {
+        } else if (triage.decision === 'auto_commit' && !approvalOverridden && !fraudFlagged) {
           summary.categorization.auto_approved++;
         } else {
           summary.categorization.flagged_for_review++;
@@ -234,7 +378,7 @@ export async function POST(request: NextRequest) {
           .update({
             category_ai: result.glCode || null,
             confidence: Math.round(triage.confidence.compositeScore * 100),
-            ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
+            ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}${approvalOverridden ? ', approval_threshold_override' : ''}${fraudFlagged ? ', fraud_flag' : ''}]`,
             status: targetStatus,
             updated_at: new Date().toISOString(),
           })

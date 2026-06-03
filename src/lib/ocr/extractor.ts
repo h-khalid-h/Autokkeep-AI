@@ -18,6 +18,7 @@ export interface ExtractedReceiptData {
   tax: number | null;
   currency: string;
   lineItems: LineItem[];
+  businessPurpose: string | null;
 }
 
 // ─── OpenAI Client ─────────────────────────────────────────────────────────────
@@ -46,12 +47,14 @@ Rules:
 - Extract the tax amount if visible, otherwise return null
 - Detect the currency from the receipt (default to "USD" if unclear)
 - Extract individual line items with their descriptions and amounts
+- Infer the business purpose from context clues such as the vendor type, line items, and any notes on the receipt (e.g. "Client lunch", "Office supplies", "Travel expense"). Return null if no business purpose can be reasonably inferred.
 - If a field cannot be determined, use reasonable defaults:
   - vendor: "Unknown Vendor"
   - amount: 0
   - date: today's date in YYYY-MM-DD
   - currency: "USD"
-  - lineItems: empty array`;
+  - lineItems: empty array
+  - business_purpose: null`;
 
 // ─── Extractor ─────────────────────────────────────────────────────────────────
 
@@ -110,8 +113,9 @@ export async function extractReceiptData(fileUrl: string): Promise<ExtractedRece
                 additionalProperties: false,
               },
             },
+            business_purpose: { type: ['string', 'null'] },
           },
-          required: ['vendor', 'amount', 'date', 'tax', 'currency', 'lineItems'],
+          required: ['vendor', 'amount', 'date', 'tax', 'currency', 'lineItems', 'business_purpose'],
           additionalProperties: false,
         },
       },
@@ -125,7 +129,9 @@ export async function extractReceiptData(fileUrl: string): Promise<ExtractedRece
     throw new Error('Empty response from OpenAI Vision');
   }
 
-  const parsed: ExtractedReceiptData = JSON.parse(content);
+  // The OpenAI JSON schema uses snake_case; we map to camelCase in our interface.
+  const parsed: ExtractedReceiptData & { business_purpose?: string | null } =
+    JSON.parse(content);
 
   // Validate required fields
   if (!parsed.vendor || typeof parsed.amount !== 'number') {
@@ -144,5 +150,6 @@ export async function extractReceiptData(fileUrl: string): Promise<ExtractedRece
           amount: item.amount,
         }))
       : [],
+    businessPurpose: parsed.business_purpose ?? parsed.businessPurpose ?? null,
   };
 }

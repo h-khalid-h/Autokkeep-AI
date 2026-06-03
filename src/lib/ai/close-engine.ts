@@ -10,6 +10,113 @@
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { analyzeVariance } from '@/lib/reconciliation/engine';
 
+// ─── F16: Separation of Duties (SOD) — Approver ≠ Closer ───────────────────
+
+/**
+ * Checks whether the user closing the period also approved a disproportionate
+ * share of transactions in that period. This is a Separation of Duties (SOD)
+ * control: the person locking the books should not be the same person who
+ * approved the majority of items in those books.
+ *
+ * - >50% → warning  (advisory)
+ * - >80% → fail     (strong SOD violation signal)
+ */
+async function approverCloserSodCheck(
+  entityId: string,
+  startDate: string,
+  endDate: string,
+  closingUserId: string,
+  supabase: SupabaseQueryClient
+): Promise<CloseCheck> {
+  try {
+    // Count all approved requests in the period
+    const { data: allApprovals, error: allErr } = await supabase
+      .from('approval_requests')
+      .select('id', { count: 'exact' })
+      .eq('entity_id', entityId)
+      .eq('status', 'approved')
+      .gte('decided_at', startDate)
+      .lt('decided_at', endDate);
+
+    if (allErr || !allApprovals) {
+      return {
+        name: 'Separation of Duties',
+        status: 'warning',
+        description: `Could not verify SOD: ${allErr?.message ?? 'no data'}`,
+      };
+    }
+
+    const totalApproved = allApprovals.length;
+    if (totalApproved === 0) {
+      return {
+        name: 'Separation of Duties',
+        status: 'pass',
+        description: 'No approved transactions in this period — SOD check not applicable.',
+      };
+    }
+
+    // Count approvals made by the closing user
+    const { data: userApprovals, error: userErr } = await supabase
+      .from('approval_requests')
+      .select('id', { count: 'exact' })
+      .eq('entity_id', entityId)
+      .eq('status', 'approved')
+      .eq('approver_user_id', closingUserId)
+      .gte('decided_at', startDate)
+      .lt('decided_at', endDate);
+
+    if (userErr || !userApprovals) {
+      return {
+        name: 'Separation of Duties',
+        status: 'warning',
+        description: `Could not verify SOD for closing user: ${userErr?.message ?? 'no data'}`,
+      };
+    }
+
+    const closerApproved = userApprovals.length;
+    const pct = (closerApproved / totalApproved) * 100;
+
+    if (pct > 80) {
+      return {
+        name: 'Separation of Duties',
+        status: 'fail',
+        description: `SOD violation: closing user approved ${closerApproved}/${totalApproved} (${Math.round(pct)}%) of transactions in this period.`,
+        count: closerApproved,
+        details: [
+          `Closing user approved ${closerApproved} of ${totalApproved} transactions (${Math.round(pct)}%)`,
+          'Threshold: >80% = fail. Consider having a different user close this period.',
+        ],
+      };
+    }
+
+    if (pct > 50) {
+      return {
+        name: 'Separation of Duties',
+        status: 'warning',
+        description: `Closing user approved ${closerApproved}/${totalApproved} (${Math.round(pct)}%) of transactions. Consider a different closer for stronger internal controls.`,
+        count: closerApproved,
+        details: [
+          `Closing user approved ${closerApproved} of ${totalApproved} transactions (${Math.round(pct)}%)`,
+          'Threshold: >50% = warning.',
+        ],
+      };
+    }
+
+    return {
+      name: 'Separation of Duties',
+      status: 'pass',
+      description: `SOD check passed. Closing user approved ${closerApproved}/${totalApproved} (${Math.round(pct)}%) of transactions.`,
+    };
+  } catch (error) {
+    console.error('[CloseEngine] SOD check error:', error);
+    return {
+      name: 'Separation of Duties',
+      status: 'warning',
+      description: 'SOD check encountered an error.',
+    };
+  }
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface CloseReport {
@@ -263,6 +370,99 @@ function bankFeedCheck(connections: BankConnectionRow[]): CloseCheck {
   };
 }
 
+// ─── F6: Trial Balance Check ───────────────────────────────────────────────
+
+/**
+ * Verifies that SUM(debit) = SUM(credit) across all posted journal lines
+ * for the period. An unbalanced trial balance is a fundamental GAAP failure
+ * that MUST block period close.
+ */
+async function trialBalanceCheck(
+  entityId: string,
+  startDate: string,
+  endDate: string,
+  supabase: SupabaseQueryClient
+): Promise<CloseCheck> {
+  try {
+    // Fetch all posted journal entries for the period, then sum their lines
+    const { data: entries, error: jeError } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('entity_id', entityId)
+      .eq('status', 'posted')
+      .gte('entry_date', startDate)
+      .lt('entry_date', endDate);
+
+    if (jeError || !entries || entries.length === 0) {
+      return {
+        name: 'Trial Balance',
+        status: entries?.length === 0 ? 'pass' : 'warning',
+        description: entries?.length === 0
+          ? 'No posted journal entries in this period.'
+          : `Failed to query journal entries: ${jeError?.message}`,
+      };
+    }
+
+    const entryIds = entries.map((e: { id: string }) => e.id);
+
+    // Sum all debits and credits across journal lines
+    const { data: lines, error: lineError } = await supabase
+      .from('journal_lines')
+      .select('debit, credit')
+      .in('journal_entry_id', entryIds);
+
+    if (lineError || !lines) {
+      return {
+        name: 'Trial Balance',
+        status: 'warning',
+        description: `Failed to query journal lines: ${lineError?.message}`,
+      };
+    }
+
+    const totalDebit = (lines as { debit: number; credit: number }[]).reduce(
+      (sum, l) => sum + (l.debit || 0), 0
+    );
+    const totalCredit = (lines as { debit: number; credit: number }[]).reduce(
+      (sum, l) => sum + (l.credit || 0), 0
+    );
+
+    // Allow $0.01 tolerance for floating-point rounding
+    const imbalance = Math.abs(totalDebit - totalCredit);
+
+    if (imbalance < 0.01) {
+      return {
+        name: 'Trial Balance',
+        status: 'pass',
+        description: `Trial balance verified. Total debits ($${totalDebit.toFixed(2)}) equal total credits ($${totalCredit.toFixed(2)}).`,
+        details: [
+          `Journal entries: ${entries.length}`,
+          `Journal lines: ${lines.length}`,
+          `Total debits: $${totalDebit.toFixed(2)}`,
+          `Total credits: $${totalCredit.toFixed(2)}`,
+        ],
+      };
+    }
+
+    return {
+      name: 'Trial Balance',
+      status: 'fail',
+      description: `Trial balance is OUT OF BALANCE by $${imbalance.toFixed(2)}. This must be resolved before closing.`,
+      details: [
+        `Total debits: $${totalDebit.toFixed(2)}`,
+        `Total credits: $${totalCredit.toFixed(2)}`,
+        `Imbalance: $${imbalance.toFixed(2)}`,
+      ],
+    };
+  } catch (error) {
+    console.error('[CloseEngine] Trial balance check error:', error);
+    return {
+      name: 'Trial Balance',
+      status: 'warning',
+      description: 'Trial balance check encountered an error.',
+    };
+  }
+}
+
 // ─── Score Calculation ─────────────────────────────────────────────────────
 
 function calculateReadinessScore(checks: CloseCheck[]): number {
@@ -314,7 +514,8 @@ export async function runMonthEndClose(
   entityId: string,
   year: number,
   month: number,
-  supabase: SupabaseQueryClient
+  supabase: SupabaseQueryClient,
+  closingUserId?: string
 ): Promise<CloseReport> {
   // Compute date range for the period
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -432,14 +633,25 @@ export async function runMonthEndClose(
     allTransactions = txns;
   }
 
-  // Run all checks
+  // Run all checks (including async trial balance check and F16 SOD check)
+  const tbCheck = await trialBalanceCheck(entityId, startDate, endDate, supabase);
+
   const checks: CloseCheck[] = [
+    tbCheck,
     reconciliationCheck(allTransactions, bankAccounts),
     missingReceiptCheck(txns),
     uncategorizedCheck(txns),
     expenseReviewCheck(txns, historicalAvg),
     bankFeedCheck(bankConnections),
   ];
+
+  // F16: Separation of Duties check — only run when we know who is closing
+  if (closingUserId) {
+    const sodCheck = await approverCloserSodCheck(
+      entityId, startDate, endDate, closingUserId, supabase
+    );
+    checks.push(sodCheck);
+  }
 
   const readinessScore = calculateReadinessScore(checks);
   const summary = generateSummary(checks, readinessScore);
@@ -469,7 +681,7 @@ export async function closePeriod(
   const period = `${year}-${String(month).padStart(2, '0')}`;
 
   // ── Readiness gate: enforce minimum score before locking ────────────
-  const readiness = await runMonthEndClose(entityId, year, month, supabase);
+  const readiness = await runMonthEndClose(entityId, year, month, supabase, userId);
   if (readiness.readinessScore < 80) {
     return {
       success: false,
