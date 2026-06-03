@@ -8,23 +8,10 @@ vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
 }));
 
-// Mock audit log
-vi.mock('@/lib/audit', () => ({
-  writeAuditLog: vi.fn().mockResolvedValue(undefined),
-}));
-
-// Mock AI categorizer
-const mockBatchCategorize = vi.fn().mockResolvedValue(new Map());
-vi.mock('@/lib/ai/categorizer', () => ({
-  batchCategorize: mockBatchCategorize,
-}));
-
-// Mock Supabase admin client
-const mockFrom = vi.fn();
-const mockAdminSupabase = { from: mockFrom };
-
-vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: vi.fn().mockReturnValue(mockAdminSupabase),
+// Mock the extracted service module
+const mockRunAutoCategorize = vi.fn();
+vi.mock('@/lib/ai/auto-categorize', () => ({
+  runAutoCategorize: (...args: unknown[]) => mockRunAutoCategorize(...args),
 }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -34,25 +21,6 @@ function createRequest(headers: Record<string, string> = {}): NextRequest {
     method: 'POST',
     headers,
   });
-}
-
-/** Fluent chain builder for Supabase query mocks */
-function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-
-  chain.select = vi.fn().mockReturnValue(chain);
-  chain.eq = vi.fn().mockReturnValue(chain);
-  chain.in = vi.fn().mockReturnValue(chain);
-  chain.is = vi.fn().mockReturnValue(chain);
-  chain.limit = vi.fn().mockReturnValue(chain);
-  chain.order = vi.fn().mockReturnValue(chain);
-  chain.update = vi.fn().mockReturnValue(chain);
-  chain.insert = vi.fn().mockReturnValue(chain);
-  chain.single = vi.fn().mockResolvedValue(resolvedValue);
-
-  chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
-
-  return chain;
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────────
@@ -99,8 +67,13 @@ describe('POST /api/cron/auto-categorize', () => {
   // ── No transactions to process ────────────────────────────────────────────
 
   it('should return 200 with 0 processed when no uncategorized transactions', async () => {
-    const txChain = createChainMock({ data: [], error: null });
-    mockFrom.mockReturnValue(txChain);
+    mockRunAutoCategorize.mockResolvedValue({
+      processed: 0,
+      auto_categorized: 0,
+      human_review: 0,
+      failed: 0,
+      entity_ids: [],
+    });
 
     const req = createRequest({ authorization: 'Bearer test-cron-secret' });
     const res = await POST(req);
@@ -108,38 +81,18 @@ describe('POST /api/cron/auto-categorize', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.processed).toBe(0);
-    expect(json.message).toContain('No uncategorized');
+    expect(mockRunAutoCategorize).toHaveBeenCalledOnce();
   });
 
   // ── Happy path ────────────────────────────────────────────────────────────
 
   it('should process uncategorized transactions with valid secret', async () => {
-    const mockTxs = [
-      { id: 'txn-1', entity_id: 'entity-1', merchant_name: 'Acme', amount: 50, date: '2024-01-01', mcc_code: null, currency: 'USD' },
-      { id: 'txn-2', entity_id: 'entity-1', merchant_name: 'Beta Corp', amount: 100, date: '2024-01-02', mcc_code: null, currency: 'USD' },
-    ];
-
-    // Mock batchCategorize results
-    const categorizeResults = new Map([
-      ['txn-1', { glCode: '5000', glName: 'Office Supplies', confidence: 92, reasoning: 'Rule match' }],
-      ['txn-2', { glCode: '6000', glName: 'Travel', confidence: 60, reasoning: 'Low confidence' }],
-    ]);
-    mockBatchCategorize.mockResolvedValue(categorizeResults);
-
-    const txChain = createChainMock({ data: mockTxs, error: null });
-    const rulesChain = createChainMock({ data: [], error: null });
-    const chartChain = createChainMock({ data: [{ code: '5000', name: 'Office Supplies' }, { code: '6000', name: 'Travel' }], error: null });
-    const historyChain = createChainMock({ data: [], error: null });
-    const updateChain = createChainMock({ data: null, error: null });
-    const auditChain = createChainMock({ data: null, error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'transactions') return txChain;
-      if (table === 'categorization_rules') return rulesChain;
-      if (table === 'chart_of_accounts') return chartChain;
-      if (table === 'categorization_history') return historyChain;
-      if (table === 'audit_log') return auditChain;
-      return updateChain;
+    mockRunAutoCategorize.mockResolvedValue({
+      processed: 2,
+      auto_categorized: 1,
+      human_review: 1,
+      failed: 0,
+      entity_ids: ['entity-1'],
     });
 
     const req = createRequest({ authorization: 'Bearer test-cron-secret' });
@@ -148,21 +101,20 @@ describe('POST /api/cron/auto-categorize', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.processed).toBe(2);
-    expect(json.auto_categorized).toBe(1); // txn-1 at 92% > 80 threshold
-    expect(json.human_review).toBe(1); // txn-2 at 60% < 80 threshold
+    expect(json.auto_categorized).toBe(1);
+    expect(json.human_review).toBe(1);
   });
 
-  // ── DB error ──────────────────────────────────────────────────────────────
+  // ── Service error ─────────────────────────────────────────────────────────
 
-  it('should return 500 on database error', async () => {
-    const txChain = createChainMock({ data: null, error: { message: 'DB error' } });
-    mockFrom.mockReturnValue(txChain);
+  it('should return 500 on service error', async () => {
+    mockRunAutoCategorize.mockRejectedValue(new Error('DB connection failed'));
 
     const req = createRequest({ authorization: 'Bearer test-cron-secret' });
     const res = await POST(req);
 
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toContain('Failed to fetch');
+    expect(json.error).toBe('Auto-categorization cron failed');
   });
 });
