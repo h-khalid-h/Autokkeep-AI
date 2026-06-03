@@ -263,7 +263,7 @@ export default function AccountPage() {
               ))}
             </div>
             <p className={styles.notifDisclaimer}>
-              ℹ️ These preferences are saved to this browser only.
+              ℹ️ Notification preferences are stored locally on this device and will not sync across browsers or devices.
             </p>
           </div>
         </Card>

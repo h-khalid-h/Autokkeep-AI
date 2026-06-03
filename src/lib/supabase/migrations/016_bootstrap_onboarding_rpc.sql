@@ -25,6 +25,7 @@ DECLARE
   v_entity_id uuid;
   v_existing_org_id uuid;
   v_slug text;
+  v_entity_count integer;
 BEGIN
   -- Get the authenticated user
   v_user_id := auth.uid();
@@ -33,8 +34,12 @@ BEGIN
   END IF;
 
   -- M7: Input length validation
-  IF length(p_entity_name) > 255 OR length(p_entity_name) < 1 THEN
-    RAISE EXCEPTION 'Entity name must be 1-255 characters';
+  IF length(p_entity_name) > 255 THEN
+    RAISE EXCEPTION 'Entity name exceeds maximum length of 255 characters';
+  END IF;
+
+  IF length(trim(p_entity_name)) = 0 THEN
+    RAISE EXCEPTION 'Entity name cannot be empty';
   END IF;
 
   -- Check if user already has an org
@@ -68,6 +73,12 @@ BEGIN
   LIMIT 1;
 
   IF v_entity_id IS NULL THEN
+    -- L2: Limit entities per org to prevent abuse
+    SELECT count(*) INTO v_entity_count FROM entities WHERE org_id = v_org_id;
+    IF v_entity_count >= 10 THEN
+      RAISE EXCEPTION 'Maximum of 10 entities per organization reached';
+    END IF;
+
     -- Create new entity with base_currency from p_currency (M10)
     INSERT INTO entities (org_id, name, fiscal_year_end, base_currency)
     VALUES (v_org_id, p_entity_name, p_fiscal_year_end, p_currency)

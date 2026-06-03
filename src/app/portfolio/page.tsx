@@ -213,7 +213,14 @@ export default function PortfolioPage() {
           {/* ─── Error Banner ───────────────────────────────────────────────── */}
           {error && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              <span>⚠️ {error}</span>
+              <button
+                className={styles.errorDismiss}
+                onClick={() => setError(null)}
+                aria-label="Dismiss error"
+              >
+                ✕
+              </button>
             </div>
           )}
 

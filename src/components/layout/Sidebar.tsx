@@ -310,10 +310,3 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
   );
 }
 
-// Export the toggle function for TopBar to use
-export function useSidebarToggle() {
-  return useCallback(() => {
-    const btn = document.querySelector('[data-sidebar-toggle]') as HTMLButtonElement;
-    btn?.click();
-  }, []);
-}

@@ -67,7 +67,12 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(onboardingUrl);
       }
     } catch (error) {
-      // If the DB query fails, redirect to onboarding rather than silently allowing through
+      // SECURITY: Fail-closed — redirect to onboarding on DB failure.
+      // Rationale: If we can't verify org membership, we must NOT let the
+      // user into protected routes. Redirecting to onboarding is safe because:
+      //   1. Onboarding gracefully handles users who already have an org
+      //   2. It prevents access to sensitive data when DB is unavailable
+      //   3. This follows the principle of least privilege — deny by default
       console.error('[Middleware] DB query failed during membership check:', error);
       const onboardingUrl = request.nextUrl.clone();
       onboardingUrl.pathname = '/onboarding';
