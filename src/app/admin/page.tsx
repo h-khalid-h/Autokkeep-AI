@@ -3,6 +3,7 @@
 import React from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Input, Skeleton, EmptyState, Tabs } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -226,6 +227,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
+    <ErrorBoundary componentName="Admin">
     <AppShell>
       <div className={styles.page}>
         <div>
@@ -265,6 +267,7 @@ export default function AdminDashboardPage() {
         </Tabs>
       </div>
     </AppShell>
+    </ErrorBoundary>
   );
 }
 
