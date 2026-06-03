@@ -1,3 +1,4 @@
+// Convention: Plaid amounts — positive = expense (money leaving account), negative = income (money entering account)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Autokkeep — AI Month-End Close Engine
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -66,8 +67,10 @@ function reconciliationCheck(
     };
   }
 
-  // Sum ALL transaction amounts to get cumulative book balance (comparable to bank balance)
-  const bookBalance = allTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  // Sum ALL transaction amounts to get cumulative book balance.
+  // Plaid convention: positive = outflow (expense), negative = inflow (income).
+  // Negating the sum converts net outflows into a net position (positive = net inflows).
+  const bookBalance = -allTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
   // Sum bank account balances
   const bankBalance = bankAccounts.reduce(
@@ -182,7 +185,7 @@ function expenseReviewCheck(
   // Group current expenses by category
   const currentCategories = new Map<string, number>();
   for (const tx of currentTransactions) {
-    if (tx.amount >= 0) continue;
+    if (tx.amount <= 0) continue; // Skip non-expenses (Plaid: positive = expense)
     const cat = tx.category_human || tx.category_ai || 'Uncategorized';
     currentCategories.set(cat, (currentCategories.get(cat) || 0) + Math.abs(tx.amount));
   }
@@ -402,7 +405,7 @@ export async function runMonthEndClose(
     if (histTxns && histTxns.length > 0) {
       const catTotals = new Map<string, number>();
       for (const tx of histTxns as { amount: number; category_ai: string | null; category_human: string | null }[]) {
-        if (tx.amount >= 0) continue;
+        if (tx.amount <= 0) continue; // Skip non-expenses (Plaid: positive = expense)
         const cat = tx.category_human || tx.category_ai || 'Uncategorized';
         catTotals.set(cat, (catTotals.get(cat) || 0) + Math.abs(tx.amount));
       }

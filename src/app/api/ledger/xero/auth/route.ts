@@ -59,7 +59,13 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'xero-exchange' });
     if (limited) return limited;
 
-    const { code, state } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { code, state } = body;
 
     if (!code) {
       return NextResponse.json({ error: 'Missing code' }, { status: 400 });

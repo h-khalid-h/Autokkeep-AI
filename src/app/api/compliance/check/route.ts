@@ -45,7 +45,12 @@ export async function POST(request: NextRequest) {
     const { membership, db } = ctx;
 
     // Parse body
-    const body = (await request.json()) as Partial<ComplianceCheckRequestBody>;
+    let body: Partial<ComplianceCheckRequestBody>;
+    try {
+      body = (await request.json()) as Partial<ComplianceCheckRequestBody>;
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { entityId, region } = body;
 
     if (!entityId || typeof entityId !== 'string') {

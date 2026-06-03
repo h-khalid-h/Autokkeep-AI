@@ -1,3 +1,4 @@
+// Convention: Plaid amounts — positive = expense (money leaving account), negative = income (money entering account)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Autokkeep — Financial Health Monitoring Engine
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -80,8 +81,9 @@ function checkCashFlowTrend(
   const currentMonth = keys[keys.length - 1];
   const priorMonth = keys[keys.length - 2];
 
+  // Plaid: negative amounts = inflows (money entering account)
   const sumInflows = (txs: TransactionRow[]) =>
-    txs.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+    txs.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
 
   const currentInflows = sumInflows(months.get(currentMonth) || []);
   const priorInflows = sumInflows(months.get(priorMonth) || []);
@@ -127,7 +129,7 @@ function checkExpenseAnomalies(
   const categorize = (txs: TransactionRow[]) => {
     const cats = new Map<string, number>();
     for (const tx of txs) {
-      if (tx.amount >= 0) continue; // Only expenses (negative amounts)
+      if (tx.amount <= 0) continue; // Only expenses — Plaid: positive = outflow
       const cat = tx.category_human || tx.category_ai || 'Uncategorized';
       cats.set(cat, (cats.get(cat) || 0) + Math.abs(tx.amount));
     }
@@ -175,7 +177,7 @@ function checkDuplicatePayments(
 
   // Sort by date ascending
   const sorted = [...transactions]
-    .filter((t) => t.amount < 0)
+    .filter((t) => t.amount > 0) // Plaid: positive = expense (outflow)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const seen = new Set<string>();
@@ -236,7 +238,7 @@ function checkSubscriptionWaste(
   const vendorCharges = new Map<string, { amounts: number[]; dates: string[] }>();
 
   for (const tx of transactions) {
-    if (tx.amount >= 0) continue;
+    if (tx.amount <= 0) continue; // Skip non-expenses (Plaid: positive = expense)
     const vendor = (tx.merchant_name || '').toLowerCase().trim();
     if (!vendor) continue;
 
@@ -291,18 +293,18 @@ function checkRevenueConcentration(
   entityId: string,
   transactions: TransactionRow[]
 ): HealthAlert | null {
-  // Only look at positive amounts (revenue/inflows)
-  const inflows = transactions.filter((t) => t.amount > 0);
+  // Plaid: negative amounts = inflows (money entering account)
+  const inflows = transactions.filter((t) => t.amount < 0);
   if (inflows.length < 3) return null;
 
-  const totalRevenue = inflows.reduce((s, t) => s + t.amount, 0);
+  const totalRevenue = inflows.reduce((s, t) => s + Math.abs(t.amount), 0);
   if (totalRevenue === 0) return null;
 
   // Group by source
   const sourceMap = new Map<string, number>();
   for (const tx of inflows) {
     const source = (tx.merchant_name || 'Unknown').toLowerCase().trim();
-    sourceMap.set(source, (sourceMap.get(source) || 0) + tx.amount);
+    sourceMap.set(source, (sourceMap.get(source) || 0) + Math.abs(tx.amount));
   }
 
   for (const [source, amount] of sourceMap) {
@@ -412,8 +414,8 @@ function checkBurnRate(
   let totalExpenses = 0;
   for (const [, txs] of months) {
     totalExpenses += txs
-      .filter((t) => t.amount < 0)
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
+      .filter((t) => t.amount > 0) // Plaid: positive = outflow (expense)
+      .reduce((s, t) => s + t.amount, 0);
   }
 
   const avgMonthlyBurn = totalExpenses / keys.length;

@@ -26,13 +26,13 @@ function validateMonthYear(yearStr: string | null, monthStr: string | null): { y
 
 export async function GET(request: NextRequest) {
   try {
-    const ctx = await getApiAuthContext(request);
-    if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
-
     // Rate limit: 15 requests per minute
     const limited = await rateLimit(request, { max: 15, windowSeconds: 60, prefix: 'narrative-get' });
     if (limited) return limited;
+
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -120,7 +120,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { entityId, year, month } = body as {
       entityId?: string;
       year?: number;

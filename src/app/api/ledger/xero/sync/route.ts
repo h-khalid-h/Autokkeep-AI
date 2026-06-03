@@ -23,7 +23,13 @@ export async function POST(request: NextRequest) {
     const { user, membership, db } = ctx;
 
     // Parse and validate input
-    const { entityId, transactionIds } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { entityId, transactionIds } = body;
 
     if (!entityId) {
       return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });

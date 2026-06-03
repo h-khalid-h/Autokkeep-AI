@@ -22,7 +22,13 @@ export async function POST(request: NextRequest) {
     const { membership, db } = ctx;
 
     // Parse and validate input
-    const { transactionId, entityId, preferredChannel } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { transactionId, entityId, preferredChannel } = body;
 
     if (!transactionId || !entityId) {
       return NextResponse.json(
@@ -108,6 +114,23 @@ export async function POST(request: NextRequest) {
         message_id: result.messageId || '',
         status: result.success ? 'sent' : 'failed',
         sent_at: new Date().toISOString(),
+      });
+
+      // Log to audit trail
+      await writeAuditLog({
+        supabase: db,
+        entityId,
+        actorType: 'system',
+        action: 'create',
+        targetType: 'receipt_request',
+        targetId: transactionId,
+        details: {
+          channel: result.channel,
+          success: result.success,
+          message_id: result.messageId,
+          preferred: true,
+        },
+        request,
       });
 
       return NextResponse.json({
