@@ -9,6 +9,7 @@ import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { runReceiptChase, type ChaseReport } from '@/lib/channels/chase-agent';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +19,9 @@ export async function GET(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-receipt-chase' });
+    if (limited) return limited;
 
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;

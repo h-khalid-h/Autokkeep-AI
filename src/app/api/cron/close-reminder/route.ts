@@ -17,6 +17,7 @@ import {
   buildCloseReminderEmailHtml,
 } from '@/lib/notifications/close-reminder';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -115,6 +116,9 @@ export async function POST(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-close-reminder' });
+    if (limited) return limited;
 
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;

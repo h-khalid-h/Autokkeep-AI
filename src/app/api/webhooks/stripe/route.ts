@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import getRedisClient from '@/lib/redis';
+import { rateLimit } from '@/lib/rate-limit';
 
 // In-memory fallback if Redis is unavailable
 const processedEventIds = new Set<string>();
@@ -34,6 +35,9 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'webhook-stripe' });
+    if (limited) return limited;
+
     const stripe = getStripeClient();
     if (!stripe) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });

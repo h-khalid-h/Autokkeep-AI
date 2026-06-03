@@ -13,6 +13,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { pushApprovedTransactionsToLedger } from '@/lib/ledger/auto-push';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-ledger-sync' });
+    if (limited) return limited;
 
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;

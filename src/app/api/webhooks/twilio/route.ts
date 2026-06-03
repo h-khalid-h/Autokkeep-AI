@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateTwilioSignature } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { rateLimit } from '@/lib/rate-limit';
 
 // POST /api/webhooks/twilio — Handle Twilio status callbacks
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'webhook-twilio' });
+    if (limited) return limited;
+
     const rawBody = await request.text();
     const params = Object.fromEntries(new URLSearchParams(rawBody));
 

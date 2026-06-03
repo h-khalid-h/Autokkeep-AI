@@ -114,6 +114,8 @@ export default function TaxPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const toast = useToast();
 
@@ -155,6 +157,60 @@ export default function TaxPage() {
       setIsExporting(false);
     }
   }, [selectedEntity, selectedYear, toast]);
+
+  // ─── Receipt upload handler ─────────────────────────────────────────────
+  const handleReceiptUpload = React.useCallback(async (files: FileList) => {
+    if (!selectedEntity?.id || !data?.missingReceipts?.length) {
+      toast.error('No missing receipts to match. Upload receipts from the transaction detail view instead.');
+      return;
+    }
+
+    setIsUploading(true);
+    let uploadedCount = 0;
+    let failedCount = 0;
+
+    try {
+      // Upload each file — auto-match to the first unmatched missing receipt
+      const unmatchedReceipts = [...data.missingReceipts];
+
+      for (const file of Array.from(files)) {
+        const receipt = unmatchedReceipts.shift();
+        if (!receipt) {
+          toast.info(`Skipped ${file.name} — no more missing receipts to match`);
+          break;
+        }
+
+        try {
+          const formData = new FormData();
+          formData.append('receipt', file);
+
+          const res = await fetch(`/api/transactions/${receipt.id}/receipt`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (res.ok) {
+            uploadedCount++;
+          } else {
+            const err = await res.json().catch(() => ({}));
+            console.error(`[Tax] Upload failed for ${file.name}:`, err.error);
+            failedCount++;
+          }
+        } catch {
+          failedCount++;
+        }
+      }
+
+      if (uploadedCount > 0) {
+        toast.success(`${uploadedCount} receipt${uploadedCount > 1 ? 's' : ''} uploaded and queued for OCR`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} upload${failedCount > 1 ? 's' : ''} failed`);
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  }, [selectedEntity, data, toast]);
 
   // ─── Fetch tax readiness report ──────────────────────────────────────────
   React.useEffect(() => {
@@ -320,21 +376,41 @@ export default function TaxPage() {
                   <div className={styles.scoreYear}>Tax Year {data.taxYear}</div>
 
                   {/* Document upload dropzone */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) void handleReceiptUpload(e.target.files);
+                      e.target.value = '';
+                    }}
+                    style={{ display: 'none' }}
+                    aria-hidden="true"
+                  />
                   <div
                     className={`${styles.dropzone} ${isDragOver ? styles.dropzoneActive : ''}`}
                     onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); toast.info('Receipt storage is being set up. Check back soon!'); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(false);
+                      if (e.dataTransfer.files.length > 0) {
+                        void handleReceiptUpload(e.dataTransfer.files);
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
                     role="button"
                     tabIndex={0}
-                    aria-label="Drop receipts here for upload"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+                    aria-label="Upload receipts"
                   >
                     <span className={styles.dropzoneIcon}>
-                      {isDragOver ? '📥' : '📎'}
+                      {isUploading ? '⏳' : isDragOver ? '📥' : '📎'}
                     </span>
                     <span className={styles.dropzoneText}>
-                      {isDragOver ? 'Drop to upload' : 'Drop receipts here'}
+                      {isUploading ? 'Uploading…' : isDragOver ? 'Drop to upload' : 'Drop receipts or click to browse'}
                     </span>
                   </div>
                 </Card>

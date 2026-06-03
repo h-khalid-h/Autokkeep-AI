@@ -14,6 +14,7 @@ import {
   type TokenRefreshResult,
 } from '@/lib/ledger/token-refresh';
 import { writeAuditLog } from '@/lib/audit';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-token-refresh' });
+    if (limited) return limited;
 
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;

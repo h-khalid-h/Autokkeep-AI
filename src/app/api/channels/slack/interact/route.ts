@@ -7,6 +7,7 @@ import {
   parseSlackInteraction,
   sendSlackConfirmation,
 } from '@/lib/channels/slack';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * Validate that a transaction belongs to an entity connected to this Slack workspace.
@@ -51,6 +52,9 @@ async function validateTransactionEntity(
 // POST /api/channels/slack/interact — Handle Slack interactive messages
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 60, windowSeconds: 60, prefix: 'slack-interact' });
+    if (limited) return limited;
+
     const rawBody = await request.text();
 
     // Verify Slack signature

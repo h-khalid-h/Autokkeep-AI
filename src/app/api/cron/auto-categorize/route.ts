@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
 import { runAutoCategorize } from '@/lib/ai/auto-categorize';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-auto-categorize' });
+    if (limited) return limited;
 
     const result = await runAutoCategorize();
 

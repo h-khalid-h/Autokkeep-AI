@@ -12,6 +12,7 @@ import { runAutoCategorize } from '@/lib/ai/auto-categorize';
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { rateLimit } from '@/lib/rate-limit';
 
 // ─── Plaid Webhook JWT Verification ─────────────────────────────────────────
 // Plaid signs webhooks with ES256 JWTs. We verify the signature using
@@ -113,6 +114,9 @@ interface PlaidWebhookBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'webhook-plaid' });
+    if (limited) return limited;
+
     const rawBody = await request.text();
     let body: PlaidWebhookBody;
 

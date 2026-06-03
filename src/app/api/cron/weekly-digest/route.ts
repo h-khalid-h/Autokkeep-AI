@@ -12,6 +12,7 @@ import { compileWeeklyDigest } from '@/lib/notifications/digest';
 import { sendDigestEmail } from '@/lib/email/resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,9 @@ export async function GET(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-weekly-digest' });
+    if (limited) return limited;
 
     const digest = await compileWeeklyDigest();
 

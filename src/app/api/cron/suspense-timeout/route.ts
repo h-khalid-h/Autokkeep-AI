@@ -12,6 +12,7 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import { getGLCode } from '@/lib/entity-settings';
+import { rateLimit } from '@/lib/rate-limit';
 
 // GL codes are now entity-configurable via entity_settings table.
 // These constants serve only as type-safe key references for getGLCode().
@@ -34,6 +35,9 @@ export async function GET(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-suspense-timeout' });
+    if (limited) return limited;
 
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;
