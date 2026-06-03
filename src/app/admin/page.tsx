@@ -389,8 +389,11 @@ function OrganizationsTab() {
   const [loading, setLoading] = React.useState(true);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
+  const [error, setError] = React.useState<string | null>(null);
+
   const fetchOrgs = React.useCallback(async (page: number, searchTerm: string) => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -399,12 +402,16 @@ function OrganizationsTab() {
       if (searchTerm) params.set('search', searchTerm);
 
       const res = await fetch(`/api/admin/organizations?${params}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        setError(`Failed to load organizations (${res.status})`);
+        return;
+      }
       const data = await res.json();
       setOrgs(data.organizations || []);
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, hasMore: false });
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.error('[Admin] Organizations fetch error:', err);
+      setError('Network error — could not load organizations');
     } finally {
       setLoading(false);
     }
@@ -426,6 +433,14 @@ function OrganizationsTab() {
 
   return (
     <div className={styles.tabContent}>
+      {/* Error */}
+      {error && (
+        <Card className={styles.errorBanner} padding="sm">
+          <span className={styles.errorText}>⚠️ {error}</span>
+          <Button variant="ghost" size="sm" onClick={() => fetchOrgs(pagination.page, search)}>Retry</Button>
+        </Card>
+      )}
+
       {/* Search */}
       <Card padding="sm">
         <div className={styles.searchBar}>
@@ -560,17 +575,24 @@ function SystemTab() {
   const [data, setData] = React.useState<SystemData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
+  const [error, setError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     let cancelled = false;
     async function fetchSystem() {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch('/api/admin/system');
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) setError(`System health check failed (${res.status})`);
+          return;
+        }
         const json = await res.json();
         if (!cancelled) setData(json);
-      } catch {
-        // Silently fail
+      } catch (err) {
+        console.error('[Admin] System health error:', err);
+        if (!cancelled) setError('Network error — could not reach system health endpoint');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -600,7 +622,7 @@ function SystemTab() {
       <EmptyState
         icon="⚠️"
         title="Failed to load system status"
-        description="Unable to retrieve system health data."
+        description={error || 'Unable to retrieve system health data.'}
       />
     );
   }
