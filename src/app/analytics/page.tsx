@@ -64,6 +64,7 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Fetch real transaction stats on mount
   useEffect(() => {
@@ -179,7 +180,7 @@ export default function AnalyticsPage() {
 
     fetchAnalytics();
     return () => controller.abort();
-  }, [selectedEntity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const data = analyticsData[timeRange];
   const entityCurrency = selectedEntity?.currency || 'USD';
@@ -265,7 +266,30 @@ export default function AnalyticsPage() {
           {/* Error banner */}
           {error && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              <span className={styles.errorBannerContent}>
+                <span className={styles.errorBannerIcon}>⚠️</span>
+                {error}
+              </span>
+              <span className={styles.errorBannerActions}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setError(null);
+                    setIsLoading(true);
+                    setRetryKey(k => k + 1);
+                  }}
+                >
+                  Retry
+                </Button>
+                <button
+                  className={styles.errorDismiss}
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss error"
+                >
+                  ✕
+                </button>
+              </span>
             </div>
           )}
 

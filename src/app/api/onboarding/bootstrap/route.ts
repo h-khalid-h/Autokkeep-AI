@@ -1,3 +1,13 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DEPRECATED: This route is a server-side wrapper for the `bootstrap_onboarding`
+// SECURITY DEFINER RPC function. It should be deprecated in favor of direct RPC
+// calls from the client via supabase.rpc('bootstrap_onboarding', {...}).
+//
+// Idempotency for entity creation is handled by the RPC itself — it checks for
+// an existing entity with the same name in the org before inserting a new one.
+// See: src/lib/supabase/migrations/016_bootstrap_onboarding_rpc.sql
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { getApiAuthContext } from '@/lib/api-auth';

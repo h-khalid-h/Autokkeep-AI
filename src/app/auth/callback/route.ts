@@ -21,13 +21,17 @@ export async function GET(request: Request) {
       if (isLocalEnv) {
         return NextResponse.redirect(`${origin}${next}`);
       } else if (forwardedHost) {
-        // Validate forwardedHost against the configured app URL to prevent open redirects
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const allowedHost = appUrl ? new URL(appUrl).host : null;
-        if (allowedHost && forwardedHost === allowedHost) {
+        // Validate forwardedHost against allowed domains to prevent open redirect attacks
+        const allowedHosts = [
+          new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://autokkeep.com').host,
+          request.headers.get('host') || '',
+        ].filter(Boolean);
+
+        if (allowedHosts.includes(forwardedHost)) {
           return NextResponse.redirect(`https://${forwardedHost}${next}`);
         }
-        // Untrusted forwarded host — fall back to origin
+        // Untrusted forwarded host — log warning and fall back to origin
+        console.warn(`[Auth Callback] Rejected untrusted x-forwarded-host: ${forwardedHost}`);
         return NextResponse.redirect(`${origin}${next}`);
       } else {
         return NextResponse.redirect(`${origin}${next}`);

@@ -130,8 +130,7 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook authenticity via Plaid-Verification JWT header
     const verificationHeader = request.headers.get('plaid-verification');
-    const skipVerification = process.env.PLAID_SKIP_WEBHOOK_VERIFICATION === 'true'
-      && process.env.NODE_ENV !== 'production';
+    const skipVerification = process.env.PLAID_SKIP_WEBHOOK_VERIFICATION === 'true';
 
     if (!skipVerification) {
       if (!verificationHeader) {

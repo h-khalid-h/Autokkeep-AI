@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Input, Modal, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Badge, Button, Input, Modal, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -106,6 +106,7 @@ export default function ChartOfAccountsPage() {
 
   // CSV import ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   // ─── Fetch accounts ─────────────────────────────────────────────────────
   const fetchAccounts = useCallback(async () => {
@@ -453,26 +454,42 @@ export default function ChartOfAccountsPage() {
       };
 
       const lines = text.split('\n').filter(l => l.trim());
-      if (lines.length < 2) return;
+      if (lines.length < 2) {
+        toast.error('CSV file is empty or has no data rows.');
+        return;
+      }
 
       const header = parseCSVLine(lines[0]).map(h => h.toLowerCase());
       const codeIdx = header.findIndex(h => h === 'code' || h === 'gl code' || h === 'gl_code');
       const nameIdx = header.findIndex(h => h === 'name' || h === 'account name' || h === 'account_name');
       const typeIdx = header.findIndex(h => h === 'type' || h === 'account type' || h === 'account_type');
 
-      if (codeIdx === -1 || nameIdx === -1) return;
+      // Validate required columns
+      const missingCols: string[] = [];
+      if (codeIdx === -1) missingCols.push('"code" (or "gl code" / "gl_code")');
+      if (nameIdx === -1) missingCols.push('"name" (or "account name" / "account_name")');
+
+      if (missingCols.length > 0) {
+        toast.error(`Invalid CSV format: missing required column(s): ${missingCols.join(', ')}. Expected headers: code, name, type.`);
+        return;
+      }
+
+      if (typeIdx === -1) {
+        toast.warning('No "type" column found — defaulting all accounts to "Expense".');
+      }
 
       const existingCodes = new Set(accounts.map(a => a.code));
       const importedAccounts: Account[] = [];
       let failedImports = 0;
+      let skippedRows = 0;
 
       for (let i = 1; i < lines.length; i++) {
         const cols = parseCSVLine(lines[i]);
         const code = cols[codeIdx];
         const name = cols[nameIdx];
         const type = cols[typeIdx] || 'Expense';
-        if (!code || !name) continue;
-        if (existingCodes.has(code)) continue;
+        if (!code || !name) { skippedRows++; continue; }
+        if (existingCodes.has(code)) { skippedRows++; continue; }
         existingCodes.add(code);
 
         try {
@@ -511,9 +528,16 @@ export default function ChartOfAccountsPage() {
 
       if (importedAccounts.length > 0) {
         setAccounts(prev => [...prev, ...importedAccounts]);
+        toast.success(`Imported ${importedAccounts.length} account(s) successfully.`);
+      }
+      if (skippedRows > 0) {
+        toast.info(`Skipped ${skippedRows} row(s) (empty fields or duplicate codes).`);
       }
       if (failedImports > 0) {
         setError(`${failedImports} account(s) could not be saved to the server. Please try importing them again.`);
+      }
+      if (importedAccounts.length === 0 && failedImports === 0 && skippedRows === 0) {
+        toast.info('No new accounts found to import.');
       }
     };
     reader.readAsText(file);
