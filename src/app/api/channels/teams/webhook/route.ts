@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { parseTeamsWebhookPayload, mapTeamsChoiceToGL, sendTeamsConfirmation } from '@/lib/channels/teams';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -43,6 +44,9 @@ async function validateTransactionEntity(
 // POST /api/channels/teams/webhook — Handle Teams adaptive card responses
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'channel-teams' });
+    if (limited) return limited;
+
     // Verify shared secret
     const webhookSecret = process.env.TEAMS_WEBHOOK_SECRET;
     if (!webhookSecret) {

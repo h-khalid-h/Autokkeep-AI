@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import {
@@ -12,6 +13,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 // POST /api/channels/sms — Handle inbound SMS messages
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'channel-sms' });
+    if (limited) return limited;
+
     const rawBody = await request.text();
     const params = Object.fromEntries(new URLSearchParams(rawBody));
 

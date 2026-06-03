@@ -95,6 +95,14 @@ export default function TransactionsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
+
+  // Inline category editing
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [glAccounts, setGlAccounts] = useState<{gl_code: string; name: string}[]>([]);
+
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
@@ -146,11 +154,21 @@ export default function TransactionsPage() {
     void fetchTransactions();
   }, [fetchTransactions]);
 
-  // Reset page when filters change
+  // Reset page and selection when filters change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage((prev) => prev === 0 ? prev : 0);
+    setSelectedIds(new Set());
   }, [debouncedSearch, statusFilter, dateFrom, dateTo, sort]);
+
+  // Fetch chart of accounts for inline editing
+  useEffect(() => {
+    if (!selectedEntity?.id) return;
+    fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`)
+      .then(res => res.json())
+      .then(data => setGlAccounts(data.accounts || [])) // eslint-disable-line react-hooks/set-state-in-effect
+      .catch(() => {});
+  }, [selectedEntity?.id]);
 
   // Clear filters
   const clearFilters = () => {
@@ -191,6 +209,66 @@ export default function TransactionsPage() {
       setError('Export failed. Please try again.');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // ── Bulk selection handlers ──────────────────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === transactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(transactions.map(tx => tx.id)));
+    }
+  };
+
+  const handleBatchAction = async (action: 'approve' | 'reject') => {
+    if (selectedIds.size === 0 || !selectedEntity?.id) return;
+    setBatchLoading(true);
+    try {
+      const res = await fetch('/api/transactions/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionIds: Array.from(selectedIds),
+          action,
+          entityId: selectedEntity.id,
+        }),
+      });
+      if (!res.ok) throw new Error('Batch action failed');
+      setSelectedIds(new Set());
+      await fetchTransactions();
+    } catch (err) {
+      console.error('[Transactions] Batch error:', err);
+      setError('Batch action failed. Please try again.');
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // ── Inline category editing handler ─────────────────────────────────────
+  const handleCategoryChange = async (txId: string, newGlCode: string) => {
+    try {
+      const res = await fetch(`/api/transactions/${txId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glCode: newGlCode }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      setTransactions(prev => prev.map(tx =>
+        tx.id === txId ? { ...tx, category_human: newGlCode } : tx
+      ));
+      setEditingCategoryId(null);
+    } catch (err) {
+      console.error('[Transactions] Category update error:', err);
+      setError('Failed to update category');
     }
   };
 
@@ -378,6 +456,24 @@ export default function TransactionsPage() {
             </Card>
           )}
 
+          {/* ── Bulk Action Bar ──────────────────────────────────────── */}
+          {selectedIds.size > 0 && (
+            <div className={styles.bulkBar}>
+              <span className={styles.bulkCount}>{selectedIds.size} selected</span>
+              <div className={styles.bulkActions}>
+                <Button variant="primary" size="sm" disabled={batchLoading} isLoading={batchLoading} onClick={() => handleBatchAction('approve')}>
+                  ✅ Approve Selected
+                </Button>
+                <Button variant="destructive" size="sm" disabled={batchLoading} onClick={() => handleBatchAction('reject')}>
+                  ❌ Reject Selected
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* ── Transaction Table ──────────────────────────────────────── */}
           {!isLoading && transactions.length > 0 && (
             <Card padding="sm" className={styles.tableCard}>
@@ -386,6 +482,15 @@ export default function TransactionsPage() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
+                      <th className={styles.checkboxCell}>
+                        <input
+                          type="checkbox"
+                          className={styles.rowCheckbox}
+                          checked={selectedIds.size === transactions.length && transactions.length > 0}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all transactions"
+                        />
+                      </th>
                       {['Date', 'Merchant', 'Amount', 'Category', 'Status', 'Confidence', 'Actions'].map(col => (
                         <th
                           key={col}
@@ -410,6 +515,15 @@ export default function TransactionsPage() {
                             className={isExpanded ? styles.trExpanded : styles.tr}
                             onClick={() => setExpandedId(isExpanded ? null : tx.id)}
                           >
+                            <td className={styles.checkboxCell} onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                className={styles.rowCheckbox}
+                                checked={selectedIds.has(tx.id)}
+                                onChange={() => toggleSelect(tx.id)}
+                                aria-label={`Select transaction ${tx.merchant_name || 'unknown'}`}
+                              />
+                            </td>
                             <td className={styles.td}>{formatDate(tx.date)}</td>
                             <td className={styles.tdMerchant}>
                               <div className={styles.merchantName}>
@@ -422,8 +536,31 @@ export default function TransactionsPage() {
                             <td className={styles.tdAmount} style={{ color: isNegative ? 'var(--color-destructive)' : 'var(--color-success)' }}>
                               {isNegative ? '−' : '+'}{fmtCurrency(Math.abs(tx.amount))}
                             </td>
-                            <td className={styles.td}>
-                              <span className={styles.glCode}>{glCode}</span>
+                            <td className={styles.td} onClick={(e) => e.stopPropagation()}>
+                              {editingCategoryId === tx.id ? (
+                                <select
+                                  className={styles.categorySelect}
+                                  value={tx.category_human || tx.category_ai || ''}
+                                  onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
+                                  onBlur={() => setEditingCategoryId(null)}
+                                  autoFocus
+                                >
+                                  <option value="">— Select —</option>
+                                  {glAccounts.map(acct => (
+                                    <option key={acct.gl_code} value={acct.gl_code}>
+                                      {acct.gl_code} — {acct.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span
+                                  className={styles.glCodeEditable}
+                                  onClick={() => setEditingCategoryId(tx.id)}
+                                  title="Click to edit category"
+                                >
+                                  {glCode} ✏️
+                                </span>
+                              )}
                             </td>
                             <td className={styles.td}>
                               <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
@@ -462,7 +599,7 @@ export default function TransactionsPage() {
 
                           {isExpanded && (
                             <tr className={styles.expandedRow}>
-                              <td colSpan={7}>
+                              <td colSpan={8}>
                                 <div className={styles.expandedContent}>
                                   <div className={styles.expandedSection}>
                                     <div className={styles.expandedLabel}>🤖 AI Reasoning</div>

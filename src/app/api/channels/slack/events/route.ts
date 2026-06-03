@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { verifySlackSignature } from '@/lib/channels/slack';
 import { writeAuditLog } from '@/lib/audit';
@@ -6,6 +7,9 @@ import { writeAuditLog } from '@/lib/audit';
 // POST /api/channels/slack/events — Handle Slack Events API
 export async function POST(request: NextRequest) {
   try {
+    const limited = await rateLimit(request, { max: 100, windowSeconds: 60, prefix: 'channel-slack-events' });
+    if (limited) return limited;
+
     const rawBody = await request.text();
     const body = JSON.parse(rawBody);
 
