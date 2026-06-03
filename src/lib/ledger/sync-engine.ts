@@ -51,11 +51,9 @@ const RETRY_DELAY_MS = 2000;
  * Fetch all approved (unsynced) journal entries for an entity.
  */
 async function getUnsyncedEntries(
+  db: SupabaseQueryClient,
   entityId: string,
 ): Promise<JournalEntryForSync[]> {
-  const supabase = createAdminClient();
-  const db = supabase as unknown as SupabaseQueryClient;
-
   const { data: entries, error } = await db
     .from('journal_entries')
     .select(`
@@ -100,10 +98,7 @@ async function getUnsyncedEntries(
 /**
  * Get the ledger connection for an entity (QBO or Xero).
  */
-async function getLedgerConnection(entityId: string) {
-  const supabase = createAdminClient();
-  const db = supabase as unknown as SupabaseQueryClient;
-
+async function getLedgerConnection(db: SupabaseQueryClient, entityId: string) {
   const { data } = await db
     .from('ledger_connections')
     .select('*')
@@ -116,22 +111,39 @@ async function getLedgerConnection(entityId: string) {
 
 /**
  * Mark entries as synced in the database.
+ * Uses optimistic locking (WHERE ledger_sync_id IS NULL) to prevent TOCTOU races.
  */
 async function markEntriesSynced(
+  db: SupabaseQueryClient,
   entryIds: string[],
   syncId: string,
   provider: string,
 ): Promise<void> {
-  const supabase = createAdminClient();
-  const db = supabase as unknown as SupabaseQueryClient;
-
   await db
     .from('journal_entries')
     .update({
       ledger_sync_id: syncId,
       ledger_type: provider,
     })
-    .in('id', entryIds);
+    .in('id', entryIds)
+    .is('ledger_sync_id', null); // Optimistic lock: only update if not already synced
+}
+
+/**
+ * Mark a single entry as failed with an error message.
+ */
+async function markEntryFailed(
+  db: SupabaseQueryClient,
+  entryId: string,
+  errorMessage: string,
+): Promise<void> {
+  await db
+    .from('journal_entries')
+    .update({
+      sync_status: 'failed',
+      sync_error: errorMessage,
+    })
+    .eq('id', entryId);
 }
 
 /**
@@ -164,6 +176,7 @@ async function withRetry<T>(
  * Returns the count of successfully synced entries.
  */
 async function syncBatchToProvider(
+  db: SupabaseQueryClient,
   entries: JournalEntryForSync[],
   provider: 'quickbooks' | 'xero',
   _connection: Record<string, unknown>,
@@ -179,6 +192,19 @@ async function syncBatchToProvider(
   };
 
   for (const entry of entries) {
+    // Before syncing each entry, verify double-entry balance
+    const totalDebits = entry.lines.reduce((sum, l) => sum + (l.debit || 0), 0);
+    const totalCredits = entry.lines.reduce((sum, l) => sum + (l.credit || 0), 0);
+    // Allow tiny floating point variance (< 1 cent)
+    if (Math.abs(totalDebits - totalCredits) > 0.01) {
+      console.error(`[Sync Engine] Unbalanced journal entry ${entry.id}: debits=${totalDebits} credits=${totalCredits}`);
+      // Mark as failed rather than sending unbalanced entry
+      await markEntryFailed(db, entry.id, `Unbalanced: debits=${totalDebits} credits=${totalCredits}`);
+      errors.push(`Entry ${entry.id}: Unbalanced (debits=${totalDebits}, credits=${totalCredits})`);
+      failed.push(entry.id);
+      continue; // Skip this entry
+    }
+
     try {
       // Build JournalEntryData from the internal entry format
       const entryData: JournalEntryData = {
@@ -251,7 +277,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
 
     console.info(`[Sync Engine] Processing entity: ${entityName} (${provider})`);
 
-    const entries = await getUnsyncedEntries(entityId);
+    const entries = await getUnsyncedEntries(db, entityId);
 
     if (entries.length === 0) {
       results.push({
@@ -267,7 +293,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
       continue;
     }
 
-    const connection = await getLedgerConnection(entityId);
+    const connection = await getLedgerConnection(db, entityId);
     if (!connection) {
       results.push({
         entityId,
@@ -283,6 +309,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     }
 
     const { synced, failed, errors } = await syncBatchToProvider(
+      db,
       entries,
       provider,
       connection as Record<string, unknown>,
@@ -291,7 +318,7 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     // Mark synced entries
     if (synced.length > 0) {
       const syncId = `nightly_${new Date().toISOString().split('T')[0]}_${entityId.slice(0, 8)}`;
-      await markEntriesSynced(synced, syncId, provider);
+      await markEntriesSynced(db, synced, syncId, provider);
     }
 
     results.push({

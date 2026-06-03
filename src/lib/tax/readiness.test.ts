@@ -58,7 +58,7 @@ function makeTx(overrides: Partial<MockTransactionRow> = {}): MockTransactionRow
   return {
     id: `tx-${Math.random().toString(36).slice(2, 8)}`,
     merchant_name: 'Acme Corp',
-    amount: -100,
+    amount: 100,
     date: '2025-06-15',
     category_human: '6200',
     category_ai: 'Software',
@@ -114,7 +114,7 @@ describe('analyzeTaxReadiness', () => {
 
   describe('GL code-based categorization', () => {
     it('categorizes Software & Technology by GL prefix 6200', async () => {
-      const tx = makeTx({ category_human: '6200', amount: -500 });
+      const tx = makeTx({ category_human: '6200', amount: 500 });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -127,7 +127,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('categorizes Office Supplies by GL prefix 6100', async () => {
-      const tx = makeTx({ category_human: '6100', category_ai: 'Supplies', amount: -75 });
+      const tx = makeTx({ category_human: '6100', category_ai: 'Supplies', amount: 75 });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -140,7 +140,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('categorizes Travel by GL prefix 6300', async () => {
-      const tx = makeTx({ category_human: '6310', amount: -1200 });
+      const tx = makeTx({ category_human: '6310', amount: 1200 });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -152,7 +152,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('categorizes Personal/Non-Deductible by GL prefix 9000', async () => {
-      const tx = makeTx({ category_human: '9000', amount: -200 });
+      const tx = makeTx({ category_human: '9000', amount: 200 });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -171,7 +171,7 @@ describe('analyzeTaxReadiness', () => {
         category_human: null,
         category_ai: null,
         merchant_name: 'Google Cloud Platform',
-        amount: -350,
+        amount: 350,
       });
       const db = createMockSupabase([tx]);
 
@@ -189,7 +189,7 @@ describe('analyzeTaxReadiness', () => {
         category_human: null,
         category_ai: null,
         merchant_name: 'Restaurant La Piazza',
-        amount: -85,
+        amount: 85,
       });
       const db = createMockSupabase([tx]);
 
@@ -201,21 +201,22 @@ describe('analyzeTaxReadiness', () => {
       expect(mealsCat).toBeDefined();
     });
 
-    it('defaults to Other Business Expenses when no match', async () => {
+    it('defaults to Other Business Expenses (non-deductible) when no match', async () => {
       const tx = makeTx({
         category_human: null,
         category_ai: null,
         merchant_name: 'XYZ Completely Unknown',
-        amount: -50,
+        amount: 50,
       });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
 
+      // Unknown expenses are now non-deductible, should NOT appear in deductionsByCategory
       const otherCat = report.deductionsByCategory.find(
         (c) => c.category === 'Other Business Expenses'
       );
-      expect(otherCat).toBeDefined();
+      expect(otherCat).toBeUndefined();
     });
   });
 
@@ -223,7 +224,7 @@ describe('analyzeTaxReadiness', () => {
     it('detects missing receipts for deductible expenses >= $25', async () => {
       const tx = makeTx({
         document_url: null,
-        amount: -100,
+        amount: 100,
         category_human: '6200',
       });
       const db = createMockSupabase([tx]);
@@ -237,7 +238,7 @@ describe('analyzeTaxReadiness', () => {
     it('does not flag missing receipts for expenses under $25', async () => {
       const tx = makeTx({
         document_url: null,
-        amount: -15,
+        amount: 15,
         category_human: '6200',
       });
       const db = createMockSupabase([tx]);
@@ -250,7 +251,7 @@ describe('analyzeTaxReadiness', () => {
     it('does not flag expenses that have receipts', async () => {
       const tx = makeTx({
         document_url: 'https://storage.example.com/receipt.pdf',
-        amount: -500,
+        amount: 500,
         category_human: '6200',
       });
       const db = createMockSupabase([tx]);
@@ -265,7 +266,7 @@ describe('analyzeTaxReadiness', () => {
         makeTx({
           id: `tx-${i}`,
           document_url: null,
-          amount: -100,
+          amount: 100,
           category_human: '6200',
         })
       );
@@ -279,7 +280,7 @@ describe('analyzeTaxReadiness', () => {
 
   describe('estimated savings', () => {
     it('calculates estimated savings at default 25% tax rate', async () => {
-      const tx = makeTx({ amount: -1000, category_human: '6200' });
+      const tx = makeTx({ amount: 1000, category_human: '6200' });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -289,7 +290,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('calculates estimated savings at custom tax rate', async () => {
-      const tx = makeTx({ amount: -1000, category_human: '6200' });
+      const tx = makeTx({ amount: 1000, category_human: '6200' });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db, 0.30);
@@ -299,7 +300,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('non-deductible expenses do not contribute to savings', async () => {
-      const tx = makeTx({ amount: -1000, category_human: '9000' }); // Personal / Non-Deductible
+      const tx = makeTx({ amount: 1000, category_human: '9000' }); // Personal / Non-Deductible
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -315,7 +316,7 @@ describe('analyzeTaxReadiness', () => {
           id: `tx-${i}`,
           document_url: 'https://storage.example.com/receipt.pdf',
           category_human: '6200',
-          amount: -100,
+          amount: 100,
         })
       );
       const db = createMockSupabase(transactions);
@@ -331,7 +332,7 @@ describe('analyzeTaxReadiness', () => {
           id: `tx-with-${i}`,
           document_url: 'https://example.com/receipt.pdf',
           category_human: '6200',
-          amount: -100,
+          amount: 100,
         })
       );
       const withoutReceipts = Array.from({ length: 25 }, (_, i) =>
@@ -339,7 +340,7 @@ describe('analyzeTaxReadiness', () => {
           id: `tx-without-${i}`,
           document_url: null,
           category_human: '6200',
-          amount: -100,
+          amount: 100,
         })
       );
       const db = createMockSupabase([...withReceipts, ...withoutReceipts]);
@@ -358,7 +359,7 @@ describe('analyzeTaxReadiness', () => {
           category_human: null,
           category_ai: null,
           merchant_name: 'Unknown',
-          amount: -100,
+          amount: 100,
         })
       );
       const db = createMockSupabase(transactions);
@@ -372,7 +373,7 @@ describe('analyzeTaxReadiness', () => {
 
   describe('recommendations', () => {
     it('recommends uploading missing receipts', async () => {
-      const tx = makeTx({ document_url: null, amount: -100, category_human: '6200' });
+      const tx = makeTx({ document_url: null, amount: 100, category_human: '6200' });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -389,7 +390,7 @@ describe('analyzeTaxReadiness', () => {
           id: `tx-${i}`,
           document_url: 'https://example.com/receipt.pdf',
           category_human: '6200',
-          amount: -100,
+          amount: 100,
         })
       );
       const db = createMockSupabase(transactions);
@@ -405,7 +406,7 @@ describe('analyzeTaxReadiness', () => {
     });
 
     it('suggests home office deduction when no rent expenses', async () => {
-      const tx = makeTx({ category_human: '6200', amount: -100 });
+      const tx = makeTx({ category_human: '6200', amount: 100 });
       const db = createMockSupabase([tx]);
 
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
@@ -420,9 +421,9 @@ describe('analyzeTaxReadiness', () => {
   describe('deductions by category', () => {
     it('sorts categories by amount descending', async () => {
       const transactions = [
-        makeTx({ category_human: '6200', amount: -500 }),  // Software
-        makeTx({ category_human: '6300', amount: -1200 }), // Travel
-        makeTx({ category_human: '6100', amount: -75 }),    // Office Supplies
+        makeTx({ category_human: '6200', amount: 500 }),  // Software
+        makeTx({ category_human: '6300', amount: 1200 }), // Travel
+        makeTx({ category_human: '6100', amount: 75 }),    // Office Supplies
       ];
       const db = createMockSupabase(transactions);
 
@@ -436,9 +437,9 @@ describe('analyzeTaxReadiness', () => {
 
     it('counts transactions per category', async () => {
       const transactions = [
-        makeTx({ category_human: '6200', amount: -100 }),
-        makeTx({ category_human: '6200', amount: -200 }),
-        makeTx({ category_human: '6200', amount: -300 }),
+        makeTx({ category_human: '6200', amount: 100 }),
+        makeTx({ category_human: '6200', amount: 200 }),
+        makeTx({ category_human: '6200', amount: 300 }),
       ];
       const db = createMockSupabase(transactions);
 

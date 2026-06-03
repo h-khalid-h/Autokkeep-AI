@@ -58,7 +58,13 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'qbo-exchange' });
     if (limited) return limited;
 
-    const { code, realmId, state } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { code, realmId, state } = body;
 
     if (!code || !realmId) {
       return NextResponse.json({ error: 'Missing code or realmId' }, { status: 400 });

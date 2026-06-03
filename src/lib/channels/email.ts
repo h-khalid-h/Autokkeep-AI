@@ -156,7 +156,7 @@ export async function sendEmailReceiptRequest(
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to,
-      subject: `💳 Receipt Needed: ${escapeHtml(context.merchantName)} — ${formattedAmount}`,
+      subject: `💳 Receipt Needed: ${context.merchantName} — ${formattedAmount}`,
       html,
     });
 

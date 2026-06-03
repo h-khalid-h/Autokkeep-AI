@@ -1,3 +1,4 @@
+// Convention: Plaid amounts — positive = expense (money leaving account), negative = income (money entering account)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Autokkeep — Financial Narrative Engine (Monthly Narrative Generator)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -99,16 +100,18 @@ function analyzeMonthData(transactions: TransactionRow[]): MonthData {
     const category = tx.category_human || tx.category_ai || 'Uncategorized';
     const amount = tx.amount;
 
-    if (amount >= 0) {
-      revenue += amount;
+    if (amount < 0) {
+      // Plaid: negative = inflow (income/revenue)
+      revenue += Math.abs(amount);
     } else {
-      expenses += Math.abs(amount);
+      // Plaid: positive = outflow (expense)
+      expenses += amount;
     }
 
-    // Track category breakdown for expenses
-    if (amount < 0) {
+    // Track category breakdown for expenses (positive amounts)
+    if (amount > 0) {
       const existing = categoryBreakdown.get(category) || { total: 0, count: 0 };
-      existing.total += Math.abs(amount);
+      existing.total += amount;
       existing.count++;
       categoryBreakdown.set(category, existing);
     }
@@ -116,13 +119,13 @@ function analyzeMonthData(transactions: TransactionRow[]): MonthData {
 
   // Classify recurring vs one-time based on vendor frequency
   for (const tx of transactions) {
-    if (tx.amount < 0) {
+    if (tx.amount > 0) { // Plaid: positive = expense
       const vendor = tx.merchant_name || tx.merchant_raw || 'Unknown';
       const count = vendorCounts.get(vendor) || 0;
       if (count >= 2) {
-        recurringExpenses += Math.abs(tx.amount);
+        recurringExpenses += tx.amount;
       } else {
-        oneTimeExpenses += Math.abs(tx.amount);
+        oneTimeExpenses += tx.amount;
       }
     }
   }

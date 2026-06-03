@@ -1,3 +1,4 @@
+// Convention: Plaid amounts — positive = expense (money leaving account), negative = income (money entering account)
 // ============================================
 // TAX READINESS ANALYZER
 // Scans approved transactions for deductions, categorizes expenses,
@@ -146,9 +147,9 @@ function categorizeTransaction(tx: TransactionRow): { category: string; deductib
     }
   }
 
-  // 3. Default: categorize as deductible with "Other Business Expenses"
-  // Most business expenses are deductible if properly documented
-  return { category: 'Other Business Expenses', deductible: true };
+  // 3. Default: unknown expenses should NOT default to deductible
+  // Require explicit categorization for deduction eligibility
+  return { category: 'Other Business Expenses', deductible: false };
 }
 
 // ─── Receipt Threshold ──────────────────────────────────────────────────────
@@ -183,9 +184,8 @@ export async function analyzeTaxReadiness(
 
   const txList: TransactionRow[] = transactions || [];
 
-  // Filter to expense transactions (negative amounts or positive debits)
-  // In many systems expenses are stored as positive amounts
-  const expenses = txList.filter((tx: TransactionRow) => tx.amount < 0);
+  // Filter to expense transactions — Plaid convention: positive amount = expense (outflow)
+  const expenses = txList.filter((tx: TransactionRow) => tx.amount > 0);
 
   // Categorize each transaction
   const categoryMap = new Map<string, { amount: number; count: number; deductible: boolean }>();
@@ -209,7 +209,9 @@ export async function analyzeTaxReadiness(
     categoryMap.set(category, existing);
 
     if (deductible) {
-      totalDeductible += absAmount;
+      // IRS: Meals & entertainment only 50% deductible
+      const isMeals = category === 'Meals & Entertainment';
+      totalDeductible += isMeals ? absAmount * 0.5 : absAmount;
       totalDeductibleCount += 1;
     }
 

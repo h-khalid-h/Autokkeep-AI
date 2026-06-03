@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
           await writeAuditLog({
             supabase: db,
             entityId: tx.entity_id,
+            actorId: message.from,
             action: 'approve',
             targetType: 'transaction',
             targetId: receiptRequest.transaction_id,
@@ -188,6 +189,7 @@ export async function POST(request: NextRequest) {
           await writeAuditLog({
             supabase: db,
             entityId: tx.entity_id,
+            actorId: message.from,
             action: 'categorize',
             targetType: 'transaction',
             targetId: receiptRequest.transaction_id,
@@ -249,6 +251,7 @@ export async function POST(request: NextRequest) {
             await writeAuditLog({
               supabase: db,
               entityId: receiptTx.entity_id,
+              actorId: message.from,
               action: 'receipt_upload',
               targetType: 'transaction',
               targetId: receiptRequest.transaction_id,

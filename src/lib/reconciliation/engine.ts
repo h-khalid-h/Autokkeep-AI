@@ -207,6 +207,7 @@ export async function createFeeAdjustingEntry(
   await writeAuditLog({
     supabase,
     entityId: input.entityId,
+    actorId: 'system',
     actorType: 'system',
     action: 'create',
     targetType: 'journal_entry',

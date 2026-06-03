@@ -167,7 +167,8 @@ export async function runAutoCategorize(options?: {
       for (const [txId, result] of results) {
         const confidencePercent = Math.round(result.confidence);
 
-        if (result.confidence === 0 && !result.glCode) {
+        if (!result.glCode) {
+          // No GL code = categorization failed regardless of confidence
           totalFailed++;
           updatePromises.push(
             db

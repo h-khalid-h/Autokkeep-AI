@@ -117,7 +117,12 @@ export async function PATCH(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    const body: PatchBody = await request.json();
+    let body: PatchBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     if (!body.alertId || !body.action) {
       return NextResponse.json(
