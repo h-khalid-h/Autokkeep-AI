@@ -226,6 +226,8 @@ export default function DashboardPage() {
     const total = transactions.length;
     const pending = transactions.filter((t) => t.status === 'pending_human').length;
     const approved = transactions.filter((t) => t.status === 'verified_human').length;
+    // rejectedCount tracks rejections made during this session (transactions removed
+    // from the list are no longer in the array, so we use the accumulated counter)
     const rejected = rejectedCount;
     const autoRate = total > 0
       ? Math.round((transactions.filter((t) => t.status === 'verified_ai').length / total) * 100)

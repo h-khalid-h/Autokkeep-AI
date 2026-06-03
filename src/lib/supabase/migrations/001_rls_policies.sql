@@ -48,7 +48,8 @@ CREATE POLICY "organizations_select" ON organizations
 DROP POLICY IF EXISTS "organizations_update" ON organizations;
 CREATE POLICY "organizations_update" ON organizations
   FOR UPDATE USING (
-    id IN (SELECT auth_user_org_ids())
+    -- Restricted to owner only (matches stricter policy intent)
+    owner_id = auth.uid()
   );
 
 
@@ -79,7 +80,10 @@ CREATE POLICY "entities_update" ON entities
 DROP POLICY IF EXISTS "entities_delete" ON entities;
 CREATE POLICY "entities_delete" ON entities
   FOR DELETE USING (
-    org_id IN (SELECT auth_user_org_ids())
+    -- Restricted to org owner only to prevent accidental deletion by members
+    org_id IN (
+      SELECT id FROM organizations WHERE owner_id = auth.uid()
+    )
   );
 
 
@@ -215,7 +219,12 @@ CREATE POLICY "transactions_update" ON transactions
 DROP POLICY IF EXISTS "transactions_delete" ON transactions;
 CREATE POLICY "transactions_delete" ON transactions
   FOR DELETE USING (
-    entity_id IN (SELECT auth_user_entity_ids())
+    -- Restricted to org owner only to prevent data loss by members
+    entity_id IN (
+      SELECT id FROM entities WHERE org_id IN (
+        SELECT id FROM organizations WHERE owner_id = auth.uid()
+      )
+    )
   );
 
 
@@ -510,7 +519,10 @@ CREATE POLICY "team_members_update" ON team_members
 DROP POLICY IF EXISTS "team_members_delete" ON team_members;
 CREATE POLICY "team_members_delete" ON team_members
   FOR DELETE USING (
-    org_id IN (SELECT auth_user_org_ids())
+    -- Restricted to org owner only — members cannot remove other members
+    org_id IN (
+      SELECT id FROM organizations WHERE owner_id = auth.uid()
+    )
   );
 
 
