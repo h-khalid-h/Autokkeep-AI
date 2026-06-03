@@ -87,8 +87,13 @@ describe('runAutoCategorize', () => {
     const result = await runAutoCategorize({ supabase: mockDb as never });
 
     expect(result.processed).toBe(2);
-    expect(result.auto_categorized).toBe(1); // tx-1 >= 80%
-    expect(result.human_review).toBe(1);      // tx-2 < 80%
+    // Composite confidence gate (C_s = 0.5*P_llm + 0.3*S_rule + 0.2*M_doc):
+    // tx-1: C_s = 0.5*0.95 + 0.3*1.0 + 0.2*0 = 0.775 < 0.95 → human_review
+    // tx-2: C_s = 0.5*0.60 + 0.3*0.0 + 0.2*0 = 0.300 < 0.95 → human_review
+    // Without document corroboration (M_doc=0), max composite is 0.80 — by design, all
+    // batch-categorized transactions route to human_review for receipt verification.
+    expect(result.auto_categorized).toBe(0);
+    expect(result.human_review).toBe(2);
     expect(result.failed).toBe(0);
     expect(result.entity_ids).toEqual(['ent-1']);
     expect(batchCategorize).toHaveBeenCalledOnce();

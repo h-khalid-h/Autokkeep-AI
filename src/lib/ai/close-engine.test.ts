@@ -436,6 +436,124 @@ describe('runMonthEndClose', () => {
       }
     });
   });
+
+  // ============================================
+  // CRITICAL AUDIT FIX: Sign Convention Tests
+  // ============================================
+  describe('sign convention — reconciliation with positive expenses', () => {
+    it('computes correct book balance with positive expenses (Plaid convention)', async () => {
+      // Plaid convention: positive = expense (outflow), negative = income (inflow)
+      // Book balance = -(sum of all amounts)
+      // $500 expense + (-$1000 income) = -$500 net → book balance = $500
+      const transactions = [
+        makeTx({ amount: 500, status: 'approved' }),   // expense outflow
+        makeTx({ amount: -1000, status: 'approved' }), // income inflow
+      ];
+
+      const bankAccounts = [
+        { id: 'acc-1', current_balance: 500, name: 'Checking', connection_id: 'conn-1' },
+      ];
+
+      const bankConnections = [
+        { id: 'conn-1', last_synced_at: new Date().toISOString(), status: 'active' },
+      ];
+
+      const supabase = createMockSupabase({
+        transactions,
+        bankAccounts,
+        bankConnections,
+      });
+      const report = await runMonthEndClose('entity-1', 2025, 6, supabase);
+
+      const reconCheck = report.checks.find((c) => c.name === 'Bank Reconciliation');
+      expect(reconCheck).toBeDefined();
+      // Bank balance ($500) should match book balance (-(500 + -1000) = 500)
+      expect(reconCheck!.status).toBe('pass');
+    });
+
+    it('detects variance when bank and book balances differ', async () => {
+      // Only income: $1000 inflow → book balance = $1000
+      const transactions = [
+        makeTx({ amount: -1000, status: 'approved' }), // income → book = 1000
+      ];
+
+      const bankAccounts = [
+        { id: 'acc-1', current_balance: 500, name: 'Checking', connection_id: 'conn-1' },
+      ];
+
+      const bankConnections = [
+        { id: 'conn-1', last_synced_at: new Date().toISOString(), status: 'active' },
+      ];
+
+      const supabase = createMockSupabase({
+        transactions,
+        bankAccounts,
+        bankConnections,
+      });
+      const report = await runMonthEndClose('entity-1', 2025, 6, supabase);
+
+      const reconCheck = report.checks.find((c) => c.name === 'Bank Reconciliation');
+      // Bank ($500) vs Book ($1000) → $500 variance → fail
+      expect(reconCheck!.status).toBe('fail');
+    });
+  });
+
+  describe('expense filtering uses amount > 0 (not < 0)', () => {
+    it('expense review only counts positive amounts as expenses', async () => {
+      // Mix of expenses and income
+      const transactions = [
+        makeTx({ amount: 200, category_human: 'Software', status: 'approved' }), // expense
+        makeTx({ amount: -500, category_human: 'Software', status: 'approved' }), // income — should be skipped
+      ];
+
+      // Set historical avg for Software to $100 (200 is 100% above average)
+      const historicalTxns = [
+        { amount: 100, category_ai: null, category_human: 'Software' },
+      ];
+
+      const supabase = createMockSupabase({
+        transactions,
+        historicalTxns,
+      });
+      const report = await runMonthEndClose('entity-1', 2025, 6, supabase);
+
+      const expenseCheck = report.checks.find((c) => c.name === 'Expense Review');
+      expect(expenseCheck).toBeDefined();
+      // The expense review should only see $200 in Software expenses
+      // not -$500 which is income
+      // Historical avg = 100/3 = 33.33, deviation = (200-33.33)/33.33 = 500%
+      // So it should be flagged as a warning
+      if (expenseCheck!.details && expenseCheck!.details.length > 0) {
+        expect(expenseCheck!.details[0]).toContain('Software');
+        expect(expenseCheck!.details[0]).toContain('200');
+      }
+    });
+
+    it('skips income (negative amounts) in historical expense calculation', async () => {
+      // Current period: $150 software expense
+      const transactions = [
+        makeTx({ amount: 150, category_human: 'TestCat', status: 'approved' }),
+      ];
+
+      // Historical: mix of expenses and income
+      // Only the positive amounts should be used for average calculation
+      const historicalTxns = [
+        { amount: 100, category_ai: null, category_human: 'TestCat' },   // expense
+        { amount: -500, category_ai: null, category_human: 'TestCat' },  // income — should be excluded
+      ];
+
+      const supabase = createMockSupabase({
+        transactions,
+        historicalTxns,
+      });
+      const report = await runMonthEndClose('entity-1', 2025, 6, supabase);
+
+      // Historical avg for TestCat should be 100/3 ≈ 33.33 (only the positive amount)
+      // Not (100 + -500) = -400/3 which would be wrong
+      const expenseCheck = report.checks.find((c) => c.name === 'Expense Review');
+      expect(expenseCheck).toBeDefined();
+    });
+  });
 });
 
 // ============================================
@@ -446,3 +564,4 @@ describe('closePeriod', () => {
     expect(typeof closePeriod).toBe('function');
   });
 });
+

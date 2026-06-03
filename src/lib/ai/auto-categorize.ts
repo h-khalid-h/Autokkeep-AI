@@ -20,6 +20,7 @@ import type {
 } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { computeCompositeScore, calculateRuleScore, AUTO_COMMIT_THRESHOLD } from '@/lib/ai/confidence';
 
 const BATCH_LIMIT = 50;
 const AUTO_CATEGORIZE_THRESHOLD = 80;
@@ -182,8 +183,17 @@ export async function runAutoCategorize(options?: {
               .eq('entity_id', entityId)
           );
         } else {
+          // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
+          // C_s = (w1 × P_llm) + (w2 × S_rule) + (w3 × M_doc)
+          const sRule = calculateRuleScore(result.ruleMatchType);
+          const composite = computeCompositeScore(
+            result.confidence / 100, // normalize to 0-1
+            sRule,
+            0 // M_doc: no document corroboration available at batch categorization time
+          );
+
           const newStatus =
-            confidencePercent >= AUTO_CATEGORIZE_THRESHOLD
+            composite.compositeScore >= AUTO_COMMIT_THRESHOLD
               ? 'auto_categorized'
               : 'human_review';
 
@@ -198,7 +208,7 @@ export async function runAutoCategorize(options?: {
               .from('transactions')
               .update({
                 category_ai: result.glCode,
-                confidence: confidencePercent,
+                confidence: confidencePercent, // Keep raw AI confidence for observability
                 status: newStatus,
                 ai_reasoning: result.reasoning,
                 gl_name: result.glName || null,

@@ -462,4 +462,122 @@ describe('analyzeTaxReadiness', () => {
       ).rejects.toThrow('Failed to fetch transactions');
     });
   });
+
+  // ============================================
+  // CRITICAL AUDIT FIX: Sign Convention Tests
+  // Plaid convention: positive = expense (outflow), negative = income (inflow)
+  // ============================================
+  describe('sign convention (Plaid: positive = expense)', () => {
+    it('treats positive amounts as expenses', async () => {
+      const expenses = [
+        makeTx({ amount: 100, category_human: '6200' }),
+        makeTx({ amount: 250, category_human: '6300' }),
+      ];
+      const db = createMockSupabase(expenses);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      expect(report.totalExpenses).toBe(350);
+    });
+
+    it('excludes negative amounts (income) from expenses', async () => {
+      const transactions = [
+        makeTx({ amount: 100, category_human: '6200' }),  // expense
+        makeTx({ amount: -500, category_human: '6200' }), // income — should be excluded
+      ];
+      const db = createMockSupabase(transactions);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      // Only the positive $100 expense counts
+      expect(report.totalExpenses).toBe(100);
+    });
+
+    it('zero-amount transactions are excluded from expenses', async () => {
+      const transactions = [
+        makeTx({ amount: 0, category_human: '6200' }),
+        makeTx({ amount: 200, category_human: '6200' }),
+      ];
+      const db = createMockSupabase(transactions);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      expect(report.totalExpenses).toBe(200);
+    });
+  });
+
+  describe('meals & entertainment 50% deduction', () => {
+    it('applies 50% deduction for meals & entertainment', async () => {
+      // $200 meals expense → only $100 deductible
+      const tx = makeTx({
+        amount: 200,
+        category_human: null,
+        category_ai: null,
+        merchant_name: 'Restaurant Downtown',
+      });
+      const db = createMockSupabase([tx]);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      expect(report.totalDeductible).toBe(100); // 200 * 0.5
+    });
+
+    it('calculates estimatedSavings with 50% meals reduction', async () => {
+      // Mix of full-deductible and 50%-deductible expenses
+      const transactions = [
+        makeTx({ amount: 1000, category_human: '6200' }), // Software — full deduction
+        makeTx({
+          amount: 400,
+          category_human: null,
+          category_ai: null,
+          merchant_name: 'Restaurant Italiano',
+        }), // Meals — 50% deduction
+      ];
+      const db = createMockSupabase(transactions);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db, 0.25);
+
+      // totalDeductible = 1000 + (400 * 0.5) = 1200
+      expect(report.totalDeductible).toBe(1200);
+      // estimatedSavings = 1200 * 0.25 = 300
+      expect(report.estimatedSavings).toBe(300);
+    });
+
+    it('non-meals deductible expenses get full deduction', async () => {
+      const tx = makeTx({ amount: 500, category_human: '6200' }); // Software
+      const db = createMockSupabase([tx]);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      expect(report.totalDeductible).toBe(500); // Full amount
+    });
+  });
+
+  describe('unknown expenses default to non-deductible', () => {
+    it('uncategorized merchant returns non-deductible category', async () => {
+      const tx = makeTx({
+        amount: 500,
+        category_human: null,
+        category_ai: null,
+        merchant_name: 'ZZXYZZY Unknown Corp 12345',
+      });
+      const db = createMockSupabase([tx]);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      // Should count as expense but NOT as deductible
+      expect(report.totalExpenses).toBe(500);
+      expect(report.totalDeductible).toBe(0);
+      expect(report.estimatedSavings).toBe(0);
+
+      // Should NOT appear in deductionsByCategory
+      expect(report.deductionsByCategory).toHaveLength(0);
+    });
+
+    it('multiple unknown expenses contribute zero to deductions', async () => {
+      const transactions = [
+        makeTx({ amount: 100, category_human: null, category_ai: null, merchant_name: 'Unknown A' }),
+        makeTx({ amount: 200, category_human: null, category_ai: null, merchant_name: 'Unknown B' }),
+        makeTx({ amount: 300, category_human: null, category_ai: null, merchant_name: 'Unknown C' }),
+      ];
+      const db = createMockSupabase(transactions);
+      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+
+      expect(report.totalExpenses).toBe(600);
+      expect(report.totalDeductible).toBe(0);
+    });
+  });
 });

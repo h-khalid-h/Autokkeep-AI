@@ -335,3 +335,170 @@ describe('buildChaseMessage', () => {
     });
   });
 });
+
+// ============================================
+// Chase Agent Idempotency (Lock Tests)
+// ============================================
+
+// We test the lock functions by mocking the Redis client module.
+// The chase-agent module imports getRedisClient from '@/lib/redis'.
+
+describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock', () => {
+  // We need to test the internal acquireChaseRunLock and releaseChaseRunLock
+  // functions. Since they are not exported, we test them through runReceiptChase.
+  // However, runReceiptChase has many dependencies. Instead, we re-mock the module
+  // to isolate the lock behavior.
+
+  // Strategy: dynamically import the chase-agent module with a controlled Redis mock
+  // and test the locking via runReceiptChase's behavior.
+
+  it('acquireChaseRunLock returns true when lock is available (via Redis NX)', async () => {
+    // When Redis SET NX returns 'OK', the lock is acquired.
+    // We verify this by checking that runReceiptChase proceeds (totalChased or queries run).
+    const { getRedisClient } = await import('@/lib/redis');
+
+    // Mock Redis to return 'OK' for SET NX
+    const mockRedis = {
+      set: vi.fn().mockResolvedValue('OK'),
+      del: vi.fn().mockResolvedValue(1),
+    };
+
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+
+    // Import runReceiptChase (which uses acquireChaseRunLock internally)
+    const { runReceiptChase } = await import('./chase-agent');
+
+    // Create a minimal mock supabase that returns no outstanding transactions
+    const mockSupabase: any = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  then: (resolve: any) => resolve({ data: [], error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+
+    // Reset the in-memory guard by using a unique entity ID
+    const entityId = `test-lock-acquire-${Date.now()}`;
+    const report = await runReceiptChase(entityId, mockSupabase);
+
+    // Lock was acquired (returned true) so the function proceeded
+    // Verify SET was called with NX
+    expect(mockRedis.set).toHaveBeenCalledWith(
+      `chase_lock:${entityId}`,
+      '1',
+      'EX',
+      120,
+      'NX'
+    );
+    // Lock was released after run
+    expect(mockRedis.del).toHaveBeenCalledWith(`chase_lock:${entityId}`);
+  });
+
+  it('acquireChaseRunLock returns false when lock is held (via Redis NX)', async () => {
+    const { getRedisClient } = await import('@/lib/redis');
+
+    // Mock Redis to return null for SET NX (lock already held)
+    const mockRedis = {
+      set: vi.fn().mockResolvedValue(null),
+      del: vi.fn().mockResolvedValue(1),
+    };
+
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+
+    const { runReceiptChase } = await import('./chase-agent');
+
+    const mockSupabase: any = {
+      from: vi.fn(),
+    };
+
+    const entityId = `test-lock-held-${Date.now()}`;
+    const report = await runReceiptChase(entityId, mockSupabase);
+
+    // When lock is held, runReceiptChase returns early with totalChased: 0
+    expect(report.totalChased).toBe(0);
+    expect(report.entityId).toBe(entityId);
+
+    // Supabase should NOT have been called (skipped entirely)
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+
+    // Redis del should NOT have been called (lock wasn't acquired)
+    expect(mockRedis.del).not.toHaveBeenCalled();
+  });
+
+  it('releaseChaseRunLock releases the lock after successful run', async () => {
+    const { getRedisClient } = await import('@/lib/redis');
+
+    const mockRedis = {
+      set: vi.fn().mockResolvedValue('OK'),
+      del: vi.fn().mockResolvedValue(1),
+    };
+
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+
+    const { runReceiptChase } = await import('./chase-agent');
+
+    const mockSupabase: any = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  then: (resolve: any) => resolve({ data: [], error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const entityId = `test-lock-release-${Date.now()}`;
+    await runReceiptChase(entityId, mockSupabase);
+
+    // Verify DEL was called to release the lock
+    expect(mockRedis.del).toHaveBeenCalledWith(`chase_lock:${entityId}`);
+  });
+
+  it('allows run when Redis is unavailable (fallback to in-memory)', async () => {
+    const { getRedisClient } = await import('@/lib/redis');
+
+    // Mock Redis as unavailable (returns null)
+    vi.mocked(getRedisClient).mockReturnValue(null);
+
+    const { runReceiptChase } = await import('./chase-agent');
+
+    const mockSupabase: any = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  then: (resolve: any) => resolve({ data: [], error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const entityId = `test-no-redis-${Date.now()}`;
+    const report = await runReceiptChase(entityId, mockSupabase);
+
+    // Should proceed without Redis (acquireChaseRunLock returns true when Redis is null)
+    // The function should have queried for transactions
+    expect(mockSupabase.from).toHaveBeenCalled();
+    expect(report.entityId).toBe(entityId);
+  });
+});
+

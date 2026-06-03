@@ -875,19 +875,21 @@ CREATE POLICY "audit_log_insert" ON audit_log
     entity_id IN (SELECT auth_user_entity_ids())
   );
 
-DROP POLICY IF EXISTS "audit_log_update" ON audit_log;
-CREATE POLICY "audit_log_update" ON audit_log
-  FOR UPDATE USING (
-    entity_id IN (SELECT auth_user_entity_ids())
-    AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
-  );
-
-DROP POLICY IF EXISTS "audit_log_delete" ON audit_log;
-CREATE POLICY "audit_log_delete" ON audit_log
-  FOR DELETE USING (
-    entity_id IN (SELECT auth_user_entity_ids())
-    AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
-  );
+-- REMOVED: audit_log UPDATE/DELETE policies. Audit logs are immutable (SOC 2/SOX).
+-- See migration 001_rls_policies.sql for the authoritative policy set.
+-- DROP POLICY IF EXISTS "audit_log_update" ON audit_log;
+-- CREATE POLICY "audit_log_update" ON audit_log
+--   FOR UPDATE USING (
+--     entity_id IN (SELECT auth_user_entity_ids())
+--     AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
+--   );
+--
+-- DROP POLICY IF EXISTS "audit_log_delete" ON audit_log;
+-- CREATE POLICY "audit_log_delete" ON audit_log
+--   FOR DELETE USING (
+--     entity_id IN (SELECT auth_user_entity_ids())
+--     AND (auth_user_has_role('owner') OR auth_user_has_role('admin'))
+--   );
 
 
 -- ===========================================================================
