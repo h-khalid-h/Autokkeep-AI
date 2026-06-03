@@ -8,6 +8,7 @@ import AppShell from '@/components/layout/AppShell';
 import { Card, Skeleton, EmptyState } from '@/components/ui';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
+import RecentActivity from '@/components/dashboard/RecentActivity';
 
 import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -566,6 +567,7 @@ export default function DashboardPage() {
           <div className={styles.pageWrapper}>
             <StatsBar stats={stats} loading={false} />
             <ModuleQuickAccess />
+            <RecentActivity />
             <Card variant="default" padding="lg">
               <EmptyState
                 icon="✅"
@@ -586,6 +588,8 @@ export default function DashboardPage() {
           <StatsBar stats={stats} loading={false} />
 
           <ModuleQuickAccess />
+
+          <RecentActivity />
 
           {/* Error banner */}
           {error && (
