@@ -113,10 +113,48 @@ export default function TaxPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const toast = useToast();
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  // ─── Export CSV handler ───────────────────────────────────────────────────
+  const handleExport = React.useCallback(async () => {
+    if (!selectedEntity?.id) {
+      toast.error('Please select an entity first');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const res = await fetch(
+        `/api/tax/export?entityId=${selectedEntity.id}&year=${selectedYear}`
+      );
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Export failed (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `autokkeep-tax-export-${selectedYear}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Tax export for ${selectedYear} downloaded`);
+    } catch (err) {
+      console.error('[Tax] Export error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to export tax data');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedEntity, selectedYear, toast]);
 
   // ─── Fetch tax readiness report ──────────────────────────────────────────
   React.useEffect(() => {
@@ -189,9 +227,10 @@ export default function TaxPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  disabled
+                  disabled={isExporting || isLoading}
+                  onClick={handleExport}
                 >
-                  📤 Export for Accountant (Coming Soon)
+                  {isExporting ? '⏳ Exporting…' : '📤 Export for Accountant'}
                 </Button>
               </div>
             </div>
@@ -286,19 +325,16 @@ export default function TaxPage() {
                     onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); toast.info('Receipt upload coming soon'); }}
+                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); toast.info('Receipt storage is being set up. Check back soon!'); }}
                     role="button"
                     tabIndex={0}
-                    aria-label="Drop documents here — coming soon"
+                    aria-label="Drop receipts here for upload"
                   >
                     <span className={styles.dropzoneIcon}>
                       {isDragOver ? '📥' : '📎'}
                     </span>
                     <span className={styles.dropzoneText}>
                       {isDragOver ? 'Drop to upload' : 'Drop receipts here'}
-                    </span>
-                    <span className={styles.dropzoneText}>
-                      (Coming Soon)
                     </span>
                   </div>
                 </Card>

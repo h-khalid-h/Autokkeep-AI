@@ -47,9 +47,7 @@ export default function AppShell({
   }, []);
 
   const handleSearchOpen = useCallback(() => {
-    // TODO: Wire up CommandPalette component when implemented
-    // For now, show a 'coming soon' toast so users know the feature isn't ready
-    console.info('[AppShell] Search triggered but CommandPalette is not yet implemented');
+    window.dispatchEvent(new Event('autokkeep-command-palette'));
   }, []);
 
   return (
