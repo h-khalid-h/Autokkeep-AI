@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 // POST /api/contact — Store contact form submission
 export async function POST(request: NextRequest) {
@@ -7,39 +8,13 @@ export async function POST(request: NextRequest) {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'contact' });
     if (limited) return limited;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { name, email, company, type, entityCount, message } = body;
+    const parsed = await parseBody(request, schemas.contactForm);
+    if (!parsed.success) return parsed.error;
+    const { name, email, message, company } = parsed.data;
 
-    if (!name || !email || !message) {
-      return NextResponse.json(
-        { error: 'Name, email, and message are required' },
-        { status: 400 }
-      );
-    }
-
-    // Input length limits
-    if (typeof name !== 'string' || name.length > 200) {
-      return NextResponse.json({ error: 'Name too long (max 200 chars)' }, { status: 400 });
-    }
-    if (typeof email !== 'string' || email.length > 320) {
-      return NextResponse.json({ error: 'Email too long (max 320 chars)' }, { status: 400 });
-    }
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
-    }
-    if (message && message.length > 5000) {
-      return NextResponse.json({ error: 'Message too long (max 5000 chars)' }, { status: 400 });
-    }
-    // Sanitize
+    // Normalize
     const sanitizedEmail = email.trim().toLowerCase();
-    const sanitizedMessage = message?.trim().slice(0, 5000) || '';
+    const sanitizedMessage = message.trim().slice(0, 5000);
 
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const supabase = createAdminClient();
@@ -59,8 +34,6 @@ export async function POST(request: NextRequest) {
           name,
           email: sanitizedEmail,
           company: company || null,
-          type: type || null,
-          entity_count: entityCount || null,
           message: sanitizedMessage,
           submitted_at: new Date().toISOString(),
         },

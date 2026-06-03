@@ -2,9 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody } from '@/lib/validation';
+import { z } from 'zod';
 
-const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'NZD', 'INR', 'BRL', 'MXN', 'SGD', 'HKD', 'KRW', 'ZAR', 'AED', 'SAR', 'KWD'];
-const VALID_FISCAL_MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const createEntitySchema = z.object({
+  name: z.string().min(1, 'Entity name is required').max(255),
+  fiscalYearEnd: z.string().regex(/^(0[1-9]|1[0-2]|[1-9])$/, 'Must be 1-12 or 01-12').optional().default('12'),
+  currency: z.string().max(3).toUpperCase().optional().default('USD'),
+});
 
 /**
  * POST /api/entities
@@ -22,33 +27,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    // Validate name
-    const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name || name.length === 0) {
-      return NextResponse.json({ error: 'Entity name is required' }, { status: 400 });
-    }
-    if (name.length > 255) {
-      return NextResponse.json({ error: 'Entity name exceeds maximum length of 255 characters' }, { status: 400 });
-    }
-
-    // Validate fiscal year end (month number)
-    const fiscalYearEnd = typeof body.fiscalYearEnd === 'string' ? body.fiscalYearEnd : '12';
-    if (!VALID_FISCAL_MONTHS.includes(fiscalYearEnd)) {
-      return NextResponse.json({ error: 'Invalid fiscal year end month' }, { status: 400 });
-    }
-
-    // Validate currency
-    const currency = typeof body.currency === 'string' ? body.currency.toUpperCase() : 'USD';
-    if (!VALID_CURRENCIES.includes(currency)) {
-      return NextResponse.json({ error: `Invalid currency. Supported: ${VALID_CURRENCIES.join(', ')}` }, { status: 400 });
-    }
+    const parsed = await parseBody(request, createEntitySchema);
+    if (!parsed.success) return parsed.error;
+    const { name, fiscalYearEnd, currency } = parsed.data;
 
     const orgId = membership.org_id;
 

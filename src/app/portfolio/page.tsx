@@ -125,15 +125,16 @@ export default function PortfolioPage() {
   const [assignError, setAssignError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const fetchPortfolio = useCallback(async () => {
+  const fetchPortfolio = useCallback(async (signal?: AbortSignal) => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/portfolio');
+      const res = await fetch('/api/portfolio', { signal });
       if (!res.ok) throw new Error(`Failed to load (${res.status})`);
       const data = await res.json();
       setEntities(data.entities || []);
       setSummary(data.summary || null);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[Portfolio]', err);
       setError(err instanceof Error ? err.message : 'Failed to load portfolio');
     } finally {
@@ -142,8 +143,10 @@ export default function PortfolioPage() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchPortfolio();
+    void fetchPortfolio(controller.signal);
+    return () => controller.abort();
   }, [fetchPortfolio]);
 
   // Fetch user role for access control
@@ -406,7 +409,7 @@ export default function PortfolioPage() {
                   All client entities at a glance — exception queues, booking rates, and close readiness.
                 </p>
               </div>
-              <Button variant="secondary" onClick={fetchPortfolio} aria-label="Refresh portfolio data">
+              <Button variant="secondary" onClick={() => fetchPortfolio()} aria-label="Refresh portfolio data">
                 ↻ Refresh
               </Button>
             </div>

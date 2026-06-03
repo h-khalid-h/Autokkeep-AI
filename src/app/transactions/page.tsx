@@ -112,7 +112,7 @@ export default function TransactionsPage() {
   }, [search]);
 
   // Fetch transactions
-  const fetchTransactions = useCallback(async () => {
+  const fetchTransactions = useCallback(async (signal?: AbortSignal) => {
     if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
@@ -129,7 +129,7 @@ export default function TransactionsPage() {
       if (dateTo) params.set('dateTo', dateTo);
       params.set('sort', sort);
 
-      const res = await fetch(`/api/transactions?${params}`);
+      const res = await fetch(`/api/transactions?${params}`, { signal });
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
 
       const data = await res.json();
@@ -142,6 +142,7 @@ export default function TransactionsPage() {
         setHasAnyTransactions(data.pagination?.total > 0 || txns.length > 0);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[Transactions] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transactions');
     } finally {
@@ -151,8 +152,10 @@ export default function TransactionsPage() {
   }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, selectedEntity?.id]);
 
   useEffect(() => {
+    const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchTransactions();
+    void fetchTransactions(controller.signal);
+    return () => controller.abort();
   }, [fetchTransactions]);
 
   // Reset page and selection when filters change
@@ -165,10 +168,14 @@ export default function TransactionsPage() {
   // Fetch chart of accounts for inline editing
   useEffect(() => {
     if (!selectedEntity?.id) return;
-    fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`)
+    const controller = new AbortController();
+    fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => setGlAccounts(data.accounts || [])) // eslint-disable-line react-hooks/set-state-in-effect
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+      });
+    return () => controller.abort();
   }, [selectedEntity?.id]);
 
   // Clear filters

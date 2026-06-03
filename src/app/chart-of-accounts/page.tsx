@@ -109,17 +109,18 @@ export default function ChartOfAccountsPage() {
   const toast = useToast();
 
   // ─── Fetch accounts ─────────────────────────────────────────────────────
-  const fetchAccounts = useCallback(async () => {
+  const fetchAccounts = useCallback(async (signal?: AbortSignal) => {
     if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`);
+      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`, { signal });
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
       const data = await res.json();
       const mapped = (data.accounts || []).map(mapApiAccount);
       setAccounts(mapped);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[ChartOfAccounts] Fetch error:', err);
       setAccounts([]);
       setError('Could not load accounts from server. Please try again.');
@@ -129,8 +130,10 @@ export default function ChartOfAccountsPage() {
   }, [selectedEntity]);
 
   useEffect(() => {
+    const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchAccounts();
+    void fetchAccounts(controller.signal);
+    return () => controller.abort();
   }, [fetchAccounts]);
 
   // ─── Filtering & sorting ────────────────────────────────────────────────

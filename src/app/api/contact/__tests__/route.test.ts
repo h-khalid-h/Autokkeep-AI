@@ -44,38 +44,53 @@ describe('POST /api/contact', () => {
   it('should return 400 if name is missing', async () => {
     const req = createRequest({
       email: 'test@example.com',
-      message: 'Hello there',
+      message: 'Hello there with enough chars',
     });
     const res = await POST(req);
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Name');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'name' }),
+      ]),
+    );
   });
 
   it('should return 400 if email is missing', async () => {
     const req = createRequest({
       name: 'John Doe',
-      message: 'Hello there',
+      message: 'Hello there with enough chars',
     });
     const res = await POST(req);
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('email');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'email' }),
+      ]),
+    );
   });
 
   it('should return 400 if email format is invalid', async () => {
     const req = createRequest({
       name: 'John Doe',
       email: 'not-a-valid-email',
-      message: 'Hello there',
+      message: 'Hello there with enough chars',
     });
     const res = await POST(req);
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('email');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'email' }),
+      ]),
+    );
   });
 
   it('should return 400 if message is missing', async () => {
@@ -87,7 +102,12 @@ describe('POST /api/contact', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('message');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'message' }),
+      ]),
+    );
   });
 
   it('should return 200 with valid payload', async () => {
@@ -103,6 +123,19 @@ describe('POST /api/contact', () => {
     expect(json.ok).toBe(true);
   });
 
+  it('should return 400 if message is too short', async () => {
+    const req = createRequest({
+      name: 'John Doe',
+      email: 'john@example.com',
+      message: 'Short',
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe('Validation failed');
+  });
+
   it('should return 400 if message exceeds 5000 characters', async () => {
     const req = createRequest({
       name: 'John Doe',
@@ -113,17 +146,15 @@ describe('POST /api/contact', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('too long');
+    expect(json.error).toBe('Validation failed');
   });
 
-  it('should accept optional fields', async () => {
+  it('should accept optional company field', async () => {
     const req = createRequest({
       name: 'John Doe',
       email: 'john@example.com',
-      message: 'Hello',
+      message: 'Hello there with enough chars',
       company: 'Acme Corp',
-      type: 'inquiry',
-      entityCount: 5,
     });
     const res = await POST(req);
 
