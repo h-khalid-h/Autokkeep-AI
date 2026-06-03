@@ -546,10 +546,7 @@ export async function runReceiptChase(
         continue;
       }
 
-      // Check opt-out
-      if (tx.card_last4 && optedOutPhones.size > 0) {
-        // We'll check opt-out by matching against channel connections below
-      }
+      // Check opt-out (handled for new groups at line 593; for existing groups, checked at merge below)
 
       const escalationLevel = getEscalationLevel(chaseCount);
 
@@ -559,6 +556,11 @@ export async function runReceiptChase(
       // Group by resolved key
       const existingGroup = cardholderGroups.get(groupKey);
       if (existingGroup) {
+        // Enforce opt-out for transactions being added to an existing group
+        if (existingGroup.phoneNumber && optedOutPhones.has(existingGroup.phoneNumber)) {
+          report.skipped++;
+          continue;
+        }
         existingGroup.transactions.push(tx);
         // Use the highest escalation level in the group
         if (
@@ -720,6 +722,26 @@ async function sendChaseForGroup(
 
   let result: DispatchResult;
 
+  // Resolve the target channel: prefer the group's stored preference from user prefs,
+  // fall back to escalation-based channel resolution.
+  let targetConnection: ChannelConnection | null = null;
+  if (group.channelType && group.channelId) {
+    // Use the channel preference that was resolved during grouping (WS-C)
+    const prefMatch = availableConnections.find(
+      (c) => c.channelType === group.channelType && c.channelId === group.channelId
+    );
+    targetConnection = prefMatch || {
+      channelType: group.channelType,
+      channelId: group.channelId,
+    };
+  }
+  if (!targetConnection) {
+    targetConnection = getEscalationChannel(group.escalationLevel, availableConnections);
+  }
+  if (!targetConnection) {
+    return { success: false, error: 'No channel available' };
+  }
+
   // For single-transaction groups, use the dispatcher for richer formatting
   if (group.transactions.length === 1) {
     const tx = group.transactions[0];
@@ -736,19 +758,9 @@ async function sendChaseForGroup(
       currency: tx.currency || undefined,
     };
 
-    const targetConnection = getEscalationChannel(group.escalationLevel, availableConnections);
-    if (!targetConnection) {
-      return { success: false, error: 'No channel available' };
-    }
-
     result = await dispatchReceiptRequest(targetConnection, context);
   } else {
     // For multi-transaction batch messages, send plain text via the channel
-    const targetConnection = getEscalationChannel(group.escalationLevel, availableConnections);
-    if (!targetConnection) {
-      return { success: false, error: 'No channel available' };
-    }
-
     result = await sendBatchMessage(targetConnection, message);
   }
 
@@ -827,24 +839,48 @@ async function sendBatchMessage(
       }
 
       case 'teams': {
-        const { sendTeamsMessage } = await import('./teams');
         if (!connection.webhookUrl) {
           return { success: false, channel: 'teams', error: 'No Teams webhook URL' };
         }
-        // Send as plain text adaptive card
-        const teamsResult = await sendTeamsMessage(connection.webhookUrl, {
-          transactionId: 'batch',
-          merchantName: 'Multiple Transactions',
-          amount: 0,
-          date: new Date().toISOString().split('T')[0],
-          cardLast4: '0000',
-          cardHolder: 'Team',
-        });
-        return {
-          success: teamsResult.ok,
-          channel: 'teams',
-          error: teamsResult.error,
+        // Send the full batch message as a plain-text adaptive card
+        const teamsCard = {
+          type: 'message',
+          attachments: [
+            {
+              contentType: 'application/vnd.microsoft.card.adaptive',
+              content: {
+                type: 'AdaptiveCard',
+                $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+                version: '1.5',
+                body: [
+                  {
+                    type: 'TextBlock',
+                    text: message,
+                    wrap: true,
+                  },
+                ],
+              },
+            },
+          ],
         };
+        try {
+          const response = await fetch(connection.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(teamsCard),
+          });
+          return {
+            success: response.ok,
+            channel: 'teams',
+            error: response.ok ? undefined : `Teams webhook failed: ${response.status}`,
+          };
+        } catch (teamsErr) {
+          return {
+            success: false,
+            channel: 'teams',
+            error: teamsErr instanceof Error ? teamsErr.message : 'Teams batch send failed',
+          };
+        }
       }
 
       default:
