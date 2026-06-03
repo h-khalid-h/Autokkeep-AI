@@ -823,6 +823,12 @@ export default function ChartOfAccountsPage() {
             onClose={closeModal}
             title={editingAccount ? 'Edit Account' : 'Add Account'}
           >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+              }}
+            >
             {formError && (
               <div role="alert" className={styles.formError}>
                 {formError}
@@ -887,18 +893,19 @@ export default function ChartOfAccountsPage() {
             </div>
 
             <div className={styles.formActions}>
-              <Button variant="ghost" onClick={closeModal}>
+              <Button variant="ghost" onClick={closeModal} type="button">
                 Cancel
               </Button>
               <Button
                 variant="primary"
-                onClick={handleSave}
+                type="submit"
                 disabled={isSaving}
                 isLoading={isSaving}
               >
                 {editingAccount ? 'Update' : 'Save'}
               </Button>
             </div>
+            </form>
           </Modal>
         </div>
       </ErrorBoundary>
