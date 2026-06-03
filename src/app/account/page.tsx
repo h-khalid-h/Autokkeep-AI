@@ -86,15 +86,20 @@ export default function AccountPage() {
     if (!user) return;
     try {
       const supabase = getSupabase();
-      await supabase.auth.resetPasswordForEmail(user.email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
+      if (resetError) {
+        toast.error(`Password reset failed: ${resetError.message}`);
+        return;
+      }
       setPasswordResetSent(true);
+      toast.success('Password reset email sent! Check your inbox.');
       setTimeout(() => setPasswordResetSent(false), 5000);
-    } catch {
-      // Silently fail for demo mode
+    } catch (err) {
+      toast.error(`Password reset failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [user]);
+  }, [user, toast]);
 
   const handleDeleteAccount = useCallback(async () => {
     if (deleteConfirmText !== 'DELETE') return;
