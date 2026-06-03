@@ -23,7 +23,6 @@ vi.mock('./sync', () => ({
 import { runNightlySync } from './sync-engine';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { syncJournalEntry } from './sync';
-import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ============================================
 // Mock Supabase factory
@@ -274,7 +273,7 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       vi.mocked(createAdminClient).mockReturnValue(db);
       vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, journalEntryId: 'qbo-ok', provider: 'quickbooks' });
 
-      const results = await runNightlySync();
+      const _results = await runNightlySync();
 
       // Should sync successfully (within tolerance)
       expect(syncJournalEntry).toHaveBeenCalled();
@@ -297,7 +296,7 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       vi.mocked(createAdminClient).mockReturnValue(db);
       vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, journalEntryId: 'unused', provider: 'quickbooks' });
 
-      const results = await runNightlySync();
+      const _results = await runNightlySync();
 
       // Variance is 0.02 which exceeds 0.01 tolerance → should be rejected
       expect(syncJournalEntry).not.toHaveBeenCalled();
