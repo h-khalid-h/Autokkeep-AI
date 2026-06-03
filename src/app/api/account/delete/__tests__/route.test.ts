@@ -130,7 +130,7 @@ describe('POST /api/account/delete', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Confirmation required');
+    expect(json.error).toContain('Validation failed');
   });
 
   it('should return 400 with wrong confirmation string', async () => {
@@ -139,7 +139,7 @@ describe('POST /api/account/delete', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Confirmation required');
+    expect(json.error).toContain('Validation failed');
   });
 
   // ── Happy Path ────────────────────────────────────────────────────────────

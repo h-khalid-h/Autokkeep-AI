@@ -8,6 +8,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: List transactions with filtering ─────────────────────────────────────
 
@@ -143,17 +144,6 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Create manual transaction ────────────────────────────────────────────
 
-interface CreateTransactionBody {
-  entityId: string;
-  merchant: string;
-  amount: number;
-  date: string;
-  glCode?: string;
-  glName?: string;
-  cardHolder?: string;
-  notes?: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'txn-create' });
@@ -163,42 +153,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: CreateTransactionBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, merchant, amount, date, glCode, glName, cardHolder, notes } =
-      body;
-
-    if (!entityId || !merchant || amount === undefined || !date) {
-      return NextResponse.json(
-        { error: 'entityId, merchant, amount, and date are required' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof amount !== 'number' || isNaN(amount)) {
-      return NextResponse.json(
-        { error: 'amount must be a valid number' },
-        { status: 400 }
-      );
-    }
-
-    if (amount === 0) {
-      return NextResponse.json(
-        { error: 'amount must not be zero' },
-        { status: 400 }
-      );
-    }
-
-    if (!date || isNaN(new Date(date).getTime())) {
-      return NextResponse.json(
-        { error: 'date must be a valid date string' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.createTransaction);
+    if (!result.success) return result.error;
+    const { entityId, merchant, amount, date, glCode, glName, cardHolder, notes } = result.data;
 
     // Validate entity access
     const { data: entity } = await db

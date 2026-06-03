@@ -121,12 +121,66 @@ export const schemas = {
     channelIdentifier: z.string().max(200).optional(),
   }),
 
-  // AI categorize
+  // AI categorize (POST /api/ai/categorize) — nested transaction object
   aiCategorize: z.object({
+    transaction: z.object({
+      id: z.string().optional(),
+      merchant: z.string().min(1).max(500),
+      merchantRaw: z.string().max(500).optional(),
+      merchant_raw: z.string().max(500).optional(),
+      amount: z.number(),
+      date: z.string().min(1),
+      mcc: z.string().max(20).optional(),
+      currency: z.string().max(10).optional(),
+      cardHolder: z.string().max(200).optional(),
+      card_holder: z.string().max(200).optional(),
+      bankDescription: z.string().max(500).optional(),
+      rawData: z.object({
+        mcc: z.string().max(20).optional(),
+        currency: z.string().max(10).optional(),
+        bankDescription: z.string().max(500).optional(),
+      }).optional(),
+    }),
+    entityId: uuid,
+  }),
+
+  // Account deletion (POST /api/account/delete)
+  accountDelete: z.object({
+    confirmation: z.literal('DELETE'),
+  }),
+
+  // Channel dispatch (POST /api/channels/dispatch)
+  channelDispatch: z.object({
     transactionId: uuid,
-    description: safeString,
-    amount: z.number(),
-    merchantName: z.string().max(200).optional(),
+    entityId: uuid,
+    preferredChannel: z.enum(['email', 'sms', 'slack', 'teams', 'whatsapp']).optional(),
+  }),
+
+  // Compliance check (POST /api/compliance/check)
+  complianceCheck: z.object({
+    entityId: uuid,
+    region: z.enum(['estonia', 'qatar', 'hong_kong', 'japan', 'india']),
+  }),
+
+  // Health alert action (PATCH /api/insights/health)
+  healthAlertAction: z.object({
+    alertId: uuid,
+    action: z.enum(['read', 'dismiss']),
+  }),
+
+  // Plaid link token (POST /api/plaid/link-token)
+  plaidLinkToken: z.object({
+    entityId: uuid,
+  }),
+
+  // Plaid reconnect (POST /api/plaid/reconnect)
+  plaidReconnect: z.object({
+    connectionId: uuid,
+  }),
+
+  // Team invite claim (POST /api/team/claim)
+  teamClaim: z.object({
+    inviteId: uuid,
   }),
 
   // Approvals
@@ -215,6 +269,40 @@ export const schemas = {
   aiBatch: z.object({
     entityId: uuid,
     transactionIds: z.array(uuid).max(500).optional(),
+  }),
+
+  // Create manual transaction (POST /api/transactions)
+  createTransaction: z.object({
+    entityId: uuid,
+    merchant: nonEmptyString,
+    amount: z.number().refine((n) => n !== 0, 'amount must not be zero'),
+    date: z.string().refine(
+      (d) => !isNaN(new Date(d).getTime()),
+      'date must be a valid date string',
+    ),
+    glCode: z.string().max(50).optional(),
+    glName: z.string().max(200).optional(),
+    cardHolder: z.string().max(200).optional(),
+    notes: safeString.optional(),
+  }),
+
+  // Ledger QuickBooks sync (POST /api/ledger/quickbooks/sync)
+  ledgerSync: z.object({
+    entityId: uuid,
+    transactionIds: z.array(uuid).max(500).optional(),
+    syncType: z.enum(['full', 'incremental']).optional().default('incremental'),
+  }),
+
+  // Ledger Xero sync (POST /api/ledger/xero/sync)
+  xeroSync: z.object({
+    entityId: uuid,
+    syncType: z.enum(['full', 'incremental']).optional().default('incremental'),
+  }),
+
+  // Plaid sync (POST /api/plaid/sync)
+  plaidSync: z.object({
+    entityId: uuid,
+    connectionId: uuid.optional(),
   }),
 } as const;
 

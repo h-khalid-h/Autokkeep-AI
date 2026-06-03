@@ -12,6 +12,7 @@ import {
 import { writeAuditLog } from '@/lib/audit';
 import { encryptToken, decryptToken } from '@/lib/crypto';
 import { getGLCode } from '@/lib/entity-settings';
+import { parseBody, schemas } from '@/lib/validation';
 
 // POST /api/ledger/quickbooks/sync — Sync approved transactions to QuickBooks
 export async function POST(request: NextRequest) {
@@ -23,17 +24,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, transactionIds } = body;
-
-    if (!entityId) {
-      return NextResponse.json({ error: 'Missing entityId' }, { status: 400 });
-    }
+    const bodyResult = await parseBody(request, schemas.ledgerSync);
+    if (!bodyResult.success) return bodyResult.error;
+    const { entityId, transactionIds } = bodyResult.data;
 
     // Verify entity belongs to user's org
     const { data: entity } = await db.from('entities').select('org_id').eq('id', entityId).single();

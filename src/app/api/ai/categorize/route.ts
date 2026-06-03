@@ -17,28 +17,7 @@ import type {
   ChartOfAccountsEntry,
   HistoricalPattern,
 } from '@/lib/ai/categorizer';
-
-interface CategorizeRequestBody {
-  transaction: {
-    id?: string;
-    merchant: string;
-    merchantRaw?: string;
-    merchant_raw?: string;
-    amount: number;
-    date: string;
-    mcc?: string;
-    currency?: string;
-    cardHolder?: string;
-    card_holder?: string;
-    bankDescription?: string;
-    rawData?: {
-      mcc?: string;
-      currency?: string;
-      bankDescription?: string;
-    };
-  };
-  entityId: string;
-}
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,34 +29,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: CategorizeRequestBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { transaction, entityId } = body;
-
-    if (!transaction || !entityId) {
-      return NextResponse.json(
-        { error: 'transaction and entityId are required' },
-        { status: 400 }
-      );
-    }
-
-    if (transaction.amount === undefined || transaction.amount === null || !transaction.merchant) {
-      return NextResponse.json(
-        { error: 'Transaction with amount and merchant_name is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!transaction.date) {
-      return NextResponse.json(
-        { error: 'Transaction date is required' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.aiCategorize);
+    if (!parsed.success) return parsed.error;
+    const { transaction, entityId } = parsed.data;
 
     const { data: entity } = await db
       .from('entities')

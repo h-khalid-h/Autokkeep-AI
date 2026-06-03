@@ -1,4 +1,3 @@
-// POST /api/account/delete — Delete user account and all associated data
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getApiAuthContext } from '@/lib/api-auth';
@@ -8,6 +7,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 import { decryptToken } from '@/lib/crypto';
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,15 +19,8 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user } = ctx;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    if (body.confirmation !== 'DELETE') {
-      return NextResponse.json({ error: 'Confirmation required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.accountDelete);
+    if (!parsed.success) return parsed.error;
 
     const admin = createAdminClient();
     const db = admin as unknown as SupabaseQueryClient;

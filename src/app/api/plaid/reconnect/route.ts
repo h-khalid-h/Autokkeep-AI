@@ -3,6 +3,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { createUpdateLinkToken } from '@/lib/plaid/client';
 import { decryptToken } from '@/lib/crypto';
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,10 +14,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const { connectionId } = await request.json();
-    if (!connectionId) {
-      return NextResponse.json({ error: 'connectionId is required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.plaidReconnect);
+    if (!parsed.success) return parsed.error;
+    const { connectionId } = parsed.data;
 
     // Validate access
     const { data: connection } = await db

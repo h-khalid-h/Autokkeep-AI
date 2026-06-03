@@ -7,10 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { createLinkToken } from '@/lib/plaid/client';
-
-interface LinkTokenRequestBody {
-  entityId: string;
-}
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,15 +18,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: LinkTokenRequestBody = await request.json();
-    const { entityId } = body;
-
-    if (!entityId) {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.plaidLinkToken);
+    if (!parsed.success) return parsed.error;
+    const { entityId } = parsed.data;
 
     // Validate entity access
     const { data: entity, error: entityError } = await db

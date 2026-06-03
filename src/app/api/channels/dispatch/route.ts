@@ -10,6 +10,7 @@ import {
   type ChannelConnection,
   type TransactionContext,
 } from '@/lib/channels/dispatcher';
+import { parseBody, schemas } from '@/lib/validation';
 
 // POST /api/channels/dispatch — Send receipt request via connected channels
 export async function POST(request: NextRequest) {
@@ -22,20 +23,9 @@ export async function POST(request: NextRequest) {
     const { membership, db } = ctx;
 
     // Parse and validate input
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { transactionId, entityId, preferredChannel } = body;
-
-    if (!transactionId || !entityId) {
-      return NextResponse.json(
-        { error: 'Missing transactionId or entityId' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.channelDispatch);
+    if (!parsed.success) return parsed.error;
+    const { transactionId, entityId, preferredChannel } = parsed.data;
 
     // Enforce plan limits
     const planCheck = await checkPlanLimits(db, membership.org_id, 'dispatch_channel');

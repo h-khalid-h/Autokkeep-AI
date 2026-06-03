@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 /**
  * POST /api/team/claim
@@ -31,23 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse and validate request body
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const { inviteId } = body;
-    if (!inviteId || typeof inviteId !== 'string') {
-      return NextResponse.json({ error: 'inviteId is required' }, { status: 400 });
-    }
-
-    // Validate UUID format
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!UUID_RE.test(inviteId)) {
-      return NextResponse.json({ error: 'Invalid inviteId format' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, schemas.teamClaim);
+    if (!parsed.success) return parsed.error;
+    const { inviteId } = parsed.data;
 
     const db = supabase as unknown as SupabaseQueryClient;
 

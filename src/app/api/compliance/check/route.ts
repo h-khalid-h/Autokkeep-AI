@@ -9,30 +9,13 @@ import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 import {
   runComplianceCheck,
-  getAvailableRegions,
 } from '@/lib/compliance';
 import type {
   ComplianceRegion,
   TransactionForCompliance,
   EntityComplianceConfig,
 } from '@/lib/compliance';
-
-const VALID_REGIONS = new Set<ComplianceRegion>([
-  'estonia',
-  'qatar',
-  'hong_kong',
-  'japan',
-  'india',
-]);
-
-interface ComplianceCheckRequestBody {
-  entityId: string;
-  region: ComplianceRegion;
-}
-
-function isValidRegion(value: string): value is ComplianceRegion {
-  return VALID_REGIONS.has(value as ComplianceRegion);
-}
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,30 +28,9 @@ export async function POST(request: NextRequest) {
     const { membership, db } = ctx;
 
     // Parse body
-    let body: Partial<ComplianceCheckRequestBody>;
-    try {
-      body = (await request.json()) as Partial<ComplianceCheckRequestBody>;
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, region } = body;
-
-    if (!entityId || typeof entityId !== 'string') {
-      return NextResponse.json(
-        { error: 'entityId is required and must be a string' },
-        { status: 400 }
-      );
-    }
-
-    if (!region || !isValidRegion(region)) {
-      return NextResponse.json(
-        {
-          error: `Invalid region. Must be one of: ${Array.from(VALID_REGIONS).join(', ')}`,
-          availableRegions: getAvailableRegions(),
-        },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.complianceCheck);
+    if (!parsed.success) return parsed.error;
+    const { entityId, region } = parsed.data;
 
     // Validate entity access against org
     const { data: entity } = await db

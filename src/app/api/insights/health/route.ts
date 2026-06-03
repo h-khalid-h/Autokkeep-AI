@@ -8,6 +8,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { runHealthCheck, computeHealthScore } from '@/lib/ai/health-monitor';
 import type { HealthAlert } from '@/lib/ai/health-monitor';
+import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: Run or return cached health alerts ───────────────────────────────
 
@@ -103,11 +104,6 @@ export async function GET(request: NextRequest) {
 
 // ─── PATCH: Mark alert as read or dismissed ────────────────────────────────
 
-interface PatchBody {
-  alertId: string;
-  action: 'read' | 'dismiss';
-}
-
 export async function PATCH(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'health-patch' });
@@ -117,32 +113,15 @@ export async function PATCH(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    let body: PatchBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.alertId || !body.action) {
-      return NextResponse.json(
-        { error: 'alertId and action are required' },
-        { status: 400 }
-      );
-    }
-
-    if (body.action !== 'read' && body.action !== 'dismiss') {
-      return NextResponse.json(
-        { error: 'action must be "read" or "dismiss"' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.healthAlertAction);
+    if (!parsed.success) return parsed.error;
+    const { alertId, action } = parsed.data;
 
     // Validate the user has access to the entity owning this alert
     const { data: alert } = await db
       .from('health_alerts')
       .select('id, entity_id')
-      .eq('id', body.alertId)
+      .eq('id', alertId)
       .single();
 
     if (!alert) {
@@ -169,14 +148,14 @@ export async function PATCH(request: NextRequest) {
 
     // Apply the update
     const update =
-      body.action === 'read'
+      action === 'read'
         ? { is_read: true }
         : { is_dismissed: true };
 
     const { error: updateError } = await db
       .from('health_alerts')
       .update(update)
-      .eq('id', body.alertId);
+      .eq('id', alertId);
 
     if (updateError) {
       console.error('[Insights/Health] Update error:', updateError);
@@ -186,7 +165,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, alertId: body.alertId, action: body.action });
+    return NextResponse.json({ success: true, alertId, action });
   } catch (error) {
     console.error('[Insights/Health] PATCH Error:', error);
     return NextResponse.json(

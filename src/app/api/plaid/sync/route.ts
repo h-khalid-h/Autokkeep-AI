@@ -10,6 +10,7 @@ import { ingestTransactions } from '@/lib/plaid/ingest';
 import { rateLimit } from '@/lib/rate-limit';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
+import { parseBody, schemas } from '@/lib/validation';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -17,9 +18,6 @@ import type {
   HistoricalPattern,
 } from '@/lib/ai/categorizer';
 
-interface SyncRequestBody {
-  connectionId: string;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,8 +28,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    const body: SyncRequestBody = await request.json();
-    const { connectionId } = body;
+    const bodyResult = await parseBody(request, schemas.plaidSync);
+    if (!bodyResult.success) return bodyResult.error;
+    const { connectionId } = bodyResult.data;
 
     if (!connectionId) {
       return NextResponse.json(

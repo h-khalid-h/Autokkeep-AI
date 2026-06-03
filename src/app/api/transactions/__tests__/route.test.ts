@@ -154,7 +154,7 @@ describe('POST /api/transactions', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('required');
+    expect(json.error).toContain('Validation failed');
   });
 
   it('should return 400 for invalid amount', async () => {
@@ -168,7 +168,7 @@ describe('POST /api/transactions', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('amount');
+    expect(json.error).toContain('Validation failed');
   });
 
   it('should create transaction and return 201', async () => {
@@ -192,7 +192,7 @@ describe('POST /api/transactions', () => {
     });
 
     const req = createPostRequest({
-      entityId: 'entity-1',
+      entityId: 'a0000000-0000-4000-8000-000000000001',
       merchant: 'Test',
       amount: 99.99,
       date: '2025-01-01',
