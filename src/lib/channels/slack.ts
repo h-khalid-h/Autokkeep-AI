@@ -273,10 +273,15 @@ export function verifySlackSignature(
   hmac.update(baseString);
   const computedSignature = `v0=${hmac.digest('hex')}`;
 
-  return crypto.timingSafeEqual(
-    Buffer.from(computedSignature),
-    Buffer.from(signature)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(computedSignature),
+      Buffer.from(signature)
+    );
+  } catch {
+    // timingSafeEqual throws RangeError if buffers have different lengths
+    return false;
+  }
 }
 
 // ============================================

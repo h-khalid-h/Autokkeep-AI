@@ -16,6 +16,38 @@ vi.mock('@/lib/currency/converter', () => ({
     `$${amount.toFixed(2)} ${currency}`,
 }));
 
+// Mock Redis for lock tests
+vi.mock('@/lib/redis', () => ({
+  getRedisClient: vi.fn().mockReturnValue(null),
+}));
+
+// Mock dependencies required by runReceiptChase
+vi.mock('@/lib/audit', () => ({
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/vendor-manager', () => ({
+  resolveVendorManager: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('@/lib/user-channel-prefs', () => ({
+  getUserChannelPreference: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('./twilio', () => ({
+  sendSMS: vi.fn().mockResolvedValue({ sid: 'sms-1' }),
+  sendWhatsApp: vi.fn().mockResolvedValue({ sid: 'wa-1' }),
+}));
+
+vi.mock('./dispatcher', async () => {
+  const actual = await vi.importActual('./dispatcher');
+  return {
+    ...actual,
+    dispatchReceiptRequest: vi.fn().mockResolvedValue({ success: true, channel: 'slack' }),
+  };
+});
+
+
 // ============================================
 // Test fixtures
 // ============================================
