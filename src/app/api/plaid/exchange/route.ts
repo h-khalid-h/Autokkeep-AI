@@ -10,19 +10,13 @@ import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { encryptToken } from '@/lib/crypto';
+import { parseBody, schemas } from '@/lib/validation';
 import {
   exchangePublicToken,
   getAccounts,
   getInstitution,
   syncTransactions,
 } from '@/lib/plaid/client';
-
-interface ExchangeRequestBody {
-  publicToken: string;
-  entityId: string;
-  institutionId?: string;
-  institutionName?: string;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,20 +27,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: ExchangeRequestBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { publicToken, entityId, institutionId } = body;
-
-    if (!publicToken || !entityId) {
-      return NextResponse.json(
-        { error: 'publicToken and entityId are required' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.plaidExchange);
+    if (!result.success) return result.error;
+    const { publicToken, entityId, institutionId } = result.data;
 
     // Validate entity access
     const { data: entity } = await db
@@ -73,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { accessToken, itemId } = await exchangePublicToken(publicToken);
 
     // Get institution details
-    let institutionName = body.institutionName || 'Unknown Institution';
+    let institutionName = result.data.institutionName || 'Unknown Institution';
     if (institutionId) {
       try {
         const institution = await getInstitution(institutionId);

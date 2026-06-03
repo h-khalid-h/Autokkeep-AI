@@ -11,16 +11,13 @@ import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 import type {
   TransactionInput,
   CategorizationRule,
   ChartOfAccountsEntry,
   HistoricalPattern,
 } from '@/lib/ai/categorizer';
-
-interface ProcessRequestBody {
-  entityId: string;
-}
 
 interface PipelineSummary {
   sync: {
@@ -47,15 +44,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: ProcessRequestBody = await request.json();
-    const { entityId } = body;
-
-    if (!entityId || typeof entityId !== 'string') {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.processTransaction);
+    if (!result.success) return result.error;
+    const { entityId } = result.data;
 
     // Enforce plan limits
     const planCheck = await checkPlanLimits(db, membership.org_id, 'process_transaction');

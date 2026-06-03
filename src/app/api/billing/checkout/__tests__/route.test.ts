@@ -116,7 +116,8 @@ describe('POST /api/billing/checkout', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Invalid plan');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toBeDefined();
   });
 
   // ── Happy Path ────────────────────────────────────────────────────────────

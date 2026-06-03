@@ -3,6 +3,7 @@ import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getStripeClient, PLAN_PRICES, type PlanId } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,18 +22,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { planId } = body;
-    const entityCount = typeof body.entityCount === 'number' && Number.isInteger(body.entityCount)
-      ? body.entityCount
-      : 1;
+    const result = await parseBody(request, schemas.checkoutSession);
+    if (!result.success) return result.error;
+    const { planId, entityCount } = result.data;
 
-    if (!planId || !PLAN_PRICES[planId as PlanId]) {
+    if (!PLAN_PRICES[planId as PlanId]) {
       return NextResponse.json(
         { error: 'Invalid plan selected' },
         { status: 400 }

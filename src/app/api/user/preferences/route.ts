@@ -8,6 +8,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { getUserChannelPreference, setUserChannelPreference } from '@/lib/user-channel-prefs';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: Return current user's channel preference for entity ───────────────
 
@@ -52,12 +53,6 @@ export async function GET(request: NextRequest) {
 
 // ─── PUT: Update user's channel preference ──────────────────────────────────
 
-interface UpdatePreferenceBody {
-  entityId: string;
-  channel: string;
-  identifier: string;
-}
-
 export async function PUT(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'user-prefs-write' });
@@ -67,20 +62,9 @@ export async function PUT(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, db, entityIds } = ctx;
 
-    let body: UpdatePreferenceBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, channel, identifier } = body;
-
-    if (!entityId || !channel || !identifier) {
-      return NextResponse.json(
-        { error: 'entityId, channel, and identifier are required' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.userPreferences);
+    if (!result.success) return result.error;
+    const { entityId, channel, identifier } = result.data;
 
     // Validate entity access
     if (!entityIds.includes(entityId)) {
@@ -90,16 +74,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate channel type
-    const validChannels = ['sms', 'whatsapp', 'slack', 'email', 'teams'];
-    if (!validChannels.includes(channel.toLowerCase())) {
-      return NextResponse.json(
-        { error: `Invalid channel. Must be one of: ${validChannels.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    await setUserChannelPreference(db, user.id, entityId, channel.toLowerCase(), identifier);
+    await setUserChannelPreference(db, user.id, entityId, channel, identifier);
 
     return NextResponse.json({ success: true });
   } catch (error) {

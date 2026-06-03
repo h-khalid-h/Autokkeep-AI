@@ -4,6 +4,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { removeItem } from '@/lib/plaid/client';
 import { decryptToken } from '@/lib/crypto';
+import { parseBody, schemas } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,10 +15,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const { connectionId } = await request.json();
-    if (!connectionId) {
-      return NextResponse.json({ error: 'connectionId is required' }, { status: 400 });
-    }
+    const result = await parseBody(request, schemas.plaidDisconnect);
+    if (!result.success) return result.error;
+    const { connectionId } = result.data;
 
     // Validate access
     const { data: connection } = await db

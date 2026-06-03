@@ -157,6 +157,37 @@ export const schemas = {
     ]).optional().default('12').transform(v => String(v)),
     currency: z.string().regex(/^[A-Z]{3}$/).optional().default('USD'),
   }),
+
+  // User channel preferences (PUT /api/user/preferences)
+  userPreferences: z.object({
+    entityId: nonEmptyString,
+    channel: z.enum(['sms', 'whatsapp', 'slack', 'email', 'teams']),
+    identifier: nonEmptyString,
+  }),
+
+  // Billing checkout (POST /api/billing/checkout)
+  checkoutSession: z.object({
+    planId: nonEmptyString,
+    entityCount: z.number().int().min(1).max(100).optional().default(1),
+  }),
+
+  // Transactions process (POST /api/transactions/process)
+  processTransaction: z.object({
+    entityId: uuid,
+  }),
+
+  // Plaid exchange (POST /api/plaid/exchange)
+  plaidExchange: z.object({
+    publicToken: nonEmptyString,
+    entityId: uuid,
+    institutionId: z.string().max(200).optional(),
+    institutionName: z.string().max(200).optional(),
+  }),
+
+  // Plaid disconnect (POST /api/plaid/disconnect)
+  plaidDisconnect: z.object({
+    connectionId: uuid,
+  }),
 } as const;
 
 // ─── Parse Helper ───────────────────────────────────────────────────────────
