@@ -316,6 +316,39 @@ function IntegrationsTab({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Load Plaid Link SDK on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) return;
+    const existing = document.querySelector('script[src*="plaid.com/link"]');
+    if (existing) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  // Helper: wait for Plaid SDK to be available (may still be loading)
+  const waitForPlaid = (): Promise<unknown | null> => {
+    return new Promise((resolve) => {
+      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
+        resolve((window as unknown as Record<string, unknown>).Plaid);
+        return;
+      }
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 100;
+        if ((window as unknown as Record<string, unknown>).Plaid) {
+          clearInterval(interval);
+          resolve((window as unknown as Record<string, unknown>).Plaid);
+        } else if (elapsed >= 10000) {
+          clearInterval(interval);
+          resolve(null);
+        }
+      }, 100);
+    });
+  };
+
   // Default to first entity if available
   const primaryEntityId = entities.length > 0 ? entities[0].id : '';
 
@@ -335,38 +368,40 @@ function IntegrationsTab({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create link token');
 
-      // Open Plaid Link if available
-      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
-        const PlaidLink = (window as unknown as Record<string, unknown>).Plaid as Record<string, (...args: unknown[]) => unknown>;
-        const handler = PlaidLink.create({
-          token: data.link_token,
-          onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
-            try {
-              const exchangeRes = await fetch('/api/plaid/exchange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  publicToken,
-                  entityId: primaryEntityId,
-                  institutionId: (metadata?.institution as Record<string, unknown>)?.institution_id || undefined,
-                  institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
-                }),
-              });
-              if (!exchangeRes.ok) {
-                const errData = await exchangeRes.json().catch(() => ({}));
-                throw new Error(errData.error || 'Token exchange failed');
-              }
-              onRefresh();
-            } catch (err) {
-              setActionError(err instanceof Error ? err.message : 'Failed to connect bank account');
-            }
-          },
-          onExit: () => setActionLoading(null),
-        });
-        (handler as Record<string, unknown> & { open: () => void }).open();
-      } else {
-        setActionError('Plaid Link SDK not loaded. Please refresh and try again.');
+      // Wait for Plaid SDK (may still be loading)
+      const plaidObj = await waitForPlaid();
+      if (!plaidObj) {
+        setActionError('Plaid Link SDK failed to load. Please refresh and try again.');
+        return;
       }
+
+      const PlaidLink = plaidObj as Record<string, (...args: unknown[]) => unknown>;
+      const handler = PlaidLink.create({
+        token: data.link_token,
+        onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
+          try {
+            const exchangeRes = await fetch('/api/plaid/exchange', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                publicToken,
+                entityId: primaryEntityId,
+                institutionId: (metadata?.institution as Record<string, unknown>)?.institution_id || undefined,
+                institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
+              }),
+            });
+            if (!exchangeRes.ok) {
+              const errData = await exchangeRes.json().catch(() => ({}));
+              throw new Error(errData.error || 'Token exchange failed');
+            }
+            onRefresh();
+          } catch (err) {
+            setActionError(err instanceof Error ? err.message : 'Failed to connect bank account');
+          }
+        },
+        onExit: () => setActionLoading(null),
+      });
+      (handler as Record<string, unknown> & { open: () => void }).open();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to connect bank');
     } finally {

@@ -11,6 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -121,6 +123,20 @@ export async function POST(
           request,
         });
 
+        // ── Enqueue for async OCR processing ────────────────────────
+        try {
+          const adminDb = createAdminClient() as unknown as SupabaseQueryClient;
+          await adminDb.from('receipt_ocr_queue').insert({
+            entity_id: transaction.entity_id,
+            transaction_id: transactionId,
+            file_url: receiptUrl,
+            status: 'pending',
+          });
+        } catch (ocrErr) {
+          // Non-blocking: OCR queue failure shouldn't break upload
+          console.error('[Receipt Upload] OCR queue insert failed:', ocrErr);
+        }
+
         return NextResponse.json({
           success: true,
           document_url: receiptUrl,
@@ -227,6 +243,20 @@ export async function POST(
       },
       request,
     });
+
+    // ── Enqueue for async OCR processing ──────────────────────────────
+    try {
+      const adminDb = createAdminClient() as unknown as SupabaseQueryClient;
+      await adminDb.from('receipt_ocr_queue').insert({
+        entity_id: transaction.entity_id,
+        transaction_id: transactionId,
+        file_url: documentUrl,
+        status: 'pending',
+      });
+    } catch (ocrErr) {
+      // Non-blocking: OCR queue failure shouldn't break upload
+      console.error('[Receipt Upload] OCR queue insert failed:', ocrErr);
+    }
 
     return NextResponse.json({
       success: true,

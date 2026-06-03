@@ -246,11 +246,24 @@ export default function OnboardingPage() {
   useEffect(() => {
     // Only load when we reach the bank connection step
     if (currentStep !== 'bank') return;
-    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) return; // Already loaded
+    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
+      return; // Already loaded
+    }
+
+    // Check if script tag already exists (e.g. from a previous mount)
+    const existing = document.querySelector('script[src*="plaid.com/link"]');
+    if (existing) {
+      // Script tag exists but may still be loading — no action needed,
+      // waitForPlaid() will poll at click time
+      return;
+    }
 
     const script = document.createElement('script');
     script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
     script.async = true;
+    script.onerror = () => {
+      console.error('[Onboarding] Failed to load Plaid Link SDK');
+    };
     document.head.appendChild(script);
 
     return () => {
@@ -373,6 +386,29 @@ export default function OnboardingPage() {
     }
   };
 
+  // ── Helper: wait for Plaid SDK to be available ──────────────────────────
+  const waitForPlaid = (): Promise<unknown | null> => {
+    return new Promise((resolve) => {
+      // Already available
+      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
+        resolve((window as unknown as Record<string, unknown>).Plaid);
+        return;
+      }
+      // Poll every 100ms for up to 10 seconds
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 100;
+        if ((window as unknown as Record<string, unknown>).Plaid) {
+          clearInterval(interval);
+          resolve((window as unknown as Record<string, unknown>).Plaid);
+        } else if (elapsed >= 10000) {
+          clearInterval(interval);
+          resolve(null);
+        }
+      }, 100);
+    });
+  };
+
   // ── Step 2: Initiate Plaid Link ────────────────────────────────────────
   const handleConnectBank = async () => {
     if (!entityId) {
@@ -399,42 +435,44 @@ export default function OnboardingPage() {
       const { link_token } = await res.json();
       setBankLinkToken(link_token);
 
-      // Open Plaid Link
-      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).Plaid) {
-        const PlaidLink = (window as unknown as Record<string, unknown>).Plaid as Record<string, (...args: unknown[]) => unknown>;
-        const handler = PlaidLink.create({
-          token: link_token,
-          onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
-            try {
-              const res = await fetch('/api/plaid/exchange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  publicToken,
-                  entityId,
-                  institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
-                }),
-              });
-              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || 'Exchange failed');
-              }
-              setBankConnected(true);
-              goNext();
-            } catch (exchangeErr) {
-              console.error('[Onboarding] Plaid exchange error:', exchangeErr);
-              setError('Connected to bank but failed to save. Please try again from Settings.');
-            }
-          },
-          onExit: () => {
-            setLoading(false);
-          },
-        });
-        (handler as Record<string, unknown> & { open: () => void }).open();
-      } else {
-        setError('Plaid Link SDK not loaded. Please refresh the page and try again.');
+      // Wait for Plaid SDK to be available (may still be loading)
+      const plaidObj = await waitForPlaid();
+      if (!plaidObj) {
+        setError('Plaid Link SDK failed to load. Please refresh the page and try again.');
         setLoading(false);
+        return;
       }
+
+      const PlaidLink = plaidObj as Record<string, (...args: unknown[]) => unknown>;
+      const handler = PlaidLink.create({
+        token: link_token,
+        onSuccess: async (publicToken: string, metadata: Record<string, unknown>) => {
+          try {
+            const res = await fetch('/api/plaid/exchange', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                publicToken,
+                entityId,
+                institutionName: (metadata?.institution as Record<string, unknown>)?.name || 'Unknown',
+              }),
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.error || 'Exchange failed');
+            }
+            setBankConnected(true);
+            goNext();
+          } catch (exchangeErr) {
+            console.error('[Onboarding] Plaid exchange error:', exchangeErr);
+            setError('Connected to bank but failed to save. Please try again from Settings.');
+          }
+        },
+        onExit: () => {
+          setLoading(false);
+        },
+      });
+      (handler as Record<string, unknown> & { open: () => void }).open();
     } catch (err) {
       console.error('[Onboarding] Plaid link error:', err);
       setError('Failed to connect to Plaid. You can skip and connect later from the dashboard.');
