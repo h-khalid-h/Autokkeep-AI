@@ -8,14 +8,13 @@ vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-// Mock Supabase server client (dynamically imported in the route)
-const mockSupabase = {
-  auth: { getUser: vi.fn() },
-  from: vi.fn(),
-};
+// Mock Supabase admin client (dynamically imported in the route via `await import(...)`)
+const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+const mockAdminClient = { from: mockFrom };
 
-vi.mock('@/lib/supabase/server', () => ({
-  createServerClient: vi.fn().mockResolvedValue(mockSupabase),
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn().mockReturnValue(mockAdminClient),
 }));
 
 // Mock audit log (dynamically imported in the route)
