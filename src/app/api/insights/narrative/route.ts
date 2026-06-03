@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { generateMonthlyNarrative } from '@/lib/ai/narrative';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 import type { FinancialNarrative } from '@/lib/ai/narrative';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -120,35 +121,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db } = ctx;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, year, month } = body as {
-      entityId?: string;
-      year?: number;
-      month?: number;
-    };
-
-    if (!entityId) {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
-
-    const period = validateMonthYear(
-      year !== undefined ? String(year) : null,
-      month !== undefined ? String(month) : null
-    );
-    if (!period) {
-      return NextResponse.json(
-        { error: 'Valid year and month are required' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.generateNarrative);
+    if (!result.success) return result.error;
+    const { entityId, year, month } = result.data;
 
     // Validate entity access against org
     const { data: entity } = await db
@@ -168,8 +143,8 @@ export async function POST(request: NextRequest) {
     // Force regeneration
     const narrative = await generateMonthlyNarrative(
       entityId,
-      period.year,
-      period.month,
+      year,
+      month,
       db
     );
 

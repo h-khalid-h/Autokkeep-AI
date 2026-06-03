@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
+import { parseBody, schemas } from '@/lib/validation';
 import { runMonthEndClose, closePeriod } from '@/lib/ai/close-engine';
 
 // ─── GET: Run month-end close checks ──────────────────────────────────────
@@ -97,13 +98,6 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Close (lock) the accounting period ─────────────────────────────
 
-interface CloseBody {
-  entityId: string;
-  year: number;
-  month: number;
-  action: 'close';
-}
-
 export async function POST(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'close-period' });
@@ -113,40 +107,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: CloseBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.entityId || !body.year || !body.month) {
-      return NextResponse.json(
-        { error: 'entityId, year, and month are required' },
-        { status: 400 }
-      );
-    }
-
-    if (body.action !== 'close') {
-      return NextResponse.json(
-        { error: 'action must be "close"' },
-        { status: 400 }
-      );
-    }
-
-    if (body.year < 2000 || body.year > 2100) {
-      return NextResponse.json(
-        { error: 'year must be between 2000 and 2100' },
-        { status: 400 }
-      );
-    }
-
-    if (body.month < 1 || body.month > 12) {
-      return NextResponse.json(
-        { error: 'month must be between 1 and 12' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.closeConversation);
+    if (!result.success) return result.error;
+    const body = result.data;
 
     // Validate entity access against org
     const { data: entity } = await db
@@ -178,11 +141,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Lock the period
-    const result = await closePeriod(body.entityId, body.year, body.month, user.id, db);
+    const closeResult = await closePeriod(body.entityId, body.year, body.month, user.id, db);
 
-    if (!result.success) {
+    if (!closeResult.success) {
       return NextResponse.json(
-        { error: result.message, report },
+        { error: closeResult.message, report },
         { status: 409 }
       );
     }
@@ -207,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: result.message,
+      message: closeResult.message,
       report,
     });
   } catch (error) {

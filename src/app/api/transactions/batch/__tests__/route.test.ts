@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const ENTITY_ID = '00000000-0000-4000-8000-000000000001';
+const ENTITY_ID_DENIED = '00000000-0000-4000-8000-000000000999';
 import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────────
@@ -17,7 +20,7 @@ const mockAuthContext = {
   user: { id: 'user-1' },
   membership: { id: 'tm-1', org_id: 'org-1', role: 'owner' },
   db: mockDb,
-  entityIds: ['entity-1'],
+  entityIds: [ENTITY_ID],
   error: null as NextResponse | null,
 };
 
@@ -105,7 +108,7 @@ describe('POST /api/ai/batch', () => {
       error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     });
 
-    const req = createRequest({ entityId: 'entity-1' });
+    const req = createRequest({ entityId: ENTITY_ID });
     const res = await POST(req);
 
     expect(res.status).toBe(401);
@@ -121,7 +124,8 @@ describe('POST /api/ai/batch', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('entityId');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toBeDefined();
   });
 
   it('should return 400 if transactionIds is empty array (no pending found)', async () => {
@@ -136,7 +140,7 @@ describe('POST /api/ai/batch', () => {
       return createChainMock({ data: null });
     });
 
-    const req = createRequest({ entityId: 'entity-1', transactionIds: [] });
+    const req = createRequest({ entityId: ENTITY_ID, transactionIds: [] });
     const res = await POST(req);
 
     // With empty transactionIds, the route fetches pending transactions and finds none
@@ -153,7 +157,7 @@ describe('POST /api/ai/batch', () => {
       return createChainMock({ data: null });
     });
 
-    const req = createRequest({ entityId: 'entity-999' });
+    const req = createRequest({ entityId: ENTITY_ID_DENIED });
     const res = await POST(req);
 
     expect(res.status).toBe(403);
@@ -164,7 +168,7 @@ describe('POST /api/ai/batch', () => {
       error: NextResponse.json({ error: 'Access denied' }, { status: 403 }),
     });
 
-    const req = createRequest({ entityId: 'entity-1' });
+    const req = createRequest({ entityId: ENTITY_ID });
     const res = await POST(req);
 
     expect(res.status).toBe(403);

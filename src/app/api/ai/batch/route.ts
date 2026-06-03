@@ -10,17 +10,13 @@ import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { generateCitationToken } from '@/lib/ai/privacy-parser';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 import type {
   TransactionInput,
   CategorizationRule,
   ChartOfAccountsEntry,
   HistoricalPattern,
 } from '@/lib/ai/categorizer';
-
-interface BatchRequestBody {
-  entityId: string;
-  transactionIds?: string[];
-}
 
 interface BatchSummary {
   processed: number;
@@ -38,15 +34,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: BatchRequestBody = await request.json();
-    const { entityId, transactionIds } = body;
-
-    if (!entityId) {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.aiBatch);
+    if (!result.success) return result.error;
+    const { entityId, transactionIds } = result.data;
 
     const { data: entity } = await db
       .from('entities')

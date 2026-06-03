@@ -188,6 +188,34 @@ export const schemas = {
   plaidDisconnect: z.object({
     connectionId: uuid,
   }),
+
+  // Insights narrative (POST /api/insights/narrative)
+  generateNarrative: z.object({
+    entityId: uuid,
+    year: z.number().int().min(2000).max(2100),
+    month: z.number().int().min(1).max(12),
+  }),
+
+  // Insights close (POST /api/insights/close)
+  closeConversation: z.object({
+    entityId: uuid,
+    year: z.number().int().min(2000).max(2100),
+    month: z.number().int().min(1).max(12),
+    action: z.literal('close'),
+  }),
+
+  // AI chat (POST /api/ai/chat)
+  aiChat: z.object({
+    message: z.string().min(1).max(2000),
+    conversationId: uuid.optional(),
+    entityId: uuid,
+  }),
+
+  // AI batch categorization (POST /api/ai/batch)
+  aiBatch: z.object({
+    entityId: uuid,
+    transactionIds: z.array(uuid).max(500).optional(),
+  }),
 } as const;
 
 // ─── Parse Helper ───────────────────────────────────────────────────────────

@@ -8,14 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { analyzeFinancialQuestion } from '@/lib/ai/analyst';
 import { rateLimit } from '@/lib/rate-limit';
-
-// ─── Request / Response Types ──────────────────────────────────────────────────
-
-interface ChatRequestBody {
-  message: string;
-  conversationId?: string;
-  entityId: string;
-}
+import { parseBody, schemas } from '@/lib/validation';
 
 interface ConversationMessage {
   id: string;
@@ -39,30 +32,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    const body: ChatRequestBody = await request.json();
-    const { message, conversationId, entityId } = body;
-
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'message is required and must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    if (!entityId) {
-      return NextResponse.json(
-        { error: 'entityId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Enforce message length limit
-    if (message.length > 2000) {
-      return NextResponse.json(
-        { error: 'Message is too long. Maximum 2000 characters.' },
-        { status: 400 }
-      );
-    }
+    const result = await parseBody(request, schemas.aiChat);
+    if (!result.success) return result.error;
+    const { message, conversationId, entityId } = result.data;
 
     const { data: entity } = await db
       .from('entities')
