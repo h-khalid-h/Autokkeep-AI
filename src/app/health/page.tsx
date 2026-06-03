@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
+import { useEntityFetch } from '@/lib/hooks/useEntityFetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Gauge, Skeleton, EmptyState } from '@/components/ui';
@@ -117,72 +118,50 @@ function AlertCard({
 
 export default function HealthPage() {
   const { selectedEntity } = useEntity();
-  const [data, setData] = React.useState<HealthResponse | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [dismissingIds, setDismissingIds] = React.useState<Set<string>>(new Set());
 
-  // ─── Fetch health data ────────────────────────────────────────────────────
+  // ─── Fetch health data using shared hook ──────────────────────────────────
+  const buildHealthUrl = React.useCallback(
+    (entityId: string) => `/api/insights/health?entityId=${entityId}`,
+    []
+  );
+
+  const {
+    data,
+    setData,
+    isLoading,
+    error,
+    refetch,
+  } = useEntityFetch<HealthResponse>(selectedEntity?.id, buildHealthUrl);
+
+  // Manual refresh with cache-bust
   const fetchHealth = React.useCallback(
     async (refresh = false) => {
       if (!selectedEntity?.id) return;
 
-      if (refresh) setIsRefreshing(true);
-      else setIsLoading(true);
-      setError(null);
-
-      try {
-        const url = `/api/insights/health?entityId=${selectedEntity.id}${refresh ? '&refresh=true' : ''}`;
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Failed to fetch health data (${res.status})`);
+      if (refresh) {
+        setIsRefreshing(true);
+        try {
+          const url = `/api/insights/health?entityId=${selectedEntity.id}&refresh=true`;
+          const res = await fetch(url);
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `Failed to fetch health data (${res.status})`);
+          }
+          // After refresh, refetch via hook to update state
+          await refetch();
+        } catch (err) {
+          console.error('[Health] Refresh error:', err);
+        } finally {
+          setIsRefreshing(false);
         }
-
-        const result: HealthResponse = await res.json();
-        setData(result);
-      } catch (err) {
-        console.error('[Health] Fetch error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load health data');
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+      } else {
+        await refetch();
       }
     },
-    [selectedEntity]
+    [selectedEntity, refetch]
   );
-
-  React.useEffect(() => {
-    if (!selectedEntity?.id) return;
-    const controller = new AbortController();
-    const doFetch = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(
-          `/api/insights/health?entityId=${selectedEntity.id}`,
-          { signal: controller.signal }
-        );
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Failed to fetch health data (${res.status})`);
-        }
-        const result: HealthResponse = await res.json();
-        setData(result);
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error('[Health] Fetch error:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load health data');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    doFetch();
-    return () => controller.abort();
-  }, [selectedEntity]);
 
   // ─── Dismiss handler ──────────────────────────────────────────────────────
   const handleDismiss = React.useCallback(
@@ -222,7 +201,7 @@ export default function HealthPage() {
         });
       }
     },
-    []
+    [setData]
   );
 
   // ─── Loading state ────────────────────────────────────────────────────────

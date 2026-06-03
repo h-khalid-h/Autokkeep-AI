@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
+import { useEntityFetch } from '@/lib/hooks/useEntityFetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Gauge, Progress, Skeleton, EmptyState } from '@/components/ui';
@@ -167,76 +168,36 @@ export default function ClosePage() {
     const now = new Date();
     return now.getMonth() === 0 ? 12 : now.getMonth();
   });
-  const [data, setData] = React.useState<CloseResponse | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [isClosing, setIsClosing] = React.useState(false);
   const [closeResult, setCloseResult] = React.useState<string | null>(null);
 
-  // ─── Fetch close report ───────────────────────────────────────────────────
-  const fetchReport = React.useCallback(async () => {
-    if (!selectedEntity?.id || !selectedMonth) return;
+  // ─── Fetch close report using shared hook ─────────────────────────────────
+  const fetchParams = React.useMemo(
+    () => ({ year: selectedYear, month: selectedMonth }),
+    [selectedYear, selectedMonth]
+  );
 
-    setIsLoading(true);
-    setError(null);
-    setCloseResult(null);
+  const buildCloseUrl = React.useCallback(
+    (entityId: string, params?: { year: number; month: number }) =>
+      `/api/insights/close?entityId=${entityId}&year=${params?.year ?? selectedYear}&month=${params?.month ?? selectedMonth}`,
+    [selectedYear, selectedMonth]
+  );
 
-    try {
-      const res = await fetch(
-        `/api/insights/close?entityId=${selectedEntity.id}&year=${selectedYear}&month=${selectedMonth}`
-      );
+  const {
+    data,
+    isLoading,
+    error,
+    refetch: fetchReport,
+  } = useEntityFetch<CloseResponse, { year: number; month: number }>(
+    selectedEntity?.id,
+    buildCloseUrl,
+    { params: fetchParams }
+  );
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Failed to fetch close report (${res.status})`);
-      }
 
-      const result: CloseResponse = await res.json();
-      setData(result);
-    } catch (err) {
-      console.error('[Close] Fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load close report');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedEntity, selectedYear, selectedMonth]);
 
-  // Auto-fetch when entity or period changes
-  const hasFetched = React.useRef(false);
-  React.useEffect(() => {
-    if (selectedEntity?.id && selectedMonth > 0) {
-      if (!hasFetched.current) {
-        hasFetched.current = true;
-      }
-      const controller = new AbortController();
-      const doFetch = async () => {
-        setIsLoading(true);
-        setError(null);
-        setCloseResult(null);
-        try {
-          const res = await fetch(
-            `/api/insights/close?entityId=${selectedEntity.id}&year=${selectedYear}&month=${selectedMonth}`,
-            { signal: controller.signal }
-          );
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.error || `Failed to fetch close report (${res.status})`);
-          }
-          const result: CloseResponse = await res.json();
-          setData(result);
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            console.error('[Close] Fetch error:', err);
-            setError(err instanceof Error ? err.message : 'Failed to load close report');
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      doFetch();
-      return () => controller.abort();
-    }
-  }, [selectedEntity, selectedYear, selectedMonth]);
+  // Local error state for close-period mutation (separate from fetch error)
+  const [closeError, setCloseError] = React.useState<string | null>(null);
 
   // ─── Close period handler ─────────────────────────────────────────────────
   const handleClosePeriod = React.useCallback(async () => {
@@ -244,6 +205,7 @@ export default function ClosePage() {
 
     setIsClosing(true);
     setCloseResult(null);
+    setCloseError(null);
 
     try {
       const res = await fetch('/api/insights/close', {
@@ -264,11 +226,11 @@ export default function ClosePage() {
         // Re-fetch to update period status
         await fetchReport();
       } else {
-        setError(result.error || result.message || 'Failed to close period');
+        setCloseError(result.error || result.message || 'Failed to close period');
       }
     } catch (err) {
       console.error('[Close] Close error:', err);
-      setError('Network error — could not close period');
+      setCloseError('Network error — could not close period');
     } finally {
       setIsClosing(false);
     }
@@ -337,9 +299,9 @@ export default function ClosePage() {
           </Card>
 
           {/* Error banner */}
-          {error && (
+          {(error || closeError) && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              ⚠️ {error || closeError}
             </div>
           )}
 

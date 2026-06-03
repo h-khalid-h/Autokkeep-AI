@@ -220,18 +220,26 @@ export default function OnboardingPage() {
 
         const pendingInvite = pendingInvites?.[0] ?? null;
         if (pendingInvite) {
-          // Link user to existing org
-          await db
-            .from('team_members')
-            .update({
-              user_id: user.id,
-              accepted_at: new Date().toISOString(),
-            })
-            .eq('id', pendingInvite.id);
+          // Claim invite server-side (validates ownership + prevents double-claim)
+          try {
+            const claimRes = await fetch('/api/team/claim', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ inviteId: pendingInvite.id }),
+            });
 
-          // Skip onboarding — redirect to dashboard
-          router.push('/dashboard');
-          return;
+            if (claimRes.ok) {
+              // Skip onboarding — redirect to dashboard
+              router.push('/dashboard');
+              return;
+            }
+
+            // If claim fails (e.g. already claimed), fall through to normal onboarding
+            const claimData = await claimRes.json().catch(() => ({}));
+            console.warn('[Onboarding] Invite claim failed:', claimData.error);
+          } catch (claimErr) {
+            console.warn('[Onboarding] Invite claim network error:', claimErr);
+          }
         }
       } catch (err) {
         console.warn('[Onboarding] Invite check failed:', err);
