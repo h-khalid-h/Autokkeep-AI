@@ -5,6 +5,7 @@ import { checkPlanLimits } from '@/lib/billing/plans';
 import {
   syncJournalEntry,
   syncChartOfAccounts,
+  upsertChartOfAccounts,
   buildJournalEntryFromTransaction,
   refreshQBOToken,
 } from '@/lib/ledger/sync';
@@ -344,23 +345,14 @@ export async function GET(request: NextRequest) {
       realmId: conn.realm_id,
     });
 
-    // Upsert chart of accounts
-    for (const acc of accounts) {
-      await db.from('chart_of_accounts').upsert(
-        {
-          entity_id: entityId,
-          code: acc.code,
-          name: acc.name,
-          type: acc.type as 'asset' | 'liability' | 'equity' | 'revenue' | 'expense',
-          is_active: true,
-        },
-        { onConflict: 'entity_id,code' }
-      );
-    }
+    // Batch upsert chart of accounts (replaces one-by-one loop)
+    const upsertResult = await upsertChartOfAccounts(db, entityId, accounts);
 
     return NextResponse.json({
       ok: true,
       accounts: accounts.length,
+      upserted: upsertResult.upserted,
+      errors: upsertResult.errors,
     });
   } catch (_error: unknown) {
     return NextResponse.json(

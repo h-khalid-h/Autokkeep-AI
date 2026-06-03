@@ -45,6 +45,36 @@ async function releaseChaseRunLock(entityId: string): Promise<void> {
 }
 
 // ============================================
+// Merchant Name Normalization
+// ============================================
+
+/**
+ * Normalize a merchant or cardholder name for fuzzy grouping.
+ * Strips common suffixes, store numbers, and special characters
+ * so that 'STARBUCKS #123' and 'STARBUCKS #456' resolve to the same group.
+ */
+export function normalizeMerchantName(name: string): string {
+  let normalized = name.trim().toLowerCase();
+
+  // Strip trailing store/location numbers like '#12345'
+  normalized = normalized.replace(/\s*#\d+\s*$/g, '');
+
+  // Strip common business suffixes
+  normalized = normalized.replace(
+    /\s+(?:llc|inc|corp|corporation|co|ltd|limited|lp|llp|pllc|plc|gmbh|s\.?a\.?|n\.?v\.?)\.?\s*$/gi,
+    ''
+  );
+
+  // Strip trailing special characters and whitespace
+  normalized = normalized.replace(/[^a-z0-9]+$/g, '').trim();
+
+  // Collapse multiple internal spaces
+  normalized = normalized.replace(/\s+/g, ' ');
+
+  return normalized;
+}
+
+// ============================================
 // Configuration
 // ============================================
 
@@ -551,7 +581,8 @@ export async function runReceiptChase(
       const escalationLevel = getEscalationLevel(chaseCount);
 
       // Determine the grouping key — vendor manager routing uses userId, otherwise card_holder
-      const groupKey = vendorManager ? `vm:${vendorManager.userId}` : cardHolder;
+      // Normalize card_holder to prevent duplicate groups for same person/merchant with different suffixes
+      const groupKey = vendorManager ? `vm:${vendorManager.userId}` : normalizeMerchantName(cardHolder);
 
       // Group by resolved key
       const existingGroup = cardholderGroups.get(groupKey);

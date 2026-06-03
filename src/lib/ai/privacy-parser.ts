@@ -14,31 +14,30 @@ import { createHash } from 'crypto';
 const PII_PATTERNS = {
   // Credit card numbers (13-19 digits, with optional spaces/dashes)
   creditCard: /\b(?:\d[ -]*?){13,19}\b/g,
-  // SSN: 123-45-6789 or 123456789
-  ssn: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
-  // Phone numbers (various formats)
-  // Note: may match some 10-digit reference/check numbers — acceptable tradeoff
-  // for a privacy parser where false positives (over-redaction) are preferred
-  // over false negatives (PII leaking to LLM).
-  phone: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  // Email addresses
-  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  // SSN: exactly 123-45-6789 or 123 45 6789 or 123456789 (9 digits)
+  // Word boundaries prevent matching partial digit sequences inside longer numbers
+  ssn: /\b\d{3}-\d{2}-\d{4}\b|\b\d{3}\s\d{2}\s\d{4}\b|\b\d{9}\b/g,
+  // Phone numbers (US/CA format, at least 10 digits)
+  // Requires area code + 7 digits; word boundaries prevent matching invoice/ref numbers
+  phone: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g,
+  // Email addresses — requires valid-looking user part (2+ chars) and TLD (2-6 chars)
+  email: /\b[A-Za-z0-9._%+-]{2,}@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,6}\b/g,
   // Street addresses (number + street name patterns)
   streetAddress: /\b\d{1,5}\s+(?:[A-Za-z]+\s+){1,3}(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Rd|Road|Ln|Lane|Ct|Court|Way|Pl|Place)\.?\b/gi,
-  // ZIP codes (US)
-  zipCode: /\b\d{5}(?:-\d{4})?\b/g,
+  // ZIP codes (US) — require word boundary on both sides to avoid matching inside longer numbers
+  zipCode: /(?<=\s|^)\d{5}(?:-\d{4})?(?=\s|$|[,.])/g,
   // ── International PII Patterns ──────────────────────────────────────────────
   // IBAN: 2-letter country code + 2 check digits + up to 30 alphanumeric chars
   // e.g. GB29 NWBK 6016 1331 9268 19
-  iban: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,
+  iban: /\b[A-Z]{2}\d{2}[\s]?[A-Z0-9]{4}(?:[\s]?[A-Z0-9]{4}){1,7}(?:[\s]?[A-Z0-9]{1,4})?\b/g,
   // UK National Insurance Number: e.g. AB123456C
-  ukNino: /\b[A-Z]{2}\d{6}[A-D]\b/g,
-  // International phone numbers: e.g. +44 7911 123456
-  intlPhone: /\b\+\d{1,3}[-.\s]?\d{4,14}\b/g,
+  ukNino: /\b[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z]\d{6}[A-D]\b/g,
+  // International phone numbers: e.g. +44 7911 123456 (require + prefix and 10+ total digits)
+  intlPhone: /\+\d{1,3}[-.\s]?\d{4,14}\b/g,
   // Canadian Social Insurance Number: e.g. 123-456-789 or 123 456 789
-  canadianSin: /\b\d{3}[-.\s]\d{3}[-.\s]\d{3}\b/g,
+  canadianSin: /\b\d{3}[-\s]\d{3}[-\s]\d{3}\b/g,
   // Australian Tax File Number: e.g. 123-456-789 or 123 456 789
-  australianTfn: /\b\d{3}[-.\s]\d{3}[-.\s]\d{3}\b/g,
+  australianTfn: /\b\d{3}[-\s]\d{3}[-\s]\d{3}\b/g,
 };
 
 // Names that commonly appear in card holder fields

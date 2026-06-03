@@ -3,6 +3,8 @@
 // Bidirectional sync with QuickBooks & Xero
 // ============================================
 
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+
 export type LedgerProvider = 'quickbooks' | 'xero';
 
 // ============================================
@@ -504,6 +506,38 @@ export async function syncChartOfAccounts(
   }
 
   return [];
+}
+
+/**
+ * Batch upsert chart of accounts into the database.
+ * Replaces one-by-one upserts in QBO/Xero sync routes with a single batched call.
+ */
+export async function upsertChartOfAccounts(
+  db: SupabaseQueryClient,
+  entityId: string,
+  accounts: Array<{ code: string; name: string; type: string; externalId: string }>
+): Promise<{ upserted: number; errors: number }> {
+  if (accounts.length === 0) return { upserted: 0, errors: 0 };
+
+  const rows = accounts.map((acc) => ({
+    entity_id: entityId,
+    code: acc.code,
+    name: acc.name,
+    type: acc.type as 'asset' | 'liability' | 'equity' | 'revenue' | 'expense',
+    external_id: acc.externalId,
+    is_active: true,
+  }));
+
+  const { error, count } = await db
+    .from('chart_of_accounts')
+    .upsert(rows, { onConflict: 'entity_id,code', count: 'exact' });
+
+  if (error) {
+    console.error('[Ledger Sync] Batch CoA upsert failed:', error.message);
+    return { upserted: 0, errors: accounts.length };
+  }
+
+  return { upserted: count ?? accounts.length, errors: 0 };
 }
 
 function mapQBOAccountType(type: string): string {

@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
     const returnToParam = request.nextUrl.searchParams.get('returnTo');
     const returnTo = returnToParam && ALLOWED_RETURN_PATHS.includes(returnToParam) ? returnToParam : '';
     const statePayload = Buffer.from(JSON.stringify({ entityId, ts: Date.now(), returnTo })).toString('base64');
-    const hmacSecret = process.env.CRON_SECRET;
+    const hmacSecret = process.env.OAUTH_STATE_SECRET || process.env.CRON_SECRET;
     if (!hmacSecret) {
-      console.error('[Xero Auth] CRON_SECRET not set — cannot sign OAuth state');
+      console.error('[Xero Auth] OAUTH_STATE_SECRET / CRON_SECRET not set — cannot sign OAuth state');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
     const hmac = createHmac('sha256', hmacSecret)
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       if (!statePayload || !signature) {
         return NextResponse.json({ error: 'Invalid state parameter' }, { status: 400 });
       }
-      const hmacSecret = process.env.CRON_SECRET;
+      const hmacSecret = process.env.OAUTH_STATE_SECRET || process.env.CRON_SECRET;
       if (!hmacSecret) {
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
       }

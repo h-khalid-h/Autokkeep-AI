@@ -23,6 +23,7 @@ export interface TeamsAdaptiveCardPayload {
 
 export function buildTeamsAdaptiveCard(payload: TeamsAdaptiveCardPayload) {
   const formattedAmount = formatCurrency(payload.amount, payload.currency || 'USD');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://autokkeep.com';
 
   const confidenceColor = (payload.confidence ?? 0) >= 75 ? 'good' : 'attention';
 
@@ -128,7 +129,7 @@ export function buildTeamsAdaptiveCard(payload: TeamsAdaptiveCardPayload) {
             {
               type: 'Action.OpenUrl',
               title: '📎 Upload Receipt',
-              url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upload=${payload.transactionId}`,
+              url: `${appUrl}/dashboard?upload=${payload.transactionId}`,
             },
           ],
         },

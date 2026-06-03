@@ -46,25 +46,33 @@ export async function POST(request: NextRequest) {
 
     const { writeAuditLog } = await import('@/lib/audit');
     // Store in audit_log (or a dedicated contact_submissions table)
-    await writeAuditLog({
-      supabase,
-      entityId: 'system',
-      actorId: 'anonymous',
-      actorType: 'system',
-      action: 'create',
-      targetType: 'contact_form',
-      targetId: sanitizedEmail,
-      details: {
-        name,
-        email: sanitizedEmail,
-        company: company || null,
-        type: type || null,
-        entity_count: entityCount || null,
-        message: sanitizedMessage,
-        submitted_at: new Date().toISOString(),
-      },
-      request,
-    });
+    try {
+      await writeAuditLog({
+        supabase,
+        entityId: 'system',
+        actorId: 'anonymous',
+        actorType: 'system',
+        action: 'create',
+        targetType: 'contact_form',
+        targetId: sanitizedEmail,
+        details: {
+          name,
+          email: sanitizedEmail,
+          company: company || null,
+          type: type || null,
+          entity_count: entityCount || null,
+          message: sanitizedMessage,
+          submitted_at: new Date().toISOString(),
+        },
+        request,
+      });
+    } catch (auditError) {
+      console.error('[Contact] Failed to persist contact submission:', auditError);
+      return NextResponse.json(
+        { error: 'Failed to save contact submission. The audit_log table may not be available. Please try again later or contact support.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
