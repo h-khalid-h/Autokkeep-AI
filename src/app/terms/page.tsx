@@ -1,8 +1,6 @@
-'use client';
-
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 import Logo from '@/components/ui/Logo';
+import SidebarNav from './SidebarNav';
 import styles from './page.module.css';
 
 const LAST_UPDATED = 'May 25, 2026';
@@ -259,27 +257,6 @@ const sections = [
 ];
 
 export default function TermsPage() {
-  const [activeSection, setActiveSection] = useState('');
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: '-20% 0px -60% 0px' }
-    );
-
-    sections.forEach((s) => {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <>
@@ -330,17 +307,7 @@ export default function TermsPage() {
       {/* Main Content */}
       <div className={`container ${styles.mainGrid}`}>
         {/* Sidebar Nav */}
-        <nav className={styles.sidebar}>
-          {sections.map((section) => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              className={`${styles.sidebarLink} ${activeSection === section.id ? styles.sidebarLinkActive : ''}`}
-            >
-              {section.title}
-            </a>
-          ))}
-        </nav>
+        <SidebarNav sections={sections.map(s => ({ id: s.id, title: s.title }))} />
 
         {/* Content */}
         <div className={styles.contentColumn}>

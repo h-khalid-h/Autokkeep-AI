@@ -3,7 +3,8 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import NotificationBell from '@/components/dashboard/NotificationBell';
+import dynamic from 'next/dynamic';
+const NotificationBell = dynamic(() => import('@/components/dashboard/NotificationBell'), { ssr: false });
 import UserMenu from '@/components/dashboard/UserMenu';
 import styles from './TopBar.module.css';
 

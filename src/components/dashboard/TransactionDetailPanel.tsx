@@ -3,7 +3,8 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
-import ActionsConsole from '@/components/dashboard/ActionsConsole';
+import dynamic from 'next/dynamic';
+const ActionsConsole = dynamic(() => import('@/components/dashboard/ActionsConsole'), { ssr: false });
 import styles from './TransactionDetailPanel.module.css';
 
 // ─── Props ──────────────────────────────────────────────────────────────────

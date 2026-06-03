@@ -4,7 +4,11 @@ import { useState, useCallback, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { useNavigationShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
+import dynamic from 'next/dynamic';
+const KeyboardShortcutsHelp = dynamic(
+  () => import('@/components/ui/KeyboardShortcutsHelp').then(mod => mod.KeyboardShortcutsHelp),
+  { ssr: false }
+);
 import styles from './AppShell.module.css';
 
 export interface AppShellProps {
