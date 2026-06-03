@@ -174,7 +174,8 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       vi.mocked(createAdminClient).mockReturnValue(db);
       vi.mocked(syncJournalEntry).mockResolvedValue({
         success: true,
-        entryId: 'qbo-123',
+        journalEntryId: 'qbo-123',
+        provider: 'quickbooks',
       });
 
       const results = await runNightlySync();
@@ -203,7 +204,7 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       });
 
       vi.mocked(createAdminClient).mockReturnValue(db);
-      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, entryId: 'unused' });
+      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, journalEntryId: 'unused', provider: 'quickbooks' });
 
       const results = await runNightlySync();
 
@@ -271,7 +272,7 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       });
 
       vi.mocked(createAdminClient).mockReturnValue(db);
-      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, entryId: 'qbo-ok' });
+      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, journalEntryId: 'qbo-ok', provider: 'quickbooks' });
 
       const results = await runNightlySync();
 
@@ -294,7 +295,7 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       });
 
       vi.mocked(createAdminClient).mockReturnValue(db);
-      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, entryId: 'unused' });
+      vi.mocked(syncJournalEntry).mockResolvedValue({ success: true, journalEntryId: 'unused', provider: 'quickbooks' });
 
       const results = await runNightlySync();
 
