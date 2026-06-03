@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions } from '@/lib/plaid/ingest';
+import { runAutoCategorize } from '@/lib/ai/auto-categorize';
 
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import { writeAuditLog } from '@/lib/audit';
@@ -195,15 +196,12 @@ export async function POST(request: NextRequest) {
             `[Plaid Webhook] Synced: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
 
-          // Fire-and-forget: trigger auto-categorization for new transactions
+          // Direct invocation: trigger auto-categorization for new transactions.
+          // Previously this was an HTTP self-call (fetch to /api/cron/auto-categorize)
+          // which is fragile in private network deployments (G18 fix).
           if (ingestResult.added > 0) {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-            fetch(`${baseUrl}/api/cron/auto-categorize`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-              signal: AbortSignal.timeout(10000), // 10s timeout
-            }).catch((err) => {
-              console.warn('[Plaid Webhook] Auto-categorize trigger failed:', err instanceof Error ? err.message : 'unknown');
+            runAutoCategorize({ supabase }).catch((err) => {
+              console.warn('[Plaid Webhook] Auto-categorize failed:', err instanceof Error ? err.message : 'unknown');
             });
           }
         } catch (syncError) {
@@ -322,15 +320,10 @@ export async function POST(request: NextRequest) {
             `[Plaid Webhook] ${webhook_code} sync: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
 
-          // Fire-and-forget: trigger auto-categorization for new transactions
+          // Direct invocation (G18 fix — no HTTP self-call)
           if (ingestResult.added > 0) {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-            fetch(`${baseUrl}/api/cron/auto-categorize`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-              signal: AbortSignal.timeout(10000), // 10s timeout
-            }).catch((err) => {
-              console.warn('[Plaid Webhook] Auto-categorize trigger failed:', err instanceof Error ? err.message : 'unknown');
+            runAutoCategorize({ supabase }).catch((err) => {
+              console.warn('[Plaid Webhook] Auto-categorize failed:', err instanceof Error ? err.message : 'unknown');
             });
           }
         } catch (syncError) {
