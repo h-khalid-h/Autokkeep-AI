@@ -133,9 +133,9 @@ export const schemas = {
 
   // Vendor managers
   createVendorManager: z.object({
-    entity_id: uuid,
-    vendor_name: nonEmptyString,
-    manager_email: email,
+    entityId: uuid,
+    vendorPattern: nonEmptyString,
+    managerUserId: uuid,
   }),
 
   deleteVendorManager: z.object({
@@ -144,11 +144,13 @@ export const schemas = {
 
   // Onboarding bootstrap
   onboardingBootstrap: z.object({
-    organizationName: nonEmptyString,
     entityName: nonEmptyString,
-    fiscalYearEnd: z.string().regex(/^(1[0-2]|[1-9])$/),
-    currency: currency.optional().default('USD'),
-    plan: z.string().max(50).optional(),
+    entityType: z.enum(['llc', 'corp', 'sole_prop', 'partnership', 'nonprofit', 'other']).optional(),
+    fiscalYearEnd: z.union([
+      z.string().regex(/^(1[0-2]|[1-9])$/),
+      z.number().int().min(1).max(12),
+    ]).optional().default('12').transform(v => String(v)),
+    currency: z.string().regex(/^[A-Z]{3}$/).optional().default('USD'),
   }),
 } as const;
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { parseBody, schemas } from '@/lib/validation';
 
 const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'Autokkeep <noreply@autokkeep.com>';
 
@@ -16,34 +17,12 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { membership, db, user } = ctx;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { email, role } = body;
+    const parsed = await parseBody(request, schemas.inviteTeamMember);
+    if (!parsed.success) return parsed.error;
+    const { email, role } = parsed.data;
 
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
-    }
     // Normalize
     const normalizedEmail = email.toLowerCase().trim();
-
-    // Validate role
-    const validRoles = ['owner', 'admin', 'accountant', 'viewer'];
-    if (role && !validRoles.includes(role)) {
-      return NextResponse.json(
-        { error: `Invalid role. Must be one of: ${validRoles.join(', ')}` },
-        { status: 400 }
-      );
-    }
 
     // Server-side seat limit enforcement
     const { count: memberCount } = await db

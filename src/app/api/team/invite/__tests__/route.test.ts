@@ -112,7 +112,12 @@ describe('POST /api/team/invite', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Email is required');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'email' }),
+      ])
+    );
   });
 
   it('should return 400 for invalid email format', async () => {
@@ -121,7 +126,12 @@ describe('POST /api/team/invite', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Invalid email format');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'email' }),
+      ])
+    );
   });
 
   it('should return 400 for invalid role', async () => {
@@ -130,7 +140,12 @@ describe('POST /api/team/invite', () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain('Invalid role');
+    expect(json.error).toBe('Validation failed');
+    expect(json.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'role' }),
+      ])
+    );
   });
 
   // ── Happy Path ────────────────────────────────────────────────────────────

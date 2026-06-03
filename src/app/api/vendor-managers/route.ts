@@ -8,6 +8,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: List vendor managers for user's entities ──────────────────────────
 
@@ -57,12 +58,6 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Create new vendor manager ────────────────────────────────────────
 
-interface CreateVendorManagerBody {
-  entityId: string;
-  vendorPattern: string;
-  managerUserId: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'vm-create' });
@@ -72,20 +67,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, db, entityIds } = ctx;
 
-    let body: CreateVendorManagerBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { entityId, vendorPattern, managerUserId } = body;
-
-    if (!entityId || !vendorPattern || !managerUserId) {
-      return NextResponse.json(
-        { error: 'entityId, vendorPattern, and managerUserId are required' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.createVendorManager);
+    if (!parsed.success) return parsed.error;
+    const { entityId, vendorPattern, managerUserId } = parsed.data;
 
     // Validate entity access
     if (!entityIds.includes(entityId)) {

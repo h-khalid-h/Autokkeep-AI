@@ -307,6 +307,8 @@ export default function InsightsPage() {
                     key={conv.id}
                     className={activeConversationId === conv.id ? styles.sidebarItemActive : styles.sidebarItem}
                     onClick={() => loadConversation(conv.id)}
+                    aria-label={`Open conversation: ${conv.title}`}
+                    aria-current={activeConversationId === conv.id ? 'true' : undefined}
                   >
                     <div className={styles.sidebarItemTitle}>{conv.title}</div>
                     <div className={styles.sidebarItemDate}>
@@ -349,6 +351,7 @@ export default function InsightsPage() {
                         key={i}
                         className={styles.suggestionCard}
                         onClick={() => sendMessage(q.text)}
+                        aria-label={`Ask: ${q.text}`}
                       >
                         <span className={styles.suggestionIcon}>{q.icon}</span>
                         <span className={styles.suggestionText}>{q.text}</span>
@@ -374,6 +377,7 @@ export default function InsightsPage() {
                         key={i}
                         className={styles.followUpChip}
                         onClick={() => sendMessage(q)}
+                        aria-label={`Follow up: ${q}`}
                       >
                         {q}
                       </button>
@@ -392,6 +396,7 @@ export default function InsightsPage() {
                 <button
                   className={styles.errorDismiss}
                   onClick={() => setError(null)}
+                  aria-label="Dismiss error"
                 >
                   ✕
                 </button>

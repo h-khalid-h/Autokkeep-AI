@@ -407,6 +407,7 @@ export default function ShadowAuditPage() {
                   ref={fileInputRef}
                   type="file"
                   accept=".csv"
+                  aria-label="Upload CSV file"
                   style={{ display: 'none' }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -458,6 +459,7 @@ export default function ShadowAuditPage() {
                           style={selectStyle}
                           value={mapping[key]}
                           onChange={(e) => setMapping(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                          aria-label={`Map ${label} column`}
                         >
                           {headers.map((h, i) => (
                             <option key={i} value={i} style={{ background: '#111', color: '#fff' }}>{h}</option>
@@ -493,7 +495,7 @@ export default function ShadowAuditPage() {
                   </div>
                 </div>
 
-                <button className="btn btn-primary btn-lg" onClick={startProcessing} style={{ width: '100%' }}>
+                <button className="btn btn-primary btn-lg" onClick={startProcessing} style={{ width: '100%' }} aria-label={`Start analysis on ${rows.length} transactions`}>
                   ⚡ Start Analysis — {rows.length} Transactions
                 </button>
               </div>

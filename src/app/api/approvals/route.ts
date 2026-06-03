@@ -4,10 +4,12 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getPendingApprovals, processApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { parseBody } from '@/lib/validation';
 
 // ─── GET: List pending approvals for the current user ───────────────────────────
 
@@ -62,10 +64,10 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Submit an approval decision ──────────────────────────────────────────
 
-interface ApprovalDecisionBody {
-  approvalId: string;
-  decision: 'approved' | 'rejected';
-}
+const approvalDecisionSchema = z.object({
+  approvalId: z.string().uuid(),
+  decision: z.enum(['approved', 'rejected']),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,27 +78,9 @@ export async function POST(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
 
-    let body: ApprovalDecisionBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { approvalId, decision } = body;
-
-    if (!approvalId || !decision) {
-      return NextResponse.json(
-        { error: 'approvalId and decision are required' },
-        { status: 400 },
-      );
-    }
-
-    if (decision !== 'approved' && decision !== 'rejected') {
-      return NextResponse.json(
-        { error: 'decision must be "approved" or "rejected"' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseBody(request, approvalDecisionSchema);
+    if (!parsed.success) return parsed.error;
+    const { approvalId, decision } = parsed.data;
 
     const updated = await processApproval(
       db,
