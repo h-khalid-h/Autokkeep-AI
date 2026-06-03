@@ -16,10 +16,33 @@ import { sendSMS, sendWhatsApp } from './twilio';
 import { writeAuditLog } from '@/lib/audit';
 import { resolveVendorManager } from '@/lib/vendor-manager';
 import { getUserChannelPreference } from '@/lib/user-channel-prefs';
+import { getRedisClient } from '@/lib/redis';
 
-// Module-level idempotency guard (E9)
-let lastRunTimestamp = 0;
+// Module-level per-entity idempotency guard (in-memory fallback)
+const lastRunByEntity = new Map<string, number>();
 const MIN_RUN_INTERVAL_MS = 60_000; // 1 minute between runs
+
+/**
+ * Acquire a Redis-based distributed lock for a chase run on a specific entity.
+ * Returns true if lock acquired, false if another run is in progress.
+ * Falls back to in-memory guard if Redis is unavailable.
+ */
+async function acquireChaseRunLock(entityId: string): Promise<boolean> {
+  const redis = getRedisClient();
+  if (!redis) return true; // No Redis = allow (rely on in-memory fallback)
+  const key = `chase_lock:${entityId}`;
+  const acquired = await redis.set(key, '1', 'EX', 120, 'NX'); // 2-min lock
+  return acquired === 'OK';
+}
+
+/**
+ * Release the Redis-based distributed lock for a chase run.
+ */
+async function releaseChaseRunLock(entityId: string): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  await redis.del(`chase_lock:${entityId}`);
+}
 
 // ============================================
 // Configuration
@@ -349,13 +372,22 @@ export async function runReceiptChase(
   supabase: SupabaseQueryClient,
   config: ChaseConfig = DEFAULT_CONFIG
 ): Promise<ChaseReport> {
-  // E9: Idempotency guard — skip if another run started within the last 60s
+  // E9: In-memory per-entity idempotency guard (belt-and-suspenders fallback)
   const now = Date.now();
-  if (now - lastRunTimestamp < MIN_RUN_INTERVAL_MS) {
-    console.info('[Chase Agent] Skipping — another run started within the last 60s');
+  const lastRun = lastRunByEntity.get(entityId) || 0;
+  if (now - lastRun < MIN_RUN_INTERVAL_MS) {
+    console.info(`[Chase Agent] Skipping entity ${entityId} — in-memory guard: another run started within the last 60s`);
     return { entityId, totalChased: 0, byChannel: {}, skipped: 0, errors: [], timestamp: new Date().toISOString() };
   }
-  lastRunTimestamp = now;
+
+  // E9: Redis-based distributed lock (primary guard in serverless)
+  const lockAcquired = await acquireChaseRunLock(entityId);
+  if (!lockAcquired) {
+    console.info(`[Chase Agent] Skipping entity ${entityId} — Redis lock held by another instance`);
+    return { entityId, totalChased: 0, byChannel: {}, skipped: 0, errors: [], timestamp: new Date().toISOString() };
+  }
+
+  lastRunByEntity.set(entityId, now);
 
   const report: ChaseReport = {
     entityId,
@@ -663,6 +695,9 @@ export async function runReceiptChase(
     const message = error instanceof Error ? error.message : 'Unknown error in chase agent';
     report.errors.push(message);
     console.error(`[Chase Agent] Error for entity ${entityId}:`, error);
+  } finally {
+    // Always release the Redis lock, even on error
+    await releaseChaseRunLock(entityId);
   }
 
   return report;
