@@ -10,6 +10,13 @@
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
+/** Optional GL code overrides — callers can pass entity-specific codes */
+export interface GLCodeOverrides {
+  bankFeesGL?: string;   // Default: '6180'
+  suspenseGL?: string;   // Default: '2900'
+  cashGL?: string;       // Default: '1010'
+}
+
 export interface ReconciliationInput {
   transactionId: string;
   entityId: string;
@@ -28,48 +35,39 @@ export interface ReconciliationResult {
   reasoning: string;
 }
 
-// Common fee patterns — map variance ranges to GL codes
+// Common fee patterns — map variance ranges to GL codes.
+// The actual GL code used is determined at runtime via glOverrides.
 const FEE_PATTERNS: Array<{
   maxVariance: number;
-  glCode: string;
   glName: string;
   description: string;
 }> = [
   {
     maxVariance: 0.50,
-    glCode: '6180',
     glName: 'Bank Fees & Charges',
     description: 'Rounding/micro-fee adjustment',
   },
   {
     maxVariance: 5.00,
-    glCode: '6180',
     glName: 'Bank Fees & Charges',
     description: 'Card processing fee',
   },
   {
     maxVariance: 15.00,
-    glCode: '6180',
     glName: 'Bank Fees & Charges',
     description: 'ACH/wire transfer fee',
   },
   {
     maxVariance: 50.00,
-    glCode: '6180',
     glName: 'Bank Fees & Charges',
     description: 'International processing fee',
   },
   {
     maxVariance: 100.00,
-    glCode: '6180',
     glName: 'Bank Fees & Charges',
     description: 'Currency conversion fee',
   },
 ];
-
-// Stripe fee pattern: 2.9% + $0.30
-const STRIPE_FEE_RATE = 0.029;
-const STRIPE_FEE_FIXED = 0.30;
 
 /**
  * Analyzes a variance between bank amount and expected amount.
@@ -78,7 +76,8 @@ const STRIPE_FEE_FIXED = 0.30;
 export function analyzeVariance(
   bankAmount: number,
   expectedAmount: number,
-  merchantName: string
+  merchantName: string,
+  gl: Required<GLCodeOverrides> = { bankFeesGL: '6180', suspenseGL: '2900', cashGL: '1010' }
 ): {
   isKnownFee: boolean;
   glCode: string;
@@ -86,17 +85,16 @@ export function analyzeVariance(
   description: string;
 } {
   const variance = Math.abs(bankAmount - expectedAmount);
-  const merchantLower = (merchantName || '').toLowerCase();
 
-  // Check if variance matches a Stripe fee pattern
-  const expectedStripeFee = Math.abs(expectedAmount) * STRIPE_FEE_RATE + STRIPE_FEE_FIXED;
+  // Check for Stripe-like fee pattern (2.9% + $0.30)
+  const expectedStripeFee = Math.abs(expectedAmount) * 0.029 + 0.30;
   if (
-    merchantLower.includes('stripe') &&
+    merchantName.toLowerCase().includes('stripe') &&
     Math.abs(variance - expectedStripeFee) < 0.02 // within 2 cents
   ) {
     return {
       isKnownFee: true,
-      glCode: '6180',
+      glCode: gl.bankFeesGL,
       glName: 'Bank Fees & Charges',
       description: `Stripe processing fee (2.9% + $0.30)`,
     };
@@ -107,7 +105,7 @@ export function analyzeVariance(
     if (variance <= pattern.maxVariance) {
       return {
         isKnownFee: true,
-        glCode: pattern.glCode,
+        glCode: gl.bankFeesGL,
         glName: pattern.glName,
         description: pattern.description,
       };
@@ -117,7 +115,7 @@ export function analyzeVariance(
   // Variance too large — not a known fee, needs manual review
   return {
     isKnownFee: false,
-    glCode: '2900', // Route to suspense
+    glCode: gl.suspenseGL,
     glName: 'Suspense/Clearing',
     description: `Unrecognized variance of $${variance.toFixed(2)} — requires manual review`,
   };
@@ -129,8 +127,14 @@ export function analyzeVariance(
  */
 export async function createFeeAdjustingEntry(
   supabase: SupabaseQueryClient,
-  input: ReconciliationInput
+  input: ReconciliationInput,
+  glOverrides?: GLCodeOverrides
 ): Promise<ReconciliationResult> {
+  const gl: Required<GLCodeOverrides> = {
+    bankFeesGL: glOverrides?.bankFeesGL ?? '6180',
+    suspenseGL: glOverrides?.suspenseGL ?? '2900',
+    cashGL: glOverrides?.cashGL ?? '1010',
+  };
   const variance = input.bankAmount - input.expectedAmount;
   const absVariance = Math.abs(variance);
 
@@ -148,7 +152,8 @@ export async function createFeeAdjustingEntry(
   const analysis = analyzeVariance(
     input.bankAmount,
     input.expectedAmount,
-    input.merchantName
+    input.merchantName,
+    gl
   );
 
   // Create the adjusting journal entry
@@ -191,7 +196,7 @@ export async function createFeeAdjustingEntry(
     },
     {
       journal_entry_id: journalEntry.id,
-      gl_code: '1010', // Cash & Bank
+      gl_code: gl.cashGL, // Cash & Bank
       debit: feeIsDebit ? 0 : absVariance,
       credit: feeIsDebit ? absVariance : 0,
       description: `Offset for ${analysis.description}`,

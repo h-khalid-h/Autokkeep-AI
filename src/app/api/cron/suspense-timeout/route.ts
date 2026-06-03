@@ -11,13 +11,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
+import { getGLCode } from '@/lib/entity-settings';
 
-// TODO(tech-debt): These GL codes are hardcoded defaults. They should be
-// entity-configurable (e.g. stored in an entity_settings table). The
-// validation at step 2 below will skip entities whose CoA lacks these codes,
-// but ideally each entity would declare its own suspense/contra accounts.
-const SUSPENSE_GL_CODE = '2900'; // Default: Suspense/Clearing account
-const CONTRA_GL_CODE = '1010';   // Default: Cash & Bank — contra account
+// GL codes are now entity-configurable via entity_settings table.
+// These constants serve only as type-safe key references for getGLCode().
 const SUSPENSE_TIMEOUT_HOURS = 48;
 
 interface StaleTransaction {
@@ -97,24 +94,32 @@ export async function GET(request: NextRequest) {
     const skippedEntities: string[] = [];
 
     for (const [entityId, entityTxns] of entitiesWithTxns) {
-      // Check if the hardcoded default GL codes exist in this entity's CoA.
-      // Known limitation: codes are not yet entity-configurable (see constants above).
+      // Resolve GL codes per entity (falls back to defaults if no override)
+      const suspenseGL = await getGLCode(db, entityId, 'suspense_gl');
+      const contraGL = await getGLCode(db, entityId, 'cash_gl');
+
+      // Check if the resolved GL codes exist in this entity's CoA.
       const { data: glAccounts } = await db
         .from('chart_of_accounts')
         .select('code')
         .eq('entity_id', entityId)
-        .in('code', [SUSPENSE_GL_CODE, CONTRA_GL_CODE]);
+        .in('code', [suspenseGL, contraGL]);
 
       const existingCodes = new Set((glAccounts || []).map((a: { code: string }) => a.code));
-      if (!existingCodes.has(SUSPENSE_GL_CODE) || !existingCodes.has(CONTRA_GL_CODE)) {
+      if (!existingCodes.has(suspenseGL) || !existingCodes.has(contraGL)) {
         console.warn(
           `[Suspense Timeout] Skipping ${entityTxns.length} txns for entity ${entityId}: ` +
-          `GL codes ${SUSPENSE_GL_CODE} and/or ${CONTRA_GL_CODE} not in chart of accounts`
+          `GL codes ${suspenseGL} and/or ${contraGL} not in chart of accounts`
         );
         skippedEntities.push(entityId);
         continue;
       }
 
+      // Tag each transaction with its resolved GL codes for journal line creation
+      for (const txn of entityTxns) {
+        (txn as StaleTransaction & { _suspenseGL: string; _contraGL: string })._suspenseGL = suspenseGL;
+        (txn as StaleTransaction & { _contraGL: string })._contraGL = contraGL;
+      }
       validatedTxns.push(...entityTxns);
     }
 
@@ -157,17 +162,18 @@ export async function GET(request: NextRequest) {
         const jeId = jeMap.get(txn.id);
         if (!jeId) continue;
         const absAmount = Math.abs(txn.amount);
+        const tagged = txn as StaleTransaction & { _suspenseGL: string; _contraGL: string };
         journalLines.push(
           {
             journal_entry_id: jeId,
-            gl_code: SUSPENSE_GL_CODE,
+            gl_code: tagged._suspenseGL,
             debit: absAmount,
             credit: 0,
             description: `Suspense hold: ${txn.merchant_name || 'Unknown'}`,
           },
           {
             journal_entry_id: jeId,
-            gl_code: CONTRA_GL_CODE, // Cash & Bank — always use as contra
+            gl_code: tagged._contraGL,
             debit: 0,
             credit: absAmount,
             description: `Suspense contra: pending classification`,

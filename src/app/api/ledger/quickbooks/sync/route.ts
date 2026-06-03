@@ -10,6 +10,7 @@ import {
 } from '@/lib/ledger/sync';
 import { writeAuditLog } from '@/lib/audit';
 import { encryptToken, decryptToken } from '@/lib/crypto';
+import { getGLCode } from '@/lib/entity-settings';
 
 // POST /api/ledger/quickbooks/sync — Sync approved transactions to QuickBooks
 export async function POST(request: NextRequest) {
@@ -98,8 +99,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get the bank account GL code (default: 1010 - Checking)
-    const bankAccountGLCode = '1010';
+    // Get the bank account GL code from entity settings (default: 1010 - Checking)
+    const bankAccountGLCode = await getGLCode(db, entityId, 'cash_gl');
+    const defaultExpenseGL = await getGLCode(db, entityId, 'default_expense_gl');
 
     const results = {
       synced: 0,
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     for (const tx of claimed) {
       try {
-        const entry = buildJournalEntryFromTransaction(tx, bankAccountGLCode);
+        const entry = buildJournalEntryFromTransaction(tx, bankAccountGLCode, defaultExpenseGL);
 
         const syncResult = await syncJournalEntry(
           'quickbooks',

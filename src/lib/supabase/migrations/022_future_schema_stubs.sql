@@ -1,0 +1,91 @@
+-- =============================================================================
+-- 022_future_schema_stubs.sql — Documentation of planned features
+-- =============================================================================
+-- This migration documents architectural features that are planned but not
+-- yet implemented. Each section describes the intended schema addition,
+-- its purpose, and which gap it addresses from the codebase model.
+--
+-- No tables or functions are created by this migration. It serves as
+-- living documentation of the product roadmap's schema implications.
+-- =============================================================================
+
+-- ─── G2: Vendor/Customer Manager Model ─────────────────────────────────────
+-- STATUS: PLANNED — requires admin UI for relationship management
+--
+-- CREATE TABLE vendor_managers (
+--   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   entity_id  uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+--   vendor_name text NOT NULL,  -- normalized merchant name
+--   manager_user_id uuid NOT NULL REFERENCES auth.users(id),
+--   created_at timestamptz DEFAULT now()
+-- );
+-- Purpose: Route receipt chases to the person responsible for that vendor
+-- relationship, not just the card holder.
+
+-- ─── G3: Approval Hierarchy ────────────────────────────────────────────────
+-- STATUS: PLANNED — requires approval workflow UI
+--
+-- CREATE TABLE approval_thresholds (
+--   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   entity_id  uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+--   min_amount decimal(15,2) NOT NULL,
+--   required_role team_role NOT NULL DEFAULT 'admin',
+--   requires_dual_approval boolean DEFAULT false
+-- );
+-- Purpose: Auto-escalate transactions above certain amounts to admins/owners
+-- for approval before moving from human_review → approved.
+
+-- ─── G4: Per-User Channel Preferences ──────────────────────────────────────
+-- STATUS: PLANNED — requires user settings UI
+--
+-- CREATE TABLE user_channel_preferences (
+--   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   user_id    uuid NOT NULL REFERENCES auth.users(id),
+--   entity_id  uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+--   preferred_channel channel_type NOT NULL DEFAULT 'slack',
+--   channel_identifier text,  -- phone number, slack user ID, etc.
+--   is_active  boolean DEFAULT true,
+--   UNIQUE(user_id, entity_id)
+-- );
+-- Purpose: Allow individual team members to choose how they want to be
+-- contacted for receipt chases and notifications.
+
+-- ─── G5/G6: OCR Pipeline & Receipt-Transaction Matching ───────────────────
+-- STATUS: PLANNED — requires OCR service integration (e.g. Textract, Azure AI)
+--
+-- CREATE TABLE receipt_ocr_queue (
+--   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   transaction_id  uuid REFERENCES transactions(id),
+--   file_url        text NOT NULL,
+--   status          text DEFAULT 'pending',  -- pending, processing, completed, failed
+--   extracted_data  jsonb,  -- { vendor, amount, date, tax, line_items }
+--   match_confidence numeric(5,4),
+--   processed_at    timestamptz,
+--   created_at      timestamptz DEFAULT now()
+-- );
+-- Purpose: Extract structured data from receipt images and auto-match
+-- against transactions by vendor, amount, and date.
+
+-- ─── G9: Email Channel Integration ─────────────────────────────────────────
+-- STATUS: PLANNED — requires email webhook endpoint (e.g. SendGrid Inbound Parse)
+--
+-- The chase pipeline dispatcher (src/lib/channels/dispatcher.ts) already
+-- supports a channel_type enum. Adding 'email' as a channel type would
+-- require:
+--   1. ALTER TYPE channel_type ADD VALUE IF NOT EXISTS 'email';
+--   2. A new dispatcher adapter: src/lib/channels/email.ts
+--   3. An inbound email webhook to receive receipt replies
+
+-- ─── G10: Automated Month-End Close Notification ───────────────────────────
+-- STATUS: PLANNED — requires notification scheduling
+--
+-- Would use the existing channel dispatch infrastructure:
+--   1. A new cron job: src/app/api/cron/close-reminder/route.ts
+--   2. Query entities where the current period is unlocked and it's past
+--      the 5th of the next month
+--   3. Dispatch a "Month-end close pending" notification to entity admins
+--   4. Use the close-engine.ts readiness score to determine severity
+
+-- =============================================================================
+-- End of future schema documentation
+-- =============================================================================

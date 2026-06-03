@@ -1,8 +1,12 @@
 -- =============================================================================
 -- 006_double_entry_invariant.sql — Enforce balanced journal entries
 -- =============================================================================
--- Deferred constraint trigger: ensures sum(debits) = sum(credits)
--- per journal_entry_id after all lines are inserted in a transaction.
+-- ⚠️  SUPERSEDED by 019_fix_journal_trigger_and_cleanup.sql
+--     This migration has a bug: references debit_amount/credit_amount
+--     instead of the actual column names debit/credit.
+--     The correct trigger (trg_validate_journal_balance) was already
+--     created in 000_full_init.sql using the real column names.
+--     Migration 019 drops the broken trigger created here.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION check_journal_balance()
