@@ -465,8 +465,18 @@ export async function closePeriod(
   month: number,
   userId: string,
   supabase: SupabaseQueryClient
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; error?: string }> {
   const period = `${year}-${String(month).padStart(2, '0')}`;
+
+  // ── Readiness gate: enforce minimum score before locking ────────────
+  const readiness = await runMonthEndClose(entityId, year, month, supabase);
+  if (readiness.readinessScore < 80) {
+    return {
+      success: false,
+      message: `Cannot close period ${period}: readiness score is ${readiness.readinessScore}%.`,
+      error: `Cannot close period: readiness score ${readiness.readinessScore}% is below the 80% minimum. Address outstanding items first.`,
+    };
+  }
 
   // Check if already locked
   const { data: existing } = await supabase
@@ -523,3 +533,4 @@ export async function closePeriod(
     message: `Period ${period} has been closed and locked. Transactions in this period can no longer be modified.`,
   };
 }
+

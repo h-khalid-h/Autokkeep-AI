@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { decryptToken } from '@/lib/crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +83,13 @@ export async function POST(request: NextRequest) {
               const { removeItem } = await import('@/lib/plaid/client');
               for (const conn of bankConns) {
                 if (conn.plaid_access_token) {
-                  await removeItem(conn.plaid_access_token);
+                  let token = conn.plaid_access_token;
+                  try {
+                    token = decryptToken(token);
+                  } catch {
+                    // Token may not be encrypted or decryption key unavailable — use as-is
+                  }
+                  await removeItem(token);
                 }
               }
             }
@@ -97,11 +104,17 @@ export async function POST(request: NextRequest) {
               for (const conn of ledgerConns) {
                 try {
                   if (conn.provider === 'quickbooks' && conn.access_token) {
+                    let qboToken = conn.access_token;
+                    try {
+                      qboToken = decryptToken(qboToken);
+                    } catch {
+                      // Token may not be encrypted — use as-is
+                    }
                     // QBO token revocation
                     await fetch('https://developer.api.intuit.com/v2/oauth2/tokens/revoke', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ token: conn.access_token }),
+                      body: JSON.stringify({ token: qboToken }),
                     });
                   }
                   // Xero tokens auto-expire in 30 min; no revocation endpoint needed
