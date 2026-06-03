@@ -6,6 +6,7 @@ import { createClient as getSupabase } from '@/lib/supabase/client';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Button, Input, Modal, Toggle, Skeleton, useToast } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from './page.module.css';
 
 
@@ -172,6 +173,7 @@ export default function AccountPage() {
 
   if (loading) {
     return (
+      <ErrorBoundary componentName="Account">
       <AppShell>
         <div className={styles.loadingPage}>
           <div className={styles.loadingCenter}>
@@ -180,11 +182,13 @@ export default function AccountPage() {
           </div>
         </div>
       </AppShell>
+      </ErrorBoundary>
     );
   }
 
   if (!user) {
     return (
+      <ErrorBoundary componentName="Account">
       <AppShell>
         <div className={styles.errorPage}>
           <div className={styles.errorCenter}>
@@ -199,10 +203,12 @@ export default function AccountPage() {
           </div>
         </div>
       </AppShell>
+      </ErrorBoundary>
     );
   }
 
   return (
+    <ErrorBoundary componentName="Account">
     <AppShell>
       <div className={styles.page}>
         <h1 className={styles.pageTitle}>Account Settings</h1>
@@ -370,5 +376,6 @@ export default function AccountPage() {
         />
       </Modal>
     </AppShell>
+    </ErrorBoundary>
   );
 }

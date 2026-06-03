@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Tabs } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from './page.module.css';
 
 import type { OrgData, EntityData, TeamMemberData, SubscriptionData, ConnectionStatus } from './types';
@@ -184,6 +185,7 @@ export default function SettingsPage() {
   }, [fetchData]);
 
   return (
+    <ErrorBoundary componentName="Settings">
     <AppShell>
       <div className={styles.page}>
         <h1 className={styles.pageTitle}>
@@ -249,5 +251,6 @@ export default function SettingsPage() {
         </Tabs>
       </div>
     </AppShell>
+    </ErrorBoundary>
   );
 }

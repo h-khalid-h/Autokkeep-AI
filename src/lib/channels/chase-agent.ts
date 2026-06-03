@@ -610,7 +610,7 @@ export async function runReceiptChase(
           if (cardHolder === 'Unknown') {
             await supabase.from('receipt_requests').insert({
               transaction_id: tx.id,
-              channel_type: 'slack', // placeholder — no channel available
+              channel_type: 'none', // no channel available for unknown cardholder
               status: 'unresolved',
               sent_at: new Date().toISOString(),
               escalation_level: escalationLevel,
