@@ -62,17 +62,22 @@ const APPROXIMATE_USD_RATES: Record<string, number> = {
   'DKK': 6.87,
 };
 
-function checkRateStaleness(): boolean {
-  const asOf = new Date(RATES_AS_OF);
-  const ageDays = (Date.now() - asOf.getTime()) / (1000 * 60 * 60 * 24);
-  if (ageDays > RATES_MAX_AGE_DAYS) {
-    console.error(
-      `[FxService] WARNING: Fallback FX rates are ${Math.round(ageDays)} days old (as of ${RATES_AS_OF}). ` +
-      'Financial amounts may be inaccurate. Connect an FX rate API or update APPROXIMATE_USD_RATES.',
+export class StaleRatesError extends Error {
+  constructor(public readonly ageDays: number) {
+    super(
+      `FX rates are ${ageDays} days old (max: ${RATES_MAX_AGE_DAYS}). ` +
+      `Currency conversion is disabled until rates are updated.`,
     );
-    return true;
+    this.name = 'StaleRatesError';
   }
-  return false;
+}
+
+function checkRateStaleness(): void {
+  const asOf = new Date(RATES_AS_OF);
+  const ageDays = Math.round((Date.now() - asOf.getTime()) / (1000 * 60 * 60 * 24));
+  if (ageDays > RATES_MAX_AGE_DAYS) {
+    throw new StaleRatesError(ageDays);
+  }
 }
 
 // ─── Core Functions ─────────────────────────────────────────────────────────
@@ -103,7 +108,7 @@ export function getExchangeRate(
   // Cross rate via USD
   const rate = toRate / fromRate;
 
-  const isStale = checkRateStaleness();
+  checkRateStaleness();
 
   return {
     from: fromCurrency.toUpperCase(),
@@ -111,8 +116,7 @@ export function getExchangeRate(
     rate: Math.round(rate * 1_000_000) / 1_000_000,
     date: RATES_AS_OF,
     source: 'estimated',
-    ...(isStale ? { stale: true } : {}),
-  } as ExchangeRate;
+  };
 }
 
 /**
@@ -162,11 +166,23 @@ export async function applyFxConversion(
 ): Promise<FxConversionResult | null> {
   if (transactionCurrency === entityBaseCurrency) return null;
 
-  const conversion = convertAmount(
-    transactionAmount,
-    transactionCurrency,
-    entityBaseCurrency,
-  );
+  let conversion: FxConversionResult | null;
+  try {
+    conversion = convertAmount(
+      transactionAmount,
+      transactionCurrency,
+      entityBaseCurrency,
+    );
+  } catch (error) {
+    if (error instanceof StaleRatesError) {
+      console.error(
+        `[FxService] Stale rates — skipping conversion for tx ${transactionId}: ${error.message}`,
+      );
+      // Leave base_amount null; caller should flag for review
+      return null;
+    }
+    throw error; // Re-throw unexpected errors
+  }
 
   if (!conversion) {
     console.error(

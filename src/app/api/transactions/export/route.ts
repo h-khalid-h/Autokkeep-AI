@@ -76,10 +76,18 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = transactions || [];
+    const isTruncated = rows.length === 10000;
+    const today = new Date().toISOString().slice(0, 10);
 
     // JSON format
     if (format === 'json') {
-      return NextResponse.json(rows);
+      const headers: HeadersInit = {
+        'Content-Disposition': `attachment; filename=autokkeep-transactions-${today}.json`,
+      };
+      if (isTruncated) {
+        headers['X-Truncated'] = 'true';
+      }
+      return NextResponse.json(rows, { headers });
     }
 
     // CSV format
@@ -111,14 +119,18 @@ export async function GET(request: NextRequest) {
     });
 
     const csv = [csvHeader, ...csvRows].join('\n');
-    const today = new Date().toISOString().slice(0, 10);
+
+    const csvHeaders: HeadersInit = {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename=autokkeep-transactions-${today}.csv`,
+    };
+    if (isTruncated) {
+      csvHeaders['X-Truncated'] = 'true';
+    }
 
     return new NextResponse(csv, {
       status: 200,
-      headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename=autokkeep-transactions-${today}.csv`,
-      },
+      headers: csvHeaders,
     });
   } catch (error) {
     console.error('[Export] Error:', error);

@@ -30,6 +30,17 @@ const nextConfig: NextConfig = {
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(self)' },
         { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+        {
+          key: 'Content-Security-Policy',
+          value: [
+            "default-src 'none'",
+            "frame-ancestors 'none'",
+            "base-uri 'none'",
+            "form-action 'none'",
+            "object-src 'none'",
+            'upgrade-insecure-requests',
+          ].join('; '),
+        },
       ],
     },
     {
@@ -54,6 +65,10 @@ const nextConfig: NextConfig = {
             "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.host.datac.com wss://*.host.datac.com https://cdn.plaid.com https://api.openai.com https://static.cloudflareinsights.com https://*.ingest.sentry.io",
             "frame-src 'self' https://cdn.plaid.com https://checkout.stripe.com",
             "frame-ancestors 'none'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            'upgrade-insecure-requests',
           ].join('; '),
         },
       ],

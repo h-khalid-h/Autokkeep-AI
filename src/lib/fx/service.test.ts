@@ -1,10 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getExchangeRate,
   convertAmount,
   getEffectiveAmount,
   calculateUnrealizedFxGainLoss,
+  StaleRatesError,
 } from './service';
+
+// RATES_AS_OF is '2025-01-15'. Mock Date.now() to be within the 90-day window
+// so tests that call getExchangeRate / convertAmount don't throw StaleRatesError.
+const FRESH_DATE = new Date('2025-02-01T00:00:00Z').getTime();
+// A date well beyond the 90-day window for staleness tests
+const STALE_DATE = new Date('2026-06-01T00:00:00Z').getTime();
+
+beforeEach(() => {
+  vi.spyOn(Date, 'now').mockReturnValue(FRESH_DATE);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('getExchangeRate', () => {
   it('returns null for same currency', () => {
@@ -46,6 +61,12 @@ describe('getExchangeRate', () => {
     // Cross rate should be approximately inverse
     const product = usdToEur!.rate * eurToUsd!.rate;
     expect(product).toBeCloseTo(1.0, 2);
+  });
+
+  it('throws StaleRatesError when rates exceed max age', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(STALE_DATE);
+    expect(() => getExchangeRate('USD', 'EUR')).toThrow(StaleRatesError);
+    expect(() => getExchangeRate('USD', 'EUR')).toThrow(/Currency conversion is disabled/);
   });
 });
 
@@ -91,6 +112,14 @@ describe('convertAmount', () => {
     expect(result!.exchangeRate).toBe(positiveResult!.exchangeRate);
     // Absolute values should match
     expect(Math.abs(result!.baseAmount)).toBeCloseTo(Math.abs(positiveResult!.baseAmount), 2);
+  });
+
+  it('throws StaleRatesError when rates are stale', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(STALE_DATE);
+    // Same-currency bypasses rate lookup, so should NOT throw
+    expect(convertAmount(100, 'USD', 'USD')).not.toBeNull();
+    // Cross-currency should throw
+    expect(() => convertAmount(100, 'USD', 'EUR')).toThrow(StaleRatesError);
   });
 });
 
