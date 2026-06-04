@@ -14,9 +14,9 @@ import { createHash } from 'crypto';
 const PII_PATTERNS = {
   // Credit card numbers (13-19 digits, with optional spaces/dashes)
   creditCard: /\b(?:\d[ -]*?){13,19}\b/g,
-  // SSN: exactly 123-45-6789 or 123 45 6789 or 123456789 (9 digits)
-  // Word boundaries prevent matching partial digit sequences inside longer numbers
-  ssn: /\b\d{3}-\d{2}-\d{4}\b|\b\d{3}\s\d{2}\s\d{4}\b|\b\d{9}\b/g,
+  // SSN: exactly 123-45-6789 or 123 45 6789 (structured formats only)
+  // Bare 9-digit match removed to avoid false positives on reference numbers, ZIP+4, etc.
+  ssn: /\b\d{3}-\d{2}-\d{4}\b|\b\d{3}\s\d{2}\s\d{4}\b/g,
   // Phone numbers (US/CA format, at least 10 digits)
   // Requires area code + 7 digits; word boundaries prevent matching invoice/ref numbers
   phone: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g,

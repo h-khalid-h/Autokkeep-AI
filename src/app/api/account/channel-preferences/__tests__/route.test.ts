@@ -26,6 +26,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createServerClient: vi.fn().mockResolvedValue(mockSupabase),
 }));
 
+// Mock getApiAuthContext for PUT handler (F8 IDOR fix)
+const mockApiAuth = vi.fn();
+vi.mock('@/lib/api-auth', () => ({
+  getApiAuthContext: (...args: unknown[]) => mockApiAuth(...args),
+}));
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function createGetRequest(): NextRequest {
@@ -55,6 +61,17 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown; count
   chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
 
   return chain;
+}
+
+function setupApiAuth(entityIds: string[] = ['entity-1', 'entity-2']) {
+  mockApiAuth.mockResolvedValue({
+    user: mockUser,
+    db: { from: mockFrom },
+    orgId: 'org-1',
+    role: 'owner',
+    entityIds,
+    error: null,
+  });
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────────
@@ -93,6 +110,10 @@ describe('Channel Preferences API /api/account/channel-preferences', () => {
   // ── PUT ────────────────────────────────────────────────────────────────────
 
   describe('PUT', () => {
+    beforeEach(() => {
+      setupApiAuth(['entity-1', 'entity-2']);
+    });
+
     it('should upsert a channel preference for an entity', async () => {
       const savedRow = {
         entity_id: 'entity-1',
@@ -122,6 +143,7 @@ describe('Channel Preferences API /api/account/channel-preferences', () => {
 
       // Test valid channels don't return 400
       for (const channel of ['slack', 'sms', 'whatsapp', 'email', 'teams']) {
+        setupApiAuth(['entity-1', 'entity-2']);
         const savedRow = {
           entity_id: 'entity-1',
           preferred_channel: channel,
@@ -160,6 +182,19 @@ describe('Channel Preferences API /api/account/channel-preferences', () => {
       const json = await res.json();
       expect(json.error).toBe('Validation failed');
       expect(json.details).toBeDefined();
+    });
+
+    it('should reject access to unauthorized entity (IDOR)', async () => {
+      setupApiAuth(['entity-2']); // User only has access to entity-2
+      const req = createPutRequest({
+        entityId: 'entity-1', // Trying to access entity-1
+        preferredChannel: 'slack',
+      });
+      const res = await PUT(req);
+
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toBe('Entity not found or access denied');
     });
   });
 });

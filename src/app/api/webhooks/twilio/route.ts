@@ -3,6 +3,7 @@ import { validateTwilioSignature } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit';
 
 // POST /api/webhooks/twilio — Handle Twilio status callbacks
 export async function POST(request: NextRequest) {
@@ -49,6 +50,22 @@ export async function POST(request: NextRequest) {
           .update({ status: 'failed' })
           .eq('message_id', messageSid);
       }
+
+      // Audit log the webhook event
+      await writeAuditLog({
+        supabase: db,
+        entityId: undefined,
+        actorId: 'twilio',
+        actorType: 'system',
+        action: `webhook.twilio.${messageStatus}`,
+        targetType: 'receipt_request',
+        details: {
+          message_sid: messageSid,
+          message_status: messageStatus,
+          error_code: params.ErrorCode,
+        },
+        request,
+      });
     }
 
     return new NextResponse('OK', { status: 200 });

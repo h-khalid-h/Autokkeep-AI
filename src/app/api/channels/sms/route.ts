@@ -131,6 +131,8 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.transaction_id)
           .single();
 
+        if (!tx?.entity_id) break;
+
         await db
           .from('transactions')
           .update({
@@ -138,7 +140,8 @@ export async function POST(request: NextRequest) {
             category_human: tx?.category_ai || 'uncategorized',
             updated_at: new Date().toISOString(),
           })
-          .eq('id', receiptRequest.transaction_id);
+          .eq('id', receiptRequest.transaction_id)
+          .eq('entity_id', tx.entity_id);
 
         await db
           .from('receipt_requests')
@@ -175,6 +178,8 @@ export async function POST(request: NextRequest) {
           .eq('id', receiptRequest.transaction_id)
           .single();
 
+        if (!tx?.entity_id) break;
+
         await db
           .from('transactions')
           .update({
@@ -182,7 +187,8 @@ export async function POST(request: NextRequest) {
             tags: ['personal', 'excluded'],
             updated_at: new Date().toISOString(),
           })
-          .eq('id', receiptRequest.transaction_id);
+          .eq('id', receiptRequest.transaction_id)
+          .eq('entity_id', tx.entity_id);
 
         await db
           .from('receipt_requests')
@@ -235,6 +241,13 @@ export async function POST(request: NextRequest) {
             .eq('status', 'sent')
             .neq('id', receiptRequest.id);
 
+          // Fetch entity_id for entity-scoped update
+          const { data: receiptTx } = await db
+            .from('transactions')
+            .select('entity_id')
+            .eq('id', receiptRequest.transaction_id)
+            .single();
+
           await db
             .from('transactions')
             .update({
@@ -242,14 +255,10 @@ export async function POST(request: NextRequest) {
               document_url: userResponse.mediaUrls[0],
               updated_at: new Date().toISOString(),
             })
-            .eq('id', receiptRequest.transaction_id);
-
-          // Audit log for receipt upload
-          const { data: receiptTx } = await db
-            .from('transactions')
-            .select('entity_id')
             .eq('id', receiptRequest.transaction_id)
-            .single();
+            .eq('entity_id', receiptTx?.entity_id ?? '');
+
+          // Audit log for receipt upload (reuses receiptTx from above)
 
           if (receiptTx) {
             await writeAuditLog({

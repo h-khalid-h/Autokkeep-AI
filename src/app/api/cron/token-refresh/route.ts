@@ -14,6 +14,7 @@ import {
   type TokenRefreshResult,
 } from '@/lib/ledger/token-refresh';
 import { writeAuditLog } from '@/lib/audit';
+import { encryptToken } from '@/lib/crypto';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -72,8 +73,8 @@ export async function GET(request: NextRequest) {
         await db
           .from('ledger_connections')
           .update({
-            access_token: tokenResult.accessToken,
-            refresh_token: tokenResult.refreshToken,
+            access_token: encryptToken(tokenResult.accessToken),
+            refresh_token: encryptToken(tokenResult.refreshToken),
             token_expires_at: computeTokenExpiresAt(tokenResult.expiresIn),
           })
           .eq('id', connection.id);

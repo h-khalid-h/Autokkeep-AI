@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
+import { captureException } from '@/lib/sentry';
 import { getGLCode } from '@/lib/entity-settings';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -232,6 +233,7 @@ export async function GET(request: NextRequest) {
       errors,
     });
   } catch (error: unknown) {
+    captureException(error, { tags: { route: 'cron/suspense-timeout' } });
     console.error('[Suspense Timeout] Error:', error);
     return NextResponse.json(
       { error: 'Suspense timeout cron failed' },

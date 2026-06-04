@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { db } = ctx;
+    const { user, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     // Run close checks
-    const report = await runMonthEndClose(entityId, year, month, db);
+    const report = await runMonthEndClose(entityId, year, month, db, user.id);
 
     return NextResponse.json({
       report,

@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { ingestTransactions } from '@/lib/plaid/ingest';
+import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -53,19 +53,36 @@ export async function GET(request: NextRequest) {
     let failedCount = 0;
     const errors: Array<{ connectionId: string; error: string }> = [];
 
-    for (const connection of connections) {
-      try {
-        await ingestTransactions(db, connection);
-        syncedCount++;
-      } catch (err: unknown) {
-        failedCount++;
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error';
-        errors.push({ connectionId: connection.id, error: errorMessage });
-        console.error(
-          `[Cron Plaid Sync] Failed to sync connection ${connection.id}:`,
-          err
-        );
+    // Process connections concurrently (max 5 at a time) to avoid timeout
+    const CONCURRENCY_LIMIT = 5;
+    const results: Array<{ connectionId: string; success: boolean; error?: string }> = [];
+
+    for (let i = 0; i < connections.length; i += CONCURRENCY_LIMIT) {
+      const batch = connections.slice(i, i + CONCURRENCY_LIMIT);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (connection: BankConnection) => {
+          await ingestTransactions(db, connection);
+          return connection.id;
+        })
+      );
+
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        const connId = batch[j].id;
+        if (result.status === 'fulfilled') {
+          syncedCount++;
+          results.push({ connectionId: connId, success: true });
+        } else {
+          failedCount++;
+          const errorMessage =
+            result.reason instanceof Error ? result.reason.message : 'Unknown error';
+          errors.push({ connectionId: connId, error: errorMessage });
+          results.push({ connectionId: connId, success: false, error: errorMessage });
+          console.error(
+            `[Cron Plaid Sync] Failed to sync connection ${connId}:`,
+            result.reason
+          );
+        }
       }
     }
 

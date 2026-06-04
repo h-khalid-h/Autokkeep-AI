@@ -172,6 +172,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Period-lock check ──────────────────────────────────────────────
+    const txDate = new Date(date);
+    const txMonth = txDate.getMonth() + 1; // 1-indexed
+    const txYear = txDate.getFullYear();
+
+    const { data: period } = await db
+      .from('accounting_periods')
+      .select('is_locked')
+      .eq('entity_id', entityId)
+      .eq('year', txYear)
+      .eq('month', txMonth)
+      .single();
+
+    if (period?.is_locked) {
+      return NextResponse.json(
+        { error: 'Cannot create transaction in a locked accounting period' },
+        { status: 409 }
+      );
+    }
+
     // Create manual transaction
     const retentionDate = new Date();
     retentionDate.setFullYear(retentionDate.getFullYear() + 7);

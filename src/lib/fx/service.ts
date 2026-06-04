@@ -34,6 +34,10 @@ export interface FxConversionResult {
 // ─── Static Rate Table (Fallback) ───────────────────────────────────────────
 // In production, these would come from an FX rate API (e.g., Open Exchange Rates).
 // This is a conservative fallback for when the API is unavailable.
+// IMPORTANT: Update RATES_AS_OF whenever rates are refreshed.
+
+const RATES_AS_OF = '2025-01-15'; // Date these fallback rates were last updated
+const RATES_MAX_AGE_DAYS = 90; // Warn if rates are older than this
 
 const APPROXIMATE_USD_RATES: Record<string, number> = {
   'USD': 1.0,
@@ -57,6 +61,19 @@ const APPROXIMATE_USD_RATES: Record<string, number> = {
   'NOK': 10.62,
   'DKK': 6.87,
 };
+
+function checkRateStaleness(): boolean {
+  const asOf = new Date(RATES_AS_OF);
+  const ageDays = (Date.now() - asOf.getTime()) / (1000 * 60 * 60 * 24);
+  if (ageDays > RATES_MAX_AGE_DAYS) {
+    console.error(
+      `[FxService] WARNING: Fallback FX rates are ${Math.round(ageDays)} days old (as of ${RATES_AS_OF}). ` +
+      'Financial amounts may be inaccurate. Connect an FX rate API or update APPROXIMATE_USD_RATES.',
+    );
+    return true;
+  }
+  return false;
+}
 
 // ─── Core Functions ─────────────────────────────────────────────────────────
 
@@ -86,13 +103,16 @@ export function getExchangeRate(
   // Cross rate via USD
   const rate = toRate / fromRate;
 
+  const isStale = checkRateStaleness();
+
   return {
     from: fromCurrency.toUpperCase(),
     to: toCurrency.toUpperCase(),
     rate: Math.round(rate * 1_000_000) / 1_000_000,
-    date: new Date().toISOString().split('T')[0],
+    date: RATES_AS_OF,
     source: 'estimated',
-  };
+    ...(isStale ? { stale: true } : {}),
+  } as ExchangeRate;
 }
 
 /**

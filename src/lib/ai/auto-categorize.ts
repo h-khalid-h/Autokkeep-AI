@@ -180,6 +180,7 @@ export async function runAutoCategorize(options?: {
               })
               .eq('id', txId)
               .eq('entity_id', entityId)
+              .eq('status', 'pending')
           );
         } else {
           // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
@@ -215,6 +216,7 @@ export async function runAutoCategorize(options?: {
               })
               .eq('id', txId)
               .eq('entity_id', entityId)
+              .eq('status', 'pending')
           );
         }
 

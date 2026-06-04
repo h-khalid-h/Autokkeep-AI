@@ -13,6 +13,8 @@ import { sendDigestEmail } from '@/lib/email/resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -134,12 +136,31 @@ export async function GET(request: NextRequest) {
       console.info('[Weekly Digest] RESEND_API_KEY not configured, skipping email delivery');
     }
 
+    // Audit log the cron run
+    const adminDb = createAdminClient() as unknown as SupabaseQueryClient;
+    await writeAuditLog({
+      supabase: adminDb,
+      entityId: undefined,
+      actorId: 'system',
+      actorType: 'system',
+      action: 'sync',
+      targetType: 'weekly_digest_cron',
+      details: {
+        totalEntities: digest.totalEntities,
+        totalItems: digest.totalItems,
+        emailsSent: emailResults.filter(r => r.success).length,
+        emailsFailed: emailResults.filter(r => !r.success).length,
+      },
+      request,
+    });
+
     return NextResponse.json({
       success: true,
       digest,
       emailResults,
     });
   } catch (error) {
+    captureException(error, { tags: { route: 'cron/weekly-digest' } });
     console.error('[Weekly Digest] Error:', error);
     return NextResponse.json(
       { error: 'Weekly digest compilation failed' },

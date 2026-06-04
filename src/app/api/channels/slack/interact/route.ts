@@ -36,6 +36,7 @@ async function validateTransactionEntity(
       .select('id')
       .eq('entity_id', tx.entity_id)
       .eq('channel_type', 'slack')
+      .eq('channel_id', slackTeamId)
       .limit(1);
 
     if (!conn || conn.length === 0) {

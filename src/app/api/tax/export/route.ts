@@ -18,10 +18,15 @@ interface TransactionRow {
 }
 
 function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  let str = value;
+  // Prevent CSV formula injection — prefix dangerous starting chars
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = "'" + str;
   }
-  return value;
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes("'")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
 export async function GET(request: NextRequest) {

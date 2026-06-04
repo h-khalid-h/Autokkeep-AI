@@ -7,9 +7,17 @@ vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@/lib/audit', () => ({
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockSignOut = vi.fn();
+const mockGetUser = vi.fn().mockResolvedValue({
+  data: { user: { id: 'user-123', email: 'test@example.com' } },
+  error: null,
+});
 const mockSupabase = {
-  auth: { signOut: mockSignOut },
+  auth: { signOut: mockSignOut, getUser: mockGetUser },
 };
 
 vi.mock('@/lib/supabase/server', () => ({

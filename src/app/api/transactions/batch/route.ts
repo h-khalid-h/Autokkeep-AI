@@ -33,6 +33,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Entity not found' }, { status: 403 });
     }
 
+    // ── Period-lock check: filter out transactions in locked periods ──
+    const { data: fetchedTxs } = await db
+      .from('transactions')
+      .select('id, date')
+      .in('id', transactionIds)
+      .eq('entity_id', entityId);
+
+    const txRows = fetchedTxs || [];
+
+    // Gather unique year-month combos from the transactions
+    const periodKeys = new Set<string>();
+    for (const tx of txRows) {
+      const d = new Date(tx.date as string);
+      periodKeys.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
+    }
+
+    // Batch-fetch locked periods for this entity
+    const lockedSet = new Set<string>();
+    if (periodKeys.size > 0) {
+      const { data: periods } = await db
+        .from('accounting_periods')
+        .select('year, month, is_locked')
+        .eq('entity_id', entityId)
+        .eq('is_locked', true);
+
+      for (const p of periods || []) {
+        lockedSet.add(`${p.year}-${p.month}`);
+      }
+    }
+
+    // Partition transactions into locked / unlocked
+    const lockedIds: string[] = [];
+    const unlockedIds: string[] = [];
+
+    for (const tx of txRows) {
+      const d = new Date(tx.date as string);
+      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+      if (lockedSet.has(key)) {
+        lockedIds.push(tx.id as string);
+      } else {
+        unlockedIds.push(tx.id as string);
+      }
+    }
+
+    if (unlockedIds.length === 0 && lockedIds.length > 0) {
+      return NextResponse.json(
+        { error: 'All selected transactions are in locked accounting periods' },
+        { status: 409 }
+      );
+    }
+
     const newStatus = action === 'approve' ? 'approved' : 'removed';
     const now = new Date().toISOString();
 
@@ -49,11 +100,11 @@ export async function POST(request: NextRequest) {
       updatePayload.confidence = 100;
     }
 
-    // Batch update all selected transactions
+    // Batch update only unlocked transactions
     const { data: updated, error: updateError } = await db
       .from('transactions')
       .update(updatePayload)
-      .in('id', transactionIds)
+      .in('id', unlockedIds)
       .eq('entity_id', entityId)
       .select('id');
 
@@ -79,12 +130,19 @@ export async function POST(request: NextRequest) {
       request,
     });
 
-    return NextResponse.json({
+    const response: Record<string, unknown> = {
       success: true,
       action,
       updated: updated?.length || 0,
       total: transactionIds.length,
-    });
+    };
+
+    if (lockedIds.length > 0) {
+      response.warning = `${lockedIds.length} transaction(s) skipped because they are in locked accounting periods`;
+      response.skipped_locked_ids = lockedIds;
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('[Batch] Error:', error);
     return NextResponse.json({ error: 'Batch operation failed' }, { status: 500 });

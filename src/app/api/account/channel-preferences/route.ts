@@ -1,9 +1,9 @@
 // GET/PUT /api/account/channel-preferences — Fetch/upsert user channel preferences
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
+import { getApiAuthContext } from '@/lib/api-auth';
 
 interface ChannelPrefRow {
   entity_id: string;
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const limited = await rateLimit(request, { max: 30, windowSeconds: 60, prefix: 'chan-prefs-get' });
     if (limited) return limited;
 
+    const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -63,18 +64,18 @@ export async function PUT(request: NextRequest) {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'chan-prefs-put' });
     if (limited) return limited;
 
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const ctx = await getApiAuthContext(request);
+    if (ctx.error) return ctx.error;
+    const { user, db, entityIds } = ctx;
 
     const parsed = await parseBody(request, schemas.channelPrefs);
     if (!parsed.success) return parsed.error;
     const { entityId, preferredChannel, channelIdentifier } = parsed.data;
 
-    const db = supabase as unknown as SupabaseQueryClient;
+    // IDOR guard: validate user has access to the requested entity
+    if (!entityIds.includes(entityId)) {
+      return NextResponse.json({ error: 'Entity not found or access denied' }, { status: 403 });
+    }
     const { data, error: upsertError } = await db
       .from('user_channel_preferences')
       .upsert(

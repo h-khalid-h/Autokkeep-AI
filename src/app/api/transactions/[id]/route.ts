@@ -113,6 +113,51 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       receiptId: _receiptId,
     } = parsed.data;
 
+    // ── Period-lock check ──────────────────────────────────────────────
+    // Check if the existing transaction date falls in a locked period
+    const existingDate = new Date(existing.date as string);
+    const existingMonth = existingDate.getMonth() + 1;
+    const existingYear = existingDate.getFullYear();
+
+    const { data: existingPeriod } = await db
+      .from('accounting_periods')
+      .select('is_locked')
+      .eq('entity_id', existing.entity_id)
+      .eq('year', existingYear)
+      .eq('month', existingMonth)
+      .single();
+
+    if (existingPeriod?.is_locked) {
+      return NextResponse.json(
+        { error: 'Cannot update transaction in a locked accounting period' },
+        { status: 409 }
+      );
+    }
+
+    // If the date is being changed, also check the new date's period
+    if ((parsed.data as Record<string, unknown>).date) {
+      const newDate = new Date((parsed.data as Record<string, unknown>).date as string);
+      const newMonth = newDate.getMonth() + 1;
+      const newYear = newDate.getFullYear();
+
+      if (newMonth !== existingMonth || newYear !== existingYear) {
+        const { data: newPeriod } = await db
+          .from('accounting_periods')
+          .select('is_locked')
+          .eq('entity_id', existing.entity_id)
+          .eq('year', newYear)
+          .eq('month', newMonth)
+          .single();
+
+        if (newPeriod?.is_locked) {
+          return NextResponse.json(
+            { error: 'Cannot move transaction into a locked accounting period' },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     // Validate GL code exists in chart of accounts for this entity
     if (glCode) {
       const { data: coaEntry } = await db

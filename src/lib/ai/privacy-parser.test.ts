@@ -19,7 +19,10 @@ describe('stripPII', () => {
 
   it('strips SSNs', () => {
     expect(stripPII('SSN: 123-45-6789')).not.toContain('123-45-6789');
-    expect(stripPII('SSN: 123456789')).not.toContain('123456789');
+    expect(stripPII('SSN: 123 45 6789')).not.toContain('123 45 6789');
+    // Bare 9-digit sequences intentionally NOT stripped to avoid false positives
+    // on transaction reference numbers, ZIP+4, etc.
+    expect(stripPII('ref 123456789')).toContain('123456789');
   });
 
   it('strips phone numbers', () => {
