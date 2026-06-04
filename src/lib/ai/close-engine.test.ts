@@ -583,9 +583,238 @@ describe('runMonthEndClose', () => {
 // ============================================
 // closePeriod
 // ============================================
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * Creates a Supabase mock specifically for closePeriod tests.
+ *
+ * closePeriod internally calls runMonthEndClose (which queries transactions,
+ * bank_connections, bank_accounts, journal_entries, journal_lines,
+ * approval_requests, entities) and then queries accounting_periods.
+ *
+ * To control the readiness score:
+ * - highReadiness = true  → single approved tx w/ receipt → score ≥ 80
+ * - highReadiness = false → many failing txns            → score < 80
+ *
+ * The accounting_periods behaviour is controlled through opts.
+ */
+function createMockSupabaseForClosePeriod(opts: {
+  highReadiness?: boolean;
+  existingPeriod?: { id: string; is_locked: boolean } | null;
+  updateResult?: { data: any[] | null; error: { message: string } | null };
+  insertResult?: { error: { message: string } | null };
+} = {}) {
+  const {
+    highReadiness = true,
+    existingPeriod = null,
+    updateResult = { data: [{ id: 'period-1' }], error: null },
+    insertResult = { error: null },
+  } = opts;
+
+  // Track from('transactions') call count for the same sequencing as createMockSupabase
+  let txFromCallCount = 0;
+  // Track from('accounting_periods') call count (1st = maybeSingle, 2nd = update/insert)
+  let apFromCallCount = 0;
+
+  // Decide transactions based on readiness target
+  const goodTx: MockTransaction = {
+    id: 'tx-good',
+    amount: -100,
+    date: '2025-06-15',
+    merchant_name: 'Acme Corp',
+    category_ai: 'Software',
+    category_human: null,
+    status: 'approved',
+    document_status: 'found',
+  };
+
+  const badTxs: MockTransaction[] = Array.from({ length: 20 }, (_, i) => ({
+    id: `tx-bad-${i}`,
+    amount: -100,
+    date: '2025-06-15',
+    merchant_name: 'Unknown',
+    category_ai: null,
+    category_human: null,
+    status: 'human_review',
+    document_status: 'missing',
+  }));
+
+  const transactions = highReadiness ? [goodTx] : badTxs;
+
+  const mock: any = {
+    from: vi.fn((table: string) => {
+      const chain: any = {};
+      chain.select = vi.fn().mockReturnValue(chain);
+      chain.eq = vi.fn().mockReturnValue(chain);
+      chain.neq = vi.fn().mockReturnValue(chain);
+      chain.gte = vi.fn().mockReturnValue(chain);
+      chain.lt = vi.fn().mockReturnValue(chain);
+      chain.in = vi.fn().mockReturnValue(chain);
+      chain.order = vi.fn().mockReturnValue(chain);
+      chain.limit = vi.fn().mockReturnValue(chain);
+      chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.update = vi.fn().mockReturnValue(chain);
+      chain.insert = vi.fn().mockResolvedValue({ error: null });
+
+      if (table === 'transactions') {
+        txFromCallCount++;
+        const currentCallNum = txFromCallCount;
+
+        chain.order = vi.fn().mockImplementation(() => {
+          chain.then = (resolve: any) =>
+            resolve({ data: transactions, error: null });
+          return chain;
+        });
+
+        if (currentCallNum === 1) {
+          chain.then = (resolve: any) =>
+            resolve({ data: [], error: null });
+        } else if (currentCallNum === 2) {
+          chain.then = (resolve: any) =>
+            resolve({ data: [], error: null });
+        } else {
+          chain.then = (resolve: any) =>
+            resolve({ data: transactions, error: null });
+        }
+      } else if (table === 'bank_connections') {
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'bank_accounts') {
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'journal_entries') {
+        chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'journal_lines') {
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'approval_requests') {
+        // SOD check — return empty so it passes
+        chain.then = (resolve: any) =>
+          resolve({ data: [], error: null });
+      } else if (table === 'entities') {
+        // Accounting basis — return cash
+        chain.single = vi.fn().mockResolvedValue({
+          data: { accounting_basis: 'cash' },
+          error: null,
+        });
+      } else if (table === 'accounting_periods') {
+        apFromCallCount++;
+        const apCall = apFromCallCount;
+
+        if (apCall === 1) {
+          // First call: the maybeSingle lookup
+          chain.maybeSingle = vi.fn().mockResolvedValue({
+            data: existingPeriod,
+            error: null,
+          });
+        } else {
+          // Second call: update or insert
+          chain.update = vi.fn().mockImplementation(() => {
+            // Return a chain that ends with .select() resolving to updateResult
+            const updateChain: any = {};
+            updateChain.eq = vi.fn().mockReturnValue(updateChain);
+            updateChain.select = vi.fn().mockResolvedValue(updateResult);
+            return updateChain;
+          });
+          chain.insert = vi.fn().mockResolvedValue(insertResult);
+        }
+      }
+
+      return chain;
+    }),
+  };
+
+  return mock;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 describe('closePeriod', () => {
   it('exports closePeriod function', () => {
     expect(typeof closePeriod).toBe('function');
   });
-});
 
+  it('rejects when readiness score is below 80', async () => {
+    const supabase = createMockSupabaseForClosePeriod({ highReadiness: false });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('readiness score');
+    expect(result.error).toContain('below the 80% minimum');
+  });
+
+  it('returns error when period is already locked', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: { id: 'period-1', is_locked: true },
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('already closed');
+  });
+
+  it('successfully locks an existing unlocked period', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: { id: 'period-1', is_locked: false },
+      updateResult: { data: [{ id: 'period-1' }], error: null },
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('closed and locked');
+  });
+
+  it('returns concurrent close error when optimistic lock fails', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: { id: 'period-1', is_locked: false },
+      updateResult: { data: [], error: null }, // 0 rows updated
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('closed by another user');
+  });
+
+  it('successfully inserts a new locked period', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: null, // no existing row
+      insertResult: { error: null },
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('closed and locked');
+  });
+
+  it('returns error when insert fails', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: null,
+      insertResult: { error: { message: 'unique_violation' } },
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Failed to close period');
+    expect(result.message).toContain('unique_violation');
+  });
+
+  it('returns error when update fails', async () => {
+    const supabase = createMockSupabaseForClosePeriod({
+      highReadiness: true,
+      existingPeriod: { id: 'period-1', is_locked: false },
+      updateResult: { data: null, error: { message: 'db_error' } },
+    });
+    const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Failed to close period');
+    expect(result.message).toContain('db_error');
+  });
+});

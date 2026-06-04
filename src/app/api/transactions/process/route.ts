@@ -11,7 +11,7 @@ import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
-import { checkApprovalRequired, requestApproval } from '@/lib/approval';
+import { requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
 import { resolveOrCreateVendor } from '@/lib/vendors/service';
 import { applyFxConversion } from '@/lib/fx/service';
@@ -302,6 +302,13 @@ export async function POST(request: NextRequest) {
         .limit(5000);
       const recentTxns = (recentTransactions || []) as Array<{ id: string; merchant_name: string | null; amount: number; date: string }>;
 
+      // Pre-fetch approval thresholds for this entity (avoids N+1)
+      const { data: approvalThresholds } = await db
+        .from('approval_thresholds')
+        .select('id, required_role, dual_approval, min_amount')
+        .eq('entity_id', entityId)
+        .order('min_amount', { ascending: false });
+
       for (const [txId, result] of results) {
         // ── Composite Confidence Gate (PRD §5.1) ──
         const hasDocument = docAnchorSet.has(txId);
@@ -328,20 +335,19 @@ export async function POST(request: NextRequest) {
         let approvalOverridden = false;
         if (triage.decision === 'auto_commit' && result.glCode) {
           try {
-            const approvalCheck = await checkApprovalRequired(
-              db,
-              entityId,
-              typeof txAmount === 'number' ? Math.abs(txAmount) : 0,
+            const absAmount = typeof txAmount === 'number' ? Math.abs(txAmount) : 0;
+            const matchingThreshold = (approvalThresholds || []).find(
+              (t: { min_amount: number }) => t.min_amount <= absAmount
             );
-            if (approvalCheck?.required) {
+            if (matchingThreshold) {
               targetStatus = 'human_review';
               approvalOverridden = true;
               await requestApproval(
                 db,
                 entityId,
                 txId,
-                approvalCheck.role,
-                approvalCheck.thresholdId,
+                (matchingThreshold as { required_role: string }).required_role,
+                (matchingThreshold as { id: string }).id,
               );
             }
           } catch (approvalError) {
