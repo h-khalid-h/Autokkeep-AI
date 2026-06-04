@@ -258,6 +258,20 @@ export async function analyzeTaxReadiness(
   });
 
   // Generate recommendations
+  // Fetch accounting basis for basis-aware recommendations
+  let accountingBasis = 'cash';
+  try {
+    const { data: entity } = await db
+      .from('entities')
+      .select('accounting_basis')
+      .eq('id', entityId)
+      .single();
+
+    accountingBasis = (entity?.accounting_basis as string) ?? 'cash';
+  } catch {
+    // Non-fatal — default to cash
+  }
+
   const recommendations = generateRecommendations({
     missingReceipts,
     deductionsByCategory,
@@ -266,6 +280,7 @@ export async function analyzeTaxReadiness(
     totalDeductible,
     expenses,
     totalWithReceipts,
+    accountingBasis,
   });
 
   return {
@@ -344,6 +359,7 @@ function generateRecommendations(data: {
   totalDeductible: number;
   expenses: TransactionRow[];
   totalWithReceipts: number;
+  accountingBasis: string;
 }): string[] {
   const recs: string[] = [];
 
@@ -417,6 +433,17 @@ function generateRecommendations(data: {
   if (receiptRate < 80) {
     recs.push(
       `Receipt compliance is at ${receiptRate}%. Target 95%+ for full audit readiness.`
+    );
+  }
+
+  // Accounting basis recommendation
+  if (data.accountingBasis === 'accrual') {
+    recs.push(
+      'This entity uses accrual basis accounting. Ensure all accrued expenses and revenue are recognized in the correct period for accurate tax reporting.'
+    );
+  } else {
+    recs.push(
+      'This entity uses cash basis accounting. Deductions are recognized when paid — consider timing large expenses before year-end to maximize current-year deductions.'
     );
   }
 

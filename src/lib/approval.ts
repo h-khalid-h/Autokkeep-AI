@@ -8,6 +8,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
+import { recordVendorPayment } from '@/lib/vendors/service';
 
 // ── Role Hierarchy ──────────────────────────────────────────────────────────────
 
@@ -309,6 +310,31 @@ export async function processApproval(
     })
     .eq('id', req.transaction_id)
     .eq('entity_id', req.entity_id);
+
+  // ── Vendor YTD payment tracking (1099-NEC compliance) ─────────────
+  // When a transaction is approved, update the vendor's YTD payment
+  // accumulators so 1099-NEC thresholds can be tracked accurately.
+  if (decision === 'approved') {
+    try {
+      const { data: txnForVendor } = await db
+        .from('transactions')
+        .select('vendor_id, amount, date')
+        .eq('id', req.transaction_id)
+        .single();
+
+      if (txnForVendor?.vendor_id) {
+        await recordVendorPayment(
+          db,
+          txnForVendor.vendor_id,
+          txnForVendor.amount,
+          txnForVendor.date,
+        );
+      }
+    } catch (vendorErr) {
+      // Non-fatal: vendor payment tracking failure should not block approval
+      console.error('[Approval] Vendor payment tracking failed:', vendorErr);
+    }
+  }
 
   // Audit log
   await writeAuditLog({

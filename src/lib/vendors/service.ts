@@ -153,13 +153,24 @@ export async function recordVendorPayment(
   });
 
   if (rpcError) {
-    // Fallback: manual update (less atomic — uses raw value, not increment)
+    // Fallback: manual increment (less atomic than the RPC but still correct)
     console.error('[VendorService] RPC failed, using manual update:', rpcError.message);
+
+    // Fetch current values so we can increment rather than overwrite
+    const { data: current } = await db
+      .from('vendors')
+      .select('ytd_payments, ytd_payment_count')
+      .eq('id', vendorId)
+      .single();
+
+    const currentYtd = Number(current?.ytd_payments ?? 0);
+    const currentCount = Number(current?.ytd_payment_count ?? 0);
+
     await db
       .from('vendors')
       .update({
-        ytd_payments: absAmount, // Note: overwrites, does not increment
-        ytd_payment_count: 1,
+        ytd_payments: currentYtd + absAmount,
+        ytd_payment_count: currentCount + 1,
         last_payment_date: paymentDate,
         updated_at: new Date().toISOString(),
       })

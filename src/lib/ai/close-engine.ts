@@ -653,6 +653,30 @@ export async function runMonthEndClose(
     checks.push(sodCheck);
   }
 
+  // Accounting Basis check — informational only
+  // Surfaces the entity's GAAP accounting basis so it's visible in the close report
+  try {
+    const { data: entity } = await supabase
+      .from('entities')
+      .select('accounting_basis')
+      .eq('id', entityId)
+      .single();
+
+    const basis = (entity?.accounting_basis as string) ?? 'cash';
+    checks.push({
+      name: 'Accounting Basis',
+      status: 'pass',
+      description: `Entity uses ${basis} basis accounting.`,
+      details: [
+        basis === 'accrual'
+          ? 'Revenue and expenses are recognized when earned/incurred, regardless of cash movement.'
+          : 'Revenue and expenses are recognized when cash is received/paid.',
+      ],
+    });
+  } catch {
+    // Non-fatal — basis check is informational
+  }
+
   const readinessScore = calculateReadinessScore(checks);
   const summary = generateSummary(checks, readinessScore);
   const isReady = readinessScore >= 80;

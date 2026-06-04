@@ -6,6 +6,10 @@ vi.mock('@/lib/audit', () => ({
   writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/vendors/service', () => ({
+  recordVendorPayment: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Fluent chain builder for Supabase query mocks
 function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -43,6 +47,7 @@ import {
   getPendingApprovals,
 } from './approval';
 import { writeAuditLog } from '@/lib/audit';
+import { recordVendorPayment } from '@/lib/vendors/service';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 const db = mockDb as unknown as SupabaseQueryClient;
@@ -289,6 +294,113 @@ describe('processApproval', () => {
     await expect(
       processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']),
     ).rejects.toThrow('Approval already processed');
+  });
+
+  it('calls recordVendorPayment when approved transaction has vendor_id', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    const updateChain = createChainMock({
+      data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
+      error: null,
+    });
+    const txUpdateChain = createChainMock({ data: null, error: null });
+    const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
+    const thresholdChain = createChainMock({ data: { requires_dual_approval: false }, error: null });
+    // Vendor lookup — transaction has a vendor_id
+    const txVendorChain = createChainMock({
+      data: { vendor_id: 'vendor-1', amount: 500, date: '2026-01-15' },
+      error: null,
+    });
+
+    let approvalReqCallCount = 0;
+    let txCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
+      }
+      if (table === 'transactions') {
+        txCallCount++;
+        // 1st: SOD check, 2nd: status update, 3rd: vendor lookup
+        if (txCallCount <= 1) return txSodChain;
+        if (txCallCount <= 2) return txUpdateChain;
+        return txVendorChain;
+      }
+      if (table === 'approval_thresholds') return thresholdChain;
+      if (table === 'audit_log') return createChainMock({ data: null, error: null });
+      return createChainMock({ data: null, error: null });
+    });
+
+    await processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']);
+
+    expect(recordVendorPayment).toHaveBeenCalledWith(
+      db,
+      'vendor-1',
+      500,
+      '2026-01-15',
+    );
+  });
+
+  it('does NOT call recordVendorPayment when vendor_id is null', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    const updateChain = createChainMock({
+      data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
+      error: null,
+    });
+    const txUpdateChain = createChainMock({ data: null, error: null });
+    const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
+    const thresholdChain = createChainMock({ data: { requires_dual_approval: false }, error: null });
+    // No vendor_id on this transaction
+    const txVendorChain = createChainMock({
+      data: { vendor_id: null, amount: 100, date: '2026-01-15' },
+      error: null,
+    });
+
+    let approvalReqCallCount = 0;
+    let txCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
+      }
+      if (table === 'transactions') {
+        txCallCount++;
+        if (txCallCount <= 1) return txSodChain;
+        if (txCallCount <= 2) return txUpdateChain;
+        return txVendorChain;
+      }
+      if (table === 'approval_thresholds') return thresholdChain;
+      if (table === 'audit_log') return createChainMock({ data: null, error: null });
+      return createChainMock({ data: null, error: null });
+    });
+
+    await processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']);
+
+    expect(recordVendorPayment).not.toHaveBeenCalled();
+  });
+
+  it('does NOT call recordVendorPayment on rejection', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    const updateChain = createChainMock({
+      data: [{ ...pendingApproval, status: 'rejected', approver_user_id: 'user-1' }],
+      error: null,
+    });
+    const txUpdateChain = createChainMock({ data: null, error: null });
+
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        const calls = mockDb.from.mock.calls.filter(
+          (c: string[]) => c[0] === 'approval_requests',
+        ).length;
+        return calls <= 1 ? fetchChain : updateChain;
+      }
+      if (table === 'transactions') return txUpdateChain;
+      if (table === 'audit_log') return createChainMock({ data: null, error: null });
+      return createChainMock({ data: null, error: null });
+    });
+
+    await processApproval(db, 'ar-1', 'user-1', 'owner', 'rejected', ['entity-1']);
+
+    expect(recordVendorPayment).not.toHaveBeenCalled();
   });
 });
 

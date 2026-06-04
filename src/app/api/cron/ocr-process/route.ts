@@ -113,12 +113,34 @@ export async function POST(request: NextRequest) {
 
             if (match) {
               // ── Matched: update transaction and OCR queue ────────────────
+
+              // Build transaction update — propagate businessPurpose to
+              // description for IRS 4-element substantiation compliance
+              const txUpdate: Record<string, unknown> = {
+                document_status: 'found',
+                updated_at: new Date().toISOString(),
+              };
+
+              const purpose = (extractedData as unknown as Record<string, unknown>)?.businessPurpose;
+              if (purpose && typeof purpose === 'string') {
+                // Fetch current description to append rather than overwrite
+                const { data: currentTx } = await db
+                  .from('transactions')
+                  .select('description')
+                  .eq('id', match.transactionId)
+                  .single();
+
+                const existing = (currentTx?.description as string) ?? '';
+                if (!existing.includes(purpose)) {
+                  txUpdate.description = existing
+                    ? `${existing} | Business Purpose: ${purpose}`
+                    : `Business Purpose: ${purpose}`;
+                }
+              }
+
               await db
                 .from('transactions')
-                .update({
-                  document_status: 'found',
-                  updated_at: new Date().toISOString(),
-                })
+                .update(txUpdate)
                 .eq('id', match.transactionId);
 
               await db
