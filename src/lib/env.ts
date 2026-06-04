@@ -141,6 +141,12 @@ export function validateEnv(): Env {
     }
   }
 
+  // Runtime warning: OAuth state encryption not configured for active integrations
+  const parsed = (result.success ? result.data : process.env) as Record<string, string | undefined>;
+  if ((parsed.QBO_CLIENT_ID || parsed.XERO_CLIENT_ID) && !parsed.OAUTH_STATE_SECRET) {
+    console.warn('[Env] WARNING: OAUTH_STATE_SECRET is not set but QBO/Xero integration is configured. OAuth state will not be encrypted.');
+  }
+
   // Return raw process.env cast (we validated it)
   return process.env as unknown as Env;
 }

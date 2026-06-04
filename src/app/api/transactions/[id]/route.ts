@@ -53,6 +53,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ transaction });
   } catch (error) {
+    captureException(error);
     console.error('[Transaction Detail] Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch transaction' },
@@ -373,6 +374,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ transaction });
   } catch (error) {
+    captureException(error);
     console.error('[Transaction Update] Error:', error);
     return NextResponse.json(
       { error: 'Failed to update transaction' },
