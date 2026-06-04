@@ -123,13 +123,14 @@ function ToastItem({
 }
 
 /* ─── Provider ───────────────────────────────── */
-let idCounter = 0;
+
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
+  const idCounterRef = useRef(0);
 
   const toast = useCallback((options: ToastOptions): string => {
-    const id = `toast-${++idCounter}-${Date.now()}`;
+    const id = `toast-${++idCounterRef.current}-${Date.now()}`;
     const newToast: ToastData = { id, ...options };
     setToasts((prev) => {
       const next = [newToast, ...prev];

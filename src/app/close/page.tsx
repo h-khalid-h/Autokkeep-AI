@@ -5,7 +5,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { useEntityFetch } from '@/lib/hooks/useEntityFetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Gauge, Progress, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Badge, Button, Gauge, Progress, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -168,6 +168,7 @@ export default function ClosePage() {
     const now = new Date();
     return now.getMonth() === 0 ? 12 : now.getMonth();
   });
+  const toast = useToast();
   const [isClosing, setIsClosing] = React.useState(false);
   const [closeResult, setCloseResult] = React.useState<string | null>(null);
 
@@ -226,18 +227,22 @@ export default function ClosePage() {
 
       if (res.ok && result.success) {
         setCloseResult(result.message);
+        toast.success(result.message || 'Period closed successfully');
         // Re-fetch to update period status
         await fetchReport();
       } else {
-        setCloseError(result.error || result.message || 'Failed to close period');
+        const errorMsg = result.error || result.message || 'Failed to close period';
+        setCloseError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error('[Close] Close error:', err);
       setCloseError('Network error — could not close period');
+      toast.error('Network error — could not close period');
     } finally {
       setIsClosing(false);
     }
-  }, [selectedEntity, selectedYear, selectedMonth, data, fetchReport]);
+  }, [selectedEntity, selectedYear, selectedMonth, data, fetchReport, toast]);
 
   // ─── Year options ─────────────────────────────────────────────────────────
   const currentYear = new Date().getFullYear();

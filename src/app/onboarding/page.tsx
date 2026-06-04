@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getSupportedCurrencies } from '@/lib/currency/converter';
@@ -340,6 +340,8 @@ export default function OnboardingPage() {
   }, [currentStep]);
 
   // ── Persist state to localStorage ──────────────────────────────────────
+  const restoredRef = useRef(false);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -361,10 +363,12 @@ export default function OnboardingPage() {
     } catch (_e) {
       console.warn('[Onboarding] Failed to restore state:', _e);
     }
+    restoredRef.current = true;
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!restoredRef.current) return;
     const state: OnboardingState = {
       currentStep, entityName, currency, fiscalYearEnd,
       selectedLedger, selectedChannel, entityId, bankConnected,
@@ -803,7 +807,7 @@ export default function OnboardingPage() {
 
           {/* Error Banner */}
           {error && (
-            <div className={styles.errorBanner}>
+            <div role="alert" className={styles.errorBanner}>
               <span>⚠️</span>
               <span>{error}</span>
               <button

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 export const metadata: Metadata = {
   title: '404 — Page Not Found | Autokkeep',
@@ -47,12 +48,12 @@ export default function NotFound() {
         The page you&apos;re looking for has been debited from our servers. Let&apos;s get you back to balanced books.
       </p>
       <div style={{ display: 'flex', gap: '12px' }}>
-        <Link href="/" className="btn btn-primary">
+        <Button as={Link} href="/" variant="primary">
           Back to Home
-        </Link>
-        <Link href="/dashboard" className="btn btn-secondary">
+        </Button>
+        <Button as={Link} href="/dashboard" variant="secondary">
           View Dashboard
-        </Link>
+        </Button>
       </div>
     </div>
   );

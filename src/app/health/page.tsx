@@ -5,7 +5,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { useEntityFetch } from '@/lib/hooks/useEntityFetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Gauge, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Badge, Button, Gauge, Skeleton, EmptyState, useToast } from '@/components/ui';
 import type { BadgeVariant } from '@/components/ui';
 import type { GaugeColor } from '@/components/ui';
 import styles from './page.module.css';
@@ -120,6 +120,7 @@ export default function HealthPage() {
   const { selectedEntity } = useEntity();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [dismissingIds, setDismissingIds] = React.useState<Set<string>>(new Set());
+  const toast = useToast();
 
   // ─── Fetch health data using shared hook ──────────────────────────────────
   const buildHealthUrl = React.useCallback(
@@ -190,9 +191,13 @@ export default function HealthPage() {
               },
             };
           });
+          toast.success('Alert dismissed');
+        } else {
+          toast.error('Failed to dismiss alert');
         }
       } catch (err) {
         console.error('[Health] Dismiss error:', err);
+        toast.error('Network error — could not dismiss alert');
       } finally {
         setDismissingIds((prev) => {
           const next = new Set(prev);
@@ -201,7 +206,7 @@ export default function HealthPage() {
         });
       }
     },
-    [setData]
+    [setData, toast]
   );
 
   // ─── Loading state ────────────────────────────────────────────────────────
@@ -279,19 +284,29 @@ export default function HealthPage() {
           {/* Empty state */}
           {!hasAlerts && !error && (
             <div className={styles.emptyStateWrapper}>
-              <div className={styles.gaugeWrapper}>
-                <Gauge
-                  value={healthScore}
-                  size="lg"
-                  color={getGaugeColor(healthScore)}
-                  caption="Health Score"
+              {!selectedEntity ? (
+                <EmptyState
+                  icon="🏢"
+                  title="Select an entity to view health status"
+                  description="Choose an entity from the sidebar to see its financial health analysis."
                 />
-              </div>
-              <EmptyState
-                icon="✅"
-                title="Your finances look healthy!"
-                description="No anomalies detected. We'll keep monitoring and alert you if anything changes."
-              />
+              ) : (
+                <>
+                  <div className={styles.gaugeWrapper}>
+                    <Gauge
+                      value={healthScore}
+                      size="lg"
+                      color={getGaugeColor(healthScore)}
+                      caption="Health Score"
+                    />
+                  </div>
+                  <EmptyState
+                    icon="✅"
+                    title="Your finances look healthy!"
+                    description="No anomalies detected. We'll keep monitoring and alert you if anything changes."
+                  />
+                </>
+              )}
             </div>
           )}
 

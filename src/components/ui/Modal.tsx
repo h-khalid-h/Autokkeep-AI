@@ -163,7 +163,7 @@ function Modal({
     .join(' ');
 
   const modal = (
-    <div className={styles.overlay} onClick={handleOverlayClick} aria-hidden="true">
+    <div className={styles.overlay} onClick={handleOverlayClick}>
       <div
         ref={panelRef}
         className={panelClasses}

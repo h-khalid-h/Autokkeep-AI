@@ -3,6 +3,8 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import TransactionCard from './TransactionCard';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import styles from './ExceptionQueueList.module.css';
 
 type FilterType = 'all' | 'critical' | 'review' | 'missing';
@@ -117,9 +119,8 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
             title="Select all"
             className={styles.selectAllCheckbox}
           />
-          <input
+          <Input
             type="search"
-            className={`dashboard-sidebar-search ${styles.searchInput}`}
             placeholder="🔍 Search transactions..."
             value={searchQuery}
             onChange={handleSearchChange}
@@ -135,18 +136,17 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
         aria-label="Filter transactions"
       >
         {(Object.keys(filterLabels) as FilterType[]).map((filter) => (
-          <button
+          <Button
             key={filter}
-            className={`btn btn-sm ${
-              activeFilter === filter ? 'btn-primary' : 'btn-ghost'
-            }`}
+            variant={activeFilter === filter ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => handleFilterClick(filter)}
             role="tab"
             aria-selected={activeFilter === filter}
             aria-label={`Filter: ${filterLabels[filter]}`}
           >
             {filterLabels[filter]}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -200,22 +200,27 @@ const ExceptionQueueList: React.FC<ExceptionQueueListProps> = ({
             {selectedIds.size} selected
           </span>
           <div className={styles.batchActions}>
-            <button
-              className="btn btn-sm btn-primary"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => onBatchAction('approve')}
               disabled={batchLoading}
+              isLoading={batchLoading}
               aria-label={`Approve ${selectedIds.size} transactions`}
             >
-              {batchLoading ? '…' : '✓ Approve All'}
-            </button>
-            <button
-              className={`btn btn-sm btn-ghost ${styles.rejectBtn}`}
+              ✓ Approve All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onBatchAction('reject')}
               disabled={batchLoading}
+              isLoading={batchLoading}
               aria-label={`Reject ${selectedIds.size} transactions`}
+              className={styles.rejectBtn}
             >
-              {batchLoading ? '…' : '✕ Reject All'}
-            </button>
+              ✕ Reject All
+            </Button>
           </div>
         </div>
       )}

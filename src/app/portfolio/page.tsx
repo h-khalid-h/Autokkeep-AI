@@ -808,6 +808,9 @@ function SortableHeader({
       className={`${styles.thSortable} ${isActive ? styles.thActive : ''}`}
       onClick={() => onSort(field)}
       aria-sort={isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      role="columnheader"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSort(field); } }}
     >
       {label}{isActive ? (dir === 'asc' ? ' ↑' : ' ↓') : ''}
     </th>

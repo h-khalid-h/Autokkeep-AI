@@ -726,12 +726,18 @@ export default function ChartOfAccountsPage() {
                       <th
                         className={styles.thSortable}
                         onClick={() => toggleSort('code')}
+                        role="columnheader"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('code'); } }}
                       >
                         Code {sortField === 'code' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th
                         className={styles.thSortable}
                         onClick={() => toggleSort('name')}
+                        role="columnheader"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('name'); } }}
                       >
                         Name {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                       </th>
@@ -756,6 +762,7 @@ export default function ChartOfAccountsPage() {
                               checked={isSelected}
                               onChange={() => toggleSelect(account.id)}
                               className={styles.cellCheckbox}
+                              aria-label={`Select ${account.name || account.code}`}
                             />
                           </td>
                           <td className={styles.cellCode}>{account.code}</td>
@@ -861,6 +868,8 @@ export default function ChartOfAccountsPage() {
                   value={formCode}
                   onChange={e => setFormCode(e.target.value)}
                   autoFocus
+                  required
+                  aria-required="true"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -870,11 +879,14 @@ export default function ChartOfAccountsPage() {
                   placeholder="e.g., Software & SaaS"
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
+                  required
+                  aria-required="true"
                 />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Type</label>
+                <label htmlFor="form-type" className={styles.formLabel}>Type</label>
                 <select
+                  id="form-type"
                   className={styles.formSelect}
                   value={formType}
                   onChange={e => setFormType(e.target.value as AccountType)}
@@ -888,8 +900,9 @@ export default function ChartOfAccountsPage() {
                 </select>
               </div>
               <div className={`${styles.formGroup} ${styles.formFullWidth}`}>
-                <label className={styles.formLabel}>Description</label>
+                <label htmlFor="form-description" className={styles.formLabel}>Description</label>
                 <textarea
+                  id="form-description"
                   className={styles.formTextarea}
                   placeholder="Optional description…"
                   value={formDescription}
