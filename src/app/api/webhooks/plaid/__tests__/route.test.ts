@@ -84,8 +84,8 @@ const { POST } = await import('../../plaid/route');
 describe('POST /api/webhooks/plaid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.PLAID_SKIP_WEBHOOK_VERIFICATION = 'true';
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('PLAID_SKIP_WEBHOOK_VERIFICATION', 'true');
+    vi.stubEnv('NODE_ENV', 'test');
     connectionResult = { data: mockConnection, error: null };
   });
 
@@ -109,7 +109,7 @@ describe('POST /api/webhooks/plaid', () => {
   });
 
   it('rejects missing Plaid-Verification header when verification is not skipped', async () => {
-    delete process.env.PLAID_SKIP_WEBHOOK_VERIFICATION;
+    vi.stubEnv('PLAID_SKIP_WEBHOOK_VERIFICATION', '');
 
     const req = createWebhookRequest({
       webhook_type: 'TRANSACTIONS',
