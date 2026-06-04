@@ -19,12 +19,14 @@ CREATE POLICY "team_invites_insert" ON team_invites FOR INSERT
   );
 
 -- Add missing UPDATE/DELETE policies for team_invites
+DROP POLICY IF EXISTS "team_invites_update" ON team_invites;
 CREATE POLICY "team_invites_update" ON team_invites FOR UPDATE
   USING (
     org_id IN (SELECT auth_user_org_ids())
     AND auth_user_has_role(org_id, 'admin')
   );
 
+DROP POLICY IF EXISTS "team_invites_delete" ON team_invites;
 CREATE POLICY "team_invites_delete" ON team_invites FOR DELETE
   USING (
     org_id IN (SELECT auth_user_org_ids())
@@ -62,6 +64,18 @@ CREATE POLICY "subscriptions_delete" ON subscriptions FOR DELETE
 
 -- F10: audit_log ON DELETE CASCADE violates SOC 2 immutability
 -- Audit logs must survive entity deletion
+-- Make entity_id nullable first (required for SET NULL)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'audit_log' AND column_name = 'entity_id' AND is_nullable = 'NO'
+  ) THEN
+    ALTER TABLE audit_log ALTER COLUMN entity_id DROP NOT NULL;
+  END IF;
+END
+$$;
+
 ALTER TABLE audit_log DROP CONSTRAINT IF EXISTS audit_log_entity_id_fkey;
 ALTER TABLE audit_log
   ADD CONSTRAINT audit_log_entity_id_fkey
