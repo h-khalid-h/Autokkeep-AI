@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact' })
       .in('entity_id', entityIds)
       .neq('status', 'removed')
+      .is('deleted_at', null)
       .order(sortColumn, { ascending })
       .range(offset, offset + limit - 1);
 

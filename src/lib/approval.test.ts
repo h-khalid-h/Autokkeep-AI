@@ -184,7 +184,7 @@ describe('processApproval', () => {
   it('approves: updates approval request and transaction status to approved', async () => {
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
-      data: { ...pendingApproval, status: 'approved', approver_user_id: 'user-1' },
+      data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
       error: null,
     });
     const txUpdateChain = createChainMock({ data: null, error: null });
@@ -212,7 +212,7 @@ describe('processApproval', () => {
   it('rejects: updates transaction status to removed', async () => {
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
-      data: { ...pendingApproval, status: 'rejected', approver_user_id: 'user-1' },
+      data: [{ ...pendingApproval, status: 'rejected', approver_user_id: 'user-1' }],
       error: null,
     });
     const txUpdateChain = createChainMock({ data: null, error: null });

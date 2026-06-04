@@ -58,22 +58,22 @@ export async function GET(request: NextRequest) {
     const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
       // Total transactions
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).neq('status', 'removed'),
+        .in('entity_id', entityIds).neq('status', 'removed').is('deleted_at', null),
       // Pending review
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).in('status', ['pending', 'human_review']),
+        .in('entity_id', entityIds).in('status', ['pending', 'human_review']).is('deleted_at', null),
       // Auto approved
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).in('status', ['auto_categorized', 'approved']),
+        .in('entity_id', entityIds).in('status', ['auto_categorized', 'approved']).is('deleted_at', null),
       // Synced
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).eq('status', 'synced'),
+        .in('entity_id', entityIds).eq('status', 'synced').is('deleted_at', null),
       // High confidence (>= 90)
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).gte('confidence', 90),
+        .in('entity_id', entityIds).gte('confidence', 90).is('deleted_at', null),
       // All categorized (has confidence)
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).not('confidence', 'is', null),
+        .in('entity_id', entityIds).not('confidence', 'is', null).is('deleted_at', null),
     ]);
 
     const totalTransactions = totalRes.count ?? 0;
@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
       .select('amount')
       .in('entity_id', entityIds)
       .neq('status', 'removed')
+      .is('deleted_at', null)
       .gte('date', monthStart);
 
     const monthlyVolume = (monthTxns || [])
@@ -107,6 +108,7 @@ export async function GET(request: NextRequest) {
       .select('category_ai, amount')
       .in('entity_id', entityIds)
       .neq('status', 'removed')
+      .is('deleted_at', null)
       .not('category_ai', 'is', null)
       .order('category_ai', { ascending: true });
 
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest) {
       .select('status, merchant_name, amount, updated_at, date')
       .in('entity_id', entityIds)
       .in('status', ['approved', 'auto_categorized'])
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false })
       .limit(10);
 

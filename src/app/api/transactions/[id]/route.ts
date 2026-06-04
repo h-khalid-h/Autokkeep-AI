@@ -41,6 +41,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .select('id, amount, currency, date, merchant_name, merchant_raw, category_ai, category_human, status, document_status, document_url, tags, description, ai_reasoning, entity_id, created_at, updated_at')
       .eq('id', id)
       .in('entity_id', entityIds)
+      .is('deleted_at', null)
       .single();
 
     if (txError || !transaction) {
@@ -85,6 +86,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       .select('*')
       .eq('id', id)
       .in('entity_id', entityIds)
+      .is('deleted_at', null)
       .single();
 
     if (fetchError || !existing) {
@@ -234,7 +236,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
 
       updateData.status = newStatus;
-      if (newStatus === 'approved') {
+      if ((newStatus as string) === 'approved') {
         updateData.confidence = 100;
 
         // ── Approval hierarchy gate ────────────────────────────────────
@@ -317,7 +319,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       actorId: user.id,
       actorType: 'human',
       action:
-        newStatus === 'approved'
+        (newStatus as string) === 'approved'
           ? 'approve'
           : 'update',
       targetType: 'transaction',
@@ -331,7 +333,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     });
 
     // Update categorization history for learning when a human approves
-    if (glCode && newStatus === 'approved' && existing.merchant_name) {
+    if (glCode && (newStatus as string) === 'approved' && existing.merchant_name) {
       const normalizedMerchant = existing.merchant_name.toLowerCase().trim();
       const { data: existingHistory } = await db
         .from('categorization_history')

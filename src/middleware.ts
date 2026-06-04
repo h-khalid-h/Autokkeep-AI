@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { isAdminEmail } from '@/lib/admin';
 
 const protectedRoutes = [
   '/dashboard',
@@ -67,17 +68,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(onboardingUrl);
       }
 
-      // Admin route protection: only owners can access /admin
+      // Admin route protection: only platform admins can access /admin
       const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
       if (isAdminRoute) {
-        const { data: memberRole } = await supabase
-          .from('team_members')
-          .select('role')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-
-        if (memberRole?.role !== 'owner') {
+        if (!user.email || !isAdminEmail(user.email)) {
           const dashboardUrl = request.nextUrl.clone();
           dashboardUrl.pathname = '/dashboard';
           return NextResponse.redirect(dashboardUrl);

@@ -208,8 +208,10 @@ export async function processApproval(
 
   const decidedAt = new Date().toISOString();
 
-  // Update approval_requests row
-  const { data: updated, error: updateError } = await db
+  // Update approval_requests row — OPTIMISTIC LOCK: .eq('status', 'pending')
+  // prevents the TOCTOU race where two concurrent approvers both read 'pending'
+  // and both update. The second concurrent caller will get 0 rows back.
+  const { data: updatedRows, error: updateError } = await db
     .from('approval_requests')
     .update({
       approver_user_id: userId,
@@ -217,12 +219,18 @@ export async function processApproval(
       decided_at: decidedAt,
     })
     .eq('id', approvalId)
-    .select()
-    .single();
+    .eq('status', 'pending') // Optimistic lock — prevents double-approval
+    .select();
 
   if (updateError) {
     throw new Error(`Failed to update approval request: ${updateError.message}`);
   }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error('Approval already processed by another user');
+  }
+
+  const updated = updatedRows[0];
 
   // Update the underlying transaction status
   // For dual approval: first approver keeps the transaction in 'human_review'

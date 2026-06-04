@@ -51,7 +51,7 @@ export const schemas = {
 
   // Transactions
   updateTransaction: z.object({
-    status: z.enum(['pending', 'approved', 'rejected', 'human_review']).optional(),
+    status: z.enum(['pending', 'rejected', 'human_review']).optional(),
     glCode: z.string().max(50).optional(),
     glName: z.string().max(200).optional(),
     notes: safeString.optional(),

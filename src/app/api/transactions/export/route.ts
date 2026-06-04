@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       .select('id, amount, currency, date, merchant_name, category_ai, category_human, status, document_status, tags, description, confidence, ai_reasoning, created_at')
       .eq('entity_id', entity.id)
       .neq('status', 'removed')
+      .is('deleted_at', null)
       .order('date', { ascending: false })
       .limit(10000); // Safety cap to prevent OOM
 

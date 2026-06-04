@@ -91,6 +91,15 @@ async function handleFileUpload(event: Record<string, unknown>) {
     .eq('id', receiptRequest.id);
 
   // Update transaction document status
+  // Fetch the transaction first to scope update by entity_id
+  const { data: tx } = await db
+    .from('transactions')
+    .select('entity_id')
+    .eq('id', receiptRequest.transaction_id)
+    .single();
+
+  if (!tx) return;
+
   await db
     .from('transactions')
     .update({
@@ -98,30 +107,23 @@ async function handleFileUpload(event: Record<string, unknown>) {
       document_url: files[0].url_private,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', receiptRequest.transaction_id);
+    .eq('id', receiptRequest.transaction_id)
+    .eq('entity_id', tx.entity_id);
 
   // Log to audit trail
-  const { data: tx } = await db
-    .from('transactions')
-    .select('entity_id')
-    .eq('id', receiptRequest.transaction_id)
-    .single();
-
-  if (tx) {
-    await writeAuditLog({
-      supabase: db,
-      entityId: tx.entity_id,
-      actorId: (event.user as string) || 'slack_user',
-      actorType: 'human',
-      action: 'update',
-      targetType: 'transaction',
-      targetId: receiptRequest.transaction_id,
-      details: {
-        source: 'slack',
-        action: 'receipt_upload',
-        file_name: files[0].name,
-        file_type: files[0].mimetype,
-      },
-    });
-  }
+  await writeAuditLog({
+    supabase: db,
+    entityId: tx.entity_id,
+    actorId: (event.user as string) || 'slack_user',
+    actorType: 'human',
+    action: 'update',
+    targetType: 'transaction',
+    targetId: receiptRequest.transaction_id,
+    details: {
+      source: 'slack',
+      action: 'receipt_upload',
+      file_name: files[0].name,
+      file_type: files[0].mimetype,
+    },
+  });
 }

@@ -59,6 +59,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown; count
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.neq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
+  chain.is = vi.fn().mockReturnValue(chain);
   chain.gte = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
   chain.or = vi.fn().mockReturnValue(chain);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { checkApprovalRequired } from '@/lib/approval';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     // ── Period-lock check: filter out transactions in locked periods ──
     const { data: fetchedTxs } = await db
       .from('transactions')
-      .select('id, date')
+      .select('id, date, amount, entity_id')
       .in('id', transactionIds)
       .eq('entity_id', entityId);
 
@@ -84,8 +85,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'removed';
     const now = new Date().toISOString();
+
+    // ── Approval threshold check for approve action ──
+    const skipped: { id: string; reason: string }[] = [];
+    let approveIds = unlockedIds;
+
+    if (action === 'approve') {
+      const eligible: string[] = [];
+      for (const txId of unlockedIds) {
+        const tx = txRows.find((t: { id: unknown }) => (t.id as string) === txId);
+        if (!tx) continue;
+        const txAmount = typeof tx.amount === 'number'
+          ? tx.amount
+          : parseFloat(String(tx.amount));
+        const approvalCheck = await checkApprovalRequired(
+          db,
+          entityId,
+          Math.abs(txAmount),
+        );
+        if (approvalCheck) {
+          skipped.push({ id: txId, reason: 'Requires approval workflow' });
+        } else {
+          eligible.push(txId);
+        }
+      }
+      approveIds = eligible;
+    }
+
+    if (approveIds.length === 0 && action === 'approve') {
+      return NextResponse.json({
+        success: true,
+        action,
+        approved: 0,
+        skipped,
+        total: transactionIds.length,
+      });
+    }
+
+    const newStatus = action === 'approve' ? 'approved' : 'removed';
 
     // Build update payload with action-specific fields
     const updatePayload: Record<string, unknown> = {
@@ -100,11 +138,12 @@ export async function POST(request: NextRequest) {
       updatePayload.confidence = 100;
     }
 
-    // Batch update only unlocked transactions
+    // Batch update only eligible transactions
+    const idsToUpdate = action === 'approve' ? approveIds : unlockedIds;
     const { data: updated, error: updateError } = await db
       .from('transactions')
       .update(updatePayload)
-      .in('id', unlockedIds)
+      .in('id', idsToUpdate)
       .eq('entity_id', entityId)
       .select('id');
 
@@ -136,6 +175,10 @@ export async function POST(request: NextRequest) {
       updated: updated?.length || 0,
       total: transactionIds.length,
     };
+
+    if (skipped.length > 0) {
+      response.skipped = skipped;
+    }
 
     if (lockedIds.length > 0) {
       response.warning = `${lockedIds.length} transaction(s) skipped because they are in locked accounting periods`;

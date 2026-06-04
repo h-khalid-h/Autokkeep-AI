@@ -54,6 +54,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
+  chain.is = vi.fn().mockReturnValue(chain);
   chain.neq = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
@@ -159,7 +160,7 @@ describe('/api/transactions/[id]', () => {
       // existing transaction fetch
       const existingChain = createChainMock({ data: mockTransaction, error: null });
       // update result
-      const updatedTx = { ...mockTransaction, status: 'approved', confidence: 100 };
+      const updatedTx = { ...mockTransaction, status: 'human_review' };
       const updateChain = createChainMock({ data: updatedTx, error: null });
       // audit chain
       const auditChain = createChainMock({ data: null, error: null });
@@ -175,7 +176,7 @@ describe('/api/transactions/[id]', () => {
         return createChainMock({ data: null, error: null });
       });
 
-      const req = createRequest('PUT', '/api/transactions/txn-1', { status: 'approved' });
+      const req = createRequest('PUT', '/api/transactions/txn-1', { status: 'human_review' });
       const res = await PUT(req, mockRouteContext);
 
       expect(res.status).toBe(200);
