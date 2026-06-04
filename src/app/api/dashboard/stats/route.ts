@@ -91,26 +91,31 @@ export async function GET(request: NextRequest) {
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const { data: monthTxns } = await db
       .from('transactions')
-      .select('amount')
+      .select('amount, base_amount')
       .in('entity_id', entityIds)
       .neq('status', 'removed')
       .is('deleted_at', null)
-      .gte('date', monthStart);
+      .gte('date', monthStart)
+      .limit(50000); // F9: safety cap to prevent unbounded row fetch
 
     const monthlyVolume = (monthTxns || [])
-      .reduce((sum: number, t: Record<string, unknown>) => sum + Math.abs(Number(t.amount) || 0), 0);
+      .reduce((sum: number, t: Record<string, unknown>) => {
+        const val = Number(t.base_amount ?? t.amount) || 0; // F5: prefer base_amount for multi-currency
+        return sum + Math.abs(val);
+      }, 0);
 
     // Top categories: use server-side aggregation to avoid row limits
     // Fetch all categories with their counts using a targeted query
     // We use a two-pass approach: first get distinct categories, then count each
     const { data: catTxns } = await db
       .from('transactions')
-      .select('category_ai, amount')
+      .select('category_ai, amount, base_amount')
       .in('entity_id', entityIds)
       .neq('status', 'removed')
       .is('deleted_at', null)
       .not('category_ai', 'is', null)
-      .order('category_ai', { ascending: true });
+      .order('category_ai', { ascending: true })
+      .limit(10000); // F8: safety cap to prevent unbounded row fetch
 
     const categoryMap: Record<string, { count: number; amount: number }> = {};
     for (const t of (catTxns || [])) {
@@ -120,7 +125,8 @@ export async function GET(request: NextRequest) {
         categoryMap[code] = { count: 0, amount: 0 };
       }
       categoryMap[code].count++;
-      categoryMap[code].amount += Math.abs(t.amount || 0);
+      const catVal = Number((t as Record<string, unknown>).base_amount ?? t.amount) || 0; // F5: prefer base_amount
+      categoryMap[code].amount += Math.abs(catVal);
     }
 
     const topCategories = Object.entries(categoryMap)

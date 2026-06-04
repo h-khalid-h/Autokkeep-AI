@@ -89,7 +89,8 @@ async function queryJournalEntries(
       )
     `)
     .eq('entity_id', entityId)
-    .order('entry_date', { ascending: true });
+    .order('entry_date', { ascending: true })
+    .limit(25000);
 
   if (options.startDate) {
     query = query.gte('entry_date', options.startDate);

@@ -57,14 +57,22 @@ export async function GET(request: NextRequest) {
     const reports: ChaseReport[] = [];
     const entityErrors: Array<{ entityId: string; error: string }> = [];
 
-    for (const entityId of entityIds) {
-      try {
-        const report = await runReceiptChase(entityId, db);
-        reports.push(report);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        entityErrors.push({ entityId, error: errorMessage });
-        console.error(`[Cron Receipt Chase] Failed for entity ${entityId}:`, err);
+    const CONCURRENCY_LIMIT = 5;
+    for (let i = 0; i < entityIds.length; i += CONCURRENCY_LIMIT) {
+      const batch = entityIds.slice(i, i + CONCURRENCY_LIMIT);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (entityId) => runReceiptChase(entityId, db))
+      );
+
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        if (result.status === 'fulfilled') {
+          reports.push(result.value);
+        } else {
+          const errorMessage = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+          entityErrors.push({ entityId: batch[j], error: errorMessage });
+          console.error(`[Cron Receipt Chase] Failed for entity ${batch[j]}:`, result.reason);
+        }
       }
     }
 

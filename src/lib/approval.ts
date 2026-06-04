@@ -190,6 +190,16 @@ export async function processApproval(
       .eq('id', req.threshold_id)
       .single();
 
+    // F4: Guard against deleted thresholds — if the threshold that
+    // triggered this approval request no longer exists, we cannot safely
+    // determine whether dual-approval is required. Reject rather than
+    // silently downgrading to single-approval.
+    if (threshold === null || threshold === undefined) {
+      throw new Error(
+        'Approval threshold was deleted — cannot process. Please re-evaluate this transaction.',
+      );
+    }
+
     if (threshold?.requires_dual_approval) {
       // Check for a prior approval from a DIFFERENT user
       const { data: priorApprovals } = await db

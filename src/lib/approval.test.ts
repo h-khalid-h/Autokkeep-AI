@@ -188,17 +188,25 @@ describe('processApproval', () => {
       error: null,
     });
     const txUpdateChain = createChainMock({ data: null, error: null });
+    // SOD check: return a transaction created by a DIFFERENT user
+    const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
+    // F4: threshold lookup — return a valid threshold (not deleted)
+    const thresholdChain = createChainMock({ data: { requires_dual_approval: false }, error: null });
 
+    let approvalReqCallCount = 0;
+    let txCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
-        // First call is the fetch (.select().eq().single())
-        // After that is the update (.update().eq().select().single())
-        const calls = mockDb.from.mock.calls.filter(
-          (c: string[]) => c[0] === 'approval_requests',
-        ).length;
-        return calls <= 1 ? fetchChain : updateChain;
+        approvalReqCallCount++;
+        // 1st call: fetch the approval request; 2nd+: update
+        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
       }
-      if (table === 'transactions') return txUpdateChain;
+      if (table === 'transactions') {
+        txCallCount++;
+        // 1st call: SOD check; 2nd+: status update
+        return txCallCount <= 1 ? txSodChain : txUpdateChain;
+      }
+      if (table === 'approval_thresholds') return thresholdChain;
       if (table === 'audit_log') return createChainMock({ data: null, error: null });
       return createChainMock({ data: null, error: null });
     });

@@ -85,162 +85,186 @@ export async function runAutoCategorize(options?: {
   let totalHumanReview = 0;
   let totalFailed = 0;
 
-  // ── Process each entity batch ──────────────────────────────────────
-  for (const [entityId, entityTxs] of txByEntity) {
-    try {
-      // Fetch categorization rules for this entity
-      const { data: rulesData } = await db
-        .from('categorization_rules')
-        .select('*')
-        .eq('entity_id', entityId);
+  // ── Process entity batches concurrently ──────────────────────────────
+  const ENTITY_CONCURRENCY = 3;
+  const entityEntries = [...txByEntity.entries()];
 
-      // Fetch chart of accounts for this entity
-      const { data: chartData } = await db
-        .from('chart_of_accounts')
-        .select('code, name')
-        .eq('entity_id', entityId);
+  for (let i = 0; i < entityEntries.length; i += ENTITY_CONCURRENCY) {
+    const batch = entityEntries.slice(i, i + ENTITY_CONCURRENCY);
+    const batchResults = await Promise.allSettled(
+      batch.map(async ([entityId, entityTxs]) => {
+        // Fetch categorization rules for this entity
+        const { data: rulesData } = await db
+          .from('categorization_rules')
+          .select('*')
+          .eq('entity_id', entityId);
 
-      const chartOfAccounts: ChartOfAccountsEntry[] = (chartData || []).map(
-        (c: { code: string; name: string }) => ({
-          code: c.code,
-          name: c.name,
-        })
-      );
+        // Fetch chart of accounts for this entity
+        const { data: chartData } = await db
+          .from('chart_of_accounts')
+          .select('code, name')
+          .eq('entity_id', entityId);
 
-      // Map DB rules to categorizer CategorizationRule format
-      const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, unknown>) => {
-        const coaEntry = chartOfAccounts.find((c) => c.code === r.gl_code);
-        return {
-          id: r.id as string,
-          vendor_pattern: r.match_value as string,
-          mcc_code: (r.mcc_code as string) || undefined,
-          gl_code: r.gl_code as string,
-          gl_name: coaEntry?.name || '',
-          match_type: (r.rule_type as string) || 'contains',
-          priority: (r.priority as number) || 0,
-        };
-      });
+        const chartOfAccounts: ChartOfAccountsEntry[] = (chartData || []).map(
+          (c: { code: string; name: string }) => ({
+            code: c.code,
+            name: c.name,
+          })
+        );
 
-      // Fetch historical patterns
-      const { data: historyData } = await db
-        .from('categorization_history')
-        .select('merchant, gl_code, gl_name, frequency, last_used')
-        .eq('entity_id', entityId)
-        .order('frequency', { ascending: false })
-        .limit(100);
+        // Map DB rules to categorizer CategorizationRule format
+        const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, unknown>) => {
+          const coaEntry = chartOfAccounts.find((c) => c.code === r.gl_code);
+          return {
+            id: r.id as string,
+            vendor_pattern: r.match_value as string,
+            mcc_code: (r.mcc_code as string) || undefined,
+            gl_code: r.gl_code as string,
+            gl_name: coaEntry?.name || '',
+            match_type: (r.rule_type as string) || 'contains',
+            priority: (r.priority as number) || 0,
+          };
+        });
 
-      const history: HistoricalPattern[] = (historyData || []).map(
-        (h: Record<string, unknown>) => ({
-          merchant: h.merchant as string,
-          glCode: h.gl_code as string,
-          glName: h.gl_name as string,
-          frequency: h.frequency as number,
-          lastUsed: h.last_used as string,
-        })
-      );
+        // Fetch historical patterns
+        const { data: historyData } = await db
+          .from('categorization_history')
+          .select('merchant, gl_code, gl_name, frequency, last_used')
+          .eq('entity_id', entityId)
+          .order('frequency', { ascending: false })
+          .limit(100);
 
-      // Build TransactionInput array
-      const transactionInputs: TransactionInput[] = entityTxs.map(
-        (t: Record<string, unknown>) => ({
-          id: t.id as string,
-          merchant: (t.merchant_name as string) || '',
-          merchantRaw: (t.merchant_raw as string) || undefined,
-          amount: t.amount as number,
-          date: t.date as string,
-          mcc: (t.mcc_code as string) || undefined,
-          currency: (t.currency as string) || 'USD',
-          cardHolder: (t.card_holder as string) || undefined,
-          bankDescription: (t.raw_bank_description as string) || (t.merchant_raw as string) || undefined,
-        })
-      );
+        const history: HistoricalPattern[] = (historyData || []).map(
+          (h: Record<string, unknown>) => ({
+            merchant: h.merchant as string,
+            glCode: h.gl_code as string,
+            glName: h.gl_name as string,
+            frequency: h.frequency as number,
+            lastUsed: h.last_used as string,
+          })
+        );
 
-      // Run batch categorization
-      const results = await batchCategorize(
-        transactionInputs,
-        rules,
-        chartOfAccounts,
-        history
-      );
+        // Build TransactionInput array
+        const transactionInputs: TransactionInput[] = entityTxs.map(
+          (t: Record<string, unknown>) => ({
+            id: t.id as string,
+            merchant: (t.merchant_name as string) || '',
+            merchantRaw: (t.merchant_raw as string) || undefined,
+            amount: t.amount as number,
+            date: t.date as string,
+            mcc: (t.mcc_code as string) || undefined,
+            currency: (t.currency as string) || 'USD',
+            cardHolder: (t.card_holder as string) || undefined,
+            bankDescription: (t.raw_bank_description as string) || (t.merchant_raw as string) || undefined,
+          })
+        );
 
-      // Update transactions with categorization results (parallelized)
-      const updatePromises: Promise<unknown>[] = [];
-      for (const [txId, result] of results) {
-        const confidencePercent = Math.round(result.confidence);
+        // Run batch categorization
+        const results = await batchCategorize(
+          transactionInputs,
+          rules,
+          chartOfAccounts,
+          history
+        );
 
-        if (!result.glCode) {
-          // No GL code = categorization failed regardless of confidence
-          totalFailed++;
-          updatePromises.push(
-            db
-              .from('transactions')
-              .update({
-                status: 'categorization_failed',
-                ai_reasoning: result.reasoning,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', txId)
-              .eq('entity_id', entityId)
-              .eq('status', 'pending')
-          );
-        } else {
-          // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
-          // C_s = (w1 × P_llm) + (w2 × S_rule) + (w3 × M_doc)
-          const sRule = calculateRuleScore(result.ruleMatchType);
-          const composite = computeCompositeScore(
-            result.confidence / 100, // normalize to 0-1
-            sRule,
-            0 // M_doc: no document corroboration available at batch categorization time
-          );
+        // Update transactions with categorization results (parallelized)
+        const updatePromises: Promise<unknown>[] = [];
+        let entityAutoCategorized = 0;
+        let entityHumanReview = 0;
+        let entityFailed = 0;
+        let entityProcessed = 0;
 
-          const newStatus =
-            composite.compositeScore >= AUTO_COMMIT_THRESHOLD
-              ? 'auto_categorized'
-              : 'human_review';
+        for (const [txId, result] of results) {
+          const confidencePercent = Math.round(result.confidence);
 
-          if (newStatus === 'auto_categorized') {
-            totalAutoCategorized++;
+          if (!result.glCode) {
+            // No GL code = categorization failed regardless of confidence
+            entityFailed++;
+            updatePromises.push(
+              db
+                .from('transactions')
+                .update({
+                  status: 'categorization_failed',
+                  ai_reasoning: result.reasoning,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', txId)
+                .eq('entity_id', entityId)
+                .eq('status', 'pending')
+            );
           } else {
-            totalHumanReview++;
+            // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
+            // C_s = (w1 × P_llm) + (w2 × S_rule) + (w3 × M_doc)
+            const sRule = calculateRuleScore(result.ruleMatchType);
+            const composite = computeCompositeScore(
+              result.confidence / 100, // normalize to 0-1
+              sRule,
+              0 // M_doc: no document corroboration available at batch categorization time
+            );
+
+            const newStatus =
+              composite.compositeScore >= AUTO_COMMIT_THRESHOLD
+                ? 'auto_categorized'
+                : 'human_review';
+
+            if (newStatus === 'auto_categorized') {
+              entityAutoCategorized++;
+            } else {
+              entityHumanReview++;
+            }
+
+            updatePromises.push(
+              db
+                .from('transactions')
+                .update({
+                  category_ai: result.glCode,
+                  confidence: confidencePercent, // Keep raw AI confidence for observability
+                  status: newStatus,
+                  ai_reasoning: result.reasoning,
+                  gl_name: result.glName || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', txId)
+                .eq('entity_id', entityId)
+                .eq('status', 'pending')
+            );
           }
 
-          updatePromises.push(
-            db
-              .from('transactions')
-              .update({
-                category_ai: result.glCode,
-                confidence: confidencePercent, // Keep raw AI confidence for observability
-                status: newStatus,
-                ai_reasoning: result.reasoning,
-                gl_name: result.glName || null,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', txId)
-              .eq('entity_id', entityId)
-              .eq('status', 'pending')
-          );
+          entityProcessed++;
         }
-
-        totalProcessed++;
-      }
-      const settled = await Promise.allSettled(updatePromises);
-      for (const result of settled) {
-        if (result.status === 'rejected') {
-          console.error(`[Auto-Categorize] Update failed for entity ${entityId}:`, result.reason);
-          totalFailed++;
-          // Adjust: one that was previously counted as success is actually a failure
-          if (totalAutoCategorized > 0) {
-            totalAutoCategorized--;
-          } else if (totalHumanReview > 0) {
-            totalHumanReview--;
+        const settled = await Promise.allSettled(updatePromises);
+        for (const result of settled) {
+          if (result.status === 'rejected') {
+            console.error(`[Auto-Categorize] Update failed for entity ${entityId}:`, result.reason);
+            entityFailed++;
+            // Adjust: one that was previously counted as success is actually a failure
+            if (entityAutoCategorized > 0) {
+              entityAutoCategorized--;
+            } else if (entityHumanReview > 0) {
+              entityHumanReview--;
+            }
           }
         }
+
+        return { entityProcessed, entityAutoCategorized, entityHumanReview, entityFailed };
+      })
+    );
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const result = batchResults[j];
+      if (result.status === 'fulfilled') {
+        totalProcessed += result.value.entityProcessed;
+        totalAutoCategorized += result.value.entityAutoCategorized;
+        totalHumanReview += result.value.entityHumanReview;
+        totalFailed += result.value.entityFailed;
+      } else {
+        const [entityId, entityTxs] = batch[j];
+        console.error(
+          `[Auto-Categorize] Failed to process entity ${entityId}:`,
+          result.reason
+        );
+        totalFailed += entityTxs.length;
       }
-    } catch (entityErr) {
-      console.error(
-        `[Auto-Categorize] Failed to process entity ${entityId}:`,
-        entityErr
-      );
-      totalFailed += entityTxs.length;
     }
   }
 

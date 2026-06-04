@@ -114,21 +114,23 @@ async function fetchFinancialContext(
   // Determine currency from first transaction
   const currency = txns[0]?.currency || 'USD';
 
-  // Compute income and expenses
-  let totalIncome = 0;
-  let totalExpenses = 0;
-  const expenseCategoryMap = new Map<string, { total: number; count: number }>();
-  const incomeCategoryMap = new Map<string, { total: number; count: number }>();
-  const monthlyMap = new Map<string, { income: number; expenses: number }>();
+  // Compute income and expenses using integer-cents to avoid floating-point drift (F6)
+  let totalIncomeCents = 0;
+  let totalExpensesCents = 0;
+  const expenseCategoryMap = new Map<string, { totalCents: number; count: number }>();
+  const incomeCategoryMap = new Map<string, { totalCents: number; count: number }>();
+  const monthlyMap = new Map<string, { incomeCents: number; expensesCents: number }>();
 
   for (const tx of txns) {
     const category = tx.category_human || tx.category_ai || 'Uncategorized';
     const amount = tx.amount;
+    const amountCents = Math.round(amount * 100);
+    const absAmountCents = Math.round(Math.abs(amount) * 100);
     const monthKey = tx.date.substring(0, 7); // YYYY-MM
 
     // Initialize monthly bucket
     if (!monthlyMap.has(monthKey)) {
-      monthlyMap.set(monthKey, { income: 0, expenses: 0 });
+      monthlyMap.set(monthKey, { incomeCents: 0, expensesCents: 0 });
     }
     const monthBucket = monthlyMap.get(monthKey)!;
 
@@ -137,32 +139,36 @@ async function fetchFinancialContext(
     // This matches narrative.ts, close-engine.ts, and buildJournalEntryFromTransaction
     if (amount < 0) {
       // Negative = income/credit (money entering account)
-      totalIncome += Math.abs(amount);
-      monthBucket.income += Math.abs(amount);
-      const existing = incomeCategoryMap.get(category) || { total: 0, count: 0 };
-      existing.total += Math.abs(amount);
+      totalIncomeCents += absAmountCents;
+      monthBucket.incomeCents += absAmountCents;
+      const existing = incomeCategoryMap.get(category) || { totalCents: 0, count: 0 };
+      existing.totalCents += absAmountCents;
       existing.count++;
       incomeCategoryMap.set(category, existing);
     } else {
       // Positive = expense/debit (money leaving account)
-      totalExpenses += amount;
-      monthBucket.expenses += amount;
-      const existing = expenseCategoryMap.get(category) || { total: 0, count: 0 };
-      existing.total += amount;
+      totalExpensesCents += amountCents;
+      monthBucket.expensesCents += amountCents;
+      const existing = expenseCategoryMap.get(category) || { totalCents: 0, count: 0 };
+      existing.totalCents += amountCents;
       existing.count++;
       expenseCategoryMap.set(category, existing);
     }
   }
 
+  // Convert cents back to dollars
+  const totalIncome = totalIncomeCents / 100;
+  const totalExpenses = totalExpensesCents / 100;
+
   // Build top expense categories (sorted by total descending)
   const topExpenseCategories: CategorySummary[] = Array.from(expenseCategoryMap.entries())
-    .map(([category, data]) => ({ category, total: data.total, count: data.count }))
+    .map(([category, data]) => ({ category, total: data.totalCents / 100, count: data.count }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
 
   // Build top income categories
   const topIncomeCategories: CategorySummary[] = Array.from(incomeCategoryMap.entries())
-    .map(([category, data]) => ({ category, total: data.total, count: data.count }))
+    .map(([category, data]) => ({ category, total: data.totalCents / 100, count: data.count }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
@@ -170,9 +176,9 @@ async function fetchFinancialContext(
   const monthlyTrend: MonthlyTrend[] = Array.from(monthlyMap.entries())
     .map(([month, data]) => ({
       month,
-      income: Math.round(data.income * 100) / 100,
-      expenses: Math.round(data.expenses * 100) / 100,
-      net: Math.round((data.income - data.expenses) * 100) / 100,
+      income: data.incomeCents / 100,
+      expenses: data.expensesCents / 100,
+      net: (data.incomeCents - data.expensesCents) / 100,
     }))
     .sort((a, b) => a.month.localeCompare(b.month));
 

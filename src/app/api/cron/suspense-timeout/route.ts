@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, amount, merchant_name, date, category_ai')
       .eq('status', 'human_review')
-      .lt('updated_at', cutoffDate);
+      .lt('updated_at', cutoffDate)
+      .limit(100);
 
     const staleTransactions = data as StaleTransaction[] | null;
 

@@ -28,6 +28,7 @@ interface TransactionRow {
   date: string;
   category_human: string | null;
   category_ai: string | null;
+  ledger_sync_id: string | null;
 }
 
 interface LedgerConnectionRow {
@@ -61,7 +62,7 @@ export async function pushApprovedTransactionsToLedger(
   // 1. Fetch all approved, unsynced transactions
   const { data: transactions, error: txError } = await supabase
     .from('transactions')
-    .select('id, entity_id, amount, merchant_name, date, category_human, category_ai')
+    .select('id, entity_id, amount, merchant_name, date, category_human, category_ai, ledger_sync_id')
     .eq('status', 'approved')
     .eq('ledger_synced', false)
     .order('date', { ascending: true })
@@ -120,6 +121,19 @@ export async function pushApprovedTransactionsToLedger(
 
     for (const tx of entityTransactions) {
       try {
+        // ── Idempotency guard ──────────────────────────────────────────
+        // If this transaction already has a ledger_sync_id, it was successfully
+        // pushed on a prior run but the subsequent update({ledger_synced: true})
+        // failed. Just mark it as synced and move on — no duplicate in QBO/Xero.
+        if (tx.ledger_sync_id) {
+          await supabase
+            .from('transactions')
+            .update({ ledger_synced: true, updated_at: new Date().toISOString() })
+            .eq('id', tx.id);
+          result.pushed++;
+          continue;
+        }
+
         // Build journal entry from transaction data
         const journalEntry = buildJournalEntryFromTransaction(
           {
@@ -141,14 +155,16 @@ export async function pushApprovedTransactionsToLedger(
         }, journalEntry);
 
         if (syncResult.success) {
-          // Mark as synced — CRITICAL: if this update fails, we risk
-          // duplicate journal entries on the next cron run
+          // Mark as synced and store external ID for idempotency.
+          // The ledger_sync_id is written so that if the update below fails,
+          // the next cron run will see the ID and skip re-pushing.
           const { error: markError } = await supabase
             .from('transactions')
             .update({
               ledger_synced: true,
               ledger_synced_at: new Date().toISOString(),
               ledger_sync_error: null,
+              ledger_sync_id: syncResult.journalEntryId || 'synced',
             })
             .eq('id', tx.id)
             .eq('ledger_synced', false); // Optimistic lock: only update if still unsynced

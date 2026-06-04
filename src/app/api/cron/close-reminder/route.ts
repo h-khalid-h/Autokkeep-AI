@@ -190,14 +190,38 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch channel connections for each admin
+        // Batch-fetch all channel connections for this entity upfront (eliminates N+1)
+        const memberUserIds = (members as Array<{ user_id: string; role: string }>).map((m) => m.user_id);
+        const { data: allConnections } = await db
+          .from('channel_connections')
+          .select('user_id, channel_type, channel_id, access_token, webhook_url')
+          .eq('entity_id', entity.id)
+          .in('user_id', memberUserIds);
+
+        // Build a lookup map: user_id → channel connections
+        const connectionsByUser = new Map<string, Array<{
+          channel_type: string;
+          channel_id: string;
+          access_token: string | null;
+          webhook_url: string | null;
+        }>>();
+        for (const conn of (allConnections || []) as Array<{
+          user_id: string;
+          channel_type: string;
+          channel_id: string;
+          access_token: string | null;
+          webhook_url: string | null;
+        }>) {
+          if (!connectionsByUser.has(conn.user_id)) {
+            connectionsByUser.set(conn.user_id, []);
+          }
+          connectionsByUser.get(conn.user_id)!.push(conn);
+        }
+
+        // Fetch channel connections for each admin from pre-fetched map
         let notified = false;
         for (const member of members as Array<{ user_id: string; role: string }>) {
-          const { data: connections } = await db
-            .from('channel_connections')
-            .select('channel_type, channel_id, access_token, webhook_url')
-            .eq('user_id', member.user_id)
-            .eq('entity_id', entity.id);
+          const connections = connectionsByUser.get(member.user_id);
 
           if (!connections || connections.length === 0) continue;
 

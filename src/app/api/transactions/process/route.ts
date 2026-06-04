@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { ingestTransactions } from '@/lib/plaid/ingest';
+import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { checkPlanLimits } from '@/lib/billing/plans';
 import { writeAuditLog } from '@/lib/audit';
@@ -96,15 +96,21 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active');
 
     if (connections && connections.length > 0) {
-      for (const connection of connections) {
-        try {
+      const syncResults = await Promise.allSettled(
+        (connections as BankConnection[]).map(async (connection) => {
           const ingestResult = await ingestTransactions(db, connection);
-          summary.sync.transactions_added += ingestResult.added;
-          summary.sync.transactions_modified += ingestResult.modified;
-          summary.sync.transactions_removed += ingestResult.removed;
+          return { connectionId: connection.id, ...ingestResult };
+        })
+      );
+
+      for (const result of syncResults) {
+        if (result.status === 'fulfilled') {
+          summary.sync.transactions_added += result.value.added;
+          summary.sync.transactions_modified += result.value.modified;
+          summary.sync.transactions_removed += result.value.removed;
           summary.sync.connections_synced++;
-        } catch (syncError) {
-          const errorMsg = `Failed to sync connection ${connection.id}: ${syncError instanceof Error ? syncError.message : 'Unknown error'}`;
+        } else {
+          const errorMsg = `Failed to sync connection: ${result.reason instanceof Error ? result.reason.message : 'Unknown error'}`;
           summary.sync.errors.push(errorMsg);
           console.error('[Process Pipeline]', errorMsg);
         }
@@ -128,53 +134,61 @@ export async function POST(request: NextRequest) {
       sevenYearsLater.setFullYear(sevenYearsLater.getFullYear() + 7);
       const retentionDate = sevenYearsLater.toISOString().split('T')[0];
 
-      for (const tx of freshTransactions as { id: string; merchant_name: string | null; currency: string; amount: number; vendor_id: string | null; created_by: string | null; retention_lock_until: string | null }[]) {
-        const updates: Record<string, unknown> = {};
+      const enrichResults = await Promise.allSettled(
+        (freshTransactions as { id: string; merchant_name: string | null; currency: string; amount: number; vendor_id: string | null; created_by: string | null; retention_lock_until: string | null }[]).map(async (tx) => {
+          const updates: Record<string, unknown> = {};
 
-        // F13: Set created_by if missing
-        if (!tx.created_by) {
-          updates.created_by = user.id;
-        }
+          // F13: Set created_by if missing
+          if (!tx.created_by) {
+            updates.created_by = user.id;
+          }
 
-        // F12: Set retention lock if missing (IRS 7-year rule)
-        if (!tx.retention_lock_until) {
-          updates.retention_lock_until = retentionDate;
-        }
+          // F12: Set retention lock if missing (IRS 7-year rule)
+          if (!tx.retention_lock_until) {
+            updates.retention_lock_until = retentionDate;
+          }
 
-        // F4: Resolve vendor
-        if (!tx.vendor_id && tx.merchant_name) {
-          try {
-            const vendor = await resolveOrCreateVendor(db, entityId, tx.merchant_name);
-            if (vendor) {
-              updates.vendor_id = vendor.id;
+          // F4: Resolve vendor
+          if (!tx.vendor_id && tx.merchant_name) {
+            try {
+              const vendor = await resolveOrCreateVendor(db, entityId, tx.merchant_name);
+              if (vendor) {
+                updates.vendor_id = vendor.id;
+              }
+            } catch (vendorErr) {
+              console.error('[Process Pipeline] Vendor resolution failed for tx', tx.id, vendorErr);
             }
-          } catch (vendorErr) {
-            console.error('[Process Pipeline] Vendor resolution failed for tx', tx.id, vendorErr);
           }
-        }
 
-        // F8: Apply FX conversion for multi-currency transactions
-        if (tx.currency && tx.currency !== baseCurrency) {
-          try {
-            await applyFxConversion(db, tx.id, tx.currency, tx.amount, baseCurrency);
-          } catch (fxErr) {
-            console.error('[Process Pipeline] FX conversion failed for tx', tx.id, fxErr);
-            // Flag for human review instead of silently proceeding with unconverted amount
-            await db.from('transactions').update({
-              status: 'human_review',
-              ai_reasoning: 'FX conversion failed — manual review required',
-              updated_at: new Date().toISOString(),
-            }).eq('id', tx.id);
+          // F8: Apply FX conversion for multi-currency transactions
+          if (tx.currency && tx.currency !== baseCurrency) {
+            try {
+              await applyFxConversion(db, tx.id, tx.currency, tx.amount, baseCurrency);
+            } catch (fxErr) {
+              console.error('[Process Pipeline] FX conversion failed for tx', tx.id, fxErr);
+              // Flag for human review instead of silently proceeding with unconverted amount
+              await db.from('transactions').update({
+                status: 'human_review',
+                ai_reasoning: 'FX conversion failed — manual review required',
+                updated_at: new Date().toISOString(),
+              }).eq('id', tx.id);
+            }
           }
-        }
 
-        // Batch update non-FX fields (FX already updates via applyFxConversion)
-        if (Object.keys(updates).length > 0) {
-          await db
-            .from('transactions')
-            .update({ ...updates, updated_at: new Date().toISOString() })
-            .eq('id', tx.id)
-            .eq('entity_id', entityId);
+          // Batch update non-FX fields (FX already updates via applyFxConversion)
+          if (Object.keys(updates).length > 0) {
+            await db
+              .from('transactions')
+              .update({ ...updates, updated_at: new Date().toISOString() })
+              .eq('id', tx.id)
+              .eq('entity_id', entityId);
+          }
+        })
+      );
+
+      for (const result of enrichResults) {
+        if (result.status === 'rejected') {
+          console.error('[Process Pipeline] Enrichment failed:', result.reason);
         }
       }
     }

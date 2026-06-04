@@ -64,59 +64,73 @@ export async function GET(request: NextRequest) {
     const errors: Array<{ connectionId: string; provider: string; error: string }> = [];
     const results: TokenRefreshResult[] = [];
 
-    // ── Refresh each connection ────────────────────────────────────────
-    for (const connection of connections as LedgerConnectionRow[]) {
-      try {
-        const tokenResult = await refreshConnectionToken(connection);
+    // ── Refresh connections in concurrent batches ────────────────────────
+    const CONCURRENCY_LIMIT = 5;
+    const typedConnections = connections as LedgerConnectionRow[];
 
-        // Update the connection with new tokens
-        await db
-          .from('ledger_connections')
-          .update({
-            access_token: encryptToken(tokenResult.accessToken),
-            refresh_token: encryptToken(tokenResult.refreshToken),
-            token_expires_at: computeTokenExpiresAt(tokenResult.expiresIn),
-          })
-          .eq('id', connection.id);
+    for (let i = 0; i < typedConnections.length; i += CONCURRENCY_LIMIT) {
+      const batch = typedConnections.slice(i, i + CONCURRENCY_LIMIT);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (connection) => {
+          const tokenResult = await refreshConnectionToken(connection);
 
-        refreshedCount++;
-        results.push({
-          connectionId: connection.id,
-          provider: connection.provider,
-          success: true,
-        });
+          // Update the connection with new tokens
+          await db
+            .from('ledger_connections')
+            .update({
+              access_token: encryptToken(tokenResult.accessToken),
+              refresh_token: encryptToken(tokenResult.refreshToken),
+              token_expires_at: computeTokenExpiresAt(tokenResult.expiresIn),
+            })
+            .eq('id', connection.id);
 
-        console.info(
-          `[Cron Token Refresh] Refreshed ${connection.provider} token for connection ${connection.id}`
-        );
-      } catch (err: unknown) {
-        failedCount++;
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error';
-        errors.push({
-          connectionId: connection.id,
-          provider: connection.provider,
-          error: errorMessage,
-        });
-        results.push({
-          connectionId: connection.id,
-          provider: connection.provider,
-          success: false,
-          error: errorMessage,
-        });
+          console.info(
+            `[Cron Token Refresh] Refreshed ${connection.provider} token for connection ${connection.id}`
+          );
 
-        // Mark connection as inactive (token_expired)
-        await db
-          .from('ledger_connections')
-          .update({
-            is_active: false,
-          })
-          .eq('id', connection.id);
+          return { connectionId: connection.id, provider: connection.provider };
+        })
+      );
 
-        console.error(
-          `[Cron Token Refresh] Failed to refresh ${connection.provider} token for connection ${connection.id}:`,
-          err
-        );
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        const connection = batch[j];
+        if (result.status === 'fulfilled') {
+          refreshedCount++;
+          results.push({
+            connectionId: connection.id,
+            provider: connection.provider,
+            success: true,
+          });
+        } else {
+          failedCount++;
+          const errorMessage =
+            result.reason instanceof Error ? result.reason.message : 'Unknown error';
+          errors.push({
+            connectionId: connection.id,
+            provider: connection.provider,
+            error: errorMessage,
+          });
+          results.push({
+            connectionId: connection.id,
+            provider: connection.provider,
+            success: false,
+            error: errorMessage,
+          });
+
+          // Mark connection as inactive (token_expired)
+          await db
+            .from('ledger_connections')
+            .update({
+              is_active: false,
+            })
+            .eq('id', connection.id);
+
+          console.error(
+            `[Cron Token Refresh] Failed to refresh ${connection.provider} token for connection ${connection.id}:`,
+            result.reason
+          );
+        }
       }
     }
 
