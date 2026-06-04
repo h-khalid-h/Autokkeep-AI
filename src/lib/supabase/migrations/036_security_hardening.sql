@@ -15,7 +15,7 @@ CREATE POLICY "team_invites_select" ON team_invites FOR SELECT
 CREATE POLICY "team_invites_insert" ON team_invites FOR INSERT
   WITH CHECK (
     org_id IN (SELECT auth_user_org_ids())
-    AND auth_user_has_role(org_id, 'admin')
+    AND (auth_user_has_role('admin'::team_role) OR auth_user_has_role('owner'::team_role))
   );
 
 -- Add missing UPDATE/DELETE policies for team_invites
@@ -23,14 +23,14 @@ DROP POLICY IF EXISTS "team_invites_update" ON team_invites;
 CREATE POLICY "team_invites_update" ON team_invites FOR UPDATE
   USING (
     org_id IN (SELECT auth_user_org_ids())
-    AND auth_user_has_role(org_id, 'admin')
+    AND (auth_user_has_role('admin'::team_role) OR auth_user_has_role('owner'::team_role))
   );
 
 DROP POLICY IF EXISTS "team_invites_delete" ON team_invites;
 CREATE POLICY "team_invites_delete" ON team_invites FOR DELETE
   USING (
     org_id IN (SELECT auth_user_org_ids())
-    AND auth_user_has_role(org_id, 'admin')
+    AND (auth_user_has_role('admin'::team_role) OR auth_user_has_role('owner'::team_role))
   );
 
 -- F8: team_members INSERT allows any org member (no role check)
@@ -39,7 +39,7 @@ DROP POLICY IF EXISTS "team_members_insert" ON team_members;
 CREATE POLICY "team_members_insert" ON team_members FOR INSERT
   WITH CHECK (
     org_id IN (SELECT auth_user_org_ids())
-    AND auth_user_has_role(org_id, 'admin')
+    AND (auth_user_has_role('admin'::team_role) OR auth_user_has_role('owner'::team_role))
   );
 
 -- F9: subscriptions allows any org member to INSERT/UPDATE/DELETE
