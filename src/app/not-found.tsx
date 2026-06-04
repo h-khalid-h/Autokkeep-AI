@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 
 export const metadata: Metadata = {
   title: '404 — Page Not Found | Autokkeep',
@@ -48,12 +47,48 @@ export default function NotFound() {
         The page you&apos;re looking for has been debited from our servers. Let&apos;s get you back to balanced books.
       </p>
       <div style={{ display: 'flex', gap: '12px' }}>
-        <Button as={Link} href="/" variant="primary">
+        <Link
+          href="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            textDecoration: 'none',
+            background: 'var(--accent-gradient)',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          }}
+        >
           Back to Home
-        </Button>
-        <Button as={Link} href="/dashboard" variant="secondary">
+        </Link>
+        <Link
+          href="/dashboard"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            textDecoration: 'none',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-primary)',
+            cursor: 'pointer',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          }}
+        >
           View Dashboard
-        </Button>
+        </Link>
       </div>
     </div>
   );
