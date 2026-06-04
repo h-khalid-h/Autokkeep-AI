@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Get the transaction
     const { data: tx, error: txError } = await db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, merchant_name, merchant_raw, amount, date, card_last4, card_holder, category_ai, gl_code, confidence')
       .eq('id', transactionId)
       .eq('entity_id', entityId)
       .single();

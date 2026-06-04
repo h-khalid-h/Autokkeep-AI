@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const { data: existing, error: fetchError } = await db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, date, status, amount, category_ai, category_human, merchant_name, merchant_raw, confidence, description, document_url, gl_name, currency')
       .eq('id', id)
       .in('entity_id', entityIds)
       .is('deleted_at', null)
@@ -410,7 +410,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     const { data: existing, error: fetchError } = await db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, status, merchant_name, amount')
       .eq('id', id)
       .in('entity_id', entityIds)
       .single();
@@ -439,6 +439,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    // F22b: Cancel any pending approvals for this transaction
+    await db.from('approval_requests')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('transaction_id', id)
+      .eq('status', 'pending');
 
     // Log to audit
     await writeAuditLog({

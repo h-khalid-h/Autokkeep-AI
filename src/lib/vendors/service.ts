@@ -93,7 +93,7 @@ export async function resolveOrCreateVendor(
   // Try to find existing vendor
   const { data: existing } = await db
     .from('vendors')
-    .select('*')
+    .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, is_active, created_at, updated_at')
     .eq('entity_id', entityId)
     .eq('normalized_name', normalizedName)
     .eq('is_active', true)
@@ -111,7 +111,7 @@ export async function resolveOrCreateVendor(
       vendor_type: 'unknown',
       w9_status: 'not_collected',
     })
-    .select('*')
+    .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, is_active, created_at, updated_at')
     .single();
 
   if (error) {
@@ -119,7 +119,7 @@ export async function resolveOrCreateVendor(
     if (error.code === '23505') {
       const { data: retried } = await db
         .from('vendors')
-        .select('*')
+        .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, is_active, created_at, updated_at')
         .eq('entity_id', entityId)
         .eq('normalized_name', normalizedName)
         .maybeSingle();
@@ -182,7 +182,7 @@ export async function getVendors1099Status(
 ): Promise<VendorComplianceStatus[]> {
   const { data: vendors, error } = await db
     .from('vendors')
-    .select('*')
+    .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, is_active, created_at, updated_at')
     .eq('entity_id', entityId)
     .eq('is_active', true)
     .gte('ytd_payments', 400) // Include approaching threshold

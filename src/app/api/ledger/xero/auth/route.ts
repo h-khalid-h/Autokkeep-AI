@@ -178,7 +178,7 @@ export async function getXeroAccessToken(entityId: string): Promise<{
 
   const { data: conn } = await db
     .from('ledger_connections')
-    .select('*')
+    .select('id, entity_id, access_token, refresh_token, tenant_id, token_expires_at, is_active')
     .eq('entity_id', entityId)
     .eq('provider', 'xero')
     .eq('is_active', true)

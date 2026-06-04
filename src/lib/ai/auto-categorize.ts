@@ -96,7 +96,7 @@ export async function runAutoCategorize(options?: {
         // Fetch categorization rules for this entity
         const { data: rulesData } = await db
           .from('categorization_rules')
-          .select('*')
+          .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
           .eq('entity_id', entityId);
 
         // Fetch chart of accounts for this entity

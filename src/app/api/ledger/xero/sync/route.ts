@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const { data: conn } = await db
       .from('ledger_connections')
-      .select('*')
+      .select('id, entity_id, access_token, refresh_token, tenant_id, token_expires_at, is_active')
       .eq('entity_id', entityId)
       .eq('provider', 'xero')
       .eq('is_active', true)
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     let query = db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status')
       .eq('entity_id', entityId)
       .eq('status', 'approved');
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       .update({ status: 'syncing', updated_at: new Date().toISOString() })
       .in('id', txIds)
       .eq('status', 'approved')
-      .select('*');
+      .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status');
 
     if (claimError || !claimed?.length) {
       return NextResponse.json({ ok: true, synced: 0, message: 'Transactions already being synced by another process' });
@@ -260,7 +260,7 @@ export async function GET(request: NextRequest) {
 
     const { data: conn } = await db
       .from('ledger_connections')
-      .select('*')
+      .select('id, entity_id, access_token, refresh_token, tenant_id, token_expires_at, is_active')
       .eq('entity_id', entityId)
       .eq('provider', 'xero')
       .eq('is_active', true)

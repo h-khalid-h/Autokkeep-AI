@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Get QBO connection
     const { data: conn } = await db
       .from('ledger_connections')
-      .select('*')
+      .select('id, entity_id, access_token, refresh_token, realm_id, token_expires_at, is_active')
       .eq('entity_id', entityId)
       .eq('provider', 'quickbooks')
       .eq('is_active', true)
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Get approved transactions that haven't been synced
     let query = db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status')
       .eq('entity_id', entityId)
       .eq('status', 'approved');
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       .update({ status: 'syncing', updated_at: new Date().toISOString() })
       .in('id', txIds)
       .eq('status', 'approved') // Only claim if still approved (another request may have claimed them)
-      .select('*');
+      .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status');
 
     if (claimError || !claimed?.length) {
       return NextResponse.json({
@@ -296,7 +296,7 @@ export async function GET(request: NextRequest) {
 
     const { data: conn } = await db
       .from('ledger_connections')
-      .select('*')
+      .select('id, entity_id, access_token, refresh_token, realm_id, token_expires_at, is_active')
       .eq('entity_id', entityId)
       .eq('provider', 'quickbooks')
       .eq('is_active', true)

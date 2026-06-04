@@ -216,34 +216,42 @@ export async function createFeeAdjustingEntry(
   // If bank charged LESS than expected → debit Cash, credit Bank Fees
   const feeIsDebit = variance < 0; // Bank took more than expected (fee deducted)
 
-  const { error: linesError } = await supabase.from('journal_lines').insert([
-    {
-      journal_entry_id: journalEntry.id,
-      gl_code: analysis.glCode,
-      debit: feeIsDebit ? absVariance : 0,
-      credit: feeIsDebit ? 0 : absVariance,
-      description: analysis.description,
-    },
-    {
-      journal_entry_id: journalEntry.id,
-      gl_code: gl.cashGL, // Cash & Bank
-      debit: feeIsDebit ? 0 : absVariance,
-      credit: feeIsDebit ? absVariance : 0,
-      description: `Offset for ${analysis.description}`,
-    },
-  ]);
+  // F19: Wrap in try/catch to clean up orphaned journal entry on any failure
+  try {
+    const { error: linesError } = await supabase.from('journal_lines').insert([
+      {
+        journal_entry_id: journalEntry.id,
+        gl_code: analysis.glCode,
+        debit: feeIsDebit ? absVariance : 0,
+        credit: feeIsDebit ? 0 : absVariance,
+        description: analysis.description,
+      },
+      {
+        journal_entry_id: journalEntry.id,
+        gl_code: gl.cashGL, // Cash & Bank
+        debit: feeIsDebit ? 0 : absVariance,
+        credit: feeIsDebit ? absVariance : 0,
+        description: `Offset for ${analysis.description}`,
+      },
+    ]);
 
-  // Rollback orphaned journal entry if lines failed
-  if (linesError) {
-    console.error(`[Reconciliation] journal_lines insert failed, deleting orphaned entry ${journalEntry.id}:`, linesError.message);
+    // Rollback orphaned journal entry if lines failed (Supabase-level error)
+    if (linesError) {
+      console.error(`[Reconciliation] journal_lines insert failed, deleting orphaned entry ${journalEntry.id}:`, linesError.message);
+      await supabase.from('journal_entries').delete().eq('id', journalEntry.id);
+      return {
+        matched: false,
+        variance: absVariance,
+        varianceGlCode: analysis.glCode,
+        varianceGlName: analysis.glName,
+        reasoning: `Failed to create journal lines: ${linesError.message}. Entry rolled back.`,
+      };
+    }
+  } catch (lineError) {
+    // Cleanup orphaned journal entry on thrown exception (network failure, crash, etc.)
+    console.error(`[Reconciliation] journal_lines insert threw, deleting orphaned entry ${journalEntry.id}:`, lineError);
     await supabase.from('journal_entries').delete().eq('id', journalEntry.id);
-    return {
-      matched: false,
-      variance: absVariance,
-      varianceGlCode: analysis.glCode,
-      varianceGlName: analysis.glName,
-      reasoning: `Failed to create journal lines: ${linesError.message}. Entry rolled back.`,
-    };
+    throw lineError;
   }
 
   // Log to audit

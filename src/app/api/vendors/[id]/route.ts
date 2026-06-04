@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Fetch vendor scoped to user's entities
     const { data: vendor, error: fetchError } = await db
       .from('vendors')
-      .select('*')
+      .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, phone, address, notes, is_active, created_at, updated_at')
       .eq('id', id)
       .in('entity_id', entityIds)
       .single();
@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Fetch existing vendor scoped to user's entities
     const { data: existing, error: fetchError } = await db
       .from('vendors')
-      .select('*')
+      .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, email, phone, address, notes, is_active, created_at, updated_at')
       .eq('id', id)
       .in('entity_id', entityIds)
       .single();
@@ -146,7 +146,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .from('vendors')
       .update(updateData)
       .eq('id', id)
-      .select('*')
+      .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, phone, address, notes, is_active, created_at, updated_at')
       .single();
 
     if (updateError) {
@@ -207,7 +207,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     // Fetch existing vendor scoped to user's entities
     const { data: existing, error: fetchError } = await db
       .from('vendors')
-      .select('*')
+      .select('id, entity_id, name, vendor_type, is_active')
       .eq('id', id)
       .in('entity_id', entityIds)
       .single();

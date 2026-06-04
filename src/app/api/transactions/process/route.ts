@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const { data: connections } = await db
       .from('bank_connections')
-      .select('*')
+      .select('id, entity_id, plaid_access_token, institution_name, cursor, status, last_synced_at')
       .eq('entity_id', entityId)
       .eq('status', 'active');
 
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 
     const { data: pendingTransactions } = await db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc, currency, card_holder, document_url')
       .eq('entity_id', entityId)
       .in('status', ['pending', 'human_review'])
       .is('category_ai', null);
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
       // Fetch categorization rules
       const { data: rulesData } = await db
         .from('categorization_rules')
-        .select('*')
+        .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
         .eq('entity_id', entityId);
 
       const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, unknown>) => {

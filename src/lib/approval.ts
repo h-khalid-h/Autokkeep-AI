@@ -117,7 +117,7 @@ export async function requestApproval(
     // Fetch the full row to return consistent shape
     const { data: full } = await db
       .from('approval_requests')
-      .select('*')
+      .select('id, entity_id, transaction_id, requested_role, threshold_id, status, approver_user_id, decided_at, created_at')
       .eq('id', existing.id)
       .single();
 
@@ -161,7 +161,7 @@ export async function processApproval(
   // to prevent cross-org approval hijacking
   const { data: approval, error: fetchError } = await db
     .from('approval_requests')
-    .select('*')
+    .select('id, entity_id, transaction_id, requested_role, threshold_id, status, approver_user_id, decided_at, created_at')
     .eq('id', approvalId)
     .in('entity_id', entityIds)
     .single();
@@ -354,7 +354,7 @@ export async function getPendingApprovals(
 
   const { data, error } = await db
     .from('approval_requests')
-    .select('*')
+    .select('id, entity_id, transaction_id, requested_role, threshold_id, status, approver_user_id, decided_at, created_at')
     .in('entity_id', entityIds)
     .eq('status', 'pending')
     .in('requested_role', qualifiedRoles)

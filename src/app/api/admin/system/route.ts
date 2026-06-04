@@ -150,14 +150,11 @@ export async function GET(request: NextRequest) {
       // Non-critical
     }
 
-    // ── Environment variable status ───────────────────────────────────────────
-    const envStatus = ENV_GROUPS.map((group) => ({
-      group: group.group,
-      vars: group.vars.map((v) => ({
-        name: v,
-        set: !!process.env[v],
-      })),
-    }));
+    // ── Environment variable status (F28: grouped booleans, no var names) ─────
+    const envStatus: Record<string, boolean> = {};
+    for (const group of ENV_GROUPS) {
+      envStatus[group.group.toLowerCase()] = group.vars.every((v) => !!process.env[v]);
+    }
 
     return NextResponse.json({
       uptime: process.uptime(),

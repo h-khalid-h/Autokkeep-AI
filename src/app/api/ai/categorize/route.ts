@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Fetch categorization rules
     const { data: rulesData } = await db
       .from('categorization_rules')
-      .select('*')
+      .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
       .eq('entity_id', entityId);
 
     const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {  // eslint-disable-line @typescript-eslint/no-explicit-any

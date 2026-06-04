@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // ── 2. AI categorization pass on uncategorized pending transactions ──
     const { data: pendingTxns } = await db
       .from('transactions')
-      .select('*')
+      .select('id, entity_id, plaid_transaction_id, merchant_name, merchant_raw, amount, date, currency, category_ai')
       .eq('entity_id', entity.id)
       .eq('status', 'pending')
       .is('category_ai', null);
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
       const { data: rulesData } = await db
         .from('categorization_rules')
-        .select('*')
+        .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
         .eq('entity_id', entity.id);
 
       // Fetch historical patterns

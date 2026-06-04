@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
       const { data: cachedAlerts, error: cacheError } = await db
         .from('health_alerts')
-        .select('*')
+        .select('id, entity_id, alert_type, severity, title, description, data, is_read, is_dismissed, created_at')
         .eq('entity_id', entityId)
         .eq('is_dismissed', false)
         .gte('created_at', oneDayAgo.toISOString())

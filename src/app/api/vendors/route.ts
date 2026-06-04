@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = db
       .from('vendors')
-      .select('*', { count: 'exact' })
+      .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, phone, address, notes, is_active, created_at, updated_at', { count: 'exact' })
       .eq('entity_id', entityId)
       .eq('is_active', true)
       .order('name', { ascending: true })
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         address: address || null,
       })
-      .select('*')
+      .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, phone, address, notes, is_active, created_at, updated_at')
       .single();
 
     if (createError) {

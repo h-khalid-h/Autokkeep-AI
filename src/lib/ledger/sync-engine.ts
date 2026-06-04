@@ -101,7 +101,7 @@ async function getUnsyncedEntries(
 async function getLedgerConnection(db: SupabaseQueryClient, entityId: string) {
   const { data } = await db
     .from('ledger_connections')
-    .select('*')
+    .select('id, entity_id, provider, access_token, refresh_token, realm_id, tenant_id, token_expires_at, is_active')
     .eq('entity_id', entityId)
     .eq('is_active', true)
     .single();
