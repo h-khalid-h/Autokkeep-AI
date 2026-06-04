@@ -142,10 +142,10 @@ describe('GET /api/insights/health', () => {
     // No cached alerts
     const cachedChain = createChainMock({ data: [], error: null });
 
-    let entityCallCount = 0;
+    let _entityCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') {
-        entityCallCount++;
+        _entityCallCount++;
         return entityChain;
       }
       if (table === 'health_alerts') return cachedChain;

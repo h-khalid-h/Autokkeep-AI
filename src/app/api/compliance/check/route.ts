@@ -11,7 +11,6 @@ import {
   runComplianceCheck,
 } from '@/lib/compliance';
 import type {
-  ComplianceRegion,
   TransactionForCompliance,
   EntityComplianceConfig,
 } from '@/lib/compliance';

@@ -171,7 +171,7 @@ export default function TransactionsPage() {
     const controller = new AbortController();
     fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`, { signal: controller.signal })
       .then(res => res.json())
-      .then(data => setGlAccounts(data.accounts || [])) // eslint-disable-line react-hooks/set-state-in-effect
+      .then(data => setGlAccounts(data.accounts || []))
       .catch((err) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
       });

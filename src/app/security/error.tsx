@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import styles from '../shared-error.module.css';
 
 export default function RouteError({
@@ -28,9 +29,9 @@ export default function RouteError({
         <button className={styles.retryBtn} onClick={reset}>
           Try again
         </button>
-        <a href="/" className={styles.homeLink}>
+        <Link href="/" className={styles.homeLink}>
           ← Back to Home
-        </a>
+        </Link>
       </div>
     </div>
   );

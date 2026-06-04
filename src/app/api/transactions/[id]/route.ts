@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { user, membership, db, entityIds } = ctx;
+    const { user, membership: _membership, db, entityIds } = ctx;
     if (entityIds.length === 0) {
       return NextResponse.json(
         { error: 'Transaction not found' },

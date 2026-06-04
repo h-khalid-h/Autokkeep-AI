@@ -27,7 +27,7 @@ export async function POST(
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { user, membership, db, entityIds } = ctx;
+    const { user, membership: _membership, db, entityIds } = ctx;
 
     const { id: transactionId } = await params;
     if (entityIds.length === 0) {

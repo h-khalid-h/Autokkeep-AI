@@ -136,9 +136,9 @@ describe('POST /api/ai/batch', () => {
     const entityChain = createChainMock({ data: { id: 'a0000000-0000-4000-8000-000000000010', org_id: 'a0000000-0000-4000-8000-000000000003' }, error: null });
     const txChain = createChainMock({ data: [], error: null });
 
-    let entityCalls = 0;
+    let _entityCalls = 0;
     mockDb.from.mockImplementation((table: string) => {
-      if (table === 'entities') { entityCalls++; return entityChain; }
+      if (table === 'entities') { _entityCalls++; return entityChain; }
       if (table === 'transactions') return txChain;
       return createChainMock({ data: null, error: null });
     });

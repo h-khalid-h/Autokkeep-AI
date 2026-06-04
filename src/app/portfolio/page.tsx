@@ -169,7 +169,6 @@ export default function PortfolioPage() {
         console.error('[Portfolio] Failed to load user role:', err);
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRole();
   }, []);
 

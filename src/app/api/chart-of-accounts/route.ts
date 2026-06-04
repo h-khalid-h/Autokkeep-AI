@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const parsed = await parseBody(request, schemas.createAccount);
     if (!parsed.success) return parsed.error;
-    const { code, name, type, description, active, entityId, is_active } = parsed.data;
+    const { code, name, type, description, active, entityId, is_active: _is_active } = parsed.data;
 
     // Resolve entity_id: use provided entityId or default to first entity
     let resolvedEntityId = entityId;

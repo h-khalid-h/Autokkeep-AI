@@ -155,11 +155,11 @@ describe('POST /api/compliance/check', () => {
     });
     const txChain = createChainMock({ data: null, error: { message: 'DB error' } });
 
-    let callCount = 0;
+    let _callCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'transactions') {
-        callCount++;
+        _callCount++;
         return txChain;
       }
       return createChainMock({ data: null, error: null });

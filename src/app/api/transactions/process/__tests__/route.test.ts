@@ -187,12 +187,12 @@ describe('POST /api/transactions/process', () => {
     // Pending transactions: none
     const txnChain = createChainMock({ data: [], error: null });
 
-    let fromCallCount = 0;
+    let _fromCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'bank_connections') return connChain;
       if (table === 'transactions') {
-        fromCallCount++;
+        _fromCallCount++;
         return txnChain;
       }
       return createChainMock({ data: null, error: null });

@@ -179,7 +179,7 @@ function checkEstimatedTaxReminder(violations: ComplianceViolation[]): void {
   const rule = RULES[4];
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-indexed
-  const currentDay = now.getDate();
+  const _currentDay = now.getDate();
 
   for (const [dueMonth, dueDay] of ESTIMATED_TAX_DUE_DATES) {
     // Calculate days until due date (handle year boundary for Jan 15)
