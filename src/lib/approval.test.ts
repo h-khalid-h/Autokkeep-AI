@@ -19,6 +19,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.insert = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(resolvedValue);
+  chain.maybeSingle = vi.fn().mockResolvedValue(resolvedValue);
 
   // Thenable for queries that don't use .single()
   chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
@@ -135,14 +136,24 @@ describe('requestApproval', () => {
       created_at: '2026-01-01T00:00:00Z',
     };
 
-    const chain = createChainMock({ data: createdRow, error: null });
-    mockDb.from.mockReturnValue(chain);
+    // F21: first call checks for existing pending (returns null), second call inserts
+    const existingCheckChain = createChainMock({ data: null, error: null });
+    const insertChain = createChainMock({ data: createdRow, error: null });
+
+    let callCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        callCount++;
+        return callCount <= 1 ? existingCheckChain : insertChain;
+      }
+      return createChainMock({ data: null, error: null });
+    });
 
     const result = await requestApproval(db, 'entity-1', 'tx-1', 'admin', 'thresh-1');
 
     expect(result.id).toBe('ar-1');
     expect(result.status).toBe('pending');
-    expect(chain.insert).toHaveBeenCalledWith({
+    expect(insertChain.insert).toHaveBeenCalledWith({
       entity_id: 'entity-1',
       transaction_id: 'tx-1',
       requested_role: 'admin',
@@ -152,11 +163,21 @@ describe('requestApproval', () => {
   });
 
   it('throws on DB insert error', async () => {
-    const chain = createChainMock({
+    // F21: first call checks for existing pending (returns null), second call fails on insert
+    const existingCheckChain = createChainMock({ data: null, error: null });
+    const insertChain = createChainMock({
       data: null,
       error: { message: 'unique violation' },
     });
-    mockDb.from.mockReturnValue(chain);
+
+    let callCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        callCount++;
+        return callCount <= 1 ? existingCheckChain : insertChain;
+      }
+      return createChainMock({ data: null, error: null });
+    });
 
     await expect(
       requestApproval(db, 'entity-1', 'tx-1', 'admin', 'thresh-1'),

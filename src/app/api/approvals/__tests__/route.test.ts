@@ -314,6 +314,6 @@ describe('POST /api/approvals', () => {
 
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe('Database connection lost');
+    expect(json.error).toBe('Failed to process approval');
   });
 });

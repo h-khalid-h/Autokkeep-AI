@@ -14,16 +14,24 @@ interface RateLimitConfig {
 // Used when Redis is unavailable. Simple fixed-window counter with TTL cleanup.
 const memoryStore = new Map<string, { count: number; expiresAt: number }>();
 const MEMORY_CLEANUP_INTERVAL = 60_000; // Clean expired entries every 60s
+const MAX_MEMORY_STORE_SIZE = 10_000; // F24: Cap to prevent unbounded memory growth
 let lastCleanup = Date.now();
 
 function memoryRateLimit(key: string, max: number, windowSeconds: number): { current: number; ttl: number } {
   const now = Date.now();
 
-  // Periodic cleanup of expired entries
-  if (now - lastCleanup > MEMORY_CLEANUP_INTERVAL) {
+  // Periodic cleanup of expired entries, also triggered when store exceeds cap
+  if (now - lastCleanup > MEMORY_CLEANUP_INTERVAL || memoryStore.size > MAX_MEMORY_STORE_SIZE) {
     lastCleanup = now;
     for (const [k, v] of memoryStore) {
       if (v.expiresAt <= now) memoryStore.delete(k);
+    }
+    // F24: Emergency eviction if still over cap — remove oldest 50% by expiry
+    if (memoryStore.size > MAX_MEMORY_STORE_SIZE) {
+      const entries = [...memoryStore.entries()]
+        .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+      const toRemove = entries.slice(0, Math.floor(entries.length / 2));
+      for (const [k] of toRemove) memoryStore.delete(k);
     }
   }
 

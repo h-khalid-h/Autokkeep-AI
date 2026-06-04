@@ -41,9 +41,10 @@ export async function GET(request: NextRequest) {
     // ── Send Digest Emails via Resend ──────────────────────────────────────
     const emailResults: Array<{ entity: string; success: boolean; error?: string }> = [];
 
+    const supabase = createAdminClient();
+    const db = supabase as unknown as SupabaseQueryClient;
+
     if (process.env.RESEND_API_KEY && digest.entities.length > 0) {
-      const supabase = createAdminClient();
-      const db = supabase as unknown as SupabaseQueryClient;
 
       // ── Batch: fetch all entities and their org_ids in one query ──────
       const entityIds = digest.entities.map(e => e.entityId);
@@ -136,10 +137,9 @@ export async function GET(request: NextRequest) {
       console.info('[Weekly Digest] RESEND_API_KEY not configured, skipping email delivery');
     }
 
-    // Audit log the cron run
-    const adminDb = createAdminClient() as unknown as SupabaseQueryClient;
+    // Audit log the cron run (reuse the db client created above)
     await writeAuditLog({
-      supabase: adminDb,
+      supabase: db,
       entityId: undefined,
       actorId: 'system',
       actorType: 'system',

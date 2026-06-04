@@ -93,7 +93,10 @@ export async function checkApprovalRequired(
 /**
  * Create a pending approval request for a transaction.
  *
- * @returns The newly created `approval_requests` row.
+ * If a pending request already exists for this transaction, the existing
+ * request is returned instead of creating a duplicate (F21).
+ *
+ * @returns The approval_requests row (new or existing) and an `alreadyExists` flag.
  */
 export async function requestApproval(
   db: SupabaseQueryClient,
@@ -101,7 +104,26 @@ export async function requestApproval(
   transactionId: string,
   requiredRole: string,
   thresholdId: string,
-): Promise<ApprovalRequest> {
+): Promise<ApprovalRequest & { alreadyExists?: boolean }> {
+  // F21: Check for existing pending request on this transaction
+  const { data: existing } = await db
+    .from('approval_requests')
+    .select('id')
+    .eq('transaction_id', transactionId)
+    .eq('status', 'pending')
+    .maybeSingle();
+
+  if (existing) {
+    // Fetch the full row to return consistent shape
+    const { data: full } = await db
+      .from('approval_requests')
+      .select('*')
+      .eq('id', existing.id)
+      .single();
+
+    return { ...(full as ApprovalRequest), alreadyExists: true };
+  }
+
   const { data, error } = await db
     .from('approval_requests')
     .insert({

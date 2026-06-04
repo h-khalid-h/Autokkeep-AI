@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const { data: connections, error: connError } = await db
       .from('ledger_connections')
-      .select('id, entity_id, provider, access_token, refresh_token, realm_id, tenant_id, is_active, token_expires_at')
+      .select('id, entity_id, provider, access_token, refresh_token, realm_id, tenant_id, is_active, token_expires_at, refresh_failures')
       .eq('is_active', true)
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', expiryThreshold);
@@ -74,13 +74,14 @@ export async function GET(request: NextRequest) {
         batch.map(async (connection) => {
           const tokenResult = await refreshConnectionToken(connection);
 
-          // Update the connection with new tokens
+          // Update the connection with new tokens and reset failure counter
           await db
             .from('ledger_connections')
             .update({
               access_token: encryptToken(tokenResult.accessToken),
               refresh_token: encryptToken(tokenResult.refreshToken),
               token_expires_at: computeTokenExpiresAt(tokenResult.expiresIn),
+              refresh_failures: 0,
             })
             .eq('id', connection.id);
 
@@ -118,12 +119,19 @@ export async function GET(request: NextRequest) {
             error: errorMessage,
           });
 
-          // Mark connection as inactive (token_expired)
+          // F23: Increment failure counter; only deactivate after 3+ consecutive failures
+          const currentFailures = connection.refresh_failures || 0;
+          const newFailures = currentFailures + 1;
+          const updatePayload: Record<string, unknown> = { refresh_failures: newFailures };
+          if (newFailures >= 3) {
+            updatePayload.is_active = false;
+            console.error(
+              `[Cron Token Refresh] Deactivating connection ${connection.id} after ${newFailures} consecutive failures`,
+            );
+          }
           await db
             .from('ledger_connections')
-            .update({
-              is_active: false,
-            })
+            .update(updatePayload)
             .eq('id', connection.id);
 
           console.error(

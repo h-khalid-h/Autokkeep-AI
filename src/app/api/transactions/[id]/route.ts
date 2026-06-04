@@ -192,6 +192,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             { status: 400 }
           );
         }
+        // F26: Block internal/private hostnames to prevent SSRF
+        const BLOCKED_HOSTS = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|127\.|0\.|localhost|metadata\.|internal\.)/i;
+        if (BLOCKED_HOSTS.test(url.hostname)) {
+          return NextResponse.json(
+            { error: 'Internal URLs are not allowed' },
+            { status: 400 }
+          );
+        }
         updateData.document_url = receiptUrl;
       } catch {
         return NextResponse.json(

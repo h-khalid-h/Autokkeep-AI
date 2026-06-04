@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: message },
+      { error: isValidation ? message : 'Failed to process approval' },
       { status: isValidation ? 400 : 500 },
     );
   }

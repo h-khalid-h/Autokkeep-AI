@@ -86,109 +86,122 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── Process each queue item ─────────────────────────────────────────
+    // ── Process queue items in batches ────────────────────────────────
+    const CONCURRENCY_LIMIT = 3;
     const results: ProcessingResult[] = [];
 
-    for (const item of queueItems as OcrQueueItem[]) {
-      try {
-        // Mark item as processing ─────────────────────────────────────────
-        await db
-          .from('receipt_ocr_queue')
-          .update({ status: 'processing' })
-          .eq('id', item.id);
+    for (let i = 0; i < (queueItems as OcrQueueItem[]).length; i += CONCURRENCY_LIMIT) {
+      const batch = (queueItems as OcrQueueItem[]).slice(i, i + CONCURRENCY_LIMIT);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (item) => {
+          try {
+            // Mark item as processing ─────────────────────────────────────────
+            await db
+              .from('receipt_ocr_queue')
+              .update({ status: 'processing' })
+              .eq('id', item.id);
 
-        // Step 1: Extract receipt data via OCR
-        const extractedData = await extractReceiptData(item.file_url);
+            // Step 1: Extract receipt data via OCR
+            const extractedData = await extractReceiptData(item.file_url);
 
-        // Step 2: Match to a transaction
-        const match = await matchReceiptToTransaction(
-          db,
-          item.entity_id,
-          extractedData
-        );
+            // Step 2: Match to a transaction
+            const match = await matchReceiptToTransaction(
+              db,
+              item.entity_id,
+              extractedData
+            );
 
-        if (match) {
-          // ── Matched: update transaction and OCR queue ────────────────
-          await db
-            .from('transactions')
-            .update({
-              document_status: 'found',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', match.transactionId);
+            if (match) {
+              // ── Matched: update transaction and OCR queue ────────────────
+              await db
+                .from('transactions')
+                .update({
+                  document_status: 'found',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', match.transactionId);
 
-          await db
-            .from('receipt_ocr_queue')
-            .update({
-              status: 'matched',
-              matched_transaction_id: match.transactionId,
-              confidence: match.confidence,
-              extracted_data: extractedData,
-              processed_at: new Date().toISOString(),
-            })
-            .eq('id', item.id);
+              await db
+                .from('receipt_ocr_queue')
+                .update({
+                  status: 'matched',
+                  matched_transaction_id: match.transactionId,
+                  confidence: match.confidence,
+                  extracted_data: extractedData,
+                  processed_at: new Date().toISOString(),
+                })
+                .eq('id', item.id);
 
-          results.push({
-            id: item.id,
-            status: 'matched',
-            transactionId: match.transactionId,
-            confidence: match.confidence,
-          });
-        } else {
-          // ── Extracted but unmatched ──────────────────────────────────
-          await db
-            .from('receipt_ocr_queue')
-            .update({
-              status: 'completed',
-              extracted_data: extractedData,
-              processed_at: new Date().toISOString(),
-            })
-            .eq('id', item.id);
+              return {
+                id: item.id,
+                status: 'matched' as const,
+                transactionId: match.transactionId,
+                confidence: match.confidence,
+              };
+            } else {
+              // ── Extracted but unmatched ──────────────────────────────────
+              await db
+                .from('receipt_ocr_queue')
+                .update({
+                  status: 'completed',
+                  extracted_data: extractedData,
+                  processed_at: new Date().toISOString(),
+                })
+                .eq('id', item.id);
 
-          results.push({
-            id: item.id,
-            status: 'completed',
-          });
+              return {
+                id: item.id,
+                status: 'completed' as const,
+              };
+            }
+          } catch (err: unknown) {
+            // ── Error: retry or permanently fail ─────────────────────────────
+            const errorMessage = err instanceof Error ? err.message : 'Unknown OCR error';
+            const nextRetryCount = (item.retry_count ?? 0) + 1;
+            const isPermanentFailure = nextRetryCount >= MAX_RETRY_COUNT;
+
+            console.error(
+              `[Cron OCR] Failed to process item ${item.id} (attempt ${nextRetryCount}/${MAX_RETRY_COUNT}):`,
+              err
+            );
+
+            if (isPermanentFailure) {
+              // Max retries exhausted — mark as permanently failed
+              await db
+                .from('receipt_ocr_queue')
+                .update({
+                  status: 'failed',
+                  retry_count: nextRetryCount,
+                  error_message: errorMessage,
+                  processed_at: new Date().toISOString(),
+                })
+                .eq('id', item.id);
+            } else {
+              // Re-queue for retry with incremented retry_count
+              await db
+                .from('receipt_ocr_queue')
+                .update({
+                  status: 'pending',
+                  retry_count: nextRetryCount,
+                  error_message: errorMessage,
+                })
+                .eq('id', item.id);
+            }
+
+            return {
+              id: item.id,
+              status: 'failed' as const,
+              error: errorMessage,
+            };
+          }
+        })
+      );
+
+      // Collect results from this batch
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
         }
-      } catch (err: unknown) {
-        // ── Error: retry or permanently fail ─────────────────────────────
-        const errorMessage = err instanceof Error ? err.message : 'Unknown OCR error';
-        const nextRetryCount = (item.retry_count ?? 0) + 1;
-        const isPermanentFailure = nextRetryCount >= MAX_RETRY_COUNT;
-
-        console.error(
-          `[Cron OCR] Failed to process item ${item.id} (attempt ${nextRetryCount}/${MAX_RETRY_COUNT}):`,
-          err
-        );
-
-        if (isPermanentFailure) {
-          // Max retries exhausted — mark as permanently failed
-          await db
-            .from('receipt_ocr_queue')
-            .update({
-              status: 'failed',
-              retry_count: nextRetryCount,
-              error_message: errorMessage,
-              processed_at: new Date().toISOString(),
-            })
-            .eq('id', item.id);
-        } else {
-          // Re-queue for retry with incremented retry_count
-          await db
-            .from('receipt_ocr_queue')
-            .update({
-              status: 'pending',
-              retry_count: nextRetryCount,
-              error_message: errorMessage,
-            })
-            .eq('id', item.id);
-        }
-
-        results.push({
-          id: item.id,
-          status: 'failed',
-          error: errorMessage,
-        });
       }
     }
 

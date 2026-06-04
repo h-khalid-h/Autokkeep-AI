@@ -203,6 +203,24 @@ export async function ingestTransactions(
       hasFailures = true;
     } else {
       result.removed = syncResult.removed.length;
+
+      // F22: Cancel pending approvals for removed transactions
+      // approval_requests references transaction_id (DB UUID), not plaid_transaction_id,
+      // so we need to look up the DB IDs first.
+      const { data: removedTxns } = await supabase
+        .from('transactions')
+        .select('id')
+        .in('plaid_transaction_id', removedIds)
+        .eq('entity_id', entityId);
+
+      if (removedTxns && removedTxns.length > 0) {
+        const removedDbIds = removedTxns.map((t: { id: string }) => t.id);
+        await supabase
+          .from('approval_requests')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .in('transaction_id', removedDbIds)
+          .eq('status', 'pending');
+      }
     }
   }
 

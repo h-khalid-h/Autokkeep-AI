@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
       .from('chart_of_accounts')
       .select('id, entity_id, code, name, type, is_active, created_at')
       .in('entity_id', entityIds)
-      .order('code', { ascending: true });
+      .order('code', { ascending: true })
+      .limit(1000);
 
     if (queryError) {
       console.error('[ChartOfAccounts] Query error:', queryError);

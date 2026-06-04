@@ -17,6 +17,7 @@ export interface LedgerConnectionRow {
   tenant_id: string | null;
   is_active: boolean;
   token_expires_at: string | null;
+  refresh_failures?: number;
 }
 
 export interface TokenRefreshResult {

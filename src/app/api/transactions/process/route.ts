@@ -287,6 +287,20 @@ export async function POST(request: NextRequest) {
       // Cache triage results for reuse in history learning (step 5)
       const triageCache = new Map<string, ReturnType<typeof triageTransaction>>();
 
+      // ── F33: Pre-fetch recent transactions for fraud duplicate detection ──
+      // Batch-fetch all non-removed transactions from the last 7 days for this
+      // entity so we can check duplicates in-memory instead of per-transaction.
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { data: recentTransactions } = await db
+        .from('transactions')
+        .select('id, merchant_name, amount, date')
+        .eq('entity_id', entityId)
+        .neq('status', 'removed')
+        .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+        .limit(5000);
+      const recentTxns = (recentTransactions || []) as Array<{ id: string; merchant_name: string | null; amount: number; date: string }>;
+
       for (const [txId, result] of results) {
         // ── Composite Confidence Gate (PRD §5.1) ──
         const hasDocument = docAnchorSet.has(txId);
@@ -350,23 +364,17 @@ export async function POST(request: NextRequest) {
           const merchantName = (originalTx.merchant_name || originalTx.merchant_raw || '') as string;
           const absAmount = Math.abs(typeof txAmount === 'number' ? txAmount : 0);
 
-          // Check 1: Duplicate detection — same vendor, similar amount, within 7 days
+          // Check 1: Duplicate detection — in-memory check against pre-fetched recent transactions
           if (merchantName && absAmount > 0) {
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const similarTxns = recentTxns.filter(
+              (s) =>
+                s.id !== txId &&
+                s.merchant_name &&
+                s.merchant_name.toLowerCase() === merchantName.toLowerCase()
+            );
 
-            const { data: similarTxns } = await db
-              .from('transactions')
-              .select('id, amount')
-              .eq('entity_id', entityId)
-              .ilike('merchant_name', merchantName)
-              .gte('date', sevenDaysAgo.toISOString().split('T')[0])
-              .neq('id', txId)
-              .neq('status', 'removed')
-              .limit(5);
-
-            if (similarTxns && similarTxns.length > 0) {
-              const duplicateMatch = similarTxns.find((s: { amount: number }) => {
+            if (similarTxns.length > 0) {
+              const duplicateMatch = similarTxns.find((s) => {
                 const diff = Math.abs(Math.abs(s.amount) - absAmount);
                 return diff / absAmount <= 0.05; // within 5%
               });
