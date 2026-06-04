@@ -3,98 +3,115 @@ import { NextRequest } from 'next/server';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────────
 
-// Mock Sentry
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
 }));
 
-// Mock audit log
 vi.mock('@/lib/audit', () => ({
   writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock jose — skip JWT verification (we test at the route level)
+const mockIngestTransactions = vi.fn();
+vi.mock('@/lib/plaid/ingest', () => ({
+  ingestTransactions: (...args: unknown[]) => mockIngestTransactions(...args),
+}));
+
+const mockRunAutoCategorize = vi.fn();
+vi.mock('@/lib/ai/auto-categorize', () => ({
+  runAutoCategorize: (...args: unknown[]) => mockRunAutoCategorize(...args),
+}));
+
+// Mock jose — we skip real JWT verification by setting PLAID_SKIP_WEBHOOK_VERIFICATION
 vi.mock('jose', () => ({
   importJWK: vi.fn(),
   jwtVerify: vi.fn(),
   decodeProtectedHeader: vi.fn(),
 }));
 
-// Mock ingestTransactions
-const mockIngestTransactions = vi.fn().mockResolvedValue({ added: 5, modified: 0, removed: 0 });
-vi.mock('@/lib/plaid/ingest', () => ({
-  ingestTransactions: mockIngestTransactions,
-}));
+// ─── Supabase admin mock ────────────────────────────────────────────────────────
 
-// Mock Supabase admin client
-const mockFrom = vi.fn();
-const mockAdminSupabase = { from: mockFrom };
+let connectionResult: { data: unknown; error: unknown } = { data: null, error: null };
+
+const mockUpdateReturn = {
+  eq: vi.fn().mockResolvedValue({ error: null }),
+};
 
 vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: vi.fn().mockReturnValue(mockAdminSupabase),
+  createAdminClient: vi.fn(() => ({
+    from: vi.fn().mockImplementation(() => {
+      const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+      chain.select = vi.fn().mockReturnValue(chain);
+      chain.eq = vi.fn().mockReturnValue(chain);
+      chain.single = vi.fn().mockReturnValue({
+        then: vi.fn((resolve: (v: unknown) => void) => resolve(connectionResult)),
+      });
+      chain.update = vi.fn().mockReturnValue(mockUpdateReturn);
+      return chain;
+    }),
+  })),
 }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-function createRequest(
-  body: Record<string, unknown>,
-  headers: Record<string, string> = {}
-): NextRequest {
+function createWebhookRequest(body: unknown): NextRequest {
   return new NextRequest('http://localhost:3000/api/webhooks/plaid', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body),
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
   });
-}
-
-/** Fluent chain builder for Supabase query mocks */
-function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-
-  chain.select = vi.fn().mockReturnValue(chain);
-  chain.eq = vi.fn().mockReturnValue(chain);
-  chain.in = vi.fn().mockReturnValue(chain);
-  chain.update = vi.fn().mockReturnValue(chain);
-  chain.insert = vi.fn().mockReturnValue(chain);
-  chain.single = vi.fn().mockResolvedValue(resolvedValue);
-  chain.maybeSingle = vi.fn().mockResolvedValue(resolvedValue);
-
-  // When the chain is awaited directly (no .single()), return the resolved value
-  chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
-
-  return chain;
 }
 
 const mockConnection = {
   id: 'conn-1',
   entity_id: 'entity-1',
   plaid_item_id: 'item-1',
-  plaid_access_token: 'access-sandbox-xxx',
+  plaid_access_token: 'access-sandbox-test',
   cursor: null,
   institution_name: 'Chase',
-  status: 'connected',
+  status: 'active',
 };
 
 // ─── Tests ──────────────────────────────────────────────────────────────────────
 
-const { POST } = await import('../route');
+const { POST } = await import('../../plaid/route');
 
 describe('POST /api/webhooks/plaid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Skip webhook verification in tests (non-production)
-    vi.stubEnv('PLAID_SKIP_WEBHOOK_VERIFICATION', 'true');
-    vi.stubEnv('NODE_ENV', 'test');
+    process.env.PLAID_SKIP_WEBHOOK_VERIFICATION = 'true';
+    process.env.NODE_ENV = 'test';
+    connectionResult = { data: mockConnection, error: null };
   });
 
-  // ── Missing verification header (when verification is NOT skipped) ────────
+  it('rejects invalid JSON body', async () => {
+    const req = createWebhookRequest('not-valid-json{{{');
+    const res = await POST(req);
 
-  it('should return 401 if verification header is missing and verification not skipped', async () => {
-    // Enable verification
-    vi.stubEnv('PLAID_SKIP_WEBHOOK_VERIFICATION', '');
-    vi.stubEnv('NODE_ENV', 'test');
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe('Invalid JSON');
+  });
 
-    const req = createRequest({
+  it('rejects missing webhook payload fields when verification is skipped', async () => {
+    const req = createWebhookRequest({ webhook_type: 'TRANSACTIONS' });
+    // Missing webhook_code and item_id
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe('Invalid webhook payload structure');
+  });
+
+  it('rejects missing Plaid-Verification header when verification is not skipped', async () => {
+    delete process.env.PLAID_SKIP_WEBHOOK_VERIFICATION;
+
+    const req = createWebhookRequest({
       webhook_type: 'TRANSACTIONS',
       webhook_code: 'SYNC_UPDATES_AVAILABLE',
       item_id: 'item-1',
@@ -103,37 +120,14 @@ describe('POST /api/webhooks/plaid', () => {
 
     expect(res.status).toBe(401);
     const json = await res.json();
-    expect(json.error).toContain('Missing verification');
+    expect(json.error).toBe('Missing verification header');
   });
 
-  // ── Invalid payload structure ─────────────────────────────────────────────
+  it('handles TRANSACTIONS.SYNC_UPDATES_AVAILABLE event', async () => {
+    mockIngestTransactions.mockResolvedValue({ added: 5, modified: 1, removed: 0 });
+    mockRunAutoCategorize.mockResolvedValue(undefined);
 
-  it('should return 400 for invalid JSON', async () => {
-    const req = new NextRequest('http://localhost:3000/api/webhooks/plaid', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: 'not json',
-    });
-    const res = await POST(req);
-
-    expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toContain('Invalid JSON');
-  });
-
-  // ── TRANSACTIONS webhook ──────────────────────────────────────────────────
-
-  it('should handle TRANSACTIONS.SYNC_UPDATES_AVAILABLE webhook', async () => {
-    const connectionChain = createChainMock({ data: mockConnection, error: null });
-    const auditChain = createChainMock({ data: null, error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'bank_connections') return connectionChain;
-      if (table === 'audit_log') return auditChain;
-      return createChainMock({ data: null, error: null });
-    });
-
-    const req = createRequest({
+    const req = createWebhookRequest({
       webhook_type: 'TRANSACTIONS',
       webhook_code: 'SYNC_UPDATES_AVAILABLE',
       item_id: 'item-1',
@@ -143,60 +137,130 @@ describe('POST /api/webhooks/plaid', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.received).toBe(true);
-
-    // Verify ingestTransactions was called
-    expect(mockIngestTransactions).toHaveBeenCalled();
+    expect(mockIngestTransactions).toHaveBeenCalledTimes(1);
   });
 
-  // ── ITEM.ERROR webhook ────────────────────────────────────────────────────
+  it('handles TRANSACTIONS.DEFAULT_UPDATE event', async () => {
+    mockIngestTransactions.mockResolvedValue({ added: 3, modified: 0, removed: 0 });
+    mockRunAutoCategorize.mockResolvedValue(undefined);
 
-  it('should handle ITEM.ERROR webhook and update connection status', async () => {
-    const connectionChain = createChainMock({ data: mockConnection, error: null });
-    const _updateChain = createChainMock({ data: null, error: null });
-    const auditChain = createChainMock({ data: null, error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'bank_connections') {
-        // First call: select (lookup), subsequent: update
-        return connectionChain;
-      }
-      if (table === 'audit_log') return auditChain;
-      return createChainMock({ data: null, error: null });
-    });
-
-    const req = createRequest({
-      webhook_type: 'ITEM',
-      webhook_code: 'ERROR',
+    const req = createWebhookRequest({
+      webhook_type: 'TRANSACTIONS',
+      webhook_code: 'DEFAULT_UPDATE',
       item_id: 'item-1',
-      error: {
-        error_type: 'ITEM_ERROR',
-        error_code: 'ITEM_LOGIN_REQUIRED',
-        error_message: 'Login required',
-      },
     });
     const res = await POST(req);
 
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.received).toBe(true);
+    expect(mockIngestTransactions).toHaveBeenCalledTimes(1);
   });
 
-  // ── Unknown item_id ───────────────────────────────────────────────────────
+  it('triggers auto-categorize when new transactions are added', async () => {
+    mockIngestTransactions.mockResolvedValue({ added: 2, modified: 0, removed: 0 });
+    mockRunAutoCategorize.mockResolvedValue(undefined);
 
-  it('should return 200 even when no connection found for item_id', async () => {
-    const connectionChain = createChainMock({ data: null, error: { code: 'PGRST116' } });
-    mockFrom.mockReturnValue(connectionChain);
+    const req = createWebhookRequest({
+      webhook_type: 'TRANSACTIONS',
+      webhook_code: 'SYNC_UPDATES_AVAILABLE',
+      item_id: 'item-1',
+    });
+    await POST(req);
 
-    const req = createRequest({
+    // runAutoCategorize is fire-and-forget, but should be called
+    expect(mockRunAutoCategorize).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not trigger auto-categorize when no new transactions', async () => {
+    mockIngestTransactions.mockResolvedValue({ added: 0, modified: 2, removed: 0 });
+
+    const req = createWebhookRequest({
+      webhook_type: 'TRANSACTIONS',
+      webhook_code: 'SYNC_UPDATES_AVAILABLE',
+      item_id: 'item-1',
+    });
+    await POST(req);
+
+    expect(mockRunAutoCategorize).not.toHaveBeenCalled();
+  });
+
+  it('handles unknown event types gracefully', async () => {
+    const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const req = createWebhookRequest({
+      webhook_type: 'UNKNOWN',
+      webhook_code: 'SOMETHING_NEW',
+      item_id: 'item-1',
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.received).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('returns 200 when connection is not found', async () => {
+    connectionResult = { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const req = createWebhookRequest({
       webhook_type: 'TRANSACTIONS',
       webhook_code: 'SYNC_UPDATES_AVAILABLE',
       item_id: 'unknown-item',
     });
     const res = await POST(req);
 
-    // Plaid webhooks always return 200 to prevent retries
+    // Webhooks always return 200 to acknowledge receipt
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.received).toBe(true);
+    expect(mockIngestTransactions).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('handles ITEM.ERROR event', async () => {
+    const req = createWebhookRequest({
+      webhook_type: 'ITEM',
+      webhook_code: 'ERROR',
+      item_id: 'item-1',
+      error: {
+        error_type: 'ITEM_ERROR',
+        error_code: 'ITEM_LOGIN_REQUIRED',
+        error_message: 'The login details for this item have changed.',
+      },
+    });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.received).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('handles sync failure gracefully without crashing', async () => {
+    mockIngestTransactions.mockRejectedValue(new Error('Plaid API timeout'));
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const req = createWebhookRequest({
+      webhook_type: 'TRANSACTIONS',
+      webhook_code: 'SYNC_UPDATES_AVAILABLE',
+      item_id: 'item-1',
+    });
+    const res = await POST(req);
+
+    // Should still return 200 because error is caught per-event
+    expect(res.status).toBe(200);
+
+    consoleSpy.mockRestore();
   });
 });
