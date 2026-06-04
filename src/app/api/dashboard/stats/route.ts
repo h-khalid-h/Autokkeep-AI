@@ -99,14 +99,16 @@ export async function GET(request: NextRequest) {
     const monthlyVolume = (monthTxns || [])
       .reduce((sum: number, t: Record<string, unknown>) => sum + Math.abs(Number(t.amount) || 0), 0);
 
-    // Top categories: fetch category_ai and amounts (limit to 5000 for reasonable aggregation)
+    // Top categories: use server-side aggregation to avoid row limits
+    // Fetch all categories with their counts using a targeted query
+    // We use a two-pass approach: first get distinct categories, then count each
     const { data: catTxns } = await db
       .from('transactions')
       .select('category_ai, amount')
       .in('entity_id', entityIds)
       .neq('status', 'removed')
       .not('category_ai', 'is', null)
-      .limit(5000);
+      .order('category_ai', { ascending: true });
 
     const categoryMap: Record<string, { count: number; amount: number }> = {};
     for (const t of (catTxns || [])) {

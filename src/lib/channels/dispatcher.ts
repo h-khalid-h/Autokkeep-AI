@@ -37,6 +37,12 @@ export interface TransactionContext {
   suggestedGLCode?: string;
   confidence?: number;
   currency?: string;
+  // Rich message overrides (used by close-reminder, etc.)
+  // When provided, these bypass the default message builders
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  slackBlocks?: any[];
+  smsText?: string;
+  emailHtml?: string;
 }
 
 // ============================================
@@ -108,6 +114,31 @@ async function dispatchSlack(
   connection: ChannelConnection,
   context: TransactionContext
 ): Promise<DispatchResult> {
+  // Rich message override: use pre-built Slack blocks (close-reminder, etc.)
+  if (context.slackBlocks) {
+    try {
+      const { getSlackClient } = await import('./slack');
+      const client = getSlackClient(connection.accessToken);
+      const result = await client.chat.postMessage({
+        channel: connection.channelId,
+        text: context.merchantName,
+        blocks: context.slackBlocks,
+        unfurl_links: false,
+      });
+      return {
+        success: result.ok ?? false,
+        channel: 'slack',
+        messageId: result.ts,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        channel: 'slack',
+        error: error instanceof Error ? error.message : 'Slack dispatch failed',
+      };
+    }
+  }
+
   // When confidence data is available, use the micro-card builder for richer alerts
   if (context.confidence !== undefined) {
     const txnData: TransactionData = {
@@ -254,6 +285,21 @@ async function dispatchEmail(
   connection: ChannelConnection,
   context: TransactionContext
 ): Promise<DispatchResult> {
+  // Rich HTML override (close-reminder, etc.)
+  if (context.emailHtml) {
+    const { sendRawEmail } = await import('./email');
+    const result = await sendRawEmail(connection.channelId, {
+      subject: context.merchantName,
+      html: context.emailHtml,
+    });
+    return {
+      success: result.success,
+      channel: 'email',
+      messageId: result.messageId,
+      error: result.error,
+    };
+  }
+
   const result = await sendEmailReceiptRequest(connection.channelId, {
     transactionId: context.transactionId,
     merchantName: context.merchantName,
@@ -278,8 +324,10 @@ async function dispatchSMS(
 ): Promise<DispatchResult> {
   let message: string;
 
-  // When confidence data is available, use the micro-card builder for richer SMS
-  if (context.confidence !== undefined) {
+  // Rich SMS text override (close-reminder, etc.)
+  if (context.smsText) {
+    message = context.smsText;
+  } else if (context.confidence !== undefined) {
     const txnData: TransactionData = {
       id: context.transactionId,
       merchant_name: context.merchantName,

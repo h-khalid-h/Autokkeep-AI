@@ -172,3 +172,38 @@ export async function sendEmailReceiptRequest(
     return { success: false, error: message };
   }
 }
+
+/**
+ * Sends a raw HTML email via Resend.
+ * Used for non-receipt-request emails (close reminders, system notifications, etc.)
+ *
+ * @param to - Recipient email address
+ * @param options - Subject and pre-built HTML content
+ * @returns Result with success flag and optional messageId or error
+ */
+export async function sendRawEmail(
+  to: string,
+  options: { subject: string; html: string }
+): Promise<EmailSendResult> {
+  try {
+    const resend = getResendClient();
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      subject: options.subject,
+      html: options.html,
+    });
+
+    if (error) {
+      console.error('[Email Channel] Raw send failed:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, messageId: data?.id };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown email error';
+    console.error('[Email Channel] Raw email error:', message);
+    return { success: false, error: message };
+  }
+}

@@ -223,21 +223,21 @@ export async function POST(request: NextRequest) {
           });
 
           // Use Slack blocks if available, otherwise SMS
-          const _slackBlocks = buildCloseReminderSlackBlocks(
+          const slackBlocks = buildCloseReminderSlackBlocks(
             entity.name,
             periodLabel,
             score,
             failedChecks
           );
-          const _smsText = buildCloseReminderSMS(entity.name, periodLabel, score);
-          const _emailHtml = buildCloseReminderEmailHtml(
+          const smsText = buildCloseReminderSMS(entity.name, periodLabel, score);
+          const emailHtml = buildCloseReminderEmailHtml(
             entity.name,
             periodLabel,
             score,
             failedChecks
           );
 
-          // Dispatch via the fallback chain
+          // Dispatch via the fallback chain with rich content
           const result = await dispatchWithFallback(channelConns, {
             transactionId: `close-reminder-${entity.id}`,
             merchantName: `Period Close: ${periodLabel}`,
@@ -247,6 +247,10 @@ export async function POST(request: NextRequest) {
             cardHolder: 'System',
             suggestedCategory: `Readiness: ${score}%`,
             confidence: score,
+            // Rich message overrides
+            slackBlocks,
+            smsText,
+            emailHtml,
           });
 
           if (result.success) notified = true;

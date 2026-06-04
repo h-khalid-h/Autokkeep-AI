@@ -49,14 +49,29 @@ export async function GET(request: NextRequest) {
 
     const entityIds = entities.map((e: { id: string }) => e.id);
 
-    // Batch fetch all transaction counts per entity + status
-    // Safety cap — aggregation should use COUNT() in future
-    const { data: allTransactions } = await db
-      .from('transactions')
-      .select('entity_id, status, confidence')
-      .in('entity_id', entityIds)
-      .is('deleted_at', null)
-      .limit(10000);
+    // Batch fetch transaction counts per entity using efficient COUNT queries
+    // instead of fetching all rows (removes 10K cap)
+    const countQueries = entityIds.flatMap((eid: string) => [
+      db.from('transactions').select('id', { count: 'exact', head: true })
+        .eq('entity_id', eid).is('deleted_at', null)
+        .then((r: { count: number | null }) => ({ entityId: eid, type: 'total', count: r.count ?? 0 })),
+      db.from('transactions').select('id', { count: 'exact', head: true })
+        .eq('entity_id', eid).in('status', ['human_review', 'pending']).is('deleted_at', null)
+        .then((r: { count: number | null }) => ({ entityId: eid, type: 'pending', count: r.count ?? 0 })),
+      db.from('transactions').select('id', { count: 'exact', head: true })
+        .eq('entity_id', eid).in('status', ['approved', 'synced', 'auto_categorized']).is('deleted_at', null)
+        .then((r: { count: number | null }) => ({ entityId: eid, type: 'resolved', count: r.count ?? 0 })),
+    ]);
+
+    const countResults = await Promise.all(countQueries);
+
+    // Build per-entity count maps
+    const txByEntity = new Map<string, { total: number; pending: number; resolved: number }>();
+    for (const r of countResults) {
+      const existing = txByEntity.get(r.entityId) || { total: 0, pending: 0, resolved: 0 };
+      existing[r.type as 'total' | 'pending' | 'resolved'] = r.count;
+      txByEntity.set(r.entityId, existing);
+    }
 
     // Batch fetch bank connection statuses
     const { data: bankConnections } = await db
@@ -69,14 +84,6 @@ export async function GET(request: NextRequest) {
       .from('ledger_connections')
       .select('entity_id, is_active')
       .in('entity_id', entityIds);
-
-    // Build per-entity stats
-    const txByEntity = new Map<string, Array<{ entity_id: string; status: string; confidence: number | null }>>();
-    for (const tx of allTransactions || []) {
-      const list = txByEntity.get(tx.entity_id) || [];
-      list.push(tx);
-      txByEntity.set(tx.entity_id, list);
-    }
 
     const bankByEntity = new Map<string, { entity_id: string; status: string; last_synced_at: string | null }>();
     for (const bc of bankConnections || []) {
@@ -95,12 +102,8 @@ export async function GET(request: NextRequest) {
     }
 
     const entityStats: EntityStats[] = entities.map((entity: { id: string; name: string; base_currency: string }) => {
-      const txs = txByEntity.get(entity.id) || [];
-      const total = txs.length;
-      const pending = txs.filter((t: { status: string }) => t.status === 'human_review' || t.status === 'pending').length;
-      const resolved = txs.filter((t: { status: string }) =>
-        t.status === 'approved' || t.status === 'synced' || t.status === 'auto_categorized'
-      ).length;
+      const counts = txByEntity.get(entity.id) || { total: 0, pending: 0, resolved: 0 };
+      const { total, pending, resolved } = counts;
 
       const abr = total > 0 ? Math.round((resolved / total) * 100) : 0;
       const closeReadiness = total > 0 ? Math.round(((total - pending) / total) * 100) : 100;

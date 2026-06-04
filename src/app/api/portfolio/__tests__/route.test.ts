@@ -127,16 +127,6 @@ describe('GET /api/portfolio', () => {
       { id: 'a0000000-0000-4000-8000-000000000020', name: 'Entity Beta', base_currency: 'EUR' },
     ];
 
-    const transactions = [
-      // Entity Alpha: 2 approved, 1 pending
-      { entity_id: 'a0000000-0000-4000-8000-000000000010', status: 'approved', confidence: 95 },
-      { entity_id: 'a0000000-0000-4000-8000-000000000010', status: 'approved', confidence: 90 },
-      { entity_id: 'a0000000-0000-4000-8000-000000000010', status: 'pending', confidence: null },
-      // Entity Beta: 1 synced, 1 human_review
-      { entity_id: 'a0000000-0000-4000-8000-000000000020', status: 'synced', confidence: 98 },
-      { entity_id: 'a0000000-0000-4000-8000-000000000020', status: 'human_review', confidence: 40 },
-    ];
-
     const bankConnections = [
       { entity_id: 'a0000000-0000-4000-8000-000000000010', status: 'active', last_synced_at: '2024-06-01T12:00:00Z' },
     ];
@@ -146,13 +136,27 @@ describe('GET /api/portfolio', () => {
     ];
 
     const entityChain = createChainMock({ data: entities, error: null });
-    const txnChain = createChainMock({ data: transactions, error: null });
     const bankChain = createChainMock({ data: bankConnections, error: null });
     const ledgerChain = createChainMock({ data: ledgerConnections, error: null });
 
+    // Transaction COUNT queries: the route now does per-entity .select('id', { count, head })
+    // with .then() to extract counts. We use a counter to track calls.
+    let txnCallIdx = 0;
+    // Expected calls: 3 per entity (total, pending, resolved) × 2 entities = 6
+    // Entity Alpha: total=3, pending=1, resolved=2
+    // Entity Beta: total=2, pending=1, resolved=1
+    const txnCounts = [3, 1, 2, 2, 1, 1];
+
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
-      if (table === 'transactions') return txnChain;
+      if (table === 'transactions') {
+        const count = txnCounts[txnCallIdx] ?? 0;
+        txnCallIdx++;
+        const chain = createChainMock({ data: null, error: null, count });
+        // Override .then to resolve with { count }
+        chain.then = vi.fn((resolve: (v: unknown) => void) => resolve({ count }));
+        return chain;
+      }
       if (table === 'bank_connections') return bankChain;
       if (table === 'ledger_connections') return ledgerChain;
       return createChainMock({ data: null, error: null });

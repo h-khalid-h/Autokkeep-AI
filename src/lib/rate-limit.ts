@@ -49,10 +49,20 @@ export async function rateLimit(
 ): Promise<NextResponse | null> {
   const { max, windowSeconds, prefix = 'rl' } = config;
 
-  // Use IP + path as the rate limit key
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+  // Extract client IP — in production, the platform (Vercel/Cloudflare) sets
+  // x-forwarded-for reliably. We take only the leftmost (client) IP and
+  // validate it's a plausible IPv4/IPv6 address.
+  const rawIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
     || request.headers.get('x-real-ip') 
     || 'unknown';
+  
+  // Basic IP validation: must look like an IPv4 or IPv6 address
+  const isValidIp = /^[\d.]+$/.test(rawIp) || /^[0-9a-fA-F:]+$/.test(rawIp) || rawIp === 'unknown';
+  const ip = isValidIp ? rawIp : 'invalid';
+  if (!isValidIp) {
+    console.error(`[RateLimit] Suspicious x-forwarded-for value rejected: "${rawIp.slice(0, 50)}"`);
+  }
+  
   const path = new URL(request.url).pathname;
   const key = `${prefix}:${ip}:${path}`;
 
