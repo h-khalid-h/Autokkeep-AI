@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { captureException } from '@/lib/sentry';
 
 export interface ApiAuthContext {
   user: { id: string; email?: string };
@@ -149,6 +150,7 @@ export async function getApiAuthContext(
     };
   } catch (err) {
     console.error('[getApiAuthContext] Unexpected error:', err);
+    captureException(err);
     return {
       error: NextResponse.json({ error: 'Internal server error' }, { status: 500 }),
     };

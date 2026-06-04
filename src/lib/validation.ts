@@ -24,7 +24,6 @@ const uuid = z.string().uuid();
 const email = z.string().email().max(320);
 const nonEmptyString = z.string().min(1).max(1000);
 const safeString = z.string().max(5000);
-const _positiveInt = z.number().int().positive();
 const currency = z.enum([
   'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'NZD', 'INR', 'BRL', 'MXN',
 ]);
@@ -199,6 +198,14 @@ export const schemas = {
 
   deleteVendorManager: z.object({
     id: uuid,
+  }),
+
+  updateVendorManager: z.object({
+    id: uuid,
+    vendorPattern: nonEmptyString.optional(),
+    managerUserId: uuid.optional(),
+  }).refine(data => !!(data.vendorPattern || data.managerUserId), {
+    message: 'At least one field (vendorPattern or managerUserId) must be provided',
   }),
 
   // Vendors

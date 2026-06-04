@@ -4,6 +4,7 @@
 // ============================================
 
 import { formatCurrency } from '@/lib/currency/converter';
+import { HIGH_RISK_AMOUNT } from '@/lib/ai/confidence';
 
 // --- Types ---
 
@@ -48,7 +49,6 @@ export interface SlackBlock {
 
 // --- Constants ---
 
-const HIGH_RISK_AMOUNT_THRESHOLD = 250;
 const LOW_CONFIDENCE_THRESHOLD = 0.95;
 
 function getBaseUrl(): string {
@@ -56,10 +56,10 @@ function getBaseUrl(): string {
 }
 
 function getRiskLevel(amount: number, confidence: number): 'high' | 'medium' | 'low' {
-  if (Math.abs(amount) >= HIGH_RISK_AMOUNT_THRESHOLD && confidence < LOW_CONFIDENCE_THRESHOLD) {
+  if (Math.abs(amount) >= HIGH_RISK_AMOUNT && confidence < LOW_CONFIDENCE_THRESHOLD) {
     return 'high';
   }
-  if (Math.abs(amount) >= HIGH_RISK_AMOUNT_THRESHOLD || confidence < LOW_CONFIDENCE_THRESHOLD) {
+  if (Math.abs(amount) >= HIGH_RISK_AMOUNT || confidence < LOW_CONFIDENCE_THRESHOLD) {
     return 'medium';
   }
   return 'low';

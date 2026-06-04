@@ -93,11 +93,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (confidenceMin) {
-      query = query.gte('confidence', parseInt(confidenceMin, 10));
+      const parsedMin = parseInt(confidenceMin, 10);
+      if (!isNaN(parsedMin)) query = query.gte('confidence', parsedMin);
     }
 
     if (confidenceMax) {
-      query = query.lte('confidence', parseInt(confidenceMax, 10));
+      const parsedMax = parseInt(confidenceMax, 10);
+      if (!isNaN(parsedMax)) query = query.lte('confidence', parsedMax);
     }
 
     if (search) {

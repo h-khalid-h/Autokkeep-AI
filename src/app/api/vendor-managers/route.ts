@@ -138,12 +138,6 @@ export async function POST(request: NextRequest) {
 
 // ─── PUT: Update existing vendor manager ────────────────────────────────────
 
-interface UpdateVendorManagerBody {
-  id: string;
-  vendorPattern?: string;
-  managerUserId?: string;
-}
-
 export async function PUT(request: NextRequest) {
   try {
     const limited = await rateLimit(request, { max: 20, windowSeconds: 60, prefix: 'vm-update' });
@@ -153,20 +147,9 @@ export async function PUT(request: NextRequest) {
     if (ctx.error) return ctx.error;
     const { user, db, entityIds } = ctx;
 
-    let body: UpdateVendorManagerBody;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-    const { id, vendorPattern, managerUserId } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Vendor manager id is required' },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(request, schemas.updateVendorManager);
+    if (!parsed.success) return parsed.error;
+    const { id, vendorPattern, managerUserId } = parsed.data;
 
     // Verify the vendor manager belongs to an entity in this org
     const { data: existing } = await db
@@ -205,12 +188,7 @@ export async function PUT(request: NextRequest) {
     if (vendorPattern !== undefined) updates.vendor_pattern = vendorPattern;
     if (managerUserId !== undefined) updates.manager_user_id = managerUserId;
 
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: 'No fields to update' },
-        { status: 400 }
-      );
-    }
+
 
     const { data: vendorManager, error: updateError } = await db
       .from('vendor_managers')

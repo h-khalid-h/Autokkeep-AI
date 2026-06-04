@@ -24,21 +24,8 @@ export type RuleType = 'exact_match' | 'pattern' | 'mcc';
 
 export type JournalStatus = 'draft' | 'posted' | 'voided';
 
-export type AuditAction =
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'categorize'
-  | 'approve'
-  | 'revoke'
-  | 'export'
-  | 'connect'
-  | 'disconnect'
-  | 'receipt_upload'
-  | 'sync'
-  | 'login'
-  | 'pipeline_processed'
-  | 'webhook_received';
+import type { AuditAction } from '@/lib/audit';
+export type { AuditAction };
 
 export type ActorType = 'ai' | 'human' | 'system';
 
