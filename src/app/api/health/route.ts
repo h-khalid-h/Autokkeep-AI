@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
@@ -117,6 +118,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('[Health] Unexpected error:', error);
+    captureException(error);
     return NextResponse.json(
       {
         status: 'error',

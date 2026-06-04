@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -74,13 +75,13 @@ export async function POST(request: NextRequest) {
     const context: TransactionContext = {
       transactionId: tx.id,
       merchantName: tx.merchant_name || tx.merchant_raw || 'Unknown',
-      amount: parseFloat(tx.amount),
+      amount: Number(tx.amount) || 0,
       date: tx.date,
       cardLast4: tx.card_last4 || '0000',
       cardHolder: tx.card_holder || 'Team Member',
       suggestedCategory: tx.category_ai || undefined,
       suggestedGLCode: tx.gl_code || tx.category_ai || undefined,
-      confidence: tx.confidence ? parseFloat(tx.confidence) : undefined,
+      confidence: tx.confidence ? (Number(tx.confidence) || 0) : undefined,
     };
 
     // Map channels to connection format
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('Channel dispatch error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Receipt dispatch failed' },
       { status: 500 }

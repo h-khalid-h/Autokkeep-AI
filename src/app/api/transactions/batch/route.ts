@@ -3,6 +3,7 @@ import { getApiAuthContext } from '@/lib/api-auth';
 import { checkApprovalRequired } from '@/lib/approval';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { captureException } from '@/lib/sentry';
 import { parseBody, schemas } from '@/lib/validation';
 import { z } from 'zod';
 
@@ -188,6 +189,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('[Batch] Error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Batch operation failed' }, { status: 500 });
   }
 }

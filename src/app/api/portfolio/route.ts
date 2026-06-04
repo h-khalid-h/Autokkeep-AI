@@ -4,6 +4,7 @@
 // Returns per-entity stats for the organization's portfolio dashboard.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -149,6 +150,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ entities: entityStats, summary });
   } catch (error) {
     console.error('[Portfolio] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to load portfolio data' },
       { status: 500 }

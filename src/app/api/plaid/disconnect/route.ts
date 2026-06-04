@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
       await removeItem(decryptToken(connection.plaid_access_token));
     } catch (err) {
       console.error('[Plaid Disconnect] Failed to revoke token:', err);
+      captureException(err);
       // Continue anyway — mark as disconnected in our DB
     }
 
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Plaid Disconnect] Error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Failed to disconnect bank' }, { status: 500 });
   }
 }

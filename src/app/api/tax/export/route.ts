@@ -3,6 +3,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -183,6 +184,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Tax/Export] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to export tax data' },
       { status: 500 }

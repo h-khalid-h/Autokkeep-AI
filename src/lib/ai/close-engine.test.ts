@@ -75,6 +75,7 @@ function createMockSupabase(opts: {
       chain.lt = vi.fn().mockReturnValue(chain);
       chain.in = vi.fn().mockReturnValue(chain);
       chain.order = vi.fn().mockReturnValue(chain);
+      chain.limit = vi.fn().mockReturnValue(chain);
       chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
       chain.update = vi.fn().mockReturnValue(chain);
       chain.insert = vi.fn().mockResolvedValue({ error: null });

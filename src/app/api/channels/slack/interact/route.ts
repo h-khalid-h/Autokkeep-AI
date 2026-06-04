@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -272,6 +273,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     console.error('Slack interaction error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 // POST /api/entities — Create a new entity within the user's existing org
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody } from '@/lib/validation';
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(entity, { status: 201 });
   } catch (error) {
     console.error('[Entities POST] Unexpected:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

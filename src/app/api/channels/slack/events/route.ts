@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { verifySlackSignature } from '@/lib/channels/slack';
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     console.error('Slack events error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

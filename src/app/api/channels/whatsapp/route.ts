@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import {
@@ -314,6 +315,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('WhatsApp handler error:', error);
+    captureException(error);
     return new NextResponse(
       `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, something went wrong. Please try again.</Message></Response>`,
       { headers: { 'Content-Type': 'application/xml' } }

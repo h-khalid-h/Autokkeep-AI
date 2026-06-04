@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { validateTwilioSignature } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('OK', { status: 200 });
   } catch (error) {
     console.error('Twilio webhook error:', error);
+    captureException(error);
     return new NextResponse('OK', { status: 200 }); // Always return 200 to prevent retries
   }
 }

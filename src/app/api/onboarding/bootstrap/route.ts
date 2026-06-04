@@ -9,6 +9,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { parseBody, schemas } from '@/lib/validation';
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Bootstrap] Unexpected error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'An unexpected error occurred during onboarding' },
       { status: 500 }

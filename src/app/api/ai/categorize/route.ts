@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
@@ -219,6 +220,7 @@ export async function POST(request: NextRequest) {
       } catch (alertError) {
         // Don't fail the categorization if alert dispatch fails
         console.error('[AI Categorize] Alert dispatch failed:', alertError);
+        captureException(alertError);
       }
     }
 
@@ -235,6 +237,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[AI Categorize] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Categorization failed' },
       { status: 500 }

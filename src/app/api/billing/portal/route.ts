@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getStripeClient } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: portalSession.url });
   } catch (error) {
     console.error('[Portal] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to create portal session' },
       { status: 500 }

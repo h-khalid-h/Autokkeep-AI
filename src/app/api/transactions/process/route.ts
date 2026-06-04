@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { batchCategorize } from '@/lib/ai/categorizer';
@@ -509,6 +510,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(summary);
   } catch (error) {
     console.error('[Process Pipeline] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Pipeline processing failed' },
       { status: 500 }

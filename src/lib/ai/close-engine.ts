@@ -533,7 +533,8 @@ export async function runMonthEndClose(
     .gte('date', startDate)
     .lt('date', endDate)
     .neq('status', 'removed')
-    .order('date', { ascending: true });
+    .order('date', { ascending: true })
+    .limit(50000); // Safety cap to prevent OOM for high-volume entities
 
   if (txError) {
     console.error('[CloseEngine] Failed to fetch transactions:', txError);
@@ -601,7 +602,8 @@ export async function runMonthEndClose(
       .eq('entity_id', entityId)
       .gte('date', histStart.toISOString().split('T')[0])
       .lt('date', histEnd.toISOString().split('T')[0])
-      .neq('status', 'removed');
+      .neq('status', 'removed')
+      .limit(30000); // Safety cap for 3 months of history
 
     if (histTxns && histTxns.length > 0) {
       const catTotals = new Map<string, number>();
@@ -626,7 +628,8 @@ export async function runMonthEndClose(
       .from('transactions')
       .select('id, amount, date, merchant_name, category_ai, category_human, status, document_status')
       .eq('entity_id', entityId)
-      .neq('status', 'removed');
+      .neq('status', 'removed')
+      .limit(100000); // Safety cap for all-entity reconciliation
     allTransactions = (allTxns || []) as TransactionRow[];
   } catch {
     // Non-fatal — reconciliation will use period transactions as fallback

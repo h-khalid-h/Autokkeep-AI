@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getQBOAuthUrl, exchangeQBOCode, refreshQBOToken } from '@/lib/ledger/sync';
 import { encryptToken, decryptToken } from '@/lib/crypto';
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
     const authUrl = getQBOAuthUrl(state);
     return NextResponse.redirect(authUrl);
   } catch (_error: unknown) {
+    captureException(_error);
     return NextResponse.json(
       { error: 'Failed to generate QuickBooks auth URL' },
       { status: 500 }
@@ -163,6 +165,7 @@ export async function POST(request: NextRequest) {
       ...(returnTo ? { returnTo } : {}),
     });
   } catch (_error: unknown) {
+    captureException(_error);
     return NextResponse.json(
       { error: 'QuickBooks authentication failed' },
       { status: 500 }

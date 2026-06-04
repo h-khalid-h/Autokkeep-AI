@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
 
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Contact form error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to submit contact form' },
       { status: 500 }

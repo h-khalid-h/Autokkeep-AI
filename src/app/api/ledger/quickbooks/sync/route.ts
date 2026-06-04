@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -219,6 +220,7 @@ export async function POST(request: NextRequest) {
           results.errors.push(`${tx.id}: ${syncResult.error}`);
         }
       } catch (_error: unknown) {
+        captureException(_error);
         results.failed++;
         results.errors.push(
           `${tx.id}: sync error`
@@ -265,6 +267,7 @@ export async function POST(request: NextRequest) {
       ...results,
     });
   } catch (_error: unknown) {
+    captureException(_error);
     return NextResponse.json(
       { error: 'QuickBooks sync failed' },
       { status: 500 }
@@ -348,6 +351,7 @@ export async function GET(request: NextRequest) {
       errors: upsertResult.errors,
     });
   } catch (_error: unknown) {
+    captureException(_error);
     return NextResponse.json(
       { error: 'QuickBooks chart of accounts sync failed' },
       { status: 500 }

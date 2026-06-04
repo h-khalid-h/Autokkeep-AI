@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
 import { rateLimit } from '@/lib/rate-limit';
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('[Ledger Export] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to export journal entries' },
       { status: 500 }

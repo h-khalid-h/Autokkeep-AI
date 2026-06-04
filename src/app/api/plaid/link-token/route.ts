@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { createLinkToken } from '@/lib/plaid/client';
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ link_token: linkToken });
   } catch (error) {
     console.error('[Plaid Link Token] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to create link token' },
       { status: 500 }

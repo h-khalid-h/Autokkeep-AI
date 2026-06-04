@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, org_id: invite.org_id });
   } catch (err) {
     console.error('[Team Claim] Error:', err);
+    captureException(err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

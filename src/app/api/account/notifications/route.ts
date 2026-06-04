@@ -1,5 +1,6 @@
 // GET/PUT /api/account/notifications — Fetch/upsert notification preferences
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(prefs);
   } catch (error) {
     console.error('[Notification Prefs GET] Unexpected:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -98,6 +100,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('[Notification Prefs PUT] Unexpected:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

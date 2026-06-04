@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { getVendors1099Status, getW9Summary } from '@/lib/vendors/service';
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Vendor Compliance] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to fetch compliance data' },
       { status: 500 }

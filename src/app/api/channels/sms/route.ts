@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
@@ -307,6 +308,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('SMS handler error:', error);
+    captureException(error);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Sorry, something went wrong. Please try again or visit our dashboard.</Message>

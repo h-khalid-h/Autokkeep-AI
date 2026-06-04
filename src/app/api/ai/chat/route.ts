@@ -5,6 +5,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { analyzeFinancialQuestion } from '@/lib/ai/analyst';
 import { rateLimit } from '@/lib/rate-limit';
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[AI Chat] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Chat request failed' },
       { status: 500 }
@@ -203,6 +205,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[AI Chat] GET Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to fetch conversations' },
       { status: 500 }

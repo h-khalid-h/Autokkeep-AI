@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
@@ -240,6 +241,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(summary);
   } catch (error) {
     console.error('[AI Batch] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Batch categorization failed' },
       { status: 500 }

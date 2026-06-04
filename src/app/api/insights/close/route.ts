@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -89,6 +90,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Insights/Close] Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to run month-end close checks' },
       { status: 500 }
@@ -175,6 +177,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Insights/Close] POST Error:', error);
+    captureException(error);
     return NextResponse.json(
       { error: 'Failed to close period' },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { Resend } from 'resend';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('[Team Invite] Error:', err);
+    captureException(err);
     return NextResponse.json(
       { error: 'Failed to send invite email' },
       { status: 500 }

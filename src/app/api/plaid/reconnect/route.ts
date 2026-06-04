@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { createUpdateLinkToken } from '@/lib/plaid/client';
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ link_token: linkToken });
   } catch (error) {
     console.error('[Plaid Reconnect] Error:', error);
+    captureException(error);
     return NextResponse.json({ error: 'Failed to create reconnect token' }, { status: 500 });
   }
 }

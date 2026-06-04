@@ -52,7 +52,8 @@ export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
   // 1. Fetch all entities
   const { data: entities, error: entityError } = await db
     .from('entities')
-    .select('id, name');
+    .select('id, name')
+    .limit(10000); // Safety cap for platform-wide entity query
 
   if (entityError) {
     throw new Error(`Failed to fetch entities: ${entityError.message}`);
@@ -68,7 +69,8 @@ export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
     .select('id, entity_id, merchant_name, amount, date, status, confidence, aging_days')
     .in('entity_id', entityIds)
     .in('status', [...REVIEW_STATUSES])
-    .order('amount', { ascending: false });
+    .order('amount', { ascending: false })
+    .limit(50000); // Safety cap for platform-wide outstanding transactions
 
   if (txError) {
     console.error('[Digest] Failed to query transactions:', txError);
