@@ -132,20 +132,23 @@ async function fetchFinancialContext(
     }
     const monthBucket = monthlyMap.get(monthKey)!;
 
-    if (amount >= 0) {
-      // Positive = income/credit
-      totalIncome += amount;
-      monthBucket.income += amount;
+    // Plaid convention: positive = expense (money leaving account),
+    //                   negative = income (money entering account)
+    // This matches narrative.ts, close-engine.ts, and buildJournalEntryFromTransaction
+    if (amount < 0) {
+      // Negative = income/credit (money entering account)
+      totalIncome += Math.abs(amount);
+      monthBucket.income += Math.abs(amount);
       const existing = incomeCategoryMap.get(category) || { total: 0, count: 0 };
-      existing.total += amount;
+      existing.total += Math.abs(amount);
       existing.count++;
       incomeCategoryMap.set(category, existing);
     } else {
-      // Negative = expense/debit
-      totalExpenses += Math.abs(amount);
-      monthBucket.expenses += Math.abs(amount);
+      // Positive = expense/debit (money leaving account)
+      totalExpenses += amount;
+      monthBucket.expenses += amount;
       const existing = expenseCategoryMap.get(category) || { total: 0, count: 0 };
-      existing.total += Math.abs(amount);
+      existing.total += amount;
       existing.count++;
       expenseCategoryMap.set(category, existing);
     }

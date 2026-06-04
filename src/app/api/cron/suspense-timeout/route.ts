@@ -84,7 +84,12 @@ export async function GET(request: NextRequest) {
         })
         .eq('id', txn.id)
     );
-    await Promise.all(aiReasoningUpdates);
+    // Use Promise.allSettled so one failure doesn't abandon remaining updates
+    const statusResults = await Promise.allSettled(aiReasoningUpdates);
+    const statusFailures = statusResults.filter(r => r.status === 'rejected');
+    if (statusFailures.length > 0) {
+      console.error(`[Suspense Timeout] ${statusFailures.length}/${staleTransactions.length} status updates failed`);
+    }
 
     // 2. Validate GL codes exist per entity before creating journal entries
     //    Group transactions by entity to batch-validate chart of accounts
@@ -187,7 +192,13 @@ export async function GET(request: NextRequest) {
       }
 
       if (journalLines.length > 0) {
-        await db.from('journal_lines').insert(journalLines);
+        const { error: linesError } = await db.from('journal_lines').insert(journalLines);
+        if (linesError) {
+          // Orphaned journal entries — delete them to prevent data corruption
+          console.error('[Suspense Timeout] journal_lines insert failed, rolling back journal_entries:', linesError.message);
+          const orphanedIds = Array.from(new Set(journalLines.map(l => l.journal_entry_id)));
+          await db.from('journal_entries').delete().in('id', orphanedIds);
+        }
       }
     }
 
@@ -199,8 +210,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Batch audit logs via Promise.all
-    await Promise.all(
+    // Batch audit logs via Promise.allSettled (resilient to individual failures)
+    await Promise.allSettled(
       staleTransactions.map((txn) =>
         writeAuditLog({
           supabase: db,

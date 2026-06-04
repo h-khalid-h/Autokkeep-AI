@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = db
       .from('transactions')
-      .select('*')
+      .select('id, amount, currency, date, merchant_name, category_ai, category_human, status, document_status, tags, description, confidence, ai_reasoning, created_at')
       .eq('entity_id', entity.id)
       .neq('status', 'removed')
       .order('date', { ascending: false })

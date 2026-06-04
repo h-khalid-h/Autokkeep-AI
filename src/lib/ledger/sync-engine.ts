@@ -88,8 +88,8 @@ async function getUnsyncedEntries(
     status: e.status as string,
     lines: (e.journal_lines as Array<Record<string, unknown>> || []).map(l => ({
       gl_code: l.gl_code as string,
-      debit: Number(l.debit || 0),
-      credit: Number(l.credit || 0),
+      debit: Number(l.debit ?? 0),
+      credit: Number(l.credit ?? 0),
       description: l.description as string | null,
     })),
   }));
@@ -119,7 +119,7 @@ async function markEntriesSynced(
   syncId: string,
   provider: string,
 ): Promise<void> {
-  await db
+  const { error } = await db
     .from('journal_entries')
     .update({
       ledger_sync_id: syncId,
@@ -127,6 +127,10 @@ async function markEntriesSynced(
     })
     .in('id', entryIds)
     .is('ledger_sync_id', null); // Optimistic lock: only update if not already synced
+
+  if (error) {
+    console.error(`[Sync Engine] Failed to mark entries as synced (syncId=${syncId}):`, error);
+  }
 }
 
 /**
@@ -333,11 +337,15 @@ export async function runNightlySync(): Promise<SyncResult[]> {
     });
 
     // Update last_synced_at on the connection
-    await db
+    const { error: syncTimeError } = await db
       .from('ledger_connections')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('entity_id', entityId)
       .eq('provider', provider);
+
+    if (syncTimeError) {
+      console.error(`[Sync Engine] Failed to update last_synced_at for ${entityId}:`, syncTimeError);
+    }
   }
 
   return results;

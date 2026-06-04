@@ -483,17 +483,25 @@ export async function runHealthCheck(
   // 2. Optionally fetch cash balance from bank_accounts
   let cashBalance: number | null = null;
   try {
-    const { data: accounts } = await supabase
+    const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
       .select('current_balance, connection_id')
       .order('created_at', { ascending: false });
 
+    if (accountsError) {
+      console.error('[HealthMonitor] Failed to fetch bank accounts:', accountsError);
+    }
+
     if (accounts && accounts.length > 0) {
       // Get accounts that belong to this entity via bank_connections
-      const { data: connections } = await supabase
+      const { data: connections, error: connError } = await supabase
         .from('bank_connections')
         .select('id')
         .eq('entity_id', entityId);
+
+      if (connError) {
+        console.error('[HealthMonitor] Failed to fetch bank connections:', connError);
+      }
 
       if (connections && connections.length > 0) {
         const connectionIds = new Set(

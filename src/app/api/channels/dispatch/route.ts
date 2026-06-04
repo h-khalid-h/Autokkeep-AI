@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Get connected channels for this entity
     const { data: channels, error: channelsError } = await db
       .from('channel_connections')
-      .select('*')
+      .select('id, channel_type, channel_id, access_token, entity_id, status')
       .eq('entity_id', entityId)
       .eq('is_active', true);
 

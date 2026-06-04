@@ -141,17 +141,31 @@ export async function pushApprovedTransactionsToLedger(
         }, journalEntry);
 
         if (syncResult.success) {
-          // Mark as synced
-          await supabase
+          // Mark as synced — CRITICAL: if this update fails, we risk
+          // duplicate journal entries on the next cron run
+          const { error: markError } = await supabase
             .from('transactions')
             .update({
               ledger_synced: true,
               ledger_synced_at: new Date().toISOString(),
               ledger_sync_error: null,
             })
-            .eq('id', tx.id);
+            .eq('id', tx.id)
+            .eq('ledger_synced', false); // Optimistic lock: only update if still unsynced
 
-          result.pushed++;
+          if (markError) {
+            // CRITICAL: Transaction was synced to external ledger but NOT marked locally
+            // Next cron run will re-push, creating a DUPLICATE in QBO/Xero
+            console.error(
+              `[Auto-Push] CRITICAL: Transaction ${tx.id} synced to ${provider} ` +
+              `(journal ${syncResult.journalEntryId}) but DB update failed: ${markError.message}. ` +
+              `Manual reconciliation required.`
+            );
+            result.failed++;
+            result.errors.push({ transactionId: tx.id, error: `Synced but mark-failed: ${markError.message}` });
+          } else {
+            result.pushed++;
+          }
         } else {
           // Record sync error on the transaction row
           await supabase

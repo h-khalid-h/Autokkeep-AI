@@ -145,7 +145,7 @@ export async function ingestTransactions(
     const removedIds = syncResult.removed.map(
       (t) => t.transaction_id,
     );
-    await supabase
+    const { error: removeError } = await supabase
       .from('transactions')
       .update({
         status: 'removed',
@@ -154,17 +154,25 @@ export async function ingestTransactions(
       .in('plaid_transaction_id', removedIds)
       .eq('entity_id', entityId);
 
-    result.removed = syncResult.removed.length;
+    if (removeError) {
+      console.error('[Plaid Ingest] Soft-delete error:', removeError.message);
+    } else {
+      result.removed = syncResult.removed.length;
+    }
   }
 
   // ── 5. Update cursor on bank connection ───────────────────────────────
-  await supabase
+  const { error: cursorError } = await supabase
     .from('bank_connections')
     .update({
       cursor: syncResult.nextCursor,
       last_synced_at: new Date().toISOString(),
     })
     .eq('id', connection.id);
+
+  if (cursorError) {
+    console.error('[Plaid Ingest] Cursor update error:', cursorError.message);
+  }
 
   return result;
 }

@@ -256,7 +256,7 @@ export async function generateMonthlyNarrative(
   const prev = getPreviousMonth(year, month);
   const previousRange = getMonthDateRange(prev.year, prev.month);
 
-  const { data: currentTransactions } = await supabase
+  const { data: currentTransactions, error: currentError } = await supabase
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
@@ -266,7 +266,7 @@ export async function generateMonthlyNarrative(
     .order('date', { ascending: true })
     .limit(5000);
 
-  const { data: previousTransactions } = await supabase
+  const { data: previousTransactions, error: previousError } = await supabase
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
@@ -275,6 +275,13 @@ export async function generateMonthlyNarrative(
     .lte('date', previousRange.end)
     .order('date', { ascending: true })
     .limit(5000);
+
+  // F9: Fail loudly rather than generating a misleading $0 narrative
+  if (currentError || previousError) {
+    const errMsg = currentError?.message || previousError?.message || 'Unknown query error';
+    console.error(`[Narrative Engine] Transaction query failed for entity ${entityId}:`, errMsg);
+    throw new Error(`Cannot generate narrative: transaction data unavailable (${errMsg})`);
+  }
 
   const currentTxns: TransactionRow[] = currentTransactions || [];
   const previousTxns: TransactionRow[] = previousTransactions || [];
@@ -417,22 +424,22 @@ export async function generateMonthlyNarrative(
     generatedAt: new Date().toISOString(),
   };
 
-  // Step 5: Store the narrative
-  try {
-    await supabase
-      .from('financial_narratives')
-      .upsert({
-        entity_id: entityId,
-        period_start: currentRange.start,
-        period_end: currentRange.end,
-        narrative: JSON.stringify(narrative),
-        generated_at: narrative.generatedAt,
-      }, {
-        onConflict: 'entity_id,period_start,period_end',
-      });
-  } catch (error) {
-    // Storage failure should not break the response
-    console.error('[Narrative Engine] Failed to store narrative:', error);
+  // F10: Check upsert error instead of silently swallowing
+  const { error: upsertError } = await supabase
+    .from('financial_narratives')
+    .upsert({
+      entity_id: entityId,
+      period_start: currentRange.start,
+      period_end: currentRange.end,
+      narrative: JSON.stringify(narrative),
+      generated_at: narrative.generatedAt,
+    }, {
+      onConflict: 'entity_id,period_start,period_end',
+    });
+
+  if (upsertError) {
+    // Storage failure should not break the response, but log it
+    console.error('[Narrative Engine] Failed to store narrative:', upsertError.message);
   }
 
   return narrative;

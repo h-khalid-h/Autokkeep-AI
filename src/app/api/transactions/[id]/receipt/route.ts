@@ -27,17 +27,9 @@ export async function POST(
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { user, membership, db } = ctx;
+    const { user, membership, db, entityIds } = ctx;
 
     const { id: transactionId } = await params;
-
-    // Validate transaction access — single scoped query to prevent IDOR
-    const { data: entityList } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const entityIds = (entityList || []).map((e: { id: string }) => e.id);
     if (entityIds.length === 0) {
       return NextResponse.json(
         { error: 'Transaction not found' },

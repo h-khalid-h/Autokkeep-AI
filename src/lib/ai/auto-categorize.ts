@@ -222,7 +222,19 @@ export async function runAutoCategorize(options?: {
 
         totalProcessed++;
       }
-      await Promise.all(updatePromises);
+      const settled = await Promise.allSettled(updatePromises);
+      for (const result of settled) {
+        if (result.status === 'rejected') {
+          console.error(`[Auto-Categorize] Update failed for entity ${entityId}:`, result.reason);
+          totalFailed++;
+          // Adjust: one that was previously counted as success is actually a failure
+          if (totalAutoCategorized > 0) {
+            totalAutoCategorized--;
+          } else if (totalHumanReview > 0) {
+            totalHumanReview--;
+          }
+        }
+      }
     } catch (entityErr) {
       console.error(
         `[Auto-Categorize] Failed to process entity ${entityId}:`,

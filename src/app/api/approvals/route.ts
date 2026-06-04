@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { user, membership, db } = ctx;
+    const { user, membership, db, entityIds } = ctx;
 
     const parsed = await parseBody(request, approvalDecisionSchema);
     if (!parsed.success) return parsed.error;
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       user.id,
       membership.role,
       decision,
+      entityIds,
     );
 
     return NextResponse.json({ approval: updated });

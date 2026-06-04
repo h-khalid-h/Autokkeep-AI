@@ -73,6 +73,7 @@ const mockTransaction = {
   entity_id: 'entity-1',
   merchant_name: 'Acme Corp',
   amount: 100.00,
+  date: '2025-06-15',
   status: 'pending',
   category_ai: null,
   category_human: null,
@@ -155,8 +156,6 @@ describe('/api/transactions/[id]', () => {
     });
 
     it('should update transaction status', async () => {
-      // entities query
-      const entitiesChain = createChainMock({ data: [{ id: 'entity-1' }], error: null });
       // existing transaction fetch
       const existingChain = createChainMock({ data: mockTransaction, error: null });
       // update result
@@ -165,13 +164,12 @@ describe('/api/transactions/[id]', () => {
       // audit chain
       const auditChain = createChainMock({ data: null, error: null });
 
-      let fromCallCount = 0;
+      let txCallCount = 0;
       mockDb.from.mockImplementation((table: string) => {
-        if (table === 'entities') return entitiesChain;
         if (table === 'transactions') {
-          fromCallCount++;
+          txCallCount++;
           // First call: fetch existing; second call: update
-          return fromCallCount === 1 ? existingChain : updateChain;
+          return txCallCount === 1 ? existingChain : updateChain;
         }
         if (table === 'audit_log') return auditChain;
         return createChainMock({ data: null, error: null });
@@ -187,11 +185,9 @@ describe('/api/transactions/[id]', () => {
 
     it('should return 400 for invalid status transition', async () => {
       const syncedTx = { ...mockTransaction, status: 'synced' };
-      const entitiesChain = createChainMock({ data: [{ id: 'entity-1' }], error: null });
       const existingChain = createChainMock({ data: syncedTx, error: null });
 
       mockDb.from.mockImplementation((table: string) => {
-        if (table === 'entities') return entitiesChain;
         if (table === 'transactions') return existingChain;
         return createChainMock({ data: null, error: null });
       });

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Fetch transaction scoped to user's entities
     const { data: transaction, error: txError } = await db
       .from('transactions')
-      .select('*')
+      .select('id, amount, currency, date, merchant_name, merchant_raw, category_ai, category_human, status, document_status, document_url, tags, description, ai_reasoning, entity_id, created_at, updated_at')
       .eq('id', id)
       .in('entity_id', entityIds)
       .single();
@@ -72,15 +72,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { user, membership, db } = ctx;
-
-    // Fetch existing transaction scoped to user's entities
-    const { data: entityList } = await db
-      .from('entities')
-      .select('id')
-      .eq('org_id', membership.org_id);
-
-    const entityIds = (entityList || []).map((e: { id: string }) => e.id);
+    const { user, membership, db, entityIds } = ctx;
     if (entityIds.length === 0) {
       return NextResponse.json(
         { error: 'Transaction not found' },
@@ -115,9 +107,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // ── Period-lock check ──────────────────────────────────────────────
     // Check if the existing transaction date falls in a locked period
-    const existingDate = new Date(existing.date as string);
-    const existingMonth = existingDate.getMonth() + 1;
-    const existingYear = existingDate.getFullYear();
+    const [existingYearStr, existingMonthStr] = (existing.date as string).split('-');
+    const existingYear = parseInt(existingYearStr, 10);
+    const existingMonth = parseInt(existingMonthStr, 10);
 
     const { data: existingPeriod } = await db
       .from('accounting_periods')
@@ -136,9 +128,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // If the date is being changed, also check the new date's period
     if ((parsed.data as Record<string, unknown>).date) {
-      const newDate = new Date((parsed.data as Record<string, unknown>).date as string);
-      const newMonth = newDate.getMonth() + 1;
-      const newYear = newDate.getFullYear();
+      const [newYearStr, newMonthStr] = ((parsed.data as Record<string, unknown>).date as string).split('-');
+      const newYear = parseInt(newYearStr, 10);
+      const newMonth = parseInt(newMonthStr, 10);
 
       if (newMonth !== existingMonth || newYear !== existingYear) {
         const { data: newPeriod } = await db
@@ -246,9 +238,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         updateData.confidence = 100;
 
         // ── Approval hierarchy gate ────────────────────────────────────
+        if (existing.amount == null) {
+          return NextResponse.json(
+            { error: 'Transaction has no amount' },
+            { status: 400 }
+          );
+        }
         const txAmount = typeof existing.amount === 'number'
           ? existing.amount
-          : parseFloat(String(existing.amount ?? '0'));
+          : parseFloat(String(existing.amount));
 
         const approvalCheck = await checkApprovalRequired(
           db,

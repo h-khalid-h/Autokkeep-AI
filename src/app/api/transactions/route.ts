@@ -173,9 +173,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Period-lock check ──────────────────────────────────────────────
-    const txDate = new Date(date);
-    const txMonth = txDate.getMonth() + 1; // 1-indexed
-    const txYear = txDate.getFullYear();
+    const [txYearStr, txMonthStr] = (date as string).split('-');
+    const txYear = parseInt(txYearStr, 10);
+    const txMonth = parseInt(txMonthStr, 10);
 
     const { data: period } = await db
       .from('accounting_periods')

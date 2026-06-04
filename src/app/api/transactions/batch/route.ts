@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     // Gather unique year-month combos from the transactions
     const periodKeys = new Set<string>();
     for (const tx of txRows) {
-      const d = new Date(tx.date as string);
-      periodKeys.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
+      const [yr, mo] = (tx.date as string).split('-');
+      periodKeys.add(`${yr}-${parseInt(mo, 10)}`);
     }
 
     // Batch-fetch locked periods for this entity
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
     const unlockedIds: string[] = [];
 
     for (const tx of txRows) {
-      const d = new Date(tx.date as string);
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+      const [yr2, mo2] = (tx.date as string).split('-');
+      const key = `${yr2}-${parseInt(mo2, 10)}`;
       if (lockedSet.has(key)) {
         lockedIds.push(tx.id as string);
       } else {

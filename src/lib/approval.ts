@@ -133,16 +133,19 @@ export async function processApproval(
   userId: string,
   userRole: string,
   decision: 'approved' | 'rejected',
+  entityIds: string[],
 ): Promise<ApprovalRequest> {
-  // Fetch the approval request
+  // Fetch the approval request — scoped to the caller's entity assignments
+  // to prevent cross-org approval hijacking
   const { data: approval, error: fetchError } = await db
     .from('approval_requests')
     .select('*')
     .eq('id', approvalId)
+    .in('entity_id', entityIds)
     .single();
 
   if (fetchError || !approval) {
-    throw new Error('Approval request not found');
+    throw new Error('Approval request not found or access denied');
   }
 
   const req = approval as ApprovalRequest;
@@ -264,7 +267,8 @@ export async function processApproval(
       updated_at: decidedAt,
       updated_by: userId,
     })
-    .eq('id', req.transaction_id);
+    .eq('id', req.transaction_id)
+    .eq('entity_id', req.entity_id);
 
   // Audit log
   await writeAuditLog({

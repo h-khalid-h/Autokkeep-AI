@@ -216,7 +216,7 @@ export async function createFeeAdjustingEntry(
   // If bank charged LESS than expected → debit Cash, credit Bank Fees
   const feeIsDebit = variance < 0; // Bank took more than expected (fee deducted)
 
-  await supabase.from('journal_lines').insert([
+  const { error: linesError } = await supabase.from('journal_lines').insert([
     {
       journal_entry_id: journalEntry.id,
       gl_code: analysis.glCode,
@@ -232,6 +232,19 @@ export async function createFeeAdjustingEntry(
       description: `Offset for ${analysis.description}`,
     },
   ]);
+
+  // Rollback orphaned journal entry if lines failed
+  if (linesError) {
+    console.error(`[Reconciliation] journal_lines insert failed, deleting orphaned entry ${journalEntry.id}:`, linesError.message);
+    await supabase.from('journal_entries').delete().eq('id', journalEntry.id);
+    return {
+      matched: false,
+      variance: absVariance,
+      varianceGlCode: analysis.glCode,
+      varianceGlName: analysis.glName,
+      reasoning: `Failed to create journal lines: ${linesError.message}. Entry rolled back.`,
+    };
+  }
 
   // Log to audit
   await writeAuditLog({

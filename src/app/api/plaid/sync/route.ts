@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Fetch bank connection
     const { data: connection, error: connError } = await db
       .from('bank_connections')
-      .select('*')
+      .select('id, entity_id, plaid_access_token, institution_name, cursor, status, last_synced_at')
       .eq('id', connectionId)
       .single();
 

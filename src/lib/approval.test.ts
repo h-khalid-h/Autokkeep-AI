@@ -203,7 +203,7 @@ describe('processApproval', () => {
       return createChainMock({ data: null, error: null });
     });
 
-    const result = await processApproval(db, 'ar-1', 'user-1', 'admin', 'approved');
+    const result = await processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']);
 
     expect(result.status).toBe('approved');
     expect(writeAuditLog).toHaveBeenCalledTimes(1);
@@ -229,7 +229,7 @@ describe('processApproval', () => {
       return createChainMock({ data: null, error: null });
     });
 
-    const result = await processApproval(db, 'ar-1', 'user-1', 'owner', 'rejected');
+    const result = await processApproval(db, 'ar-1', 'user-1', 'owner', 'rejected', ['entity-1']);
 
     expect(result.status).toBe('rejected');
   });
@@ -239,7 +239,7 @@ describe('processApproval', () => {
     mockDb.from.mockReturnValue(fetchChain);
 
     await expect(
-      processApproval(db, 'ar-1', 'user-1', 'viewer', 'approved'),
+      processApproval(db, 'ar-1', 'user-1', 'viewer', 'approved', ['entity-1']),
     ).rejects.toThrow('Insufficient role');
   });
 
@@ -248,7 +248,7 @@ describe('processApproval', () => {
     mockDb.from.mockReturnValue(fetchChain);
 
     await expect(
-      processApproval(db, 'ar-missing', 'user-1', 'admin', 'approved'),
+      processApproval(db, 'ar-missing', 'user-1', 'admin', 'approved', ['entity-1']),
     ).rejects.toThrow('Approval request not found');
   });
 
@@ -258,7 +258,7 @@ describe('processApproval', () => {
     mockDb.from.mockReturnValue(fetchChain);
 
     await expect(
-      processApproval(db, 'ar-1', 'user-1', 'admin', 'approved'),
+      processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']),
     ).rejects.toThrow('Approval already processed');
   });
 });

@@ -282,6 +282,13 @@ export async function createQBOJournalEntry(
 ): Promise<{ id: string; docNumber: string }> {
   const baseUrl = getQBOBaseUrl(options.realmId);
 
+  // F34: Validate no line has both debit and credit positive
+  for (const line of entry.lines) {
+    if (line.debit > 0 && line.credit > 0) {
+      throw new Error(`Invalid journal line: both debit (${line.debit}) and credit (${line.credit}) are positive`);
+    }
+  }
+
   const qboEntry = {
     TxnDate: entry.date,
     PrivateNote: entry.memo,
@@ -596,6 +603,11 @@ export function buildJournalEntryFromTransaction(
   bankAccountGLCode: string,
   defaultExpenseGLCode: string = '6510'
 ): JournalEntryData {
+  // F35: Zero-amount guard
+  if (transaction.amount === 0) {
+    throw new Error('Cannot build journal entry for zero-amount transaction');
+  }
+
   const glCode = transaction.category_human || transaction.category_ai || defaultExpenseGLCode;
   const isExpense = transaction.amount > 0;
 

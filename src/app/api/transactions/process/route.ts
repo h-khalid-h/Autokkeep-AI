@@ -159,6 +159,12 @@ export async function POST(request: NextRequest) {
             await applyFxConversion(db, tx.id, tx.currency, tx.amount, baseCurrency);
           } catch (fxErr) {
             console.error('[Process Pipeline] FX conversion failed for tx', tx.id, fxErr);
+            // Flag for human review instead of silently proceeding with unconverted amount
+            await db.from('transactions').update({
+              status: 'human_review',
+              ai_reasoning: 'FX conversion failed — manual review required',
+              updated_at: new Date().toISOString(),
+            }).eq('id', tx.id);
           }
         }
 
@@ -272,7 +278,7 @@ export async function POST(request: NextRequest) {
         const hasDocument = docAnchorSet.has(txId);
 
         const originalTx = pendingTransactions.find((t: Record<string, unknown>) => t.id === txId);
-        const txAmount = originalTx?.amount || 0;
+        const txAmount = originalTx?.amount ?? 0;
 
         const triage = triageTransaction(
           result.confidence / 100,
