@@ -26,10 +26,11 @@ interface OcrQueueItem {
 
 interface ProcessingResult {
   id: string;
-  status: 'matched' | 'completed' | 'failed';
+  status: 'matched' | 'completed' | 'failed' | 'skipped';
   transactionId?: string;
   confidence?: number;
   error?: string;
+  skipped?: boolean;
 }
 
 // ─── Route Handler ─────────────────────────────────────────────────────────────
@@ -95,11 +96,18 @@ export async function POST(request: NextRequest) {
       const batchResults = await Promise.allSettled(
         batch.map(async (item) => {
           try {
-            // Mark item as processing ─────────────────────────────────────────
-            await db
+            // Mark item as processing — optimistic lock prevents double-processing
+            const { data: claimed } = await db
               .from('receipt_ocr_queue')
               .update({ status: 'processing' })
-              .eq('id', item.id);
+              .eq('id', item.id)
+              .in('status', ['pending', 'failed']) // Only claim if not already processing
+              .select('id');
+
+            if (!claimed || claimed.length === 0) {
+              // Another cron instance already claimed this item
+              return { id: item.id, status: 'skipped' as const, skipped: true };
+            }
 
             // Step 1: Extract receipt data via OCR
             const extractedData = await extractReceiptData(item.file_url);
@@ -231,6 +239,7 @@ export async function POST(request: NextRequest) {
     const matched = results.filter((r) => r.status === 'matched').length;
     const completed = results.filter((r) => r.status === 'completed').length;
     const failed = results.filter((r) => r.status === 'failed').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
 
     // ── Audit log ───────────────────────────────────────────────────────
     await writeAuditLog({
@@ -245,6 +254,7 @@ export async function POST(request: NextRequest) {
         matched,
         completed,
         failed,
+        skipped,
       },
       request,
     });
@@ -255,6 +265,7 @@ export async function POST(request: NextRequest) {
       matched,
       completed,
       failed,
+      skipped,
       results,
     });
   } catch (error) {

@@ -47,6 +47,19 @@ function createMockSupabase(config: MockChainConfig) {
           call.filters[col] = val;
           return updateChain;
         });
+        updateChain.in = vi.fn().mockImplementation((col: string, vals: any) => {
+          call.filters[`${col}__in`] = vals;
+          return updateChain;
+        });
+        updateChain.select = vi.fn().mockImplementation(() => {
+          // For the claiming step, return the fetched transaction IDs
+          const txData = config.transactions?.data;
+          if (table === 'transactions' && data.ledger_synced === true && txData) {
+            updateChain.then = (resolve: any) =>
+              resolve({ data: txData.map((tx: any) => ({ id: tx.id })), error: null });
+          }
+          return updateChain;
+        });
         updateChain.then = (resolve: any) =>
           resolve(config.updateResult ?? { error: null });
         return updateChain;
@@ -184,13 +197,12 @@ describe('pushApprovedTransactionsToLedger', () => {
       expect(result.pushed).toBe(1);
       expect(result.failed).toBe(0);
 
-      // Verify the update call
+      // Verify the idempotency update call (sets ledger_synced true + updated_at)
       const updateCall = db._updateCalls.find(
-        (c: { table: string; data: { ledger_synced?: boolean } }) =>
-          c.table === 'transactions' && c.data.ledger_synced === true
+        (c: { table: string; data: { ledger_synced?: boolean }; filters: Record<string, string> }) =>
+          c.table === 'transactions' && c.data.ledger_synced === true && c.filters.id === 'tx-1'
       );
       expect(updateCall).toBeDefined();
-      expect(updateCall.filters.id).toBe('tx-1');
     });
   });
 
@@ -356,11 +368,12 @@ describe('pushApprovedTransactionsToLedger', () => {
         { transactionId: 'tx-fail', error: 'QBO rate limit exceeded' },
       ]);
 
-      // Should record error on failed transaction row
+      // Should record error on failed transaction row and release claim
       const errorUpdate = db._updateCalls.find(
-        (c: { table: string; data: { ledger_sync_error?: string }; filters: Record<string, string> }) =>
+        (c: { table: string; data: { ledger_synced?: boolean; ledger_sync_error?: string }; filters: Record<string, string> }) =>
           c.table === 'transactions' &&
           c.data.ledger_sync_error === 'QBO rate limit exceeded' &&
+          c.data.ledger_synced === false &&
           c.filters.id === 'tx-fail'
       );
       expect(errorUpdate).toBeDefined();

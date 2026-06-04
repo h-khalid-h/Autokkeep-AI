@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { checkApprovalRequired } from '@/lib/approval';
+
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
@@ -93,6 +93,13 @@ export async function POST(request: NextRequest) {
     let approveIds = unlockedIds;
 
     if (action === 'approve') {
+      // Fetch thresholds once for this entity (avoids N+1)
+      const { data: thresholds } = await db
+        .from('approval_thresholds')
+        .select('id, required_role, dual_approval, min_amount')
+        .eq('entity_id', entityId)
+        .order('min_amount', { ascending: false });
+
       const eligible: string[] = [];
       for (const txId of unlockedIds) {
         const tx = txRows.find((t: { id: unknown }) => (t.id as string) === txId);
@@ -100,12 +107,14 @@ export async function POST(request: NextRequest) {
         const txAmount = typeof tx.amount === 'number'
           ? tx.amount
           : parseFloat(String(tx.amount));
-        const approvalCheck = await checkApprovalRequired(
-          db,
-          entityId,
-          Math.abs(txAmount),
+        const absAmount = Math.abs(txAmount);
+
+        // In-memory threshold check (same logic as checkApprovalRequired)
+        const matchingThreshold = (thresholds || []).find(
+          (t: { min_amount: number }) => t.min_amount <= absAmount
         );
-        if (approvalCheck) {
+
+        if (matchingThreshold) {
           skipped.push({ id: txId, reason: 'Requires approval workflow' });
         } else {
           eligible.push(txId);

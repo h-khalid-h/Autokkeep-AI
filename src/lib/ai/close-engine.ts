@@ -733,21 +733,23 @@ export async function closePeriod(
   }
 
   if (existing) {
-    // Update existing record to lock
-    const { error } = await supabase
+    // Update with optimistic lock — prevents concurrent double-close
+    const { data: updated, error } = await supabase
       .from('accounting_periods')
       .update({
         is_locked: true,
         locked_at: new Date().toISOString(),
         locked_by: userId,
       })
-      .eq('id', existing.id);
+      .eq('id', existing.id)
+      .eq('is_locked', false) // Optimistic lock
+      .select();
 
     if (error) {
-      return {
-        success: false,
-        message: `Failed to close period: ${error.message}`,
-      };
+      return { success: false, message: `Failed to close period: ${error.message}` };
+    }
+    if (!updated || updated.length === 0) {
+      return { success: false, message: `Period ${period} was closed by another user.` };
     }
   } else {
     // Insert new locked period

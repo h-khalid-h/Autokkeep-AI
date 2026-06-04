@@ -76,9 +76,31 @@ export async function pushApprovedTransactionsToLedger(
     return result;
   }
 
+  // ── Claim transactions for this run ───────────────────────────────────────
+  // Atomically set ledger_synced=true on all fetched transactions.
+  // If another cron run already claimed some, they'll have ledger_synced=true
+  // and won't appear in our fetch. For any that fail to sync, we'll reset
+  // ledger_synced=false below.
+  const txIds = (transactions as TransactionRow[]).map(tx => tx.id);
+  const { data: claimed } = await supabase
+    .from('transactions')
+    .update({ ledger_synced: true, updated_at: new Date().toISOString() })
+    .in('id', txIds)
+    .eq('ledger_synced', false) // Only claim unclaimed
+    .select('id');
+
+  const claimedIds = new Set((claimed || []).map((c: { id: string }) => c.id));
+  // Filter to only process transactions we successfully claimed
+  const claimedTransactions = (transactions as TransactionRow[]).filter(tx => claimedIds.has(tx.id));
+  result.skipped += (transactions as TransactionRow[]).length - claimedTransactions.length;
+
+  if (claimedTransactions.length === 0) {
+    return result;
+  }
+
   // 2. Group transactions by entity_id
   const byEntity = new Map<string, TransactionRow[]>();
-  for (const tx of transactions as TransactionRow[]) {
+  for (const tx of claimedTransactions) {
     const existing = byEntity.get(tx.entity_id);
     if (existing) {
       existing.push(tx);
@@ -156,22 +178,18 @@ export async function pushApprovedTransactionsToLedger(
 
         if (syncResult.success) {
           // Mark as synced and store external ID for idempotency.
-          // The ledger_sync_id is written so that if the update below fails,
-          // the next cron run will see the ID and skip re-pushing.
+          // ledger_synced is already true from the claiming step.
           const { error: markError } = await supabase
             .from('transactions')
             .update({
-              ledger_synced: true,
               ledger_synced_at: new Date().toISOString(),
               ledger_sync_error: null,
               ledger_sync_id: syncResult.journalEntryId || 'synced',
             })
-            .eq('id', tx.id)
-            .eq('ledger_synced', false); // Optimistic lock: only update if still unsynced
+            .eq('id', tx.id);
 
           if (markError) {
-            // CRITICAL: Transaction was synced to external ledger but NOT marked locally
-            // Next cron run will re-push, creating a DUPLICATE in QBO/Xero
+            // CRITICAL: Transaction was synced to external ledger but metadata update failed
             console.error(
               `[Auto-Push] CRITICAL: Transaction ${tx.id} synced to ${provider} ` +
               `(journal ${syncResult.journalEntryId}) but DB update failed: ${markError.message}. ` +
@@ -183,10 +201,11 @@ export async function pushApprovedTransactionsToLedger(
             result.pushed++;
           }
         } else {
-          // Record sync error on the transaction row
+          // Record sync error on the transaction row and release claim
           await supabase
             .from('transactions')
             .update({
+              ledger_synced: false, // Release claim so it can be retried
               ledger_sync_error: syncResult.error || 'Unknown sync error',
             })
             .eq('id', tx.id);
@@ -197,10 +216,11 @@ export async function pushApprovedTransactionsToLedger(
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
 
-        // Record error on the transaction row so it can be investigated
+        // Record error on the transaction row and release claim so it can be retried
         await supabase
           .from('transactions')
           .update({
+            ledger_synced: false, // Release claim so it can be retried
             ledger_sync_error: errorMessage,
           })
           .eq('id', tx.id);

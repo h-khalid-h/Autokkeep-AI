@@ -30,8 +30,22 @@ vi.mock('@/lib/ocr/matcher', () => ({
 let pendingResult: { data: unknown[] | null; error: unknown } = { data: [], error: null };
 let retryResult: { data: unknown[] | null; error: unknown } = { data: [], error: null };
 
-const mockUpdate = vi.fn().mockReturnValue({
-  eq: vi.fn().mockResolvedValue({ error: null }),
+const mockUpdate = vi.fn().mockImplementation(() => {
+  const updateChain: Record<string, ReturnType<typeof vi.fn>> = {};
+  let currentItemId: string | null = null;
+  updateChain.eq = vi.fn().mockImplementation((_col: string, val: unknown) => {
+    if (_col === 'id') currentItemId = val as string;
+    return updateChain;
+  });
+  updateChain.in = vi.fn().mockReturnValue(updateChain);
+  updateChain.select = vi.fn().mockImplementation(() => {
+    // For the optimistic lock claiming step, return the item ID
+    updateChain.then = (resolve: (v: unknown) => void) =>
+      resolve({ data: currentItemId ? [{ id: currentItemId }] : [], error: null });
+    return updateChain;
+  });
+  updateChain.then = (resolve: (v: unknown) => void) => resolve({ error: null });
+  return updateChain;
 });
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -55,6 +69,7 @@ vi.mock('@/lib/supabase/admin', () => ({
         return chain;
       });
       chain.update = mockUpdate;
+      chain.single = vi.fn().mockReturnValue(chain);
       chain.limit = vi.fn().mockReturnValue(chain);
       chain.lt = vi.fn().mockReturnValue(chain);
       chain.then = vi.fn((resolve: (v: unknown) => void) => resolve({ data: [], error: null }));

@@ -18,6 +18,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
+  chain.neq = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.insert = vi.fn().mockReturnValue(chain);
@@ -401,6 +402,140 @@ describe('processApproval', () => {
     await processApproval(db, 'ar-1', 'user-1', 'owner', 'rejected', ['entity-1']);
 
     expect(recordVendorPayment).not.toHaveBeenCalled();
+  });
+
+  it('dual approval: first approver creates second pending request and does NOT update transaction status', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    const updateChain = createChainMock({
+      data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
+      error: null,
+    });
+    // SOD check: different user created the transaction
+    const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
+    // Threshold requires dual approval
+    const thresholdChain = createChainMock({ data: { requires_dual_approval: true }, error: null });
+    // No prior approvals from other users
+    const priorApprovalsChain = createChainMock({ data: [], error: null });
+    // Insert chain for the second pending approval request
+    const insertSecondChain = createChainMock({ data: null, error: null });
+    // We should NOT see a transaction update chain being called
+    const txUpdateChain = createChainMock({ data: null, error: null });
+
+    let approvalReqCallCount = 0;
+    let txCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        // 1st: fetch approval request, 2nd: check prior approvals,
+        // 3rd: update with optimistic lock, 4th: insert second pending
+        if (approvalReqCallCount <= 1) return fetchChain;
+        if (approvalReqCallCount <= 2) return priorApprovalsChain;
+        if (approvalReqCallCount <= 3) return updateChain;
+        return insertSecondChain;
+      }
+      if (table === 'transactions') {
+        txCallCount++;
+        // 1st: SOD check — there should be NO 2nd call (no status update)
+        return txCallCount <= 1 ? txSodChain : txUpdateChain;
+      }
+      if (table === 'approval_thresholds') return thresholdChain;
+      if (table === 'audit_log') return createChainMock({ data: null, error: null });
+      return createChainMock({ data: null, error: null });
+    });
+
+    const result = await processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']);
+
+    // Should return the approval as approved (first of two)
+    expect(result.status).toBe('approved');
+    // A second pending approval request should have been inserted
+    expect(insertSecondChain.insert).toHaveBeenCalledWith({
+      entity_id: 'entity-1',
+      transaction_id: 'tx-1',
+      requested_role: 'admin',
+      threshold_id: 'thresh-1',
+      status: 'pending',
+    });
+    // Transaction should NOT have been updated to 'approved' — it stays in review
+    expect(txUpdateChain.update).not.toHaveBeenCalled();
+    // Audit log should mention dual approval
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.objectContaining({
+          dual_approval: true,
+          awaiting_second_approver: true,
+        }),
+      }),
+    );
+  });
+
+  it('dual approval: second approver (prior approval exists) completes the approval normally', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    const updateChain = createChainMock({
+      data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-2' }],
+      error: null,
+    });
+    const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
+    const thresholdChain = createChainMock({ data: { requires_dual_approval: true }, error: null });
+    // A prior approval from a DIFFERENT user already exists
+    const priorApprovalsChain = createChainMock({
+      data: [{ id: 'ar-prior', approver_user_id: 'user-1' }],
+      error: null,
+    });
+    const txUpdateChain = createChainMock({ data: null, error: null });
+    const txVendorChain = createChainMock({
+      data: { vendor_id: null, amount: 5000, date: '2026-06-01' },
+      error: null,
+    });
+
+    let approvalReqCallCount = 0;
+    let txCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        // 1st: fetch, 2nd: prior approvals check, 3rd: update
+        if (approvalReqCallCount <= 1) return fetchChain;
+        if (approvalReqCallCount <= 2) return priorApprovalsChain;
+        return updateChain;
+      }
+      if (table === 'transactions') {
+        txCallCount++;
+        // 1st: SOD check, 2nd: status update, 3rd: vendor lookup
+        if (txCallCount <= 1) return txSodChain;
+        if (txCallCount <= 2) return txUpdateChain;
+        return txVendorChain;
+      }
+      if (table === 'approval_thresholds') return thresholdChain;
+      if (table === 'audit_log') return createChainMock({ data: null, error: null });
+      return createChainMock({ data: null, error: null });
+    });
+
+    const result = await processApproval(db, 'ar-1', 'user-2', 'admin', 'approved', ['entity-1']);
+
+    expect(result.status).toBe('approved');
+    // Transaction should have been updated to 'approved'
+    expect(txUpdateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'approved' }),
+    );
+  });
+
+  it('throws SOD violation when transaction creator tries to approve', async () => {
+    const fetchChain = createChainMock({ data: pendingApproval, error: null });
+    // SOD check: same user created the transaction
+    const txSodChain = createChainMock({ data: { created_by: 'user-1' }, error: null });
+
+    let approvalReqCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        return fetchChain;
+      }
+      if (table === 'transactions') return txSodChain;
+      return createChainMock({ data: null, error: null });
+    });
+
+    await expect(
+      processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']),
+    ).rejects.toThrow('SOD violation');
   });
 });
 
