@@ -11,6 +11,8 @@
 // 2. Set SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN in your .env
 // 3. This wrapper will automatically detect and use the SDK
 
+import type { NextRequest } from 'next/server';
+
 type SeverityLevel = 'fatal' | 'error' | 'warning' | 'info' | 'debug';
 
 interface CaptureContext {
@@ -133,16 +135,17 @@ export function captureMessage(message: string, context?: CaptureContext): void 
 }
 
 /**
- * Next.js route handler shape: a function that accepts a request and
- * optionally a context, returning a Response.
+ * Next.js route handler shape: a function that accepts a Request or NextRequest
+ * and optionally a context, returning a Response.
+ * Accepts NextRequest to support cron routes that use NextRequest-specific APIs.
  */
-type RouteHandler = (request: Request, ...rest: unknown[]) => Promise<Response>;
+type RouteHandler = (request: NextRequest, ...rest: unknown[]) => Promise<Response>;
 
 export function withSentryHandler<T extends RouteHandler>(
   handler: T,
   options?: { routeName?: string }
 ): T {
-  const wrapped = async (request: Request, ...rest: unknown[]) => {
+  const wrapped = async (request: NextRequest, ...rest: unknown[]) => {
     try {
       return await handler(request, ...rest);
     } catch (error) {
@@ -154,3 +157,4 @@ export function withSentryHandler<T extends RouteHandler>(
   };
   return wrapped as T;
 }
+
