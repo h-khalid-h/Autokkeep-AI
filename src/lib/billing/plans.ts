@@ -118,7 +118,7 @@ export async function checkPlanLimits(
   // Get subscription
   const { data: sub } = await supabase
     .from('subscriptions')
-    .select('plan, status')
+    .select('plan, status, current_period_end, created_at')
     .eq('org_id', orgId)
     .single();
 
@@ -128,11 +128,26 @@ export async function checkPlanLimits(
 
   // Check subscription is active
   if (sub && sub.status !== 'active' && sub.status !== 'trialing') {
-    return {
-      allowed: false,
-      reason: `Subscription is ${sub.status}. Please update your billing to continue.`,
-      currentPlan: plan,
-    };
+    // Allow a 7-day grace period for past_due before blocking
+    if (sub.status === 'past_due') {
+      const pastDueAt = new Date(sub.current_period_end || sub.created_at);
+      const gracePeriodEnd = new Date(pastDueAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+      if (new Date() > gracePeriodEnd) {
+        return {
+          allowed: false,
+          reason: 'Your payment is overdue. Please update your billing to continue.',
+          currentPlan: plan,
+        };
+      }
+      // Within grace period — allow but log warning
+      console.warn(`[billing] Org ${orgId} in past_due grace period`);
+    } else {
+      return {
+        allowed: false,
+        reason: `Subscription is ${sub.status}. Please update your billing to continue.`,
+        currentPlan: plan,
+      };
+    }
   }
 
   switch (operation) {

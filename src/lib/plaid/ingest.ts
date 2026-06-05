@@ -23,6 +23,8 @@ export interface IngestResult {
   added: number;
   modified: number;
   removed: number;
+  /** Number of modified transactions that had their status reset to pending for re-categorization */
+  modifications_reset: number;
   cursor: string | null;
 }
 
@@ -73,6 +75,7 @@ export async function ingestTransactions(
     added: 0,
     modified: 0,
     removed: 0,
+    modifications_reset: 0,
     cursor: syncResult.nextCursor,
   };
 
@@ -153,23 +156,77 @@ export async function ingestTransactions(
     }
   }
 
-  // ── 3. Reset modified transactions for AI re-categorization (batch) ──
+  // ── 3. Handle modified transactions ────────────────────────────────────
+  // Plaid sends modifications when a transaction's merchant name or amount
+  // changes (e.g., pending → settled). We handle this intelligently:
+  //   - If only the merchant name changed, preserve category_human and status
+  //     (user already reviewed it; no need to force re-categorization).
+  //   - If the amount changed, reset category_ai for re-categorization but
+  //     only clear category_human (since the financial reality changed).
+  //   - If category_human is set and the amount did NOT change, keep the
+  //     current status instead of resetting to pending.
   if (syncResult.modified.length > 0) {
     const now = new Date().toISOString();
-    const modifiedRecords = syncResult.modified.map((t) => ({
-      entity_id: entityId,
-      bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
-      plaid_transaction_id: t.transaction_id,
-      amount: t.amount,
-      date: t.date,
-      merchant_name: t.merchant_name || t.name,
-      merchant_raw: t.name,
-      category_ai: null,
-      confidence: 0,
-      ai_reasoning: null,
-      status: TRANSACTION_STATUS.PENDING,
-      updated_at: now,
-    }));
+    const modifiedPlaidIds = syncResult.modified.map((t) => t.transaction_id);
+
+    // Fetch existing transactions to compare amounts and check human categorization
+    const { data: existingTxns } = await supabase
+      .from('transactions')
+      .select('plaid_transaction_id, amount, category_human, status')
+      .in('plaid_transaction_id', modifiedPlaidIds)
+      .eq('entity_id', entityId);
+
+    const existingMap = new Map<string, { amount: number; category_human: string | null; status: string }>();
+    if (existingTxns) {
+      for (const tx of existingTxns) {
+        existingMap.set(tx.plaid_transaction_id, {
+          amount: tx.amount,
+          category_human: tx.category_human,
+          status: tx.status,
+        });
+      }
+    }
+
+    let resetCount = 0;
+    const modifiedRecords = syncResult.modified.map((t) => {
+      const existing = existingMap.get(t.transaction_id);
+      const amountChanged = !existing || existing.amount !== t.amount;
+      const hasHumanCategory = existing?.category_human != null;
+
+      // Base record: always update merchant and amount from Plaid
+      const record: Record<string, unknown> = {
+        entity_id: entityId,
+        bank_account_id: accountIdMap.get(t.account_id) || t.account_id,
+        plaid_transaction_id: t.transaction_id,
+        amount: t.amount,
+        date: t.date,
+        merchant_name: t.merchant_name || t.name,
+        merchant_raw: t.name,
+        updated_at: now,
+        plaid_modified: true,
+      };
+
+      // Always reset AI categorization — merchant or amount change invalidates AI reasoning
+      record.category_ai = null;
+      record.confidence = 0;
+      record.ai_reasoning = null;
+
+      if (amountChanged) {
+        // Amount changed: also clear human categorization since financial reality changed
+        record.category_human = null;
+        record.status = TRANSACTION_STATUS.PENDING;
+        resetCount++;
+      } else if (hasHumanCategory) {
+        // Only merchant changed + human already reviewed: preserve status and category_human
+        record.status = existing!.status;
+      } else {
+        // Only merchant changed, no human review: reset to pending for AI re-categorization
+        record.status = TRANSACTION_STATUS.PENDING;
+        resetCount++;
+      }
+
+      return record;
+    });
 
     const { error } = await supabase
       .from('transactions')
@@ -179,6 +236,7 @@ export async function ingestTransactions(
 
     if (!error) {
       result.modified = syncResult.modified.length;
+      result.modifications_reset = resetCount;
     } else {
       console.error('[Plaid Ingest] Modified upsert error:', error.message);
       hasFailures = true;

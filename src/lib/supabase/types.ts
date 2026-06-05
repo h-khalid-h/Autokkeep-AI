@@ -32,7 +32,7 @@ export const TRANSACTION_STATUS = {
   ESCROW_SUSPENSE: 'escrow_suspense',
 } as const satisfies Record<string, TransactionStatus>;
 
-export type DocumentStatusType = 'found' | 'missing' | 'partial';
+export type DocumentStatusType = 'found' | 'missing' | 'partial' | 'ocr_failed';
 
 export type RuleType = 'exact_match' | 'pattern' | 'mcc';
 

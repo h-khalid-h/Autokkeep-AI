@@ -27,11 +27,14 @@ async function handler(request: NextRequest) {
     const supabase = createAdminClient();
     const db = supabase as unknown as SupabaseQueryClient;
 
-    // Fetch all active bank connections
+    // Fetch active connections AND errored connections (older than 1 hour) for retry.
+    // Errored connections from transient failures (e.g., Plaid downtime) deserve
+    // automatic retry after a cooldown period.
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: connections, error: connError } = await db
       .from('bank_connections')
       .select('id, entity_id, plaid_item_id, plaid_access_token, cursor, institution_name, status')
-      .eq('status', 'active')
+      .or(`status.eq.active,and(status.eq.error,updated_at.lt.${oneHourAgo})`)
       .limit(500);
 
     if (connError) {
@@ -74,6 +77,15 @@ async function handler(request: NextRequest) {
         if (result.status === 'fulfilled') {
           syncedCount++;
           results.push({ connectionId: connId, success: true });
+
+          // If this was an errored connection that synced successfully, restore to active
+          if (batch[j].status === 'error') {
+            await db
+              .from('bank_connections')
+              .update({ status: 'active', updated_at: new Date().toISOString() })
+              .eq('id', connId);
+            console.log(`[Cron Plaid Sync] Restored errored connection ${connId} to active`);
+          }
         } else {
           failedCount++;
           const errorMessage =

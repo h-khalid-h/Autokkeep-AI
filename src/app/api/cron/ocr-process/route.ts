@@ -206,6 +206,18 @@ export async function POST(request: NextRequest) {
                   processed_at: new Date().toISOString(),
                 })
                 .eq('id', item.id);
+
+              // Notify user via transaction document_status so dashboard can display an alert
+              if (item.transaction_id) {
+                await db
+                  .from('transactions')
+                  .update({
+                    document_status: 'ocr_failed',
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', item.transaction_id)
+                  .eq('entity_id', item.entity_id);
+              }
             } else {
               // Re-queue for retry with incremented retry_count
               await db

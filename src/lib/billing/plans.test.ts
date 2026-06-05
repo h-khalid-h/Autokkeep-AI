@@ -222,11 +222,31 @@ describe('checkPlanLimits — subscription status', () => {
     expect(result.reason).toContain('cancelled');
   });
 
-  it('blocks operations for past_due subscriptions', async () => {
-    const supabase = createMockSupabase({ subscription: { plan: 'growth', status: 'past_due' } });
+  it('blocks operations for past_due subscriptions after grace period', async () => {
+    const supabase = createMockSupabase({
+      subscription: {
+        plan: 'growth',
+        status: 'past_due',
+        current_period_end: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any,
+    });
     const result = await checkPlanLimits(supabase, 'org-1', 'create_entity');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toContain('past_due');
+    expect(result.reason).toContain('overdue');
+  });
+
+  it('allows operations during past_due grace period', async () => {
+    const supabase = createMockSupabase({
+      subscription: {
+        plan: 'growth',
+        status: 'past_due',
+        current_period_end: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any,
+    });
+    const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
+    expect(result.allowed).toBe(true);
   });
 
   it('allows operations for trialing subscriptions', async () => {

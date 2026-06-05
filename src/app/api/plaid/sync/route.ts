@@ -165,7 +165,8 @@ export async function POST(request: NextRequest) {
             ai_reasoning: `${result.reasoning} [C_s=${triage.confidence.compositeScore.toFixed(4)}, decision=${triage.decision}]`,
             status: triage.targetStatus,
           })
-          .eq('id', txn.id);
+          .eq('id', txn.id)
+          .eq('entity_id', entity.id);
       }
     }
 

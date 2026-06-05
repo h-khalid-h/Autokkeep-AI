@@ -28,6 +28,7 @@ let mockFromResult: unknown = { data: [], error: null };
 const mockChain: Record<string, ReturnType<typeof vi.fn>> = {};
 mockChain.select = vi.fn().mockReturnValue(mockChain);
 mockChain.eq = vi.fn().mockReturnValue(mockChain);
+mockChain.or = vi.fn().mockReturnValue(mockChain);
 mockChain.limit = vi.fn().mockReturnValue(mockChain);
 mockChain.then = vi.fn((resolve: (v: unknown) => void) => resolve(mockFromResult));
 

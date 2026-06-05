@@ -3,6 +3,7 @@ import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { user, membership, db } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -80,6 +81,25 @@ export async function GET(request: NextRequest) {
     const rows = transactions || [];
     const isTruncated = rows.length === 10000;
     const today = new Date().toISOString().slice(0, 10);
+
+    // Audit log the export (fire-and-forget)
+    writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'export',
+      targetType: 'transaction_export',
+      details: {
+        format,
+        transactionCount: rows.length,
+        isTruncated,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        status: status || undefined,
+      },
+      request,
+    });
 
     // JSON format
     if (format === 'json') {
