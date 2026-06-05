@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     const { data: connections, error: connError } = await db
       .from('bank_connections')
       .select('id, entity_id, plaid_item_id, plaid_access_token, cursor, institution_name, status')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .limit(500);
 
     if (connError) {
       console.error('[Cron Plaid Sync] Failed to fetch connections:', connError);

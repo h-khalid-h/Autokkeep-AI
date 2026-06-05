@@ -75,8 +75,9 @@ export async function GET(request: NextRequest) {
     // 1. Batch update all stale transactions to escrow_suspense
     //    Note: ai_reasoning per-transaction is set below via individual updates
     //    since each needs a unique message. We batch the status update first.
-    const aiReasoningUpdates = staleTransactions.map((txn) =>
-      db
+    const claimedIds = new Set<string>();
+    const aiReasoningUpdates = staleTransactions.map(async (txn) => {
+      const { data: claimed } = await db
         .from('transactions')
         .update({
           status: 'escrow_suspense',
@@ -84,18 +85,21 @@ export async function GET(request: NextRequest) {
           updated_at: now,
         })
         .eq('id', txn.id)
-    );
-    // Use Promise.allSettled so one failure doesn't abandon remaining updates
-    const statusResults = await Promise.allSettled(aiReasoningUpdates);
-    const statusFailures = statusResults.filter(r => r.status === 'rejected');
-    if (statusFailures.length > 0) {
-      console.error(`[Suspense Timeout] ${statusFailures.length}/${staleTransactions.length} status updates failed`);
-    }
+        .eq('status', 'human_review') // Optimistic lock — prevents double-processing
+        .select('id');
+      if (claimed && claimed.length > 0) {
+        claimedIds.add(txn.id);
+      }
+    });
+    await Promise.allSettled(aiReasoningUpdates);
 
     // 2. Validate GL codes exist per entity before creating journal entries
     //    Group transactions by entity to batch-validate chart of accounts
+    // Only process transactions we successfully claimed
+    const claimedTransactions = staleTransactions.filter(t => claimedIds.has(t.id));
+
     const entitiesWithTxns = new Map<string, StaleTransaction[]>();
-    for (const txn of staleTransactions) {
+    for (const txn of claimedTransactions) {
       const existing = entitiesWithTxns.get(txn.entity_id) || [];
       existing.push(txn);
       entitiesWithTxns.set(txn.entity_id, existing);
@@ -234,7 +238,7 @@ export async function GET(request: NextRequest) {
       )
     );
 
-    const movedCount = txnIds.length;
+    const movedCount = claimedIds.size;
     const errors: string[] = [];
 
 

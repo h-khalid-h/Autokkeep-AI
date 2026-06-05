@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
       .select('id, entity_id, provider, access_token, refresh_token, realm_id, tenant_id, is_active, token_expires_at, refresh_failures')
       .eq('is_active', true)
       .not('refresh_token', 'is', null)
-      .lt('token_expires_at', expiryThreshold);
+      .lt('token_expires_at', expiryThreshold)
+      .limit(500);
 
     if (connError) {
       console.error('[Cron Token Refresh] Failed to fetch connections:', connError);

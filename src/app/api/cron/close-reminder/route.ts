@@ -60,7 +60,8 @@ async function calculateReadiness(
     .select('id, status, document_status, gl_code')
     .eq('entity_id', entityId)
     .gte('date', periodStart)
-    .lt('date', periodEnd);
+    .lt('date', periodEnd)
+    .limit(10000);
 
   const txns = (transactions || []) as Array<{
     id: string;
@@ -127,7 +128,8 @@ export async function POST(request: NextRequest) {
     const { data: entities, error: entityError } = await db
       .from('entities')
       .select('id, name, org_id, current_period, period_locked')
-      .eq('period_locked', false);
+      .eq('period_locked', false)
+      .limit(500);
 
     if (entityError) {
       console.error('[Cron Close Reminder] Failed to fetch entities:', entityError);

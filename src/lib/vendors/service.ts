@@ -197,7 +197,8 @@ export async function getVendors1099Status(
     .eq('entity_id', entityId)
     .eq('is_active', true)
     .gte('ytd_payments', 400) // Include approaching threshold
-    .order('ytd_payments', { ascending: false });
+    .order('ytd_payments', { ascending: false })
+    .limit(1000);
 
   if (error || !vendors) return [];
 
@@ -244,7 +245,8 @@ export async function getW9Summary(
     .from('vendors')
     .select('w9_status, w9_received_at, is_1099_eligible, ytd_payments')
     .eq('entity_id', entityId)
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .limit(5000);
 
   if (!vendors || vendors.length === 0) {
     return { totalVendors: 0, verified: 0, pending: 0, notCollected: 0, expired: 0, needsAttention: 0 };

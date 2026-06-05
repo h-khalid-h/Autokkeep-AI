@@ -30,7 +30,9 @@ vi.mock('@/lib/supabase/admin', () => ({
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          then: vi.fn((resolve: any) => resolve(mockConnectionsResult)),
+          limit: vi.fn().mockReturnValue({
+            then: vi.fn((resolve: any) => resolve(mockConnectionsResult)),
+          }),
         }),
       }),
     }),

@@ -46,6 +46,16 @@ function createMockChain(handler: TableHandler) {
     const updateChain: any = {};
     updateChain.eq = vi.fn().mockReturnValue(updateChain);
     updateChain.in = vi.fn().mockReturnValue(updateChain);
+    updateChain.select = vi.fn().mockImplementation(() => {
+      // After .select(), awaiting resolves to {data: [...], error}
+      const selectChain: any = {};
+      selectChain.then = (resolve: any) => {
+        const result = handler.updateResult ?? { error: null };
+        // If no error, return data with a single claimed id
+        return resolve({ data: result.error ? [] : [{ id: 'claimed' }], error: result.error ?? null });
+      };
+      return selectChain;
+    });
     updateChain.then = (resolve: any) =>
       resolve(handler.updateResult ?? { error: null });
     return updateChain;

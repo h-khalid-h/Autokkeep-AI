@@ -127,7 +127,8 @@ export async function POST(request: NextRequest) {
       .select('id, merchant_name, currency, amount, vendor_id, created_by, retention_lock_until')
       .eq('entity_id', entityId)
       .eq('status', 'pending')
-      .is('vendor_id', null);
+      .is('vendor_id', null)
+      .limit(1000);
 
     if (freshTransactions && freshTransactions.length > 0) {
       const baseCurrency = (entity.base_currency as string) || 'USD';
@@ -201,7 +202,8 @@ export async function POST(request: NextRequest) {
       .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc, currency, card_holder, document_url')
       .eq('entity_id', entityId)
       .in('status', ['pending', 'human_review'])
-      .is('category_ai', null);
+      .is('category_ai', null)
+      .limit(1000);
 
     if (pendingTransactions && pendingTransactions.length > 0) {
       // Fetch chart of accounts

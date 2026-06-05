@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
       .select('id, entity_id, plaid_transaction_id, merchant_name, merchant_raw, amount, date, currency, category_ai')
       .eq('entity_id', entity.id)
       .eq('status', 'pending')
-      .is('category_ai', null);
+      .is('category_ai', null)
+      .limit(1000);
 
     const txnsToCateg = pendingTxns || [];
 
@@ -86,12 +87,14 @@ export async function POST(request: NextRequest) {
       const { data: chartOfAccountsData } = await db
         .from('chart_of_accounts')
         .select('code, name')
-        .eq('entity_id', entity.id);
+        .eq('entity_id', entity.id)
+        .limit(500);
 
       const { data: rulesData } = await db
         .from('categorization_rules')
         .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
-        .eq('entity_id', entity.id);
+        .eq('entity_id', entity.id)
+        .limit(500);
 
       // Fetch historical patterns
       const { data: historyData } = await db

@@ -384,7 +384,8 @@ export async function getPendingApprovals(
     .in('entity_id', entityIds)
     .eq('status', 'pending')
     .in('requested_role', qualifiedRoles)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(1000);
 
   if (error) {
     console.error('[Approval] getPendingApprovals error:', error);

@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     const { data: connections, error: connError } = await db
       .from('bank_connections')
       .select('entity_id')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .limit(500);
 
     if (connError) {
       console.error('[Cron Receipt Chase] Failed to fetch connections:', connError);
