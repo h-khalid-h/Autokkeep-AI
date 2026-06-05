@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Validate entity access against org
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id, name')
+      .select('id, org_id, name, fiscal_year_end')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -76,9 +76,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Query approved/synced transactions for the year
-    const startDate = `${year}-01-01`;
-    const endDate = `${year}-12-31`;
+    // Calculate date range based on fiscal year end
+    const [fyMonth, fyDay] = ((entity as Record<string, unknown>).fiscal_year_end as string || '12-31').split('-').map(Number);
+    const startDate = fyMonth === 12
+      ? `${year}-01-01`
+      : `${year - 1}-${String(fyMonth + 1).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(fyMonth).padStart(2, '0')}-${String(fyDay).padStart(2, '0')}`;
 
     const { data: transactions, error: txError } = await db
       .from('transactions')

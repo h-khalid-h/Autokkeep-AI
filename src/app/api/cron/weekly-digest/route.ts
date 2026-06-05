@@ -65,7 +65,7 @@ async function handler(request: NextRequest) {
         .from('team_members')
         .select('user_id, role, org_id')
         .in('org_id', uniqueOrgIds)
-        .in('role', ['owner', 'admin']);
+        .in('role', ['owner', 'admin', 'accountant']);
 
       // Group members by org_id
       const membersByOrg = new Map<string, Array<{ user_id: string; role: string }>>();

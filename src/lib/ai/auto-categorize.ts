@@ -49,10 +49,12 @@ export async function runAutoCategorize(options?: {
   const db = supabase as unknown as SupabaseQueryClient;
 
   // ── Fetch uncategorized transactions ────────────────────────────────
+  // Include categorization_failed transactions for retry, but only after 1 hour cooldown
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { data: transactions, error: txError } = await db
     .from('transactions')
     .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc_code, currency, card_holder, raw_bank_description')
-    .eq('status', TRANSACTION_STATUS.PENDING)
+    .or(`status.eq.${TRANSACTION_STATUS.PENDING},and(status.eq.${TRANSACTION_STATUS.CATEGORIZATION_FAILED},updated_at.lt.${oneHourAgo})`)
     .is('category_ai', null)
     .limit(BATCH_LIMIT);
 
@@ -191,7 +193,7 @@ export async function runAutoCategorize(options?: {
                 })
                 .eq('id', txId)
                 .eq('entity_id', entityId)
-                .eq('status', TRANSACTION_STATUS.PENDING)
+                .in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.CATEGORIZATION_FAILED])
             );
           } else {
             // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
@@ -227,7 +229,7 @@ export async function runAutoCategorize(options?: {
                 })
                 .eq('id', txId)
                 .eq('entity_id', entityId)
-                .eq('status', TRANSACTION_STATUS.PENDING)
+                .in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.CATEGORIZATION_FAILED])
             );
           }
 

@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
         role: role || 'viewer',
         invited_by: user.id,
         status: 'pending',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       });
 
     if (inviteInsertError) {

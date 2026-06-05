@@ -21,6 +21,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
+  chain.or = vi.fn().mockReturnValue(chain);
   chain.is = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
   chain.limit = vi.fn().mockReturnValue(chain);

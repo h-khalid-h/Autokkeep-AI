@@ -238,11 +238,16 @@ export async function analyzeTaxReadiness(
   // Build deductions by category (sorted by amount descending)
   const deductionsByCategory = Array.from(categoryMap.entries())
     .filter(([, data]) => data.deductible)
-    .map(([category, data]) => ({
-      category,
-      amount: Math.round(data.amount * 100) / 100,
-      count: data.count,
-    }))
+    .map(([category, data]) => {
+      // IRS: Meals & entertainment only 50% deductible
+      const isMeals = category === 'Meals & Entertainment';
+      const adjustedAmount = isMeals ? data.amount * 0.5 : data.amount;
+      return {
+        category,
+        amount: Math.round(adjustedAmount * 100) / 100,
+        count: data.count,
+      };
+    })
     .sort((a, b) => b.amount - a.amount);
 
   // Calculate estimated savings

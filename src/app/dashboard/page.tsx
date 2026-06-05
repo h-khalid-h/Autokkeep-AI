@@ -247,7 +247,7 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const res = await fetch(`/api/transactions?status=human_review,pending&entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/transactions?status=human_review,pending,pending_approval&entityId=${selectedEntity!.id}`);
 
         if (!res.ok) {
           throw new Error(`Failed to fetch transactions (${res.status})`);

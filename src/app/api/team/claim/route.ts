@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiError } from '@/lib/api-helpers';
+import { handleApiError, apiError } from '@/lib/api-helpers';
 import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
@@ -42,12 +42,17 @@ export async function POST(request: NextRequest) {
     // 3. Fetch the invite record
     const { data: invite, error: fetchError } = await db
       .from('team_members')
-      .select('id, org_id, role, invited_email, user_id, accepted_at')
+      .select('id, org_id, role, invited_email, user_id, accepted_at, expires_at')
       .eq('id', inviteId)
       .maybeSingle();
 
     if (fetchError || !invite) {
       return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
+    }
+
+    // Check if the invite has expired
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      return apiError('This invite has expired. Please ask your administrator to send a new one.', 410);
     }
 
     // 4. Validate the invite is for the current user (by email)
