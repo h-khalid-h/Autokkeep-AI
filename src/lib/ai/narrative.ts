@@ -3,7 +3,7 @@
 // Autokkeep — Financial Narrative Engine (Monthly Narrative Generator)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import OpenAI from 'openai';
+import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -50,20 +50,7 @@ interface MonthData {
   oneTimeExpenses: number;
 }
 
-// ─── OpenAI Client ─────────────────────────────────────────────────────────────
-
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 30_000, // 30 second timeout
-      maxRetries: 2,
-    });
-  }
-  return openaiClient;
-}
+// ─── OpenAI Client (shared) ────────────────────────────────────────────────────
 
 // ─── Data Fetching & Computation ───────────────────────────────────────────────
 
@@ -248,8 +235,6 @@ export async function generateMonthlyNarrative(
   month: number,
   supabase: SupabaseQueryClient
 ): Promise<FinancialNarrative> {
-  const client = getOpenAIClient();
-  const aiModel = process.env.OPENAI_MODEL || 'gpt-4o';
 
   // Step 1: Fetch transactions for current and previous month
   const currentRange = getMonthDateRange(year, month);
@@ -328,48 +313,48 @@ export async function generateMonthlyNarrative(
   };
 
   try {
-    const response = await client.chat.completions.create({
-      model: aiModel,
+    const response = await callWithFallback((model) => ({
+      model,
       messages: [
         { role: 'system', content: NARRATIVE_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       response_format: {
-        type: 'json_schema',
+        type: 'json_schema' as const,
         json_schema: {
           name: 'financial_narrative',
           strict: true,
           schema: {
-            type: 'object',
+            type: 'object' as const,
             properties: {
               what_happened: {
-                type: 'array',
-                items: { type: 'string' },
+                type: 'array' as const,
+                items: { type: 'string' as const },
                 description: 'Key financial events and patterns for the month',
               },
               why_it_happened: {
-                type: 'array',
-                items: { type: 'string' },
+                type: 'array' as const,
+                items: { type: 'string' as const },
                 description: 'Explanations for the changes observed',
               },
               what_changed: {
-                type: 'array',
-                items: { type: 'string' },
+                type: 'array' as const,
+                items: { type: 'string' as const },
                 description: 'Notable differences from the previous month',
               },
               requires_attention: {
-                type: 'array',
-                items: { type: 'string' },
+                type: 'array' as const,
+                items: { type: 'string' as const },
                 description: 'Warnings, action items, and areas of concern',
               },
             },
-            required: ['what_happened', 'why_it_happened', 'what_changed', 'requires_attention'],
+            required: ['what_happened', 'why_it_happened', 'what_changed', 'requires_attention'] as const,
             additionalProperties: false,
           },
         },
       },
       temperature: 0.4,
-    });
+    }));
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

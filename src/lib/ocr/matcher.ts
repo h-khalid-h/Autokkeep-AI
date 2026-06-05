@@ -4,6 +4,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import type { ExtractedReceiptData } from './extractor';
+import { normalizeMerchantName } from '@/lib/vendors/service';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,8 @@ const MIN_CONFIDENCE_THRESHOLD = 0.6;
  * Returns a value between 0 (no match) and 1 (exact match).
  */
 function vendorSimilarity(a: string, b: string): number {
-  const s1 = a.toLowerCase().trim();
-  const s2 = b.toLowerCase().trim();
+  const s1 = normalizeMerchantName(a);
+  const s2 = normalizeMerchantName(b);
 
   if (s1 === s2) return 1;
   if (s1.length === 0 || s2.length === 0) return 0;

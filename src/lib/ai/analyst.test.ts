@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// ── Mock OpenAI ─────────────────────────────────────────────────────────────
+// ── Mock OpenAI (via shared openai-client) ──────────────────────────────────
 
 const mockCreate = vi.fn();
 (globalThis as Record<string, unknown>).__mockOpenAICreate = mockCreate;
 
-vi.mock('openai', () => {
+vi.mock('./openai-client', () => {
   const create = (globalThis as Record<string, unknown>).__mockOpenAICreate;
   return {
-    default: class OpenAI {
-      chat = { completions: { create } };
+    callWithFallback: (createParams: (model: string) => unknown) => {
+      const model = process.env.OPENAI_MODEL || 'gpt-4o';
+      const params = createParams(model);
+      return (create as (...args: unknown[]) => unknown)(params);
     },
   };
 });

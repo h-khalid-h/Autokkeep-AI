@@ -4,6 +4,7 @@
 // ============================================
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { normalizeMerchantName } from '@/lib/vendors/service';
 import {
   dispatchReceiptRequest,
   type ChannelConnection,
@@ -44,35 +45,7 @@ async function releaseChaseRunLock(entityId: string): Promise<void> {
   await redis.del(`chase_lock:${entityId}`);
 }
 
-// ============================================
-// Merchant Name Normalization
-// ============================================
-
-/**
- * Normalize a merchant or cardholder name for fuzzy grouping.
- * Strips common suffixes, store numbers, and special characters
- * so that 'STARBUCKS #123' and 'STARBUCKS #456' resolve to the same group.
- */
-export function normalizeMerchantName(name: string): string {
-  let normalized = name.trim().toLowerCase();
-
-  // Strip trailing store/location numbers like '#12345'
-  normalized = normalized.replace(/\s*#\d+\s*$/g, '');
-
-  // Strip common business suffixes
-  normalized = normalized.replace(
-    /\s+(?:llc|inc|corp|corporation|co|ltd|limited|lp|llp|pllc|plc|gmbh|s\.?a\.?|n\.?v\.?)\.?\s*$/gi,
-    ''
-  );
-
-  // Strip trailing special characters and whitespace
-  normalized = normalized.replace(/[^a-z0-9]+$/g, '').trim();
-
-  // Collapse multiple internal spaces
-  normalized = normalized.replace(/\s+/g, ' ');
-
-  return normalized;
-}
+// NOTE: normalizeMerchantName is imported from '@/lib/vendors/service'
 
 // ============================================
 // Configuration

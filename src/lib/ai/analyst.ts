@@ -2,7 +2,7 @@
 // Autokkeep — AI Financial Analyst Engine
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import OpenAI from 'openai';
+import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -57,20 +57,7 @@ interface FinancialContext {
   currency: string;
 }
 
-// ─── OpenAI Client ─────────────────────────────────────────────────────────────
-
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 30_000, // 30 second timeout
-      maxRetries: 2,
-    });
-  }
-  return openaiClient;
-}
+// ─── OpenAI Client (shared) ────────────────────────────────────────────────────
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
@@ -247,8 +234,6 @@ export async function analyzeFinancialQuestion(
   entityId: string,
   supabase: SupabaseQueryClient
 ): Promise<AnalystResponse> {
-  const client = getOpenAIClient();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
   // Step 1-2: Fetch and compute financial context
   const financialContext = await fetchFinancialContext(entityId, supabase);
@@ -262,56 +247,56 @@ export async function analyzeFinancialQuestion(
 
   try {
     // Step 4: Call OpenAI with structured output
-    const response = await client.chat.completions.create({
+    const response = await callWithFallback((model) => ({
       model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: question },
       ],
       response_format: {
-        type: 'json_schema',
+        type: 'json_schema' as const,
         json_schema: {
           name: 'analyst_response',
           strict: true,
           schema: {
-            type: 'object',
+            type: 'object' as const,
             properties: {
               answer: {
-                type: 'string',
+                type: 'string' as const,
                 description: 'The detailed answer to the financial question in plain English with bullet points',
               },
               data_citations: {
-                type: 'array',
+                type: 'array' as const,
                 items: {
-                  type: 'object',
+                  type: 'object' as const,
                   properties: {
-                    metric: { type: 'string' },
-                    value: { type: 'string' },
-                    period: { type: 'string' },
+                    metric: { type: 'string' as const },
+                    value: { type: 'string' as const },
+                    period: { type: 'string' as const },
                   },
-                  required: ['metric', 'value', 'period'],
+                  required: ['metric', 'value', 'period'] as const,
                   additionalProperties: false,
                 },
                 description: 'Specific data points cited in the answer',
               },
               suggested_follow_ups: {
-                type: 'array',
-                items: { type: 'string' },
+                type: 'array' as const,
+                items: { type: 'string' as const },
                 description: '2-3 natural follow-up questions the user might want to ask',
               },
               confidence: {
-                type: 'string',
+                type: 'string' as const,
                 enum: ['high', 'medium', 'low'],
                 description: 'Confidence level based on data availability',
               },
             },
-            required: ['answer', 'data_citations', 'suggested_follow_ups', 'confidence'],
+            required: ['answer', 'data_citations', 'suggested_follow_ups', 'confidence'] as const,
             additionalProperties: false,
           },
         },
       },
       temperature: 0.3,
-    });
+    }));
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

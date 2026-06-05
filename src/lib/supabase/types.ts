@@ -11,12 +11,26 @@ export type TransactionStatus =
   | 'pending'
   | 'auto_categorized'
   | 'human_review'
+  | 'pending_approval'
   | 'categorization_failed'
   | 'approved'
   | 'syncing'
   | 'synced'
   | 'removed'
   | 'escrow_suspense';
+
+export const TRANSACTION_STATUS = {
+  PENDING: 'pending',
+  AUTO_CATEGORIZED: 'auto_categorized',
+  HUMAN_REVIEW: 'human_review',
+  PENDING_APPROVAL: 'pending_approval',
+  CATEGORIZATION_FAILED: 'categorization_failed',
+  APPROVED: 'approved',
+  SYNCING: 'syncing',
+  SYNCED: 'synced',
+  REMOVED: 'removed',
+  ESCROW_SUSPENSE: 'escrow_suspense',
+} as const satisfies Record<string, TransactionStatus>;
 
 export type DocumentStatusType = 'found' | 'missing' | 'partial';
 

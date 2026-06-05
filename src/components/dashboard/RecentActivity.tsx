@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { Card, Badge, Skeleton } from '@/components/ui';
+import { formatCurrency } from '@/lib/currency/converter';
 import styles from './RecentActivity.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ function getDescription(entry: AuditEntry): string {
   const glCode = meta.gl_code as string || meta.glCode as string || '';
 
   if (entry.action.startsWith('transaction.') && merchant) {
-    return amount ? `${merchant} — $${Math.abs(amount).toFixed(2)}` : merchant;
+    return amount ? `${merchant} — ${formatCurrency(Math.abs(amount))}` : merchant;
   }
   if (glCode) return `GL ${glCode}`;
   if (meta.entity_name) return meta.entity_name as string;

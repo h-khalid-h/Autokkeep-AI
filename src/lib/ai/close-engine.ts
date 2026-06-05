@@ -9,6 +9,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { analyzeVariance } from '@/lib/reconciliation/engine';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ─── F16: Separation of Duties (SOD) — Approver ≠ Closer ───────────────────
 
@@ -196,8 +197,8 @@ function reconciliationCheck(
       status: 'pass',
       description: 'Bank and book balances match.',
       details: [
-        `Bank balance: $${bankBalance.toFixed(2)}`,
-        `Book balance: $${bookBalance.toFixed(2)}`,
+        `Bank balance: ${formatCurrency(bankBalance)}`,
+        `Book balance: ${formatCurrency(bookBalance)}`,
       ],
     };
   }
@@ -206,11 +207,11 @@ function reconciliationCheck(
     return {
       name: 'Bank Reconciliation',
       status: 'warning',
-      description: `Minor variance of $${variance.toFixed(2)} detected. ${varianceResult.description}`,
+      description: `Minor variance of ${formatCurrency(variance)} detected. ${varianceResult.description}`,
       details: [
-        `Bank balance: $${bankBalance.toFixed(2)}`,
-        `Book balance: $${bookBalance.toFixed(2)}`,
-        `Variance: $${variance.toFixed(2)} (${varianceResult.glName})`,
+        `Bank balance: ${formatCurrency(bankBalance)}`,
+        `Book balance: ${formatCurrency(bookBalance)}`,
+        `Variance: ${formatCurrency(variance)} (${varianceResult.glName})`,
       ],
     };
   }
@@ -218,11 +219,11 @@ function reconciliationCheck(
   return {
     name: 'Bank Reconciliation',
     status: 'fail',
-    description: `Significant variance of $${variance.toFixed(2)} between bank and books. Manual reconciliation required.`,
+    description: `Significant variance of ${formatCurrency(variance)} between bank and books. Manual reconciliation required.`,
     details: [
-      `Bank balance: $${bankBalance.toFixed(2)}`,
-      `Book balance: $${bookBalance.toFixed(2)}`,
-      `Variance: $${variance.toFixed(2)}`,
+      `Bank balance: ${formatCurrency(bankBalance)}`,
+      `Book balance: ${formatCurrency(bookBalance)}`,
+      `Variance: ${formatCurrency(variance)}`,
     ],
   };
 }
@@ -248,11 +249,11 @@ function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
   return {
     name: 'Receipt Documentation',
     status: missing.length > 10 ? 'fail' : 'warning',
-    description: `${missing.length} transactions ($${totalAmount.toFixed(2)}) are missing receipt documentation.`,
+    description: `${missing.length} transactions (${formatCurrency(totalAmount)}) are missing receipt documentation.`,
     count: missing.length,
     details: missing.slice(0, 5).map(
       (t) =>
-        `${t.merchant_name || 'Unknown'}: $${Math.abs(t.amount).toFixed(2)} on ${t.date}`
+        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount))} on ${t.date}`
     ),
   };
 }
@@ -278,7 +279,7 @@ function uncategorizedCheck(transactions: TransactionRow[]): CloseCheck {
     count: uncategorized.length,
     details: uncategorized.slice(0, 5).map(
       (t) =>
-        `${t.merchant_name || 'Unknown'}: $${Math.abs(t.amount).toFixed(2)} (${t.status})`
+        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount))} (${t.status})`
     ),
   };
 }
@@ -303,7 +304,7 @@ function expenseReviewCheck(
       const deviation = ((amount - avg) / avg) * 100;
       if (deviation > 50 && amount > 100) {
         flagged.push(
-          `"${cat}": $${amount.toFixed(2)} (+${Math.round(deviation)}% vs $${avg.toFixed(2)} avg)`
+          `"${cat}": ${formatCurrency(amount)} (+${Math.round(deviation)}% vs ${formatCurrency(avg)} avg)`
         );
       }
     }
@@ -433,12 +434,12 @@ async function trialBalanceCheck(
       return {
         name: 'Trial Balance',
         status: 'pass',
-        description: `Trial balance verified. Total debits ($${totalDebit.toFixed(2)}) equal total credits ($${totalCredit.toFixed(2)}).`,
+        description: `Trial balance verified. Total debits (${formatCurrency(totalDebit)}) equal total credits (${formatCurrency(totalCredit)}).`,
         details: [
           `Journal entries: ${entries.length}`,
           `Journal lines: ${lines.length}`,
-          `Total debits: $${totalDebit.toFixed(2)}`,
-          `Total credits: $${totalCredit.toFixed(2)}`,
+          `Total debits: ${formatCurrency(totalDebit)}`,
+          `Total credits: ${formatCurrency(totalCredit)}`,
         ],
       };
     }
@@ -446,11 +447,11 @@ async function trialBalanceCheck(
     return {
       name: 'Trial Balance',
       status: 'fail',
-      description: `Trial balance is OUT OF BALANCE by $${imbalance.toFixed(2)}. This must be resolved before closing.`,
+      description: `Trial balance is OUT OF BALANCE by ${formatCurrency(imbalance)}. This must be resolved before closing.`,
       details: [
-        `Total debits: $${totalDebit.toFixed(2)}`,
-        `Total credits: $${totalCredit.toFixed(2)}`,
-        `Imbalance: $${imbalance.toFixed(2)}`,
+        `Total debits: ${formatCurrency(totalDebit)}`,
+        `Total credits: ${formatCurrency(totalCredit)}`,
+        `Imbalance: ${formatCurrency(imbalance)}`,
       ],
     };
   } catch (error) {

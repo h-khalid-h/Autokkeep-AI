@@ -3,6 +3,8 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import Logo from '@/components/ui/Logo';
+import { useToast } from '@/components/ui';
+import { formatCurrency } from '@/lib/currency/converter';
 
 interface ActionsConsoleProps {
   transaction: Transaction | null;
@@ -25,49 +27,32 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
   chartOfAccounts = [],
   currency = 'USD',
 }) => {
+  const toast = useToast();
   const [showCategorySearch, setShowCategorySearch] = React.useState(false);
   const [categoryQuery, setCategoryQuery] = React.useState('');
   const [showSlackModal, setShowSlackModal] = React.useState(false);
-  const [showToast, setShowToast] = React.useState(false);
-  const [toastMessage, setToastMessage] = React.useState('');
   const [slackSent, setSlackSent] = React.useState(false);
   const categoryInputRef = React.useRef<HTMLInputElement>(null);
-
-  const toastTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const triggerToast = React.useCallback((message: string) => {
-    setShowToast(true);
-    setToastMessage(message);
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setShowToast(false), 3000);
-  }, []);
-
-  // Cleanup toast timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    };
-  }, []);
 
   const handleAccept = React.useCallback(() => {
     if (!transaction) return;
     onAccept(transaction);
-    triggerToast(
-      `✅ Accepted: ${transaction.merchant} → GL ${transaction.suggestedGLCode}`
+    toast.success(
+      `Accepted: ${transaction.merchant} → GL ${transaction.suggestedGLCode}`
     );
     setShowCategorySearch(false);
     setShowSlackModal(false);
-  }, [transaction, onAccept, triggerToast]);
+  }, [transaction, onAccept, toast]);
 
   const handleReject = React.useCallback(() => {
     if (!transaction || !onReject) return;
     onReject(transaction);
-    triggerToast(
-      `❌ Rejected: ${transaction.merchant}`
+    toast.error(
+      `Rejected: ${transaction.merchant}`
     );
     setShowCategorySearch(false);
     setShowSlackModal(false);
-  }, [transaction, onReject, triggerToast]);
+  }, [transaction, onReject, toast]);
 
   // Keyboard shortcut: CMD+Enter to accept, CMD+Backspace to reject
   React.useEffect(() => {
@@ -102,9 +87,9 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
       onChangeCategory(transaction, code, name);
       setShowCategorySearch(false);
       setCategoryQuery('');
-      triggerToast(`📝 Recategorized: ${transaction.merchant} → GL ${code} ${name}`);
+      toast.success(`Recategorized: ${transaction.merchant} → GL ${code} ${name}`);
     },
-    [transaction, onChangeCategory, triggerToast]
+    [transaction, onChangeCategory, toast]
   );
 
   const handlePingSlack = React.useCallback(() => {
@@ -122,20 +107,20 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
         body: JSON.stringify({
           channel: 'slack',
           transactionId: transaction.id,
-          message: `Receipt request for ${transaction.merchant} ($${transaction.amount.toFixed(2)})`,
+          message: `Receipt request for ${transaction.merchant} (${formatCurrency(transaction.amount)})`,
         }),
       });
       if (res.ok) {
         setSlackSent(true);
-        triggerToast(`💬 Slack message sent for ${transaction.merchant}`);
+        toast.success(`Slack message sent for ${transaction.merchant}`);
       } else {
-        triggerToast('❌ Failed to send Slack message');
+        toast.error('Failed to send Slack message');
       }
     } catch {
-      triggerToast('❌ Failed to send Slack message');
+      toast.error('Failed to send Slack message');
     }
     setTimeout(() => setShowSlackModal(false), 1500);
-  }, [transaction, triggerToast]);
+  }, [transaction, toast]);
 
   const filteredAccounts = React.useMemo(() => {
     if (!categoryQuery.trim()) return chartOfAccounts;
@@ -305,20 +290,6 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
           </div>
         )}
       </section>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <div
-          className="toast toast-success"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="toast-icon" aria-hidden="true">
-            ✓
-          </span>
-          {toastMessage}
-        </div>
-      )}
     </>
   );
 };

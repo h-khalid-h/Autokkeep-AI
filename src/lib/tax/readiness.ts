@@ -6,6 +6,8 @@
 // ============================================
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { formatCurrency } from '@/lib/currency/converter';
+import { RECEIPT_REQUIRED_THRESHOLD, HIGH_VALUE_RECEIPT_THRESHOLD } from '@/lib/constants/compliance';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -153,8 +155,7 @@ function categorizeTransaction(tx: TransactionRow): { category: string; deductib
 }
 
 // ─── Receipt Threshold ──────────────────────────────────────────────────────
-// IRS requires receipts for expenses ≥ $75 (we flag everything ≥ $25 as best practice)
-const RECEIPT_THRESHOLD = 25;
+// IRS requires receipts for expenses ≥ $75 (centralized via compliance constants)
 
 // ─── Main Analyzer ──────────────────────────────────────────────────────────
 
@@ -223,7 +224,7 @@ export async function analyzeTaxReadiness(
     }
 
     // Flag missing receipts on deductible expenses above threshold
-    if (deductible && !hasReceipt && absAmount >= RECEIPT_THRESHOLD) {
+    if (deductible && !hasReceipt && absAmount >= RECEIPT_REQUIRED_THRESHOLD) {
       missingReceipts.push({
         id: tx.id,
         merchant: tx.merchant_name || 'Unknown',
@@ -319,7 +320,7 @@ function calculateReadinessScore(data: {
   score -= Math.round((1 - receiptRate) * 40);
 
   // Missing high-value receipts penalty (20% weight)
-  const highValueMissing = data.missingReceipts.filter(r => r.amount >= 250);
+  const highValueMissing = data.missingReceipts.filter(r => r.amount >= HIGH_VALUE_RECEIPT_THRESHOLD);
   if (highValueMissing.length > 0) {
     const penalty = Math.min(20, highValueMissing.length * 3);
     score -= penalty;
@@ -367,7 +368,7 @@ function generateRecommendations(data: {
   if (data.missingReceipts.length > 0) {
     const totalMissingAmount = data.missingReceipts.reduce((sum, r) => sum + r.amount, 0);
     recs.push(
-      `Upload ${data.missingReceipts.length} missing receipt${data.missingReceipts.length !== 1 ? 's' : ''} totaling $${totalMissingAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} to maximize deductions and ensure audit compliance.`
+      `Upload ${data.missingReceipts.length} missing receipt${data.missingReceipts.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalMissingAmount)} to maximize deductions and ensure audit compliance.`
     );
   }
 
@@ -391,7 +392,7 @@ function generateRecommendations(data: {
   const mealsCategory = data.deductionsByCategory.find(c => c.category === 'Meals & Entertainment');
   if (mealsCategory && mealsCategory.amount > 0) {
     recs.push(
-      `Meals & entertainment expenses of $${mealsCategory.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} — note: only 50% is deductible per IRS rules. Estimated deductible portion: $${(mealsCategory.amount * 0.5).toLocaleString('en-US', { minimumFractionDigits: 2 })}.`
+      `Meals & entertainment expenses of ${formatCurrency(mealsCategory.amount)} — note: only 50% is deductible per IRS rules. Estimated deductible portion: ${formatCurrency(mealsCategory.amount * 0.5)}.`
     );
   }
 

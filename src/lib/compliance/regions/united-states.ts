@@ -17,6 +17,13 @@ import type {
   EntityComplianceConfig,
   ComplianceCheckResult,
 } from '../types';
+import { formatCurrency } from '@/lib/currency/converter';
+import {
+  IRS_1099_THRESHOLD,
+  RECEIPT_REQUIRED_THRESHOLD,
+  HIGH_VALUE_RECEIPT_THRESHOLD,
+} from '@/lib/constants/compliance';
+import { normalizeMerchantName } from '@/lib/vendors/service';
 
 const RULES: ComplianceRule[] = [
   {
@@ -78,14 +85,14 @@ function checkReceiptSubstantiation(
   const rule = RULES[0];
   for (const tx of transactions) {
     if (tx.currency !== 'USD') continue;
-    if (tx.amount > 75 && tx.document_status !== 'found') {
+    if (tx.amount > RECEIPT_REQUIRED_THRESHOLD && tx.document_status !== 'found') {
       violations.push({
         ruleId: rule.id,
         rule,
-        severity: tx.amount > 250 ? 'violation' : 'warning',
-        message: `Transaction ${tx.id} ($${tx.amount.toFixed(2)}) exceeds $${tx.amount > 250 ? '250' : '75'} and is missing receipt substantiation.`,
+        severity: tx.amount > HIGH_VALUE_RECEIPT_THRESHOLD ? 'violation' : 'warning',
+        message: `Transaction ${tx.id} (${formatCurrency(tx.amount)}) exceeds ${formatCurrency(tx.amount > HIGH_VALUE_RECEIPT_THRESHOLD ? HIGH_VALUE_RECEIPT_THRESHOLD : RECEIPT_REQUIRED_THRESHOLD)} and is missing receipt substantiation.`,
         transactionId: tx.id,
-        suggestion: 'Attach a receipt or invoice. IRS §274 requires substantiation for business expenses over $75.',
+        suggestion: `Attach a receipt or invoice. IRS §274 requires substantiation for business expenses over ${formatCurrency(RECEIPT_REQUIRED_THRESHOLD)}.`,
       });
     }
   }
@@ -105,7 +112,7 @@ function checkMealsDeductibility(
         ruleId: rule.id,
         rule,
         severity: 'info',
-        message: `Transaction ${tx.id} ($${tx.amount.toFixed(2)}) is categorized as "${tx.category_human || tx.category_ai}" — verify 50% deductibility limitation applies.`,
+        message: `Transaction ${tx.id} (${formatCurrency(tx.amount)}) is categorized as "${tx.category_human || tx.category_ai}" — verify 50% deductibility limitation applies.`,
         transactionId: tx.id,
         suggestion: 'Under IRC §274(n), meals are generally 50% deductible. Confirm this transaction qualifies and is correctly limited.',
       });
@@ -127,7 +134,7 @@ function checkVendor1099Threshold(
     if (tx.currency !== 'USD') continue;
     if (tx.amount <= 0) continue; // Only outgoing payments
 
-    const normalised = vendor.toLowerCase();
+    const normalised = normalizeMerchantName(vendor);
     const existing = vendorTotals.get(normalised) || { total: 0, txIds: [] };
     existing.total += tx.amount;
     existing.txIds.push(tx.id);
@@ -135,12 +142,12 @@ function checkVendor1099Threshold(
   }
 
   for (const [vendor, data] of vendorTotals) {
-    if (data.total >= 600) {
+    if (data.total >= IRS_1099_THRESHOLD) {
       violations.push({
         ruleId: rule.id,
         rule,
         severity: 'violation',
-        message: `Vendor "${vendor}" has cumulative payments of $${data.total.toFixed(2)} (${data.txIds.length} transaction(s)) — meets 1099-NEC filing threshold ($600).`,
+        message: `Vendor "${vendor}" has cumulative payments of ${formatCurrency(data.total)} (${data.txIds.length} transaction(s)) — meets 1099-NEC filing threshold (${formatCurrency(IRS_1099_THRESHOLD)}).`,
         suggestion: 'Collect W-9 from this vendor and file Form 1099-NEC by January 31 of the following year.',
       });
     } else if (data.total >= 400) {
@@ -148,7 +155,7 @@ function checkVendor1099Threshold(
         ruleId: rule.id,
         rule,
         severity: 'warning',
-        message: `Vendor "${vendor}" has cumulative payments of $${data.total.toFixed(2)} (${data.txIds.length} transaction(s)) — approaching 1099-NEC threshold ($600).`,
+        message: `Vendor "${vendor}" has cumulative payments of ${formatCurrency(data.total)} (${data.txIds.length} transaction(s)) — approaching 1099-NEC threshold ($600).`,
         suggestion: 'Monitor this vendor. If total payments reach $600, a 1099-NEC filing will be required.',
       });
     }
@@ -162,12 +169,12 @@ function checkBusinessPurposeDocumentation(
   const rule = RULES[3];
   for (const tx of transactions) {
     if (tx.currency !== 'USD') continue;
-    if (tx.amount > 75 && (!tx.notes || tx.notes.trim() === '')) {
+    if (tx.amount > RECEIPT_REQUIRED_THRESHOLD && (!tx.notes || tx.notes.trim() === '')) {
       violations.push({
         ruleId: rule.id,
         rule,
         severity: 'warning',
-        message: `Transaction ${tx.id} ($${tx.amount.toFixed(2)}) lacks business purpose documentation.`,
+        message: `Transaction ${tx.id} (${formatCurrency(tx.amount)}) lacks business purpose documentation.`,
         transactionId: tx.id,
         suggestion: 'Add a note describing the business purpose. IRS may disallow deductions without documented business purpose.',
       });

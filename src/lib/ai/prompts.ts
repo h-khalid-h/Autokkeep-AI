@@ -2,6 +2,8 @@
 // Autokkeep — AI Categorization Prompt Templates
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+import { formatCurrency } from '@/lib/currency/converter';
+
 /**
  * System prompt instructing the LLM to categorize financial transactions.
  * Returns structured JSON with GL code, confidence, reasoning, and alternatives.
@@ -68,7 +70,7 @@ export function buildCategorizationUserPrompt(
   let prompt = `## Transaction to Categorize\n\n`;
   prompt += `- **Merchant**: ${transaction.merchant}\n`;
   prompt += `- **Raw Bank Description**: ${transaction.merchantRaw || transaction.bankDescription || 'N/A'}\n`;
-  prompt += `- **Amount**: $${transaction.amount.toFixed(2)}\n`;
+  prompt += `- **Amount**: ${formatCurrency(transaction.amount)}\n`;
   prompt += `- **Date**: ${transaction.date}\n`;
 
   if (transaction.mcc) {

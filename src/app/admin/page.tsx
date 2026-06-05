@@ -4,6 +4,7 @@ import React from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Input, Skeleton, EmptyState, Tabs } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { formatCurrency } from '@/lib/currency/converter';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -60,15 +61,6 @@ interface SystemData {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat('en-US').format(n);

@@ -2,7 +2,7 @@
 // Autokkeep — OCR Receipt Data Extractor (OpenAI Vision)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import OpenAI from 'openai';
+import { callWithFallback } from '@/lib/ai/openai-client';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,20 +21,7 @@ export interface ExtractedReceiptData {
   businessPurpose: string | null;
 }
 
-// ─── OpenAI Client ─────────────────────────────────────────────────────────────
-
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 60_000, // 60 second timeout for vision tasks
-      maxRetries: 2,
-    });
-  }
-  return openaiClient;
-}
+// ─── OpenAI Client (shared) ────────────────────────────────────────────────────
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
@@ -59,18 +46,15 @@ Rules:
 // ─── Extractor ─────────────────────────────────────────────────────────────────
 
 /**
- * Extracts structured receipt data from an image URL using OpenAI Vision (GPT-4o).
- * Sends the image to GPT-4o with a system prompt requesting structured JSON output.
+ * Extracts structured receipt data from an image URL using OpenAI Vision.
+ * Sends the image to the configured AI model with a system prompt requesting structured JSON output.
  *
  * @param fileUrl - Public URL of the receipt image
  * @returns Extracted receipt data with vendor, amount, date, tax, currency, and line items
  * @throws Error if the API call fails or returns empty/invalid data
  */
 export async function extractReceiptData(fileUrl: string): Promise<ExtractedReceiptData> {
-  const client = getOpenAIClient();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
-
-  const response = await client.chat.completions.create({
+  const response = await callWithFallback((model) => ({
     model,
     messages: [
       { role: 'system', content: RECEIPT_EXTRACTION_PROMPT },
@@ -78,51 +62,51 @@ export async function extractReceiptData(fileUrl: string): Promise<ExtractedRece
         role: 'user',
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: 'Extract the receipt data from this image and return structured JSON.',
           },
           {
-            type: 'image_url',
-            image_url: { url: fileUrl, detail: 'high' },
+            type: 'image_url' as const,
+            image_url: { url: fileUrl, detail: 'high' as const },
           },
         ],
       },
     ],
     response_format: {
-      type: 'json_schema',
+      type: 'json_schema' as const,
       json_schema: {
         name: 'receipt_extraction',
         strict: true,
         schema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {
-            vendor: { type: 'string' },
-            amount: { type: 'number' },
-            date: { type: 'string' },
-            tax: { type: ['number', 'null'] },
-            currency: { type: 'string' },
+            vendor: { type: 'string' as const },
+            amount: { type: 'number' as const },
+            date: { type: 'string' as const },
+            tax: { type: ['number', 'null'] as const },
+            currency: { type: 'string' as const },
             lineItems: {
-              type: 'array',
+              type: 'array' as const,
               items: {
-                type: 'object',
+                type: 'object' as const,
                 properties: {
-                  description: { type: 'string' },
-                  amount: { type: 'number' },
+                  description: { type: 'string' as const },
+                  amount: { type: 'number' as const },
                 },
-                required: ['description', 'amount'],
+                required: ['description', 'amount'] as const,
                 additionalProperties: false,
               },
             },
-            business_purpose: { type: ['string', 'null'] },
+            business_purpose: { type: ['string', 'null'] as const },
           },
-          required: ['vendor', 'amount', 'date', 'tax', 'currency', 'lineItems', 'business_purpose'],
+          required: ['vendor', 'amount', 'date', 'tax', 'currency', 'lineItems', 'business_purpose'] as const,
           additionalProperties: false,
         },
       },
     },
     temperature: 0.1,
     max_tokens: 2000,
-  });
+  }));
 
   const content = response.choices[0]?.message?.content;
   if (!content) {

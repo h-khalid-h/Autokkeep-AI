@@ -13,9 +13,11 @@ import { writeAuditLog } from '@/lib/audit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
-import { resolveOrCreateVendor } from '@/lib/vendors/service';
+import { resolveOrCreateVendor, normalizeMerchantName } from '@/lib/vendors/service';
 import { applyFxConversion } from '@/lib/fx/service';
 import { parseBody, schemas } from '@/lib/validation';
+import { DUPLICATE_MIN_AMOUNT, ROUND_NUMBER_THRESHOLD, ROUND_NUMBER_MODULO, DUPLICATE_TOLERANCE } from '@/lib/constants/fraud';
+import { IRS_RETENTION_YEARS } from '@/lib/constants/compliance';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -132,9 +134,9 @@ export async function POST(request: NextRequest) {
 
     if (freshTransactions && freshTransactions.length > 0) {
       const baseCurrency = (entity.base_currency as string) || 'USD';
-      const sevenYearsLater = new Date();
-      sevenYearsLater.setFullYear(sevenYearsLater.getFullYear() + 7);
-      const retentionDate = sevenYearsLater.toISOString().split('T')[0];
+      const retentionEnd = new Date();
+      retentionEnd.setFullYear(retentionEnd.getFullYear() + IRS_RETENTION_YEARS);
+      const retentionDate = retentionEnd.toISOString().split('T')[0];
 
       const enrichResults = await Promise.allSettled(
         (freshTransactions as { id: string; merchant_name: string | null; currency: string; amount: number; vendor_id: string | null; created_by: string | null; retention_lock_until: string | null }[]).map(async (tx) => {
@@ -379,16 +381,16 @@ export async function POST(request: NextRequest) {
               (s) =>
                 s.id !== txId &&
                 s.merchant_name &&
-                s.merchant_name.toLowerCase() === merchantName.toLowerCase()
+                normalizeMerchantName(s.merchant_name) === normalizeMerchantName(merchantName)
             );
 
             if (similarTxns.length > 0) {
               const duplicateMatch = similarTxns.find((s) => {
                 const diff = Math.abs(Math.abs(s.amount) - absAmount);
-                return diff / absAmount <= 0.05; // within 5%
+                return diff / absAmount <= DUPLICATE_TOLERANCE;
               });
 
-              if (duplicateMatch && absAmount >= 50) {
+              if (duplicateMatch && absAmount >= DUPLICATE_MIN_AMOUNT) {
                 fraudFlagged = true;
                 targetStatus = 'human_review';
               }
@@ -396,7 +398,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Check 2: Round-number suspicion — exact multiples of $100 above $500
-          if (!fraudFlagged && absAmount >= 500 && absAmount % 100 === 0) {
+          if (!fraudFlagged && absAmount >= ROUND_NUMBER_THRESHOLD && absAmount % ROUND_NUMBER_MODULO === 0) {
             fraudFlagged = true;
             targetStatus = 'human_review';
           }
@@ -447,7 +449,7 @@ export async function POST(request: NextRequest) {
           if (merchantName) {
             historyInserts.push({
               entity_id: entityId,
-              merchant: merchantName.toLowerCase().trim(),
+              merchant: normalizeMerchantName(merchantName),
               gl_code: result.glCode,
               gl_name: result.glName || '',
             });

@@ -60,16 +60,17 @@ function buildTags(tx: RawTransaction): string[] {
 
 function mapStatus(dbStatus: string): Transaction['status'] {
   switch (dbStatus) {
-    case 'pending': return 'pending_human';
-    case 'human_review': return 'pending_human';
-    case 'auto_categorized': return 'verified_ai';
+    case 'pending': return 'pending';
+    case 'human_review': return 'human_review';
+    case 'auto_categorized': return 'auto_categorized';
     case 'approved': return 'approved';
     case 'removed': return 'removed';
     case 'escrow_suspense': return 'escrow_suspense';
     case 'categorization_failed': return 'categorization_failed';
     case 'syncing': return 'syncing';
     case 'synced': return 'synced';
-    default: return 'pending_human';
+    case 'pending_approval': return 'pending_approval';
+    default: return 'pending';
   }
 }
 
@@ -225,13 +226,13 @@ export default function DashboardPage() {
   const stats = React.useMemo(() => {
     if (isLoading) return null;
     const total = transactions.length;
-    const pending = transactions.filter((t) => t.status === 'pending_human').length;
-    const approved = transactions.filter((t) => t.status === 'verified_human').length;
+    const pending = transactions.filter((t) => t.status === 'pending' || t.status === 'human_review').length;
+    const approved = transactions.filter((t) => t.status === 'approved').length;
     // rejectedCount tracks rejections made during this session (transactions removed
     // from the list are no longer in the array, so we use the accumulated counter)
     const rejected = rejectedCount;
     const autoRate = total > 0
-      ? Math.round((transactions.filter((t) => t.status === 'verified_ai').length / total) * 100)
+      ? Math.round((transactions.filter((t) => t.status === 'auto_categorized').length / total) * 100)
       : 0;
     return { total, pending, approved, rejected, autoRate };
   }, [transactions, isLoading, rejectedCount]);

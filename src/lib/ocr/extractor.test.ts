@@ -4,17 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockCreate = vi.fn();
 
-vi.mock('openai', () => {
-  // Must be a real class so `new OpenAI(...)` works
-  class MockOpenAI {
-    chat = {
-      completions: {
-        create: mockCreate,
-      },
-    };
-  }
-  return { default: MockOpenAI };
-});
+vi.mock('@/lib/ai/openai-client', () => ({
+  callWithFallback: (createParams: (model: string) => unknown) => {
+    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+    const params = createParams(model);
+    return mockCreate(params);
+  },
+}));
 
 // ─── Import under test ──────────────────────────────────────────────────────────
 

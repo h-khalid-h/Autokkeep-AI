@@ -2,11 +2,12 @@
 // Autokkeep — Dual-Engine AI Categorization Pipeline
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import OpenAI from 'openai';
+import { callWithFallback } from './openai-client';
 import {
   CATEGORIZATION_SYSTEM_PROMPT,
   buildCategorizationUserPrompt,
 } from './prompts';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/constants/ai';
 import {
   tokenizeTransaction,
   hashSourceData,
@@ -171,19 +172,6 @@ export function categorizeDeterministic(
 
 // ─── Probabilistic Engine (OpenAI) ─────────────────────────────────────────────
 
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 30_000, // 30 second timeout
-      maxRetries: 2,
-    });
-  }
-  return openaiClient;
-}
-
 /**
  * Categorizes a transaction using the OpenAI API with structured JSON output.
  * Falls back to a zero-confidence result on error.
@@ -193,9 +181,6 @@ export async function categorizeProbabilistic(
   chartOfAccounts: ChartOfAccountsEntry[],
   history?: HistoricalPattern[]
 ): Promise<CategorizationResult> {
-  const client = getOpenAIClient();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
-
   // ── Privacy Parser: tokenize before sending to OpenAI ──
   const rawData: RawTransactionData = {
     merchant: transaction.merchant,
@@ -229,34 +214,34 @@ export async function categorizeProbabilistic(
   );
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await callWithFallback((model) => ({
       model,
       messages: [
         { role: 'system', content: CATEGORIZATION_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       response_format: {
-        type: 'json_schema',
+        type: 'json_schema' as const,
         json_schema: {
           name: 'categorization_result',
           strict: true,
           schema: {
-            type: 'object',
+            type: 'object' as const,
             properties: {
-              suggested_gl_code: { type: 'string' },
-              suggested_gl_name: { type: 'string' },
-              confidence: { type: 'number' },
-              reasoning: { type: 'string' },
+              suggested_gl_code: { type: 'string' as const },
+              suggested_gl_name: { type: 'string' as const },
+              confidence: { type: 'number' as const },
+              reasoning: { type: 'string' as const },
               alternative_codes: {
-                type: 'array',
+                type: 'array' as const,
                 items: {
-                  type: 'object',
+                  type: 'object' as const,
                   properties: {
-                    code: { type: 'string' },
-                    name: { type: 'string' },
-                    confidence: { type: 'number' },
+                    code: { type: 'string' as const },
+                    name: { type: 'string' as const },
+                    confidence: { type: 'number' as const },
                   },
-                  required: ['code', 'name', 'confidence'],
+                  required: ['code', 'name', 'confidence'] as const,
                   additionalProperties: false,
                 },
               },
@@ -267,13 +252,13 @@ export async function categorizeProbabilistic(
               'confidence',
               'reasoning',
               'alternative_codes',
-            ],
+            ] as const,
             additionalProperties: false,
           },
         },
       },
       temperature: 0.1,
-    });
+    }));
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

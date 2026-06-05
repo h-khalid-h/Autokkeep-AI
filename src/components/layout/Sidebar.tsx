@@ -182,7 +182,6 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
       <aside
         className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}
         aria-label="Main navigation"
-        aria-hidden={!mobileOpen ? true : undefined}
       >
         {/* Logo */}
         <div className={styles.logoArea}>

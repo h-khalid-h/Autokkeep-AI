@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Badge, Button } from '@/components/ui';
+import { Card, Badge, Button, useToast } from '@/components/ui';
 import type { EntityData, ConnectionStatus } from '../types';
 import CardSkeletonBlock from './CardSkeletonBlock';
 import styles from '../page.module.css';
@@ -17,6 +17,7 @@ export default function IntegrationsTab({
   connections: ConnectionStatus;
   onRefresh: () => void;
 }) {
+  const toast = useToast();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -199,7 +200,7 @@ export default function IntegrationsTab({
     if (key === 'WhatsApp') return handleWhatsAppConnect;
     if (key === 'SMS') return handleSMSConnect;
     if (key === 'OpenAI (GPT-4o)') return () => {
-      alert('OpenAI is configured server-side via environment variables.\n\nModel: GPT-4o\nConfidence threshold: 0.95\n\nContact your admin to change AI settings.');
+      toast.info('OpenAI is configured server-side via environment variables. Model: GPT-4o · Confidence threshold: 0.95. Contact your admin to change AI settings.');
     };
     return undefined;
   };

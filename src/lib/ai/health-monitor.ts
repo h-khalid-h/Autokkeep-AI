@@ -9,6 +9,7 @@
 //         missing receipts, and burn rate.
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ function checkCashFlowTrend(
       alertType: 'cash_flow_decline',
       severity: changePercent < -40 ? 'critical' : 'warning',
       title: 'Cash flow declining',
-      description: `Inflows dropped ${Math.abs(Math.round(changePercent))}% from ${priorMonth} to ${currentMonth}. Prior: $${priorInflows.toFixed(2)}, Current: $${currentInflows.toFixed(2)}.`,
+      description: `Inflows dropped ${Math.abs(Math.round(changePercent))}% from ${priorMonth} to ${currentMonth}. Prior: ${formatCurrency(priorInflows)}, Current: ${formatCurrency(currentInflows)}.`,
       data: {
         currentMonth,
         priorMonth,
@@ -151,7 +152,7 @@ function checkExpenseAnomalies(
         alertType: 'expense_anomaly',
         severity: changePercent > 100 ? 'critical' : 'warning',
         title: `Spending spike in "${category}"`,
-        description: `"${category}" expenses increased ${Math.round(changePercent)}% from $${priorAmount.toFixed(2)} to $${currentAmount.toFixed(2)}.`,
+        description: `"${category}" expenses increased ${Math.round(changePercent)}% from ${formatCurrency(priorAmount)} to ${formatCurrency(currentAmount)}.`,
         data: {
           category,
           currentMonth,
@@ -210,7 +211,7 @@ function checkDuplicatePayments(
           alertType: 'duplicate_payment',
           severity: Math.abs(tx.amount) > 500 ? 'critical' : 'warning',
           title: `Possible duplicate: ${tx.merchant_name}`,
-          description: `Two payments of $${Math.abs(tx.amount).toFixed(2)} to "${tx.merchant_name}" within ${Math.round(daysDiff)} day(s) (${tx.date} and ${other.date}).`,
+          description: `Two payments of ${formatCurrency(Math.abs(tx.amount))} to "${tx.merchant_name}" within ${Math.round(daysDiff)} day(s) (${tx.date} and ${other.date}).`,
           data: {
             transactionIds: [tx.id, other.id],
             vendor: tx.merchant_name,
@@ -272,7 +273,7 @@ function checkSubscriptionWaste(
         alertType: 'subscription_waste',
         severity: 'info',
         title: `Recurring charge: ${vendor}`,
-        description: `"${vendor}" has ${data.amounts.length} charges averaging $${monthlyEstimate.toFixed(2)}/mo. Annual estimate: $${(monthlyEstimate * 12).toFixed(2)}. Review if this subscription is still needed.`,
+        description: `"${vendor}" has ${data.amounts.length} charges averaging ${formatCurrency(monthlyEstimate)}/mo. Annual estimate: ${formatCurrency(monthlyEstimate * 12)}. Review if this subscription is still needed.`,
         data: {
           vendor,
           chargeCount: data.amounts.length,
@@ -315,7 +316,7 @@ function checkRevenueConcentration(
         alertType: 'revenue_concentration',
         severity: percentage > 80 ? 'critical' : 'warning',
         title: 'Revenue concentration risk',
-        description: `${Math.round(percentage)}% of your revenue ($${amount.toFixed(2)} of $${totalRevenue.toFixed(2)}) comes from "${source}". Diversifying revenue sources reduces risk.`,
+        description: `${Math.round(percentage)}% of your revenue (${formatCurrency(amount)} of ${formatCurrency(totalRevenue)}) comes from "${source}". Diversifying revenue sources reduces risk.`,
         data: {
           source,
           sourceAmount: amount,
@@ -386,7 +387,7 @@ function checkMissingReceipts(
             ? 'warning'
             : 'info',
       title: `${missing.length} transactions without receipts`,
-      description: `${missing.length} transactions totaling $${totalAmount.toFixed(2)} are missing receipt documentation. This may affect compliance.`,
+      description: `${missing.length} transactions totaling ${formatCurrency(totalAmount)} are missing receipt documentation. This may affect compliance.`,
       data: {
         count: missing.length,
         totalAmount,
@@ -429,7 +430,7 @@ function checkBurnRate(
       alertType: 'burn_rate_warning',
       severity: runwayMonths < 3 ? 'critical' : 'warning',
       title: `${Math.round(runwayMonths)} months of runway remaining`,
-      description: `At your current burn rate of $${avgMonthlyBurn.toFixed(2)}/month, your cash balance of $${cashBalance.toFixed(2)} will last approximately ${runwayMonths.toFixed(1)} months.`,
+      description: `At your current burn rate of ${formatCurrency(avgMonthlyBurn)}/month, your cash balance of ${formatCurrency(cashBalance)} will last approximately ${runwayMonths.toFixed(1)} months.`,
       data: {
         cashBalance,
         avgMonthlyBurn,

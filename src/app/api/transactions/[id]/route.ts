@@ -10,6 +10,7 @@ import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 import { parseBody, schemas } from '@/lib/validation';
+import { normalizeMerchantName } from '@/lib/vendors/service';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -343,7 +344,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Update categorization history for learning when a human approves
     if (glCode && (newStatus as string) === 'approved' && existing.merchant_name) {
-      const normalizedMerchant = existing.merchant_name.toLowerCase().trim();
+      const normalizedMerchant = normalizeMerchantName(existing.merchant_name);
       const { data: existingHistory } = await db
         .from('categorization_history')
         .select('id, frequency')
