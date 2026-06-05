@@ -13,6 +13,7 @@ vi.mock('@/lib/audit', () => ({
 
 vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
+  withSentryHandler: vi.fn((handler: unknown) => handler),
 }));
 
 const mockAdminDb = { from: vi.fn() };

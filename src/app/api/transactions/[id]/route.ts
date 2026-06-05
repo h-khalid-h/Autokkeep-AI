@@ -5,10 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
 import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
 import { parseBody, schemas } from '@/lib/validation';
 import { normalizeMerchantName } from '@/lib/vendors/service';
 
@@ -54,12 +54,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ transaction });
   } catch (error) {
-    captureException(error);
-    console.error('[Transaction Detail] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch transaction' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/transactions/[id]', 'Failed to fetch transaction');
   }
 }
 
@@ -375,12 +370,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ transaction });
   } catch (error) {
-    captureException(error);
-    console.error('[Transaction Update] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update transaction' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'PUT /api/transactions/[id]', 'Failed to update transaction');
   }
 }
 
@@ -468,11 +458,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Transaction Delete] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to delete transaction' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'DELETE /api/transactions/[id]', 'Failed to delete transaction');
   }
 }

@@ -10,6 +10,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.gte = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
 
   // Thenable
   chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));

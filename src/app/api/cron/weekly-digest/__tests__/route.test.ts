@@ -9,6 +9,7 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
+  withSentryHandler: vi.fn((handler: unknown) => handler),
 }));
 
 vi.mock('@/lib/audit', () => ({

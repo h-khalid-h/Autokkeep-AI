@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
-import { captureException } from '@/lib/sentry';
+import { captureException, withSentryHandler } from '@/lib/sentry';
 import { getGLCode } from '@/lib/entity-settings';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -28,7 +28,7 @@ interface StaleTransaction {
   category_ai: string | null;
 }
 
-export async function GET(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
@@ -257,3 +257,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withSentryHandler(handler, { routeName: 'cron/suspense-timeout' });

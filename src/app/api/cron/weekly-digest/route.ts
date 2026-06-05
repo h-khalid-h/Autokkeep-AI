@@ -13,10 +13,10 @@ import { sendDigestEmail } from '@/lib/email/resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { captureException, withSentryHandler } from '@/lib/sentry';
 import { writeAuditLog } from '@/lib/audit';
 
-export async function GET(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
@@ -168,3 +168,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withSentryHandler(handler, { routeName: 'cron/weekly-digest' });

@@ -705,16 +705,28 @@ export async function closePeriod(
   month: number,
   userId: string,
   supabase: SupabaseQueryClient
-): Promise<{ success: boolean; message: string; error?: string }> {
+): Promise<{ success: boolean; message: string; report?: CloseReport; error?: string }> {
   const period = `${year}-${String(month).padStart(2, '0')}`;
 
   // ── Readiness gate: enforce minimum score before locking ────────────
-  const readiness = await runMonthEndClose(entityId, year, month, supabase, userId);
-  if (readiness.readinessScore < 80) {
+  const report = await runMonthEndClose(entityId, year, month, supabase, userId);
+
+  // Hard blocker: no pending/unreviewed transactions allowed
+  const uncategorizedCheck = report.checks.find(c => c.name === 'Transaction Categorization');
+  if (uncategorizedCheck && uncategorizedCheck.status !== 'pass') {
     return {
       success: false,
-      message: `Cannot close period ${period}: readiness score is ${readiness.readinessScore}%.`,
-      error: `Cannot close period: readiness score ${readiness.readinessScore}% is below the 80% minimum. Address outstanding items first.`,
+      message: `Cannot close period: ${uncategorizedCheck.description}. All transactions must be reviewed before closing.`,
+      report,
+    };
+  }
+
+  if (report.readinessScore < 80) {
+    return {
+      success: false,
+      message: `Cannot close period ${period}: readiness score is ${report.readinessScore}%.`,
+      report,
+      error: `Cannot close period: readiness score ${report.readinessScore}% is below the 80% minimum. Address outstanding items first.`,
     };
   }
 

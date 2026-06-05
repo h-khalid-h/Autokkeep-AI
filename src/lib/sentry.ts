@@ -122,7 +122,8 @@ export function captureMessage(message: string, context?: CaptureContext): void 
  * Wraps an API route handler with Sentry error capture.
  * Use as: export const GET = withSentryHandler(async (req) => { ... });
  */
-export function withSentryHandler<T extends (...args: unknown[]) => Promise<Response>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withSentryHandler<T extends (...args: any[]) => Promise<Response>>(
   handler: T,
   options?: { routeName?: string }
 ): T {

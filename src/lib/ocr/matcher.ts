@@ -30,7 +30,7 @@ const OCR_LOOKBACK_DAYS = parseInt(process.env.OCR_LOOKBACK_DAYS || '30', 10);
 const VENDOR_WEIGHT = 0.40;
 const AMOUNT_WEIGHT = 0.35;
 const DATE_WEIGHT = 0.25;
-const MIN_CONFIDENCE_THRESHOLD = 0.6;
+const MIN_CONFIDENCE_THRESHOLD = 0.70;
 
 // ─── Similarity Helpers ────────────────────────────────────────────────────────
 
@@ -158,7 +158,8 @@ export async function matchReceiptToTransaction(
     .select('id, merchant_name, amount, date')
     .eq('entity_id', entityId)
     .gte('date', cutoffDate)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('[OCR Matcher] Failed to query transactions:', error);

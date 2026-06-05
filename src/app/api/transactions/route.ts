@@ -5,9 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
 import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: List transactions with filtering ─────────────────────────────────────
@@ -137,12 +137,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    captureException(error);
-    console.error('[Transactions] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch transactions' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/transactions', 'Failed to fetch transactions');
   }
 }
 
@@ -243,11 +238,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ transaction }, { status: 201 });
   } catch (error) {
-    console.error('[Transactions] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to create transaction' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/transactions', 'Failed to create transaction');
   }
 }

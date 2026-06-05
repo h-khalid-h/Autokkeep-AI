@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { handleApiError } from '@/lib/api-helpers';
 import { getStripeClient, PLAN_PRICES, type PlanId } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
@@ -86,11 +86,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    captureException(error, { tags: { route: 'billing/checkout' } });
-    console.error('[Checkout] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/billing/checkout', 'Failed to create checkout session');
   }
 }

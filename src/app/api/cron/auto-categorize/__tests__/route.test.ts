@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server';
 // Mock Sentry
 vi.mock('@/lib/sentry', () => ({
   captureException: vi.fn(),
+  withSentryHandler: vi.fn((handler: unknown) => handler),
 }));
 
 // Mock the extracted service module

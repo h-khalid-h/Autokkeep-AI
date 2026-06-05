@@ -5,13 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException } from '@/lib/sentry';
+import { captureException, withSentryHandler } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
@@ -125,3 +125,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withSentryHandler(handler, { routeName: 'cron/plaid-sync' });

@@ -1,10 +1,10 @@
 // GET/PUT /api/account/channel-preferences — Fetch/upsert user channel preferences
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { getApiAuthContext } from '@/lib/api-auth';
+import { handleApiError } from '@/lib/api-helpers';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
-import { getApiAuthContext } from '@/lib/api-auth';
 
 interface ChannelPrefRow {
   entity_id: string;
@@ -50,9 +50,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(prefs);
   } catch (error) {
-    console.error('[Channel Prefs GET] Unexpected:', error);
-    captureException(error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error, 'GET /api/account/channel-preferences', 'Internal server error');
   }
 }
 
@@ -107,8 +105,6 @@ export async function PUT(request: NextRequest) {
       isActive: row?.is_active,
     });
   } catch (error) {
-    console.error('[Channel Prefs PUT] Unexpected:', error);
-    captureException(error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error, 'PUT /api/account/channel-preferences', 'Internal server error');
   }
 }

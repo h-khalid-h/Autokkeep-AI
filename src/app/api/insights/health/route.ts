@@ -4,8 +4,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { runHealthCheck, computeHealthScore } from '@/lib/ai/health-monitor';
 import type { HealthAlert } from '@/lib/ai/health-monitor';
@@ -110,12 +110,7 @@ export async function GET(request: NextRequest) {
       alertCount,
     });
   } catch (error) {
-    console.error('[Insights/Health] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to run health check' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/insights/health', 'Failed to run health check');
   }
 }
 
@@ -184,12 +179,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, alertId, action });
   } catch (error) {
-    console.error('[Insights/Health] PATCH Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to update alert' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'PATCH /api/insights/health', 'Failed to update alert');
   }
 }
 

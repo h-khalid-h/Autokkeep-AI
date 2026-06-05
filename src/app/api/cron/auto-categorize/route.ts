@@ -7,11 +7,11 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { captureException, withSentryHandler } from '@/lib/sentry';
 import { runAutoCategorize } from '@/lib/ai/auto-categorize';
 import { rateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export const POST = withSentryHandler(handler, { routeName: 'cron/auto-categorize' });
+
 // Vercel crons send GET — delegate to POST handler
-export async function GET(request: NextRequest) {
-  return POST(request);
-}
+export const GET = withSentryHandler(handler, { routeName: 'cron/auto-categorize' });

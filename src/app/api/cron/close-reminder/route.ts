@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException } from '@/lib/sentry';
+import { captureException, withSentryHandler } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchWithFallback, type ChannelConnection } from '@/lib/channels/dispatcher';
 import {
@@ -109,7 +109,7 @@ async function calculateReadiness(
 
 // ─── Route Handler ─────────────────────────────────────────────────────────────
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // ── Verify cron secret ──────────────────────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -340,3 +340,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withSentryHandler(handler, { routeName: 'cron/close-reminder' });

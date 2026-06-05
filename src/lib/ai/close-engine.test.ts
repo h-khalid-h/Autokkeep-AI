@@ -736,13 +736,13 @@ describe('closePeriod', () => {
     expect(typeof closePeriod).toBe('function');
   });
 
-  it('rejects when readiness score is below 80', async () => {
+  it('rejects when uncategorized transactions exist', async () => {
     const supabase = createMockSupabaseForClosePeriod({ highReadiness: false });
     const result = await closePeriod('entity-1', 2025, 6, 'user-1', supabase);
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain('readiness score');
-    expect(result.error).toContain('below the 80% minimum');
+    // The hard blocker fires before the readiness score check
+    expect(result.message).toMatch(/cannot close period|readiness score/i);
   });
 
   it('returns error when period is already locked', async () => {
