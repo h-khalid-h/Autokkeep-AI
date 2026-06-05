@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { runMonthEndClose, closePeriod } from './close-engine';
 
 // ============================================
@@ -44,7 +46,6 @@ interface MockBankConnection {
   status: string;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function createMockSupabase(opts: {
   transactions?: MockTransaction[];
   txError?: { message: string } | null;
@@ -52,7 +53,7 @@ function createMockSupabase(opts: {
   bankAccounts?: MockBankAccount[];
   historicalTxns?: { amount: number; category_ai: string | null; category_human: string | null }[];
   allTransactions?: MockTransaction[];
-} = {}) {
+} = {}): SupabaseQueryClient {
   const {
     transactions = [],
     txError = null,
@@ -65,9 +66,9 @@ function createMockSupabase(opts: {
   // Track how many times `from('transactions')` is called
   let txFromCallCount = 0;
 
-  const mock: any = {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -89,7 +90,7 @@ function createMockSupabase(opts: {
         // Call #3: allTransactions for reconciliation (no .order, resolves via chain.then)
         chain.order = vi.fn().mockImplementation(() => {
           // Current period transactions (first call with .order)
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: txError ? null : transactions, error: txError });
           return chain;
         });
@@ -97,30 +98,30 @@ function createMockSupabase(opts: {
         // For queries without .order (historical + allTransactions)
         if (currentCallNum === 1) {
           // First from('transactions') call → period query, will use .order
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: historicalTxns, error: null });
         } else if (currentCallNum === 2) {
           // Second from('transactions') call → historical query
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: historicalTxns, error: null });
         } else {
           // Third from('transactions') call → allTransactions for reconciliation
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: allTransactions ?? transactions, error: null });
         }
       } else if (table === 'bank_connections') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: bankConnections, error: null });
       } else if (table === 'bank_accounts') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: bankAccounts, error: null });
       } else if (table === 'journal_entries') {
         // Trial balance check queries journal entries — return empty
         chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'journal_lines') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'accounting_periods') {
         // Used by closePeriod
@@ -130,9 +131,8 @@ function createMockSupabase(opts: {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Test fixtures
@@ -584,7 +584,6 @@ describe('runMonthEndClose', () => {
 // closePeriod
 // ============================================
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Creates a Supabase mock specifically for closePeriod tests.
  *
@@ -601,9 +600,9 @@ describe('runMonthEndClose', () => {
 function createMockSupabaseForClosePeriod(opts: {
   highReadiness?: boolean;
   existingPeriod?: { id: string; is_locked: boolean } | null;
-  updateResult?: { data: any[] | null; error: { message: string } | null };
+  updateResult?: { data: Record<string, unknown>[] | null; error: { message: string } | null };
   insertResult?: { error: { message: string } | null };
-} = {}) {
+} = {}): SupabaseQueryClient {
   const {
     highReadiness = true,
     existingPeriod = null,
@@ -641,9 +640,9 @@ function createMockSupabaseForClosePeriod(opts: {
 
   const transactions = highReadiness ? [goodTx] : badTxs;
 
-  const mock: any = {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -662,37 +661,37 @@ function createMockSupabaseForClosePeriod(opts: {
         const currentCallNum = txFromCallCount;
 
         chain.order = vi.fn().mockImplementation(() => {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: transactions, error: null });
           return chain;
         });
 
         if (currentCallNum === 1) {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: [], error: null });
         } else if (currentCallNum === 2) {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: [], error: null });
         } else {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: transactions, error: null });
         }
       } else if (table === 'bank_connections') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'bank_accounts') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'journal_entries') {
         chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'journal_lines') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'approval_requests') {
         // SOD check — return empty so it passes
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'entities') {
         // Accounting basis — return cash
@@ -714,7 +713,7 @@ function createMockSupabaseForClosePeriod(opts: {
           // Second call: update or insert
           chain.update = vi.fn().mockImplementation(() => {
             // Return a chain that ends with .select() resolving to updateResult
-            const updateChain: any = {};
+            const updateChain = {} as MockChain;
             updateChain.eq = vi.fn().mockReturnValue(updateChain);
             updateChain.select = vi.fn().mockResolvedValue(updateResult);
             return updateChain;
@@ -727,9 +726,8 @@ function createMockSupabaseForClosePeriod(opts: {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 describe('closePeriod', () => {
   it('exports closePeriod function', () => {

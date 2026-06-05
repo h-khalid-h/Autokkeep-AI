@@ -12,10 +12,12 @@ vi.mock('@/lib/audit', () => ({
 // ============================================
 // Supabase mock factory
 // ============================================
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+
 function createMockSupabase(overrides?: {
-  insertResult?: { data: any; error: any };
-  selectSingleResult?: { data: any; error: any };
+  insertResult?: { data: unknown; error: unknown };
+  selectSingleResult?: { data: unknown; error: unknown };
 }) {
   const defaultJournalEntry = { id: 'je-001' };
 
@@ -24,9 +26,9 @@ function createMockSupabase(overrides?: {
     error: null,
   };
 
-  const mock: any = {
+  const mock = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.insert = vi.fn().mockReturnValue(chain);
       chain.select = vi.fn().mockReturnValue(chain);
       chain.single = vi.fn().mockResolvedValue(insertResult);
@@ -41,9 +43,8 @@ function createMockSupabase(overrides?: {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Fixtures
@@ -206,7 +207,7 @@ describe('createFeeAdjustingEntry', () => {
       expect(result.reasoning).toContain('Auto-reconciled');
 
       // Verify journal_entries insert was called with 'posted' status
-      const jeInsertCall = supabase.from.mock.calls.find(
+      const jeInsertCall = vi.mocked(supabase.from).mock.calls.find(
         (c: string[]) => c[0] === 'journal_entries'
       );
       expect(jeInsertCall).toBeDefined();
@@ -218,7 +219,7 @@ describe('createFeeAdjustingEntry', () => {
       await createFeeAdjustingEntry(supabase, input);
 
       // Verify journal_lines insert was called
-      const jlInsertCall = supabase.from.mock.calls.find(
+      const jlInsertCall = vi.mocked(supabase.from).mock.calls.find(
         (c: string[]) => c[0] === 'journal_lines'
       );
       expect(jlInsertCall).toBeDefined();

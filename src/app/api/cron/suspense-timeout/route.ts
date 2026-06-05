@@ -72,7 +72,6 @@ async function handler(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
-    const txnIds = staleTransactions.map((t) => t.id);
 
     // 1. Batch update all stale transactions to escrow_suspense
     //    Note: ai_reasoning per-transaction is set below via individual updates

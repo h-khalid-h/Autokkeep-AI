@@ -3,6 +3,8 @@
 // Checks subscription limits before operations
 // ============================================
 
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+
 export type PlanTier = 'starter' | 'growth' | 'pro';
 
 export interface PlanFeatures {
@@ -110,8 +112,7 @@ export interface PlanCheckResult {
  * @param operation - What operation to check
  */
 export async function checkPlanLimits(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: { from: (table: string) => any },
+  supabase: Pick<SupabaseQueryClient, 'from'>,
   orgId: string,
   operation: 'create_entity' | 'process_transaction' | 'connect_bank' | 'sync_ledger' | 'dispatch_channel' | 'add_team_member' | 'ai_analyst' | 'health_monitoring' | 'month_end_close' | 'tax_readiness'
 ): Promise<PlanCheckResult> {

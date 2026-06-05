@@ -28,20 +28,21 @@ vi.mock('@/lib/crypto', () => ({
 
 // ─── Supabase admin mock ────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-let mockSelectResult: { data: any; error: any } = { data: [], error: null };
-const updateCalls: Array<{ data: any; filters: Record<string, any> }> = [];
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
+let mockSelectResult: { data: unknown; error: unknown } = { data: [], error: null };
+const updateCalls: Array<{ data: Record<string, unknown>; filters: Record<string, unknown> }> = [];
 
 function createMockUpdateChain() {
-  const chain: any = {};
-  const call: any = { data: null, filters: {} };
-  updateCalls.push(call);
+  const chain = {} as MockChain;
+  const call: { data: Record<string, unknown> | null; filters: Record<string, unknown> } = { data: null, filters: {} };
+  updateCalls.push(call as typeof updateCalls[number]);
 
-  chain.eq = vi.fn().mockImplementation((col: string, val: any) => {
+  chain.eq = vi.fn().mockImplementation((col: string, val: unknown) => {
     call.filters[col] = val;
     return chain;
   });
-  chain.then = (resolve: any) => resolve({ error: null });
+  chain.then = (resolve: (v: unknown) => void) => resolve({ error: null });
   return chain;
 }
 
@@ -53,13 +54,13 @@ vi.mock('@/lib/supabase/admin', () => ({
           not: vi.fn().mockReturnValue({
             lt: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
-                then: vi.fn((resolve: any) => resolve(mockSelectResult)),
+                then: vi.fn((resolve: (v: unknown) => void) => resolve(mockSelectResult)),
               }),
             }),
           }),
         }),
       }),
-      update: vi.fn().mockImplementation((data: any) => {
+      update: vi.fn().mockImplementation((data: Record<string, unknown>) => {
         const chain = createMockUpdateChain();
         updateCalls[updateCalls.length - 1].data = data;
         return chain;
@@ -67,7 +68,6 @@ vi.mock('@/lib/supabase/admin', () => ({
     }),
   })),
 }));
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 

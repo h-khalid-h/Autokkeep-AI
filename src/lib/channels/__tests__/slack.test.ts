@@ -1,4 +1,4 @@
-// @ts-nocheck — test file with extensive dynamic mocking
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import crypto from 'crypto';
 

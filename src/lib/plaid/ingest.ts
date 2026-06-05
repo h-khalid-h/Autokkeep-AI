@@ -28,10 +28,9 @@ export interface IngestResult {
   cursor: string | null;
 }
 
-type SupabaseClient = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  from: (table: string) => any;
-};
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+
+type SupabaseClient = Pick<SupabaseQueryClient, 'from'>;
 
 // ─── Core Ingestion ─────────────────────────────────────────────────────────
 

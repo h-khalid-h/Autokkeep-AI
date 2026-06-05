@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { MockChain } from '@/__test-utils__/mock-supabase';
 import { NextRequest } from 'next/server';
 
 // ============================================
@@ -16,17 +17,15 @@ import { createServerClient } from '@/lib/supabase/server';
 // Mock Supabase factory
 // ============================================
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 interface MockSupabaseConfig {
   user?: { id: string; email?: string } | null;
-  authError?: any;
+  authError?: { message: string } | null;
   membership?: { id: string; org_id: string; role: string } | null;
   orgEntities?: Array<{ id: string }>;
   entityAssignments?: Array<{ entity_id: string }> | null;
 }
 
-function createMockSupabase(config: MockSupabaseConfig) {
+function createMockSupabase(config: MockSupabaseConfig): Awaited<ReturnType<typeof createServerClient>> {
   const {
     user = { id: 'user-1', email: 'user@example.com' },
     authError = null,
@@ -38,7 +37,10 @@ function createMockSupabase(config: MockSupabaseConfig) {
   // Track which queries have been made to return contextual data
   let teamMembersCalled = false;
 
-  const mock: any = {
+  const mock: {
+    auth: { getUser: ReturnType<typeof vi.fn> };
+    from: ReturnType<typeof vi.fn>;
+  } = {
     auth: {
       getUser: vi.fn().mockResolvedValue({
         data: { user },
@@ -46,7 +48,7 @@ function createMockSupabase(config: MockSupabaseConfig) {
       }),
     },
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.limit = vi.fn().mockReturnValue(chain);
@@ -54,17 +56,17 @@ function createMockSupabase(config: MockSupabaseConfig) {
       if (table === 'team_members') {
         if (!teamMembersCalled) {
           teamMembersCalled = true;
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: membership ? [membership] : [], error: null });
         } else {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: membership ? [membership] : [], error: null });
         }
       } else if (table === 'entities') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: orgEntities, error: null });
       } else if (table === 'entity_assignments') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: entityAssignments, error: null });
       }
 
@@ -72,9 +74,8 @@ function createMockSupabase(config: MockSupabaseConfig) {
     }),
   };
 
-  return mock;
+  return mock as unknown as Awaited<ReturnType<typeof createServerClient>>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Helpers
@@ -191,8 +192,8 @@ describe('getApiAuthContext', () => {
       expect(ctx.membership!.org_id).toBe(orgId);
 
       // Verify Supabase was queried with the specific org_id
-      const fromCalls = mockDb.from.mock.calls;
-      const teamMemberCall = fromCalls.find((c: string[]) => c[0] === 'team_members');
+      const fromCalls = vi.mocked(mockDb.from).mock.calls;
+      const teamMemberCall = fromCalls.find((c) => c[0] === 'team_members');
       expect(teamMemberCall).toBeDefined();
     });
 
@@ -355,8 +356,9 @@ describe('getApiAuthContext', () => {
           getUser: vi.fn().mockRejectedValue(new Error('Network timeout')),
         },
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(createServerClient).mockResolvedValue(mockDb as any);
+      vi.mocked(createServerClient).mockResolvedValue(
+        mockDb as unknown as Awaited<ReturnType<typeof createServerClient>>
+      );
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

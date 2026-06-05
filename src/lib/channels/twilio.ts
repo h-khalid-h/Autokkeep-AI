@@ -1,12 +1,12 @@
 import Twilio from 'twilio';
+import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010/account/message';
 import { formatCurrency } from '@/lib/currency/converter';
 
 // ============================================
 // TWILIO CLIENT (SMS + WhatsApp)
 // ============================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let twilioClient: any = null;
+let twilioClient: ReturnType<typeof Twilio> | null = null;
 
 export function getTwilioClient() {
   if (!twilioClient) {
@@ -39,7 +39,7 @@ export async function sendSMS({ to, message, mediaUrl }: SendSMSOptions) {
 
   if (!from) throw new Error('Missing TWILIO_PHONE_NUMBER');
 
-  const params: Record<string, unknown> = {
+  const params: MessageListInstanceCreateOptions = {
     body: message,
     from,
     to,
@@ -49,8 +49,7 @@ export async function sendSMS({ to, message, mediaUrl }: SendSMSOptions) {
     params.mediaUrl = [mediaUrl];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await client.messages.create(params as any);
+  const result = await client.messages.create(params);
 
   return {
     sid: result.sid,
@@ -79,7 +78,7 @@ export async function sendWhatsApp({ to, message, mediaUrl }: SendWhatsAppOption
   // Ensure proper format
   const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
 
-  const params: Record<string, unknown> = {
+  const params: MessageListInstanceCreateOptions = {
     body: message,
     from,
     to: formattedTo,
@@ -89,8 +88,7 @@ export async function sendWhatsApp({ to, message, mediaUrl }: SendWhatsAppOption
     params.mediaUrl = [mediaUrl];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await client.messages.create(params as any);
+  const result = await client.messages.create(params);
 
   return {
     sid: result.sid,

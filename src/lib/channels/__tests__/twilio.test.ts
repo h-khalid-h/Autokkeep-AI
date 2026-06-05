@@ -1,4 +1,4 @@
-// @ts-nocheck — test file with extensive dynamic mocking
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.hoisted ensures the mock fn exists before the hoisted vi.mock factory runs
@@ -8,12 +8,11 @@ const { mockValidateRequest } = vi.hoisted(() => ({
 
 // Mock twilio before importing module under test
 vi.mock('twilio', () => {
-  const factory = vi.fn(() => ({
+  const factory = Object.assign(vi.fn(() => ({
     messages: {
       create: vi.fn().mockResolvedValue({ sid: 'SM123', status: 'queued', to: '+1234567890', dateCreated: new Date() }),
     },
-  }));
-  factory.validateRequest = mockValidateRequest;
+  })), { validateRequest: mockValidateRequest });
   return { default: factory };
 });
 

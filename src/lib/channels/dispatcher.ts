@@ -9,6 +9,7 @@ import { sendSMS, sendWhatsApp, buildReceiptRequestMessage, type ReceiptRequestC
 import { sendEmailReceiptRequest } from './email';
 import { buildSlackCard, buildSMSCard, type TransactionData, type ConfidenceBreakdown } from '@/lib/notifications/micro-card';
 import { formatCurrency } from '@/lib/currency/converter';
+import type { Block } from '@slack/types';
 
 export type ChannelType = 'slack' | 'teams' | 'whatsapp' | 'sms' | 'email';
 
@@ -39,8 +40,7 @@ export interface TransactionContext {
   currency?: string;
   // Rich message overrides (used by close-reminder, etc.)
   // When provided, these bypass the default message builders
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  slackBlocks?: any[];
+  slackBlocks?: Block[];
   smsText?: string;
   emailHtml?: string;
 }

@@ -11,25 +11,33 @@ vi.mock('@/lib/ledger/sync', () => ({
 
 import { pushApprovedTransactionsToLedger } from './auto-push';
 import { buildJournalEntryFromTransaction, syncJournalEntry } from '@/lib/ledger/sync';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ============================================
 // Mock Supabase factory
 // ============================================
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
 interface MockChainConfig {
-  transactions?: { data: any[] | null; error: any };
-  connections?: { data: any[] | null; error: any };
-  updateResult?: { error: any };
+  transactions?: { data: unknown[] | null; error: unknown };
+  connections?: { data: unknown[] | null; error: unknown };
+  updateResult?: { error: unknown };
+}
+
+interface UpdateCall {
+  table: string;
+  data: Record<string, unknown>;
+  filters: Record<string, unknown>;
 }
 
 function createMockSupabase(config: MockChainConfig) {
-  const updateCalls: Array<{ table: string; data: any; filters: Record<string, any> }> = [];
+  const updateCalls: UpdateCall[] = [];
 
-  const mock: any = {
+  const mock = {
     _updateCalls: updateCalls,
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
 
       // Common chaining methods
       chain.select = vi.fn().mockReturnValue(chain);
@@ -39,38 +47,38 @@ function createMockSupabase(config: MockChainConfig) {
       chain.limit = vi.fn().mockReturnValue(chain);
 
       // Update method — tracks calls for assertions
-      chain.update = vi.fn().mockImplementation((data: any) => {
-        const updateChain: any = {};
-        const call = { table, data, filters: {} as Record<string, any> };
+      chain.update = vi.fn().mockImplementation((data: Record<string, unknown>) => {
+        const updateChain = {} as MockChain;
+        const call: UpdateCall = { table, data, filters: {} };
         updateCalls.push(call);
-        updateChain.eq = vi.fn().mockImplementation((col: string, val: any) => {
+        updateChain.eq = vi.fn().mockImplementation((col: string, val: unknown) => {
           call.filters[col] = val;
           return updateChain;
         });
-        updateChain.in = vi.fn().mockImplementation((col: string, vals: any) => {
+        updateChain.in = vi.fn().mockImplementation((col: string, vals: unknown) => {
           call.filters[`${col}__in`] = vals;
           return updateChain;
         });
         updateChain.select = vi.fn().mockImplementation(() => {
           // For the claiming step, return the fetched transaction IDs
           const txData = config.transactions?.data;
-          if (table === 'transactions' && data.ledger_synced === true && txData) {
-            updateChain.then = (resolve: any) =>
-              resolve({ data: txData.map((tx: any) => ({ id: tx.id })), error: null });
+          if (table === 'transactions' && (data as Record<string, unknown>).ledger_synced === true && txData) {
+            updateChain.then = (resolve: (v: unknown) => void) =>
+              resolve({ data: txData.map((tx: unknown) => ({ id: (tx as { id: string }).id })), error: null });
           }
           return updateChain;
         });
-        updateChain.then = (resolve: any) =>
+        updateChain.then = (resolve: (v: unknown) => void) =>
           resolve(config.updateResult ?? { error: null });
         return updateChain;
       });
 
       // Resolve query results based on table
       if (table === 'transactions') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve(config.transactions ?? { data: [], error: null });
       } else if (table === 'ledger_connections') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve(config.connections ?? { data: [], error: null });
       }
 
@@ -78,9 +86,8 @@ function createMockSupabase(config: MockChainConfig) {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient & { _updateCalls: UpdateCall[] };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Fixture helpers
@@ -199,7 +206,7 @@ describe('pushApprovedTransactionsToLedger', () => {
 
       // Verify the idempotency update call (sets ledger_synced true + updated_at)
       const updateCall = db._updateCalls.find(
-        (c: { table: string; data: { ledger_synced?: boolean }; filters: Record<string, string> }) =>
+        (c) =>
           c.table === 'transactions' && c.data.ledger_synced === true && c.filters.id === 'tx-1'
       );
       expect(updateCall).toBeDefined();
@@ -370,7 +377,7 @@ describe('pushApprovedTransactionsToLedger', () => {
 
       // Should record error on failed transaction row and release claim
       const errorUpdate = db._updateCalls.find(
-        (c: { table: string; data: { ledger_synced?: boolean; ledger_sync_error?: string }; filters: Record<string, string> }) =>
+        (c) =>
           c.table === 'transactions' &&
           c.data.ledger_sync_error === 'QBO rate limit exceeded' &&
           c.data.ledger_synced === false &&

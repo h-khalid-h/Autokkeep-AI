@@ -1,4 +1,4 @@
-// @ts-nocheck — test file with extensive dynamic mocking
+
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock formatCurrency for deterministic output
@@ -57,7 +57,7 @@ describe('buildTeamsAdaptiveCard', () => {
     const body = card.attachments[0].content.body;
     const factSet = body.find((b: { type: string }) => b.type === 'FactSet');
     expect(factSet).toBeDefined();
-    const titles = factSet.facts.map((f: { title: string }) => f.title);
+    const titles = factSet!.facts!.map((f: { title: string }) => f.title);
     expect(titles).toContain('Merchant');
     expect(titles).toContain('Amount');
     expect(titles).toContain('Date');
@@ -75,13 +75,13 @@ describe('buildTeamsAdaptiveCard', () => {
     const factSet = card.attachments[0].content.body.find(
       (b: { type: string }) => b.type === 'FactSet'
     );
-    const aiSuggestion = factSet.facts.find(
+    const aiSuggestion = factSet!.facts!.find(
       (f: { title: string }) => f.title === 'AI Suggestion'
     );
     expect(aiSuggestion).toBeDefined();
-    expect(aiSuggestion.value).toContain('6510');
-    expect(aiSuggestion.value).toContain('Office Supplies');
-    expect(aiSuggestion.value).toContain('90%');
+    expect(aiSuggestion!.value).toContain('6510');
+    expect(aiSuggestion!.value).toContain('Office Supplies');
+    expect(aiSuggestion!.value).toContain('90%');
   });
 
   it('omits AI Suggestion fact when suggestedCategory is absent', () => {
@@ -89,7 +89,7 @@ describe('buildTeamsAdaptiveCard', () => {
     const factSet = card.attachments[0].content.body.find(
       (b: { type: string }) => b.type === 'FactSet'
     );
-    const aiSuggestion = factSet.facts.find(
+    const aiSuggestion = factSet!.facts!.find(
       (f: { title: string }) => f.title === 'AI Suggestion'
     );
     expect(aiSuggestion).toBeUndefined();
@@ -102,8 +102,8 @@ describe('buildTeamsAdaptiveCard', () => {
       (b: { type: string }) => b.type === 'Input.ChoiceSet'
     );
     expect(choiceSet).toBeDefined();
-    expect(choiceSet.choices).toHaveLength(4);
-    const values = choiceSet.choices.map((c: { value: string }) => c.value);
+    expect(choiceSet!.choices).toHaveLength(4);
+    const values = choiceSet!.choices!.map((c: { value: string }) => c.value);
     expect(values).toEqual(['accept', 'meeting', 'team_lunch', 'personal']);
   });
 
@@ -127,7 +127,7 @@ describe('buildTeamsAdaptiveCard', () => {
         b.type === 'TextBlock' && (b.text as string)?.includes('Confidence')
     );
     expect(confBlock).toBeDefined();
-    expect(confBlock.color).toBe('good');
+    expect(confBlock!.color).toBe('good');
   });
 
   it('includes confidence TextBlock with "attention" color for < 75', () => {
@@ -142,7 +142,7 @@ describe('buildTeamsAdaptiveCard', () => {
         b.type === 'TextBlock' && (b.text as string)?.includes('Confidence')
     );
     expect(confBlock).toBeDefined();
-    expect(confBlock.color).toBe('attention');
+    expect(confBlock!.color).toBe('attention');
   });
 });
 

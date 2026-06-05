@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { PLANS, checkPlanLimits } from './plans';
 import type { PlanTier } from './plans';
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
 // ============================================
 // Mock Redis — avoid dynamic import issues
@@ -16,15 +18,21 @@ vi.mock('@/lib/redis', () => ({
 // ============================================
 // Supabase mock factory
 // ============================================
-/* eslint-disable @typescript-eslint/no-explicit-any */
+interface MockSubscription {
+  plan: PlanTier;
+  status: string;
+  current_period_end?: string;
+  created_at?: string;
+}
+
 function createMockSupabase(overrides: {
-  subscription?: { plan: PlanTier; status: string } | null;
+  subscription?: MockSubscription | null;
   entityCount?: number;
   transactionCount?: number;
   bankConnectionCount?: number;
   teamMemberCount?: number;
   entities?: { id: string }[];
-} = {}) {
+} = {}): Pick<SupabaseQueryClient, 'from'> {
   const {
     subscription = { plan: 'starter' as PlanTier, status: 'active' },
     entityCount = 0,
@@ -35,8 +43,8 @@ function createMockSupabase(overrides: {
   } = overrides;
 
   // Build a chainable mock
-  const createChain = (resolveValue: any) => {
-    const chain: any = {};
+  const createChain = (resolveValue: unknown): MockChain => {
+    const chain = {} as MockChain;
     chain.select = vi.fn().mockReturnValue(chain);
     chain.eq = vi.fn().mockReturnValue(chain);
     chain.gte = vi.fn().mockReturnValue(chain);
@@ -47,7 +55,7 @@ function createMockSupabase(overrides: {
     return chain;
   };
 
-  const mock: any = {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((table: string) => {
       if (table === 'subscriptions') {
         const chain = createChain(subscription);
@@ -57,7 +65,7 @@ function createMockSupabase(overrides: {
         return chain;
       }
       if (table === 'entities') {
-        const chain: any = {};
+        const chain = {} as MockChain & { data: { id: string }[]; count: number };
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
         // For count queries (head: true)
@@ -65,39 +73,38 @@ function createMockSupabase(overrides: {
         // For data queries (getting entity IDs)
         chain.data = entities;
         // Make it resolve like a promise for await
-        chain.then = (resolve: any) => resolve({ data: entities, count: entityCount, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ data: entities, count: entityCount, error: null });
         return chain;
       }
       if (table === 'transactions') {
-        const chain: any = {};
+        const chain = {} as MockChain;
         chain.select = vi.fn().mockReturnValue(chain);
         chain.gte = vi.fn().mockReturnValue(chain);
         chain.in = vi.fn().mockReturnValue(chain);
-        chain.then = (resolve: any) => resolve({ count: transactionCount, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ count: transactionCount, error: null });
         return chain;
       }
       if (table === 'bank_connections') {
-        const chain: any = {};
+        const chain = {} as MockChain;
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
         chain.in = vi.fn().mockReturnValue(chain);
-        chain.then = (resolve: any) => resolve({ count: bankConnectionCount, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ count: bankConnectionCount, error: null });
         return chain;
       }
       if (table === 'team_members') {
-        const chain: any = {};
+        const chain = {} as MockChain;
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
-        chain.then = (resolve: any) => resolve({ count: teamMemberCount, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ count: teamMemberCount, error: null });
         return chain;
       }
       return createChain(null);
     }),
   };
 
-  return mock;
+  return mock as unknown as Pick<SupabaseQueryClient, 'from'>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // PLANS constants
@@ -229,7 +236,7 @@ describe('checkPlanLimits — subscription status', () => {
         status: 'past_due',
         current_period_end: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-      } as any,
+      },
     });
     const result = await checkPlanLimits(supabase, 'org-1', 'create_entity');
     expect(result.allowed).toBe(false);
@@ -243,7 +250,7 @@ describe('checkPlanLimits — subscription status', () => {
         status: 'past_due',
         current_period_end: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      } as any,
+      },
     });
     const result = await checkPlanLimits(supabase, 'org-1', 'sync_ledger');
     expect(result.allowed).toBe(true);

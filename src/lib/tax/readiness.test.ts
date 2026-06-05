@@ -17,16 +17,17 @@ interface MockTransactionRow {
   status: string;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
 function createMockSupabase(transactions: MockTransactionRow[]) {
-  const chain: any = {};
+  const chain = {} as MockChain;
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
   chain.gte = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
-  chain.then = (resolve: any) => resolve({ data: transactions, error: null });
+  chain.then = (resolve: (v: unknown) => void) => resolve({ data: transactions, error: null });
 
   return {
     from: vi.fn().mockReturnValue(chain),
@@ -34,21 +35,20 @@ function createMockSupabase(transactions: MockTransactionRow[]) {
 }
 
 function createErrorMockSupabase() {
-  const chain: any = {};
+  const chain = {} as MockChain;
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
   chain.gte = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
-  chain.then = (resolve: any) =>
+  chain.then = (resolve: (v: unknown) => void) =>
     resolve({ data: null, error: { message: 'Query failed' } });
 
   return {
     from: vi.fn().mockReturnValue(chain),
   } as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Fixture helpers

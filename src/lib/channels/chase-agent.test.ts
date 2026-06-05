@@ -375,7 +375,13 @@ describe('buildChaseMessage', () => {
 // We test the lock functions by mocking the Redis client module.
 // The chase-agent module imports getRedisClient from '@/lib/redis'.
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockSupabase } from '@/__test-utils__/mock-supabase';
+
+interface MockRedis {
+  set: ReturnType<typeof vi.fn>;
+  del: ReturnType<typeof vi.fn>;
+}
+
 describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock', () => {
   // We need to test the internal acquireChaseRunLock and releaseChaseRunLock
   // functions. Since they are not exported, we test them through runReceiptChase.
@@ -391,25 +397,25 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     const { getRedisClient } = await import('@/lib/redis');
 
     // Mock Redis to return 'OK' for SET NX
-    const mockRedis = {
+    const mockRedis: MockRedis = {
       set: vi.fn().mockResolvedValue('OK'),
       del: vi.fn().mockResolvedValue(1),
     };
 
-    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as unknown as ReturnType<typeof getRedisClient>);
 
     // Import runReceiptChase (which uses acquireChaseRunLock internally)
     const { runReceiptChase } = await import('./chase-agent');
 
     // Create a minimal mock supabase that returns no outstanding transactions
-    const mockSupabase: any = {
+    const mockSupabase: MockSupabase = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               order: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
-                  then: (resolve: any) => resolve({ data: [], error: null }),
+                  then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
                 }),
               }),
             }),
@@ -420,7 +426,7 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
 
     // Reset the in-memory guard by using a unique entity ID
     const entityId = `test-lock-acquire-${Date.now()}`;
-    const _report = await runReceiptChase(entityId, mockSupabase);
+    const _report = await runReceiptChase(entityId, mockSupabase as unknown as Parameters<typeof runReceiptChase>[1]);
 
     // Lock was acquired (returned true) so the function proceeded
     // Verify SET was called with NX
@@ -439,21 +445,21 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     const { getRedisClient } = await import('@/lib/redis');
 
     // Mock Redis to return null for SET NX (lock already held)
-    const mockRedis = {
+    const mockRedis: MockRedis = {
       set: vi.fn().mockResolvedValue(null),
       del: vi.fn().mockResolvedValue(1),
     };
 
-    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as unknown as ReturnType<typeof getRedisClient>);
 
     const { runReceiptChase } = await import('./chase-agent');
 
-    const mockSupabase: any = {
+    const mockSupabase: MockSupabase = {
       from: vi.fn(),
     };
 
     const entityId = `test-lock-held-${Date.now()}`;
-    const report = await runReceiptChase(entityId, mockSupabase);
+    const report = await runReceiptChase(entityId, mockSupabase as unknown as Parameters<typeof runReceiptChase>[1]);
 
     // When lock is held, runReceiptChase returns early with totalChased: 0
     expect(report.totalChased).toBe(0);
@@ -469,23 +475,23 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
   it('releaseChaseRunLock releases the lock after successful run', async () => {
     const { getRedisClient } = await import('@/lib/redis');
 
-    const mockRedis = {
+    const mockRedis: MockRedis = {
       set: vi.fn().mockResolvedValue('OK'),
       del: vi.fn().mockResolvedValue(1),
     };
 
-    vi.mocked(getRedisClient).mockReturnValue(mockRedis as any);
+    vi.mocked(getRedisClient).mockReturnValue(mockRedis as unknown as ReturnType<typeof getRedisClient>);
 
     const { runReceiptChase } = await import('./chase-agent');
 
-    const mockSupabase: any = {
+    const mockSupabase: MockSupabase = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               order: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
-                  then: (resolve: any) => resolve({ data: [], error: null }),
+                  then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
                 }),
               }),
             }),
@@ -495,7 +501,7 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     };
 
     const entityId = `test-lock-release-${Date.now()}`;
-    await runReceiptChase(entityId, mockSupabase);
+    await runReceiptChase(entityId, mockSupabase as unknown as Parameters<typeof runReceiptChase>[1]);
 
     // Verify DEL was called to release the lock
     expect(mockRedis.del).toHaveBeenCalledWith(`chase_lock:${entityId}`);
@@ -509,14 +515,14 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
 
     const { runReceiptChase } = await import('./chase-agent');
 
-    const mockSupabase: any = {
+    const mockSupabase: MockSupabase = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               order: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
-                  then: (resolve: any) => resolve({ data: [], error: null }),
+                  then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
                 }),
               }),
             }),
@@ -526,7 +532,7 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     };
 
     const entityId = `test-no-redis-${Date.now()}`;
-    const report = await runReceiptChase(entityId, mockSupabase);
+    const report = await runReceiptChase(entityId, mockSupabase as unknown as Parameters<typeof runReceiptChase>[1]);
 
     // Should proceed without Redis (acquireChaseRunLock returns true when Redis is null)
     // The function should have queried for transactions
@@ -534,4 +540,4 @@ describe('Chase Agent Idempotency — acquireChaseRunLock / releaseChaseRunLock'
     expect(report.entityId).toBe(entityId);
   });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */
+

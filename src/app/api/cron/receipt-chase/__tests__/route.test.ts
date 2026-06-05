@@ -23,8 +23,7 @@ vi.mock('@/lib/channels/chase-agent', () => ({
 
 // ─── Supabase admin mock ────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-let mockConnectionsResult: { data: any; error: any } = { data: [], error: null };
+let mockConnectionsResult: { data: unknown; error: unknown } = { data: [], error: null };
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({
@@ -32,14 +31,13 @@ vi.mock('@/lib/supabase/admin', () => ({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
-            then: vi.fn((resolve: any) => resolve(mockConnectionsResult)),
+            then: vi.fn((resolve: (v: unknown) => void) => resolve(mockConnectionsResult)),
           }),
         }),
       }),
     }),
   })),
 }));
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 

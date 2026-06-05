@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       .select('id, entity_id, match_value, mcc_code, gl_code, rule_type, priority')
       .eq('entity_id', entityId);
 
-    const rules: CategorizationRule[] = (rulesData || []).map((r: Record<string, any>) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+    const rules: CategorizationRule[] = (rulesData || []).map((r: { id: string; match_value: string; mcc_code?: string; gl_code: string; rule_type?: string; priority?: number }) => {
       // Look up gl_name from chart of accounts for this rule's GL code
       const coaEntry = chartOfAccounts.find(c => c.code === r.gl_code);
       return {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       .order('frequency', { ascending: false })
       .limit(100);
 
-    const history: HistoricalPattern[] = (historyData || []).map((h: Record<string, any>) => ({  // eslint-disable-line @typescript-eslint/no-explicit-any
+    const history: HistoricalPattern[] = (historyData || []).map((h: { merchant: string; gl_code: string; gl_name: string; frequency: number; last_used: string }) => ({
       merchant: h.merchant,
       glCode: h.gl_code,
       glName: h.gl_name,

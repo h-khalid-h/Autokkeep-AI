@@ -31,8 +31,7 @@ let pendingResult: { data: unknown[] | null; error: unknown } = { data: [], erro
 let retryResult: { data: unknown[] | null; error: unknown } = { data: [], error: null };
 
 const mockUpdate = vi.fn().mockImplementation(() => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateChain: any = {};
+  const updateChain: Record<string, ReturnType<typeof vi.fn> | ((resolve: (v: unknown) => void) => void)> = {};
   let currentItemId: string | null = null;
   updateChain.eq = vi.fn().mockImplementation((_col: string, val: unknown) => {
     if (_col === 'id') currentItemId = val as string;

@@ -23,18 +23,19 @@ vi.mock('@/lib/entity-settings', () => ({
 
 // ─── Supabase admin mock ────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
 type TableHandler = {
-  selectResult?: { data: any; error: any };
-  insertResult?: { data: any; error: any };
-  updateResult?: { error: any };
-  deleteResult?: { error: any };
+  selectResult?: { data: unknown; error: unknown };
+  insertResult?: { data: unknown; error: unknown };
+  updateResult?: { error: unknown };
+  deleteResult?: { error: unknown };
 };
 
 let tableHandlers: Record<string, TableHandler> = {};
 
 function createMockChain(handler: TableHandler) {
-  const chain: any = {};
+  const chain = {} as MockChain;
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.lt = vi.fn().mockReturnValue(chain);
@@ -44,27 +45,27 @@ function createMockChain(handler: TableHandler) {
   chain.delete = vi.fn().mockReturnValue(chain);
 
   chain.update = vi.fn().mockImplementation(() => {
-    const updateChain: any = {};
+    const updateChain = {} as MockChain;
     updateChain.eq = vi.fn().mockReturnValue(updateChain);
     updateChain.in = vi.fn().mockReturnValue(updateChain);
     updateChain.select = vi.fn().mockImplementation(() => {
       // After .select(), awaiting resolves to {data: [...], error}
-      const selectChain: any = {};
-      selectChain.then = (resolve: any) => {
+      const selectChain = {} as MockChain;
+      selectChain.then = (resolve: (v: unknown) => void) => {
         const result = handler.updateResult ?? { error: null };
         // If no error, return data with a single claimed id
         return resolve({ data: result.error ? [] : [{ id: 'claimed' }], error: result.error ?? null });
       };
       return selectChain;
     });
-    updateChain.then = (resolve: any) =>
+    updateChain.then = (resolve: (v: unknown) => void) =>
       resolve(handler.updateResult ?? { error: null });
     return updateChain;
   });
 
   // When the chain is awaited after .insert().select(), return insertResult
   // When the chain is awaited after .select() (query), return selectResult
-  chain.then = vi.fn((resolve: any) => {
+  chain.then = vi.fn((resolve: (v: unknown) => void) => {
     // If insert was called, use insertResult; otherwise use selectResult
     if (chain.insert.mock.calls.length > 0) {
       return resolve(handler.insertResult ?? { data: [], error: null });
@@ -73,7 +74,7 @@ function createMockChain(handler: TableHandler) {
       return resolve(handler.deleteResult ?? { error: null });
     }
     return resolve(handler.selectResult ?? { data: [], error: null });
-  });
+  }) as MockChain['then'];
 
   return chain;
 }
@@ -86,7 +87,6 @@ vi.mock('@/lib/supabase/admin', () => ({
     }),
   })),
 }));
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 

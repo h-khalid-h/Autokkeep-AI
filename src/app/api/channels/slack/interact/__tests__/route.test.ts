@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockChain } from '@/__test-utils__/mock-supabase';
 import crypto from 'crypto';
 import type { NextRequest } from 'next/server';
 
@@ -75,16 +76,15 @@ function makeRequest(body: string, timestamp: string, signature: string): Reques
   });
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function createMockDb(opts: {
   transaction?: { entity_id: string } | null;
   hasSlackConnection?: boolean;
-}) {
+}): ReturnType<typeof createAdminClient> {
   const { transaction = null, hasSlackConnection = true } = opts;
 
-  const mock: any = {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -97,14 +97,14 @@ function createMockDb(opts: {
         return { data: null, error: null };
       });
       chain.update = vi.fn().mockImplementation(() => {
-        const updateChain: any = {};
+        const updateChain = {} as MockChain;
         updateChain.eq = vi.fn().mockReturnValue(updateChain);
-        updateChain.then = (resolve: any) => resolve({ error: null });
+        updateChain.then = (resolve: (v: unknown) => void) => resolve({ error: null });
         return updateChain;
       });
 
       if (table === 'channel_connections') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({
             data: hasSlackConnection ? [{ id: 'conn-1' }] : [],
             error: null,
@@ -115,9 +115,8 @@ function createMockDb(opts: {
     }),
   };
 
-  return mock;
+  return mock as unknown as ReturnType<typeof createAdminClient>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Tests

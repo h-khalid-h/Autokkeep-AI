@@ -23,6 +23,14 @@ const eslintConfig = defineConfig([
       }],
     },
   },
+  // Single escape-hatch file for dynamic Supabase query builder chains.
+  // All other files MUST use proper types — only this file is allowed to use `any`.
+  {
+    files: ["src/lib/supabase/query-client.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

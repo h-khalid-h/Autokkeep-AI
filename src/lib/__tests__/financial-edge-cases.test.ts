@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { triageTransaction } from '@/lib/ai/confidence';
 import { normalizeMerchantName } from '@/lib/vendors/service';
 import { convertCurrency, formatCurrency } from '@/lib/currency/converter';
@@ -39,13 +41,12 @@ vi.mock('@/lib/vendors/service', async (importOriginal) => {
 // Simplified mock Supabase for close-engine
 // ============================================
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function createMockSupabase() {
-  let txFromCallCount = 0;
+function createMockSupabase(): SupabaseQueryClient {
+  let _txFromCallCount = 0;
 
-  const mock: any = {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -61,26 +62,26 @@ function createMockSupabase() {
       chain.insert = vi.fn().mockResolvedValue({ error: null });
 
       if (table === 'transactions') {
-        txFromCallCount++;
+        _txFromCallCount++;
         chain.order = vi.fn().mockImplementation(() => {
-          chain.then = (resolve: any) =>
+          chain.then = (resolve: (v: unknown) => void) =>
             resolve({ data: [], error: null });
           return chain;
         });
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'bank_connections') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'bank_accounts') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'journal_entries') {
         chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'journal_lines') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       } else if (table === 'entities') {
         chain.single = vi.fn().mockResolvedValue({
@@ -89,7 +90,7 @@ function createMockSupabase() {
         });
       } else if (table === 'approval_thresholds') {
         // For checkApprovalRequired tests — return no thresholds by default
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: [], error: null });
       }
 
@@ -97,17 +98,20 @@ function createMockSupabase() {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
 
 /**
  * Creates a mock Supabase for checkApprovalRequired that returns
  * specific threshold data.
  */
-function createMockSupabaseForApproval(thresholdData: any[] | null, error: any = null) {
-  const mock: any = {
+function createMockSupabaseForApproval(
+  thresholdData: Record<string, unknown>[] | null,
+  error: { message: string } | null = null,
+): SupabaseQueryClient {
+  const mock: { from: ReturnType<typeof vi.fn> } = {
     from: vi.fn((_table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.lte = vi.fn().mockReturnValue(chain);
@@ -116,9 +120,8 @@ function createMockSupabaseForApproval(thresholdData: any[] | null, error: any =
       return chain;
     }),
   };
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1. Large Amount Safety (Number.MAX_SAFE_INTEGER)

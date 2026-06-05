@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock OpenAI (via shared openai-client) ──────────────────────────────────
@@ -53,14 +54,15 @@ function makeTx(overrides: Partial<MockTransaction> = {}): MockTransaction {
 
 // ── Supabase mock factory ────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
 function createMockSupabase(opts: {
   currentTransactions?: MockTransaction[];
   previousTransactions?: MockTransaction[];
   currentError?: { message: string } | null;
   previousError?: { message: string } | null;
   upsertError?: { message: string } | null;
-} = {}) {
+} = {}): SupabaseQueryClient {
   const {
     currentTransactions = [],
     previousTransactions = [],
@@ -71,9 +73,9 @@ function createMockSupabase(opts: {
 
   let txFromCallCount = 0;
 
-  const mock: any = {
+  const mock = {
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -93,10 +95,10 @@ function createMockSupabase(opts: {
         // Both end with .limit() which returns the chain, then it's awaited
         chain.limit = vi.fn().mockImplementation(() => {
           if (currentCallNum === 1) {
-            chain.then = (resolve: any) =>
+            chain.then = (resolve: (v: unknown) => void) =>
               resolve({ data: currentError ? null : currentTransactions, error: currentError });
           } else {
-            chain.then = (resolve: any) =>
+            chain.then = (resolve: (v: unknown) => void) =>
               resolve({ data: previousError ? null : previousTransactions, error: previousError });
           }
           return chain;
@@ -109,9 +111,9 @@ function createMockSupabase(opts: {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseQueryClient;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+
 
 // ── OpenAI mock response helper ──────────────────────────────────────────────
 
@@ -188,7 +190,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Period
       expect(result.period.start).toBe('2025-06-01');
@@ -225,7 +227,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(1000);
       expect(result.summary.totalExpenses).toBe(500);
@@ -242,7 +244,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Revenue went from 100 to 200 = 100% increase
       expect(result.summary.revenueChange).toBe(100);
@@ -254,11 +256,11 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Verify supabase.from was called with 'financial_narratives'
-      const calls = supabase.from.mock.calls;
-      const narrativeCalls = calls.filter((c: any[]) => c[0] === 'financial_narratives');
+      const calls = vi.mocked(supabase.from).mock.calls;
+      const narrativeCalls = calls.filter((c: unknown[]) => c[0] === 'financial_narratives');
       expect(narrativeCalls.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -272,7 +274,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 1, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 1, supabase);
 
       expect(result.period.start).toBe('2025-01-01');
       expect(result.period.end).toBe('2025-01-31');
@@ -284,7 +286,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2024, 2, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2024, 2, supabase);
 
       expect(result.period.start).toBe('2024-02-01');
       expect(result.period.end).toBe('2024-02-29');
@@ -296,7 +298,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 2, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 2, supabase);
 
       expect(result.period.start).toBe('2025-02-01');
       expect(result.period.end).toBe('2025-02-28');
@@ -313,7 +315,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(0);
       expect(result.summary.totalExpenses).toBe(0);
@@ -330,7 +332,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(0);
       expect(result.summary.totalExpenses).toBe(0);
@@ -344,7 +346,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(0);
       expect(result.topCategories).toEqual([]);
@@ -360,7 +362,7 @@ describe('generateMonthlyNarrative', () => {
       });
 
       await expect(
-        generateMonthlyNarrative('entity-1', 2025, 6, supabase as any)
+        generateMonthlyNarrative('entity-1', 2025, 6, supabase)
       ).rejects.toThrow('Cannot generate narrative: transaction data unavailable (connection timeout)');
     });
 
@@ -370,7 +372,7 @@ describe('generateMonthlyNarrative', () => {
       });
 
       await expect(
-        generateMonthlyNarrative('entity-1', 2025, 6, supabase as any)
+        generateMonthlyNarrative('entity-1', 2025, 6, supabase)
       ).rejects.toThrow('Cannot generate narrative');
     });
 
@@ -383,7 +385,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
       // Should not throw — upsert failure is non-fatal
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result).toBeDefined();
       expect(result.sections.whatHappened.length).toBeGreaterThan(0);
@@ -408,7 +410,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('Rate limit exceeded'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Fallback sections should be populated with raw data
       expect(result.sections.whatHappened.length).toBeGreaterThan(0);
@@ -429,7 +431,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('timeout'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Fallback should warn about negative income
       expect(result.sections.requiresAttention[0]).toContain('negative');
@@ -446,7 +448,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('timeout'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.sections.requiresAttention[0]).toContain('No immediate concerns');
 
@@ -462,7 +464,7 @@ describe('generateMonthlyNarrative', () => {
       });
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Should produce fallback sections
       expect(result.sections.whatHappened.length).toBeGreaterThan(0);
@@ -479,7 +481,7 @@ describe('generateMonthlyNarrative', () => {
       });
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Should produce fallback sections instead of crashing
       expect(result.sections.whatHappened.length).toBeGreaterThan(0);
@@ -494,7 +496,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockResolvedValue({ choices: [] });
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.sections.whatHappened.length).toBeGreaterThan(0);
 
@@ -512,7 +514,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('fail'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.sections.whatChanged[0]).toContain('1 new vendor');
 
@@ -532,7 +534,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.topCategories[0].name).toBe('Rent');
       expect(result.topCategories[0].amount).toBe(500);
@@ -550,7 +552,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.topCategories.length).toBeLessThanOrEqual(5);
     });
@@ -563,7 +565,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       const categoryNames = result.topCategories.map(c => c.name);
       expect(categoryNames).toContain('Software');
@@ -577,7 +579,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.topCategories[0].name).toBe('Human Category');
     });
@@ -589,7 +591,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.topCategories[0].name).toBe('Uncategorized');
     });
@@ -607,7 +609,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       const softwareCat = result.topCategories.find(c => c.name === 'Software');
       expect(softwareCat).toBeDefined();
@@ -626,7 +628,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       const newCat = result.topCategories.find(c => c.name === 'NewCategory');
       expect(newCat).toBeDefined();
@@ -645,7 +647,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result).toBeDefined();
       expect(result.summary.totalExpenses).toBe(100);
@@ -658,7 +660,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result).toBeDefined();
       expect(result.summary.totalExpenses).toBe(50);
@@ -671,7 +673,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result).toBeDefined();
       expect(result.summary.totalExpenses).toBe(75);
@@ -682,7 +684,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalExpenses).toBe(42.50);
       expect(result.summary.totalRevenue).toBe(0);
@@ -693,7 +695,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(0);
       expect(result.summary.totalExpenses).toBe(0);
@@ -711,7 +713,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalExpenses).toBe(300);
       expect(result.summary.totalRevenue).toBe(0);
@@ -725,7 +727,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.totalRevenue).toBe(800);
       expect(result.summary.totalExpenses).toBe(0);
@@ -739,7 +741,7 @@ describe('generateMonthlyNarrative', () => {
       const supabase = createMockSupabase({ currentTransactions: currentTxns });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.netIncome).toBe(700);
     });
@@ -758,7 +760,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.revenueChange).toBe(100);
     });
@@ -770,7 +772,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(result.summary.revenueChange).toBe(0);
       expect(result.summary.expenseChange).toBe(0);
@@ -786,7 +788,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       expect(mockCreate).toHaveBeenCalledTimes(1);
       const callArgs = mockCreate.mock.calls[0][0];
@@ -808,7 +810,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       const callArgs = mockCreate.mock.calls[0][0];
       expect(callArgs.model).toBe('gpt-4o-mini');
@@ -825,7 +827,7 @@ describe('generateMonthlyNarrative', () => {
       });
       mockCreate.mockResolvedValue(OPENAI_NARRATIVE_RESPONSE);
 
-      await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       const callArgs = mockCreate.mock.calls[0][0];
       expect(callArgs.model).toBe('gpt-4o');
@@ -845,7 +847,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('skip'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Total expenses = 80, recurring = 30 (Netflix 2x), one-time = 50
       expect(result.summary.totalExpenses).toBe(80);
@@ -872,7 +874,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('skip'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // Fallback should mention 1 new vendor
       expect(result.sections.whatChanged[0]).toContain('1 new vendor');
@@ -891,7 +893,7 @@ describe('generateMonthlyNarrative', () => {
       mockCreate.mockRejectedValue(new Error('skip'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase as any);
+      const result = await generateMonthlyNarrative('entity-1', 2025, 6, supabase);
 
       // "Unknown" should be excluded from new vendors
       expect(result.sections.whatChanged[0]).toContain('No new vendors');

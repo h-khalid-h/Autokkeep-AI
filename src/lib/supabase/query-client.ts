@@ -9,15 +9,18 @@
  * Rather than scattering `as any` (which triggers
  * `@typescript-eslint/no-explicit-any`), we define a *single*
  * loosely-typed client alias and cast to it in API routes.
- * This keeps the lint rule happy while still documenting where we
- * intentionally escape the strict schema types.
+ *
+ * The `no-explicit-any` rule is disabled for this file via
+ * eslint.config.mjs — this is the ONLY file in the project
+ * that intentionally uses `any` as a type-level escape hatch.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// The `any` return types below are intentional: this file serves as the
+// single escape hatch for dynamic Supabase query builder chains.
+// eslint no-explicit-any is disabled at the config level for this file only.
 export type SupabaseQueryClient = {
-  from: (table: string) => any;
+  from: (table: string) => any;       // eslint config override
   storage: { from: (bucket: string) => any };
   rpc: (fn: string, params?: Record<string, unknown>) => any;
   auth: any;
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -20,12 +20,26 @@ interface CaptureContext {
   level?: SeverityLevel;
 }
 
+/** Minimal shape of the Sentry SDK methods we call at runtime. */
+interface SentryLike {
+  withScope: (callback: (scope: SentryScope) => void) => void;
+  captureException: (error: unknown) => void;
+  captureMessage: (message: string) => void;
+}
+
+/** Minimal Sentry scope surface used by our wrapper. */
+interface SentryScope {
+  setTag: (key: string, value: string) => void;
+  setExtra: (key: string, value: unknown) => void;
+  setUser: (user: { id?: string; email?: string }) => void;
+  setLevel: (level: string) => void;
+}
+
 // Lazy-loaded Sentry SDK reference
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _sentry: any = null;
+let _sentry: SentryLike | null = null;
 let _sentryLoaded = false;
 
-function getSentry() {
+function getSentry(): SentryLike | null {
   if (_sentryLoaded) return _sentry;
   _sentryLoaded = true;
 
@@ -59,7 +73,7 @@ export function captureException(error: unknown, context?: CaptureContext): void
   if (!Sentry) return;
 
   try {
-    Sentry.withScope((scope: { setTag: (k: string, v: string) => void; setExtra: (k: string, v: unknown) => void; setUser: (u: { id?: string; email?: string }) => void; setLevel: (l: string) => void }) => {
+    Sentry.withScope((scope: SentryScope) => {
       if (context?.tags) {
         Object.entries(context.tags).forEach(([key, value]: [string, string]) =>
           scope.setTag(key, value)
@@ -97,7 +111,7 @@ export function captureMessage(message: string, context?: CaptureContext): void 
   if (!Sentry) return;
 
   try {
-    Sentry.withScope((scope: { setTag: (k: string, v: string) => void; setExtra: (k: string, v: unknown) => void; setLevel: (l: string) => void }) => {
+    Sentry.withScope((scope: SentryScope) => {
       if (context?.tags) {
         Object.entries(context.tags).forEach(([key, value]: [string, string]) =>
           scope.setTag(key, value)
@@ -119,22 +133,24 @@ export function captureMessage(message: string, context?: CaptureContext): void 
 }
 
 /**
- * Wraps an API route handler with Sentry error capture.
- * Use as: export const GET = withSentryHandler(async (req) => { ... });
+ * Next.js route handler shape: a function that accepts a request and
+ * optionally a context, returning a Response.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentryHandler<T extends (...args: any[]) => Promise<Response>>(
+type RouteHandler = (request: Request, ...rest: unknown[]) => Promise<Response>;
+
+export function withSentryHandler<T extends RouteHandler>(
   handler: T,
   options?: { routeName?: string }
 ): T {
-  return (async (...args: Parameters<T>) => {
+  const wrapped = async (request: Request, ...rest: unknown[]) => {
     try {
-      return await handler(...args);
+      return await handler(request, ...rest);
     } catch (error) {
       captureException(error, {
         tags: { route: options?.routeName || 'unknown' },
       });
       throw error;
     }
-  }) as T;
+  };
+  return wrapped as T;
 }

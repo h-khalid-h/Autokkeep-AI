@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 
 // ============================================
 // We test the sync-engine's balance-validation logic by importing the
@@ -28,21 +30,28 @@ import { syncJournalEntry } from './sync';
 // Mock Supabase factory
 // ============================================
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MockChain } from '@/__test-utils__/mock-supabase';
+
+interface UpdateCall {
+  table: string;
+  data: Record<string, unknown>;
+  filters: Record<string, unknown>;
+}
+
 function createMockDb(opts: {
-  connections?: any[];
-  entries?: any[];
-  ledgerConnection?: any;
+  connections?: unknown[];
+  entries?: unknown[];
+  ledgerConnection?: unknown;
 }) {
   const { connections = [], entries = [], ledgerConnection = null } = opts;
 
   // Track update calls for assertions
-  const updateCalls: Array<{ table: string; data: any; filters: Record<string, any> }> = [];
+  const updateCalls: UpdateCall[] = [];
 
-  const mock: any = {
+  const mock = {
     _updateCalls: updateCalls,
     from: vi.fn((table: string) => {
-      const chain: any = {};
+      const chain = {} as MockChain;
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.neq = vi.fn().mockReturnValue(chain);
@@ -51,34 +60,34 @@ function createMockDb(opts: {
       chain.order = vi.fn().mockReturnValue(chain);
       chain.limit = vi.fn().mockReturnValue(chain);
       chain.single = vi.fn().mockReturnValue(chain);
-      chain.update = vi.fn().mockImplementation((data: any) => {
-        const updateChain: any = {};
-        const call = { table, data, filters: {} as Record<string, any> };
+      chain.update = vi.fn().mockImplementation((data: Record<string, unknown>) => {
+        const updateChain = {} as MockChain;
+        const call: UpdateCall = { table, data, filters: {} };
         updateCalls.push(call);
-        updateChain.eq = vi.fn().mockImplementation((col: string, val: any) => {
+        updateChain.eq = vi.fn().mockImplementation((col: string, val: unknown) => {
           call.filters[col] = val;
           return updateChain;
         });
         updateChain.in = vi.fn().mockReturnValue(updateChain);
         updateChain.is = vi.fn().mockReturnValue(updateChain);
-        updateChain.then = (resolve: any) => resolve({ error: null });
+        updateChain.then = (resolve: (v: unknown) => void) => resolve({ error: null });
         return updateChain;
       });
 
       if (table === 'ledger_connections') {
-        if (chain.select._isMockFunction) {
+        if (vi.isMockFunction(chain.select)) {
           // First call: list connections; subsequent: getLedgerConnection
           let callCount = 0;
           chain.then = undefined;
           chain.eq = vi.fn().mockImplementation(() => {
             callCount++;
             // Active filter chain
-            const innerChain: any = {};
+            const innerChain = {} as MockChain;
             innerChain.eq = vi.fn().mockReturnValue(innerChain);
             innerChain.single = vi.fn().mockImplementation(() => {
               return { data: ledgerConnection, error: null };
             });
-            innerChain.then = (resolve: any) => {
+            innerChain.then = (resolve: (v: unknown) => void) => {
               if (callCount <= 1) {
                 return resolve({ data: connections, error: null });
               }
@@ -88,10 +97,10 @@ function createMockDb(opts: {
             return innerChain;
           });
         }
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: connections, error: null });
       } else if (table === 'journal_entries') {
-        chain.then = (resolve: any) =>
+        chain.then = (resolve: (v: unknown) => void) =>
           resolve({ data: entries, error: null });
       }
 
@@ -99,9 +108,8 @@ function createMockDb(opts: {
     }),
   };
 
-  return mock;
+  return mock as unknown as SupabaseClient<Database> & { _updateCalls: UpdateCall[] };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================
 // Fixture helpers
@@ -222,9 +230,9 @@ describe('Ledger Sync Engine — Balance Validation', () => {
           c.table === 'journal_entries' && c.data.sync_status === 'failed'
       );
       expect(failedUpdate).toBeDefined();
-      expect(failedUpdate.data.sync_error).toContain('Unbalanced');
-      expect(failedUpdate.data.sync_error).toContain('debits=500');
-      expect(failedUpdate.data.sync_error).toContain('credits=400');
+      expect(failedUpdate!.data.sync_error).toContain('Unbalanced');
+      expect(failedUpdate!.data.sync_error).toContain('debits=500');
+      expect(failedUpdate!.data.sync_error).toContain('credits=400');
     });
 
     it('reports errors for unbalanced entries', async () => {
@@ -330,8 +338,8 @@ describe('Ledger Sync Engine — Balance Validation', () => {
       );
 
       expect(failCall).toBeDefined();
-      expect(failCall.data.sync_error).toBe('Unbalanced: debits=250 credits=200');
-      expect(failCall.filters.id).toBe('entry-error-msg');
+      expect(failCall!.data.sync_error).toBe('Unbalanced: debits=250 credits=200');
+      expect(failCall!.filters.id).toBe('entry-error-msg');
     });
   });
 

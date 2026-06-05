@@ -7,7 +7,6 @@ import {
   CATEGORIZATION_SYSTEM_PROMPT,
   buildCategorizationUserPrompt,
 } from './prompts';
-import { DEFAULT_OPENAI_MODEL } from '@/lib/constants/ai';
 import {
   tokenizeTransaction,
   hashSourceData,
