@@ -145,7 +145,7 @@ describe('POST /api/onboarding/bootstrap', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.orgId).toBe('a0000000-0000-4000-8000-000000000050');
     expect(json.entityId).toBe('a0000000-0000-4000-8000-000000000060');
   });

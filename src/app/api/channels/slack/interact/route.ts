@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
     // Handle block actions
     if (payload.type === 'block_actions') {
       const action = payload.actions?.[0];
-      if (!action) return NextResponse.json({ ok: true });
+      if (!action) return NextResponse.json({ success: true });
 
       const parsed = parseSlackInteraction(action.value);
-      if (!parsed) return NextResponse.json({ ok: true });
+      if (!parsed) return NextResponse.json({ success: true });
 
       // Use admin client — no user session in Slack webhook context
       const supabase = createAdminClient();
@@ -268,10 +268,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error('Slack interaction error:', error);
     captureException(error);

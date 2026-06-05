@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
@@ -117,15 +117,6 @@ export async function GET(request: NextRequest) {
       { status: httpStatus }
     );
   } catch (error) {
-    console.error('[Health] Unexpected error:', error);
-    captureException(error);
-    return NextResponse.json(
-      {
-        status: 'error',
-        error: 'Health check failed unexpectedly',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'health', 'Health check failed unexpectedly');
   }
 }

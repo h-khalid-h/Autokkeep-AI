@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     if (txError || !transactions?.length) {
       return NextResponse.json({
-        ok: true,
+        success: true,
         synced: 0,
         message: 'No approved transactions to sync',
       });
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     if (claimError || !claimed?.length) {
       return NextResponse.json({
-        ok: true,
+        success: true,
         synced: 0,
         message: 'Transactions already being synced by another process',
       });
@@ -264,15 +265,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       ...results,
     });
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'QuickBooks sync failed' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'qbo-sync-post', 'QuickBooks sync failed');
   }
 }
 
@@ -346,16 +343,12 @@ export async function GET(request: NextRequest) {
     const upsertResult = await upsertChartOfAccounts(db, entityId, accounts);
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       accounts: accounts.length,
       upserted: upsertResult.upserted,
       errors: upsertResult.errors,
     });
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'QuickBooks chart of accounts sync failed' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'qbo-sync-coa', 'QuickBooks chart of accounts sync failed');
   }
 }

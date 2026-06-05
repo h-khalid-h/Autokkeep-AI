@@ -141,7 +141,7 @@ describe('POST /api/channels/teams/webhook', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('should return 500 on exception', async () => {

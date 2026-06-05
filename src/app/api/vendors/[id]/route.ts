@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { parseBody, schemas } from '@/lib/validation';
 import {
   IRS_1099_THRESHOLD,
@@ -75,11 +75,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ vendor, complianceStatus });
   } catch (error) {
-    console.error('[Vendor Detail] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch vendor' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendors-id-get', 'Failed to fetch vendor');
   }
 }
 
@@ -175,12 +171,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ vendor });
   } catch (error) {
-    console.error('[Vendor Update] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to update vendor' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendors-id-patch', 'Failed to update vendor');
   }
 }
 
@@ -254,11 +245,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Vendor Delete] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to delete vendor' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendors-id-delete', 'Failed to delete vendor');
   }
 }

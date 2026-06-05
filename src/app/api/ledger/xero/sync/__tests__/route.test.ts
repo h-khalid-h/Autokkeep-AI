@@ -200,7 +200,7 @@ describe('POST /api/ledger/xero/sync', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.synced).toBe(1);
     expect(json.failed).toBe(0);
   });
@@ -268,7 +268,7 @@ describe('POST /api/ledger/xero/sync', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.synced).toBe(1);
     expect(json.failed).toBe(1);
     expect(json.errors).toHaveLength(1);
@@ -344,7 +344,7 @@ describe('GET /api/ledger/xero/sync', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.accounts).toBe(3);
     expect(json.upserted).toBe(3);
   });

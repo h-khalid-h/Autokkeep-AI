@@ -4,7 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
 import { rateLimit } from '@/lib/rate-limit';
@@ -77,12 +77,7 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename=autokkeep-journal-entries-${today}.csv`,
       },
     });
-  } catch (error: unknown) {
-    console.error('[Ledger Export] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to export journal entries' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'ledger-export', 'Failed to export journal entries');
   }
 }

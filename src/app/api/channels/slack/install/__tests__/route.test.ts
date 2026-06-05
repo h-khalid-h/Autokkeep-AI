@@ -174,7 +174,7 @@ describe('POST /api/channels/slack/install', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.teamId).toBe('T123');
   });
 

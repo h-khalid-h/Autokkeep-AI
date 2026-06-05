@@ -7,6 +7,7 @@
 // to entity admins when the close readiness score is below 80%.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { captureException, withSentryHandler } from '@/lib/sentry';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -91,7 +92,7 @@ async function calculateReadiness(
 
   // Check 3: Pending review transactions
   const pendingReview = txns.filter(
-    (t) => t.status === 'escrow_suspense' || t.status === 'human_review'
+    (t) => t.status === TRANSACTION_STATUS.ESCROW_SUSPENSE || t.status === TRANSACTION_STATUS.HUMAN_REVIEW
   ).length;
   if (pendingReview > 0) {
     failedChecks.push(`${pendingReview} transaction${pendingReview > 1 ? 's' : ''} pending review`);
@@ -141,7 +142,7 @@ async function handler(request: NextRequest) {
 
     if (!entities || entities.length === 0) {
       return NextResponse.json({
-        ok: true,
+        success: true,
         processed: 0,
         notified: 0,
         message: 'No entities with unlocked periods',
@@ -325,7 +326,7 @@ async function handler(request: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       processed,
       notified: notifiedCount,
       belowThreshold,

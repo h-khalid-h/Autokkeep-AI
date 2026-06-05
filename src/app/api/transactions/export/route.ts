@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('id, amount, currency, date, merchant_name, category_ai, category_human, status, document_status, tags, description, confidence, ai_reasoning, created_at')
       .eq('entity_id', entity.id)
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .is('deleted_at', null)
       .order('date', { ascending: false })
       .limit(10000); // Safety cap to prevent OOM

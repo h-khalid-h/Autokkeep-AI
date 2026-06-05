@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('*', { count: 'exact' })
       .in('entity_id', entityIds)
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .is('deleted_at', null)
       .order(sortColumn, { ascending })
       .range(offset, offset + limit - 1);
@@ -207,7 +208,7 @@ export async function POST(request: NextRequest) {
         ai_reasoning: glName || null,
         card_holder: cardHolder || null,
         description: notes || null,
-        status: glCode ? 'approved' : 'pending',
+        status: glCode ? TRANSACTION_STATUS.APPROVED : TRANSACTION_STATUS.PENDING,
         confidence: glCode ? 100 : 0,
         created_by: user.id,
         retention_lock_until: retentionDate.toISOString().split('T')[0],

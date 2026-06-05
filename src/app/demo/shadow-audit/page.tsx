@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import styles from './page.module.css';
 
 /* ─── Merchant Dictionary ─── */
 const KNOWN_MERCHANTS: Record<string, { category: string; glCode: string }> = {
@@ -147,73 +148,12 @@ function autoDetect(headers: string[]): { dateCol: number; descCol: number; amou
   return { dateCol, descCol, amountCol };
 }
 
-/* ─── Styles ─── */
-const uploadZoneStyle: React.CSSProperties = {
-  border: '2px dashed rgba(30, 111, 255, 0.4)',
-  borderRadius: '16px',
-  padding: '64px 32px',
-  textAlign: 'center',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  background: 'rgba(30, 111, 255, 0.03)',
-  position: 'relative',
-};
-
-const uploadZoneHoverStyle: React.CSSProperties = {
-  ...uploadZoneStyle,
-  borderColor: 'rgba(30, 111, 255, 0.8)',
-  background: 'rgba(30, 111, 255, 0.08)',
-};
-
-const selectStyle: React.CSSProperties = {
-  background: 'rgba(0, 0, 0, 0.4)',
-  color: '#fff',
-  border: '1px solid var(--border-primary)',
-  borderRadius: '8px',
-  padding: '10px 14px',
-  fontSize: '0.875rem',
-  width: '100%',
-  appearance: 'none' as const,
-  cursor: 'pointer',
-};
-
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.85rem',
-};
-
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '12px 16px',
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  borderBottom: '1px solid var(--border-primary)',
-  whiteSpace: 'nowrap',
-  fontSize: '0.75rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-
-function getBadgeStyle(type: 'exact' | 'ai_inferred' | 'needs_review'): React.CSSProperties {
-  const colors = {
-    exact: { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)', color: '#10b981' },
-    ai_inferred: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', color: '#3b82f6' },
-    needs_review: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', color: '#f59e0b' },
-  };
-  const c = colors[type];
-  return {
-    display: 'inline-block',
-    padding: '3px 10px',
-    borderRadius: '9999px',
-    fontSize: '0.7rem',
-    fontWeight: 600,
-    background: c.bg,
-    border: `1px solid ${c.border}`,
-    color: c.color,
-    whiteSpace: 'nowrap',
-  };
-}
+/* ─── Helpers ─── */
+const badgeClassMap = {
+  exact: styles.badgeExact,
+  ai_inferred: styles.badgeAiInferred,
+  needs_review: styles.badgeNeedsReview,
+} as const;
 
 function getConfidenceColor(c: number): string {
   if (c >= 95) return '#10b981';
@@ -354,30 +294,20 @@ export default function ShadowAuditPage() {
             animation: shimmer 1.5s linear infinite;
           }
           .result-row { animation: fadeInUp 0.3s ease forwards; }
-          @media (max-width: 768px) {
-            #demo-stats-grid {
-              grid-template-columns: repeat(3, 1fr) !important;
-            }
-          }
-          @media (max-width: 480px) {
-            #demo-stats-grid {
-              grid-template-columns: repeat(2, 1fr) !important;
-            }
-          }
         `}</style>
 
         {/* Hero */}
-        <section className="section" style={{ paddingTop: 'calc(var(--header-height) + 80px)', paddingBottom: '32px' }}>
+        <section className={`section ${styles.heroSection}`}>
           <div className="container">
-            <div className="section-header" style={{ maxWidth: '800px' }}>
+            <div className={`section-header ${styles.heroHeader}`}>
               <div className="section-label">
                 <span>🔍</span> Shadow Audit Demo
               </div>
-              <h1 className="text-display" style={{ marginBottom: '16px' }}>
+              <h1 className={`text-display ${styles.heroTitle}`}>
                 Upload a CSV. Watch Autokkeep{' '}
                 <span className="text-gradient">categorize it in seconds.</span>
               </h1>
-              <p className="section-subtitle" style={{ maxWidth: '650px' }}>
+              <p className={`section-subtitle ${styles.heroSubtitle}`}>
                 No signup. No API keys. Just drag a file and see our deterministic + AI categorization engine in action.
               </p>
             </div>
@@ -386,13 +316,12 @@ export default function ShadowAuditPage() {
 
         {/* Main Content */}
         <section className="section-sm">
-          <div className="container" style={{ maxWidth: '1100px' }}>
+          <div className={`container ${styles.mainContainer}`}>
 
             {/* ── Upload Step ── */}
             {step === 'upload' && (
               <div
-                className={dragOver ? '' : 'upload-zone-idle'}
-                style={dragOver ? uploadZoneHoverStyle : uploadZoneStyle}
+                className={dragOver ? styles.uploadZoneHover : `${styles.uploadZone} upload-zone-idle`}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
@@ -414,7 +343,7 @@ export default function ShadowAuditPage() {
                     if (file) handleFile(file);
                   }}
                 />
-                <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.6 }}>📄</div>
+                <div className={styles.uploadIcon}>📄</div>
                 <p className="text-h4" style={{ marginBottom: '8px' }}>
                   Drag & drop your CSV file here
                 </p>
@@ -422,16 +351,16 @@ export default function ShadowAuditPage() {
                   or click to browse • Accepts .csv files
                 </p>
                 {uploadError && (
-                  <p style={{ color: '#ef4444', marginTop: '12px', fontSize: '0.875rem' }}>{uploadError}</p>
+                  <p className={styles.uploadError}>{uploadError}</p>
                 )}
               </div>
             )}
 
             {/* ── Mapping Step ── */}
             {step === 'mapping' && (
-              <div className="card-elevated" style={{ padding: '40px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '1.5rem' }}>📄</span>
+              <div className={`card-elevated ${styles.mappingCard}`}>
+                <div className={styles.fileInfo}>
+                  <span className={styles.fileIcon}>📄</span>
                   <div>
                     <div className="text-h4">{fileName}</div>
                     <div className="text-caption" style={{ color: 'var(--text-secondary)' }}>
@@ -447,22 +376,22 @@ export default function ShadowAuditPage() {
                   We auto-detected your columns. Adjust if needed:
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
+                <div className={styles.columnGrid}>
                   {(['Date', 'Description / Merchant', 'Amount'] as const).map((label, idx) => {
                     const key = (['dateCol', 'descCol', 'amountCol'] as const)[idx];
                     return (
                       <div key={label}>
-                        <label className="text-caption" style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        <label className={`text-caption ${styles.columnLabel}`}>
                           {label}
                         </label>
                         <select
-                          style={selectStyle}
+                          className={styles.selectInput}
                           value={mapping[key]}
                           onChange={(e) => setMapping(prev => ({ ...prev, [key]: Number(e.target.value) }))}
                           aria-label={`Map ${label} column`}
                         >
                           {headers.map((h, i) => (
-                            <option key={i} value={i} style={{ background: '#111', color: '#fff' }}>{h}</option>
+                            <option key={i} value={i} className={styles.optionStyle}>{h}</option>
                           ))}
                         </select>
                       </div>
@@ -471,23 +400,23 @@ export default function ShadowAuditPage() {
                 </div>
 
                 {/* Preview first 3 rows */}
-                <div style={{ marginBottom: '32px' }}>
-                  <div className="text-caption" style={{ color: 'var(--text-secondary)', marginBottom: '12px', fontWeight: 600 }}>Preview (first 3 rows):</div>
-                  <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
-                    <table style={tableStyle}>
+                <div className={styles.previewSection}>
+                  <div className={`text-caption ${styles.previewLabel}`}>Preview (first 3 rows):</div>
+                  <div className={`card ${styles.previewCard}`}>
+                    <table className={styles.table}>
                       <thead>
                         <tr>
-                          <th style={thStyle}>Date</th>
-                          <th style={thStyle}>Description</th>
-                          <th style={thStyle}>Amount</th>
+                          <th className={styles.th}>Date</th>
+                          <th className={styles.th}>Description</th>
+                          <th className={styles.th}>Amount</th>
                         </tr>
                       </thead>
                       <tbody>
                         {rows.slice(0, 3).map((row, i) => (
                           <tr key={i}>
-                            <td style={{ padding: '8px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{row[mapping.dateCol]}</td>
-                            <td style={{ padding: '8px 16px', fontSize: '0.85rem' }}>{row[mapping.descCol]}</td>
-                            <td style={{ padding: '8px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{row[mapping.amountCol]}</td>
+                            <td className={styles.previewCellDate}>{row[mapping.dateCol]}</td>
+                            <td className={styles.previewCellDesc}>{row[mapping.descCol]}</td>
+                            <td className={styles.previewCellAmount}>{row[mapping.amountCol]}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -495,7 +424,7 @@ export default function ShadowAuditPage() {
                   </div>
                 </div>
 
-                <button className="btn btn-primary btn-lg" onClick={startProcessing} style={{ width: '100%' }} aria-label={`Start analysis on ${rows.length} transactions`}>
+                <button className={`btn btn-primary btn-lg ${styles.startButton}`} onClick={startProcessing} aria-label={`Start analysis on ${rows.length} transactions`}>
                   ⚡ Start Analysis — {rows.length} Transactions
                 </button>
               </div>
@@ -504,33 +433,30 @@ export default function ShadowAuditPage() {
             {/* ── Processing Step ── */}
             {step === 'processing' && (
               <div>
-                <div className="card-elevated" style={{ padding: '32px', marginBottom: '32px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div className={`card-elevated ${styles.processingCard}`}>
+                  <div className={styles.processingHeader}>
                     <span className="text-h4">Categorizing Transactions…</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700 }}>{progress}%</span>
+                    <span className={styles.processingPercent}>{progress}%</span>
                   </div>
-                  <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-                    <div className="progress-bar-fill" style={{ height: '100%', width: `${progress}%`, borderRadius: '999px', transition: 'width 0.15s ease' }} />
+                  <div className={styles.progressTrack}>
+                    <div className={`progress-bar-fill ${styles.progressFill}`} style={{ width: `${progress}%` }} />
                   </div>
-                  <p className="text-caption" style={{ marginTop: '12px', color: 'var(--text-secondary)' }}>
+                  <p className={`text-caption ${styles.processingCaption}`}>
                     {results.length} of {rows.length} processed
                   </p>
                 </div>
 
                 {/* Live results feed */}
-                <div className="card" style={{ padding: '20px', maxHeight: '400px', overflowY: 'auto' }}>
+                <div className={`card ${styles.liveFeed}`}>
                   {results.slice(-8).map((r, i) => (
-                    <div key={i} className="result-row" style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    }}>
-                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{r.date}</span>
-                        <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</span>
+                    <div key={i} className={`result-row ${styles.feedRow}`}>
+                      <div className={styles.feedRowLeft}>
+                        <span className={styles.feedDate}>{r.date}</span>
+                        <span className={styles.feedDesc}>{r.description}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--accent-primary)' }}>{r.category}</span>
-                        <span style={getBadgeStyle(r.matchType)}>{badgeLabels[r.matchType]}</span>
+                      <div className={styles.feedRowRight}>
+                        <span className={styles.feedCategory}>{r.category}</span>
+                        <span className={badgeClassMap[r.matchType]}>{badgeLabels[r.matchType]}</span>
                       </div>
                     </div>
                   ))}
@@ -542,7 +468,7 @@ export default function ShadowAuditPage() {
             {step === 'results' && (
               <div>
                 {/* Stats Bar */}
-                <div id="demo-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
+                <div className={styles.statsGrid}>
                   {[
                     { label: 'Total Transactions', value: stats.total, color: '#fff' },
                     { label: 'Exact Match', value: stats.exact, color: '#10b981' },
@@ -551,15 +477,15 @@ export default function ShadowAuditPage() {
                     { label: 'Avg Confidence', value: `${stats.avgConf}%`, color: 'var(--accent-primary)' },
                     { label: 'Processing Time', value: `${stats.time}s`, color: 'var(--accent-primary)' },
                   ].map((s) => (
-                    <div key={s.label} className="card" style={{ padding: '20px', textAlign: 'center' }}>
-                      <div className="stat-value" style={{ fontSize: '1.75rem', color: s.color, marginBottom: '4px' }}>{s.value}</div>
+                    <div key={s.label} className={`card ${styles.statCard}`}>
+                      <div className={styles.statCardValue} style={{ color: s.color }}>{s.value}</div>
                       <div className="text-caption" style={{ color: 'var(--text-secondary)' }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                <div className={styles.actionsRow}>
                   <button className="btn btn-primary" onClick={exportCSV}>
                     ⬇ Download Categorized CSV
                   </button>
@@ -569,28 +495,26 @@ export default function ShadowAuditPage() {
                 </div>
 
                 {/* Results Table */}
-                <div className="card-elevated" style={{ overflowX: 'auto', padding: '0' }}>
-                  <table style={tableStyle}>
+                <div className={`card-elevated ${styles.resultsTableCard}`}>
+                  <table className={styles.table}>
                     <thead>
                       <tr>
                         {['Date', 'Description', 'Amount', 'AI Category', 'GL Code', 'Confidence', 'Match Type'].map(h => (
-                          <th key={h} style={thStyle}>{h}</th>
+                          <th key={h} className={styles.th}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {results.map((r, i) => (
-                        <tr key={i} className="result-row" style={{
-                          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                        }}>
-                          <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.date}</td>
-                          <td style={{ padding: '10px 16px', fontSize: '0.85rem', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</td>
-                          <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{r.amount}</td>
-                          <td style={{ padding: '10px 16px', fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: 500 }}>{r.category}</td>
-                          <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{r.glCode}</td>
-                          <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 600, color: getConfidenceColor(r.confidence) }}>{r.confidence}%</td>
-                          <td style={{ padding: '10px 16px' }}>
-                            <span style={getBadgeStyle(r.matchType)}>{badgeLabels[r.matchType]}</span>
+                        <tr key={i} className={`result-row ${i % 2 === 0 ? styles.resultRowEven : styles.resultRowOdd}`}>
+                          <td className={styles.cellDate}>{r.date}</td>
+                          <td className={styles.cellDesc}>{r.description}</td>
+                          <td className={styles.cellAmount}>{r.amount}</td>
+                          <td className={styles.cellCategory}>{r.category}</td>
+                          <td className={styles.cellGlCode}>{r.glCode}</td>
+                          <td className={styles.cellConfidence} style={{ color: getConfidenceColor(r.confidence) }}>{r.confidence}%</td>
+                          <td className={styles.cellBadge}>
+                            <span className={badgeClassMap[r.matchType]}>{badgeLabels[r.matchType]}</span>
                           </td>
                         </tr>
                       ))}
@@ -599,11 +523,11 @@ export default function ShadowAuditPage() {
                 </div>
 
                 {/* CTA */}
-                <div className="cta-section" style={{ padding: '48px 0', textAlign: 'center' }}>
-                  <h3 className="text-h3" style={{ marginBottom: '12px' }}>
+                <div className={styles.ctaSection}>
+                  <h3 className={`text-h3 ${styles.ctaTitle}`}>
                     Like what you see?
                   </h3>
-                  <p className="text-body" style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>
+                  <p className={`text-body ${styles.ctaSubtitle}`}>
                     This is just the demo. The full platform categorizes, reconciles, and closes your books — automatically.
                   </p>
                   <Link href="/#cta" className="btn btn-primary btn-lg">

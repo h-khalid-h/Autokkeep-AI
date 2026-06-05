@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getXeroAuthUrl, exchangeXeroCode, refreshXeroToken } from '@/lib/ledger/sync';
 import { encryptToken, decryptToken } from '@/lib/crypto';
@@ -46,12 +46,8 @@ export async function GET(request: NextRequest) {
     const state = `${statePayload}.${hmac}`;
     const authUrl = getXeroAuthUrl(state);
     return NextResponse.redirect(authUrl);
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Failed to generate Xero auth URL' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'xero-auth-get', 'Failed to generate Xero auth URL');
   }
 }
 
@@ -156,17 +152,13 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       provider: 'xero',
       tenantId: tokens.tenantId,
       ...(returnTo ? { returnTo } : {}),
     });
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Xero authentication failed' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'xero-auth-post', 'Xero authentication failed');
   }
 }
 

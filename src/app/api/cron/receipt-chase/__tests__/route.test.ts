@@ -161,7 +161,7 @@ describe('GET /api/cron/receipt-chase', () => {
     expect(json.totalChased).toBe(5); // 3 + 2
     expect(json.totalSkipped).toBe(1); // 1 + 0
     expect(json.byChannel).toEqual({ sms: 3, whatsapp: 1, slack: 1 });
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
 
     // runReceiptChase should be called exactly 2 times (once per unique entity)
     expect(mockRunReceiptChase).toHaveBeenCalledTimes(2);

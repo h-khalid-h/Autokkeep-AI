@@ -151,7 +151,7 @@ describe('POST /api/channels/slack/interact — Entity Isolation', () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('returns 401 with invalid Slack signature', async () => {

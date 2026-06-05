@@ -3,6 +3,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('date, merchant_name, amount, category_human, category_ai, gl_name, document_status')
       .eq('entity_id', entityId)
-      .in('status', ['approved', 'synced'])
+      .in('status', [TRANSACTION_STATUS.APPROVED, TRANSACTION_STATUS.SYNCED])
       .gte('date', startDate)
       .lte('date', endDate)
       .is('deleted_at', null)

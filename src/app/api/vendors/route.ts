@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { parseBody, schemas } from '@/lib/validation';
 import { normalizeMerchantName } from '@/lib/vendors/service';
 
@@ -99,11 +99,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Vendors] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch vendors' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendors-get', 'Failed to fetch vendors');
   }
 }
 
@@ -188,11 +184,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ vendor }, { status: 201 });
   } catch (error) {
-    console.error('[Vendors] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to create vendor' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendors-post', 'Failed to create vendor');
   }
 }

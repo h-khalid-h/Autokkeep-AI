@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status')
       .eq('entity_id', entityId)
-      .eq('status', 'approved');
+      .eq('status', TRANSACTION_STATUS.APPROVED);
 
     if (transactionIds?.length) {
       query = query.in('id', transactionIds);
@@ -74,20 +76,20 @@ export async function POST(request: NextRequest) {
     const { data: transactions } = await query;
 
     if (!transactions?.length) {
-      return NextResponse.json({ ok: true, synced: 0, message: 'No transactions to sync' });
+      return NextResponse.json({ success: true, synced: 0, message: 'No transactions to sync' });
     }
 
     // Optimistic lock: claim transactions by setting status to 'syncing'
     const txIds = transactions.map((t: Record<string, unknown>) => t.id);
     const { data: claimed, error: claimError } = await db
       .from('transactions')
-      .update({ status: 'syncing', updated_at: new Date().toISOString() })
+      .update({ status: TRANSACTION_STATUS.SYNCING, updated_at: new Date().toISOString() })
       .in('id', txIds)
-      .eq('status', 'approved')
+      .eq('status', TRANSACTION_STATUS.APPROVED)
       .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status');
 
     if (claimError || !claimed?.length) {
-      return NextResponse.json({ ok: true, synced: 0, message: 'Transactions already being synced by another process' });
+      return NextResponse.json({ success: true, synced: 0, message: 'Transactions already being synced by another process' });
     }
 
     const bankAccountGLCode = await getGLCode(db, entityId, 'cash_gl');
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
 
           await db
             .from('transactions')
-            .update({ status: 'synced', updated_at: new Date().toISOString() })
+            .update({ status: TRANSACTION_STATUS.SYNCED, updated_at: new Date().toISOString() })
             .eq('id', tx.id);
 
           results.synced++;
@@ -203,11 +205,11 @@ export async function POST(request: NextRequest) {
         .from('transactions')
         .select('id')
         .in('id', txIds)
-        .eq('status', 'syncing');
+        .eq('status', TRANSACTION_STATUS.SYNCING);
       if (stillSyncing?.length) {
         await db
           .from('transactions')
-          .update({ status: 'approved', updated_at: new Date().toISOString() })
+          .update({ status: TRANSACTION_STATUS.APPROVED, updated_at: new Date().toISOString() })
           .in('id', stillSyncing.map((t: Record<string, unknown>) => t.id));
       }
     }
@@ -229,13 +231,9 @@ export async function POST(request: NextRequest) {
       request,
     });
 
-    return NextResponse.json({ ok: true, ...results });
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Xero sync failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, ...results });
+  } catch (error) {
+    return handleApiError(error, 'xero-sync-post', 'Xero sync failed');
   }
 }
 
@@ -309,16 +307,12 @@ export async function GET(request: NextRequest) {
     const upsertResult = await upsertChartOfAccounts(db, entityId, accounts);
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       accounts: accounts.length,
       upserted: upsertResult.upserted,
       errors: upsertResult.errors,
     });
-  } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Xero chart of accounts sync failed' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'xero-sync-coa', 'Xero chart of accounts sync failed');
   }
 }

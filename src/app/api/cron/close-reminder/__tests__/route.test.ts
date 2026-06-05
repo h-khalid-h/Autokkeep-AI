@@ -121,7 +121,7 @@ describe('POST /api/cron/close-reminder', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(0);
     expect(json.notified).toBe(0);
     expect(json.message).toBe('No entities with unlocked periods');
@@ -138,7 +138,7 @@ describe('POST /api/cron/close-reminder', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(0);
   });
 
@@ -183,7 +183,7 @@ describe('POST /api/cron/close-reminder', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(1);
     expect(json.notified).toBe(0);
     // dispatchWithFallback should NOT have been called
@@ -237,7 +237,7 @@ describe('POST /api/cron/close-reminder', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(1);
     expect(json.notified).toBe(1);
     expect(json.belowThreshold).toBe(1);
@@ -268,7 +268,7 @@ describe('POST /api/cron/close-reminder', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(0); // skipped because no current_period
   });
 

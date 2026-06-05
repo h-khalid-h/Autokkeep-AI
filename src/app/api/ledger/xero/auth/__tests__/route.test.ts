@@ -200,7 +200,7 @@ describe('POST /api/ledger/xero/auth', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.provider).toBe('xero');
     expect(json.tenantId).toBe('tenant-abc');
   });

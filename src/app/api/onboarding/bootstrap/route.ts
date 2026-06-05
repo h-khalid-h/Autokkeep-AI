@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       orgId: result.orgId,
       entityId: result.entityId,
     });

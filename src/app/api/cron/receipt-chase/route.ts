@@ -108,7 +108,7 @@ async function handler(request: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       entities: entityIds.length,
       totalChased,
       totalSkipped,

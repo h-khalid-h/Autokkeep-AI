@@ -5,7 +5,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { generateMonthlyNarrative } from '@/lib/ai/narrative';
 import { rateLimit } from '@/lib/rate-limit';
@@ -102,12 +102,7 @@ export async function GET(request: NextRequest) {
       generatedAt: narrative.generatedAt,
     });
   } catch (error) {
-    console.error('[Narrative API] GET Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to fetch narrative' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'insights-narrative-get', 'Failed to fetch narrative');
   }
 }
 
@@ -156,11 +151,6 @@ export async function POST(request: NextRequest) {
       generatedAt: narrative.generatedAt,
     });
   } catch (error) {
-    console.error('[Narrative API] POST Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to generate narrative' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'insights-narrative-post', 'Failed to generate narrative');
   }
 }

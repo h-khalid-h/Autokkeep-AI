@@ -141,7 +141,7 @@ describe('POST /api/channels/dispatch', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.channel).toBe('slack');
     expect(json.messageId).toBe('msg-123');
     expect(mockDispatchReceiptRequest).toHaveBeenCalledTimes(1);
@@ -227,7 +227,7 @@ describe('POST /api/channels/dispatch', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(false);
+    expect(json.success).toBe(false);
     expect(json.error).toBe('SMS provider unavailable');
   });
 
@@ -281,7 +281,7 @@ describe('POST /api/channels/dispatch', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.channel).toBe('email');
     expect(mockDispatchWithFallback).toHaveBeenCalledTimes(1);
     expect(mockDispatchReceiptRequest).not.toHaveBeenCalled();

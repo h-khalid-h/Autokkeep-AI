@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     if (!queueItems || queueItems.length === 0) {
       return NextResponse.json({
-        ok: true,
+        success: true,
         processed: 0,
         message: 'No pending OCR items',
       });
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       processed: results.length,
       matched,
       completed,

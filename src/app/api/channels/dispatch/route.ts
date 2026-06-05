@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        ok: result.success,
+        success: result.success,
         channel: result.channel,
         messageId: result.messageId,
         error: result.error,
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        ok: result.success,
+        success: result.success,
         channel: result.channel,
         messageId: result.messageId,
         error: result.error,

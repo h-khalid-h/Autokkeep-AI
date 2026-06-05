@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
@@ -36,9 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error('[Auth Logout] Error:', err);
-    captureException(err);
-    return NextResponse.json({ error: 'Failed to sign out' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'auth-logout', 'Failed to sign out');
   }
 }

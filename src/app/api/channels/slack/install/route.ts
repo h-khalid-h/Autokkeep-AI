@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      ok: true,
+      success: true,
       teamId: result.teamId,
       teamName: result.teamName,
     });

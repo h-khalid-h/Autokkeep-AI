@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error('Slack events error:', error);
     captureException(error);

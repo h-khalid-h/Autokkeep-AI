@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
 
 import { writeAuditLog } from '@/lib/audit';
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'removed';
+    const newStatus = action === 'approve' ? TRANSACTION_STATUS.APPROVED : TRANSACTION_STATUS.REMOVED;
 
     // Build update payload with action-specific fields
     const updatePayload: Record<string, unknown> = {

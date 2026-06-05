@@ -123,7 +123,7 @@ describe('POST /api/channels/slack/events', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('should handle unknown event types gracefully', async () => {
@@ -137,7 +137,7 @@ describe('POST /api/channels/slack/events', () => {
     // Should still return 200 (Slack expects acknowledgement)
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('should handle event_callback with app_mention', async () => {
@@ -155,7 +155,7 @@ describe('POST /api/channels/slack/events', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('should return 500 when SLACK_SIGNING_SECRET is not configured', async () => {

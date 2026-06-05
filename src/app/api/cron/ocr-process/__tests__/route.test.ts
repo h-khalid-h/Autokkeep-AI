@@ -131,7 +131,7 @@ describe('POST /api/cron/ocr-process', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(0);
     expect(json.message).toBe('No pending OCR items');
   });
@@ -160,7 +160,7 @@ describe('POST /api/cron/ocr-process', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(2);
     expect(json.matched).toBe(1);
     expect(json.completed).toBe(1);
@@ -183,7 +183,7 @@ describe('POST /api/cron/ocr-process', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(1);
     expect(json.failed).toBe(1);
     expect(json.results[0].error).toBe('OCR engine unavailable');
@@ -211,7 +211,7 @@ describe('POST /api/cron/ocr-process', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
     expect(json.processed).toBe(5);
     expect(json.completed).toBe(5);
     expect(mockExtractReceiptData).toHaveBeenCalledTimes(5);

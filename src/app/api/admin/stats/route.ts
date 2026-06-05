@@ -3,6 +3,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/lib/admin';
@@ -67,11 +68,11 @@ export async function GET(request: NextRequest) {
       admin.from('organizations').select('id', { count: 'exact', head: true }),
       admin.from('entities').select('id', { count: 'exact', head: true }),
       admin.from('transactions').select('id', { count: 'exact', head: true }),
-      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
-      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'auto_categorized'),
-      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'human_review'),
-      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'synced'),
+      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', TRANSACTION_STATUS.PENDING),
+      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', TRANSACTION_STATUS.APPROVED),
+      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', TRANSACTION_STATUS.AUTO_CATEGORIZED),
+      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', TRANSACTION_STATUS.HUMAN_REVIEW),
+      admin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', TRANSACTION_STATUS.SYNCED),
       admin.from('transactions').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
       admin.from('transactions').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
       admin.from('transactions').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
