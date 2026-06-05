@@ -7,7 +7,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { runAutoCategorize } from '@/lib/ai/auto-categorize';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -27,12 +28,7 @@ async function handler(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/auto-categorize' } });
-    console.error('[Cron Auto-Categorize] Error:', error);
-    return NextResponse.json(
-      { error: 'Auto-categorization cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/auto-categorize', 'Auto-categorization cron failed');
   }
 }
 

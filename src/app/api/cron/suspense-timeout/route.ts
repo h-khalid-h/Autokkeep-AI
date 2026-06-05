@@ -12,7 +12,8 @@ import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getGLCode } from '@/lib/entity-settings';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -250,12 +251,7 @@ async function handler(request: NextRequest) {
       errors,
     });
   } catch (error: unknown) {
-    captureException(error, { tags: { route: 'cron/suspense-timeout' } });
-    console.error('[Suspense Timeout] Error:', error);
-    return NextResponse.json(
-      { error: 'Suspense timeout cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/suspense-timeout', 'Suspense timeout cron failed');
   }
 }
 

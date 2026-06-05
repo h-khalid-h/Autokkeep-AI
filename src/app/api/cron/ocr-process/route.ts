@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { extractReceiptData } from '@/lib/ocr/extractor';
 import { matchReceiptToTransaction } from '@/lib/ocr/matcher';
@@ -269,11 +269,6 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/ocr-process' } });
-    console.error('[Cron OCR] Error:', error);
-    return NextResponse.json(
-      { error: 'OCR processing cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/ocr-process', 'OCR processing cron failed');
   }
 }

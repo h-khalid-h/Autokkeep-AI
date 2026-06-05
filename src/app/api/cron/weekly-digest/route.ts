@@ -13,7 +13,8 @@ import { sendDigestEmail } from '@/lib/email/resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
 
 async function handler(request: NextRequest) {
@@ -160,12 +161,7 @@ async function handler(request: NextRequest) {
       emailResults,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/weekly-digest' } });
-    console.error('[Weekly Digest] Error:', error);
-    return NextResponse.json(
-      { error: 'Weekly digest compilation failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/weekly-digest', 'Weekly digest compilation failed');
   }
 }
 

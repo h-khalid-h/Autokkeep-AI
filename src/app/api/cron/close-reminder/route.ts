@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchWithFallback, type ChannelConnection } from '@/lib/channels/dispatcher';
 import {
@@ -333,12 +334,7 @@ async function handler(request: NextRequest) {
       results,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/close-reminder' } });
-    console.error('[Cron Close Reminder] Error:', error);
-    return NextResponse.json(
-      { error: 'Close reminder cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/close-reminder', 'Close reminder cron failed');
   }
 }
 

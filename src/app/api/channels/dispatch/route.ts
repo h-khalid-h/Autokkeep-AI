@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -168,11 +168,6 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error: unknown) {
-    console.error('Channel dispatch error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Receipt dispatch failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'channels/dispatch', 'Receipt dispatch failed');
   }
 }

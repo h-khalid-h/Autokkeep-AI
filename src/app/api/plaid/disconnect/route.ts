@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -64,8 +65,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Plaid Disconnect] Error:', error);
-    captureException(error);
-    return NextResponse.json({ error: 'Failed to disconnect bank' }, { status: 500 });
+    return handleApiError(error, 'plaid/disconnect', 'Failed to disconnect bank');
   }
 }

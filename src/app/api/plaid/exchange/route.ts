@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { checkPlanLimits } from '@/lib/billing/plans';
@@ -200,11 +200,6 @@ export async function POST(request: NextRequest) {
       })),
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'plaid/exchange' } });
-    console.error('[Plaid Exchange] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to exchange token and setup bank connection' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'plaid/exchange', 'Failed to exchange token and setup bank connection');
   }
 }

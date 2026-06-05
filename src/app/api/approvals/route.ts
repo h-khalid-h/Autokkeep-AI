@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getPendingApprovals, processApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { parseBody } from '@/lib/validation';
 
 // ─── GET: List pending approvals for the current user ───────────────────────────
@@ -53,12 +53,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ approvals: enriched });
   } catch (error) {
-    console.error('[Approvals] GET error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to fetch pending approvals' },
-      { status: 500 },
-    );
+    return handleApiError(error, 'approvals GET', 'Failed to fetch pending approvals');
   }
 }
 
@@ -99,14 +94,10 @@ export async function POST(request: NextRequest) {
       message.includes('already processed') ||
       message.includes('not found');
 
-    if (!isValidation) {
-      console.error('[Approvals] POST error:', error);
-      captureException(error);
+    if (isValidation) {
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: isValidation ? message : 'Failed to process approval' },
-      { status: isValidation ? 400 : 500 },
-    );
+    return handleApiError(error, 'approvals POST', 'Failed to process approval');
   }
 }

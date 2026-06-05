@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { exchangeSlackCode, getSlackInstallUrl } from '@/lib/channels/slack';
@@ -30,11 +30,7 @@ export async function GET(request: NextRequest) {
     const url = getSlackInstallUrl();
     return NextResponse.redirect(url);
   } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Failed to generate Slack install URL' },
-      { status: 500 }
-    );
+    return handleApiError(_error, 'channels/slack/install GET', 'Failed to generate Slack install URL');
   }
 }
 
@@ -90,10 +86,6 @@ export async function POST(request: NextRequest) {
       teamName: result.teamName,
     });
   } catch (_error: unknown) {
-    captureException(_error);
-    return NextResponse.json(
-      { error: 'Slack installation failed' },
-      { status: 500 }
-    );
+    return handleApiError(_error, 'channels/slack/install POST', 'Slack installation failed');
   }
 }

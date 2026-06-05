@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   refreshConnectionToken,
@@ -167,12 +168,7 @@ async function handler(request: NextRequest) {
       errors,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/token-refresh' } });
-    console.error('[Cron Token Refresh] Error:', error);
-    return NextResponse.json(
-      { error: 'Token refresh cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/token-refresh', 'Token refresh cron failed');
   }
 }
 

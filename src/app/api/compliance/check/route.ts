@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import {
   runComplianceCheck,
 } from '@/lib/compliance';
@@ -119,13 +120,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    captureException(error, {
-      tags: { route: 'compliance-check' },
-    });
-    console.error('[Compliance/Check] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to run compliance check' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'compliance/check', 'Failed to run compliance check');
   }
 }

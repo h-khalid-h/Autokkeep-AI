@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { ingestTransactions } from '@/lib/plaid/ingest';
 import { rateLimit } from '@/lib/rate-limit';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
@@ -176,11 +176,6 @@ export async function POST(request: NextRequest) {
       categorized: txnsToCateg.length,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'plaid/sync' } });
-    console.error('[Plaid Sync] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to sync transactions' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'plaid/sync', 'Failed to sync transactions');
   }
 }

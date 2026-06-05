@@ -211,17 +211,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (newStatus) {
       // Valid status transition map
       const validTransitions: Record<string, string[]> = {
-        pending: ['approved', 'rejected', 'categorization_failed', 'human_review'],
-        human_review: ['approved', 'rejected', 'pending'],
-        auto_categorized: ['approved', 'rejected', 'human_review'],
-        approved: ['syncing', 'synced'],
-        rejected: ['pending'],
-        syncing: ['synced', 'approved'],
-        synced: [], // terminal — no transitions allowed
-        escrow_suspense: ['pending', 'approved'],
-        categorization_failed: ['pending', 'human_review'],
-        removed: [], // terminal — no transitions allowed
-        pending_approval: ['approved', 'rejected'], // approval workflow
+        [TRANSACTION_STATUS.PENDING]: [TRANSACTION_STATUS.APPROVED, 'rejected', TRANSACTION_STATUS.CATEGORIZATION_FAILED, TRANSACTION_STATUS.HUMAN_REVIEW],
+        [TRANSACTION_STATUS.HUMAN_REVIEW]: [TRANSACTION_STATUS.APPROVED, 'rejected', TRANSACTION_STATUS.PENDING],
+        [TRANSACTION_STATUS.AUTO_CATEGORIZED]: [TRANSACTION_STATUS.APPROVED, 'rejected', TRANSACTION_STATUS.HUMAN_REVIEW],
+        [TRANSACTION_STATUS.APPROVED]: [TRANSACTION_STATUS.SYNCING, TRANSACTION_STATUS.SYNCED],
+        rejected: [TRANSACTION_STATUS.PENDING],
+        [TRANSACTION_STATUS.SYNCING]: [TRANSACTION_STATUS.SYNCED, TRANSACTION_STATUS.APPROVED],
+        [TRANSACTION_STATUS.SYNCED]: [], // terminal — no transitions allowed
+        [TRANSACTION_STATUS.ESCROW_SUSPENSE]: [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.APPROVED],
+        [TRANSACTION_STATUS.CATEGORIZATION_FAILED]: [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW],
+        [TRANSACTION_STATUS.REMOVED]: [], // terminal — no transitions allowed
+        [TRANSACTION_STATUS.PENDING_APPROVAL]: [TRANSACTION_STATUS.APPROVED, 'rejected'], // approval workflow
       };
 
       const currentStatus = existing.status as string;

@@ -1,6 +1,6 @@
 // CRUD /api/entities/[entityId]/assignments — Per-entity user assignments
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
@@ -45,9 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('[Entity Assignments GET] Unexpected:', err);
-    captureException(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(err, 'entities/assignments GET');
   }
 }
 
@@ -135,9 +133,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (err) {
-    console.error('[Entity Assignments POST] Unexpected:', err);
-    captureException(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(err, 'entities/assignments POST');
   }
 }
 
@@ -185,8 +181,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ message: 'Assignment removed' });
   } catch (err) {
-    console.error('[Entity Assignments DELETE] Unexpected:', err);
-    captureException(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(err, 'entities/assignments DELETE');
   }
 }

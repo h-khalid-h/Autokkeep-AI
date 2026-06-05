@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -150,12 +150,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ entities: entityStats, summary });
   } catch (error) {
-    console.error('[Portfolio] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to load portfolio data' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'portfolio', 'Failed to load portfolio data');
   }
 }
 

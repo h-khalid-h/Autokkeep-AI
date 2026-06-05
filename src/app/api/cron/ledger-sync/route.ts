@@ -8,7 +8,7 @@
 // ledger yet, and pushes them as journal entries to QuickBooks or Xero.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { pushApprovedTransactionsToLedger } from '@/lib/ledger/auto-push';
@@ -54,11 +54,6 @@ export async function GET(request: NextRequest) {
       ...result,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/ledger-sync' } });
-    console.error('[Cron Ledger Sync] Error:', error);
-    return NextResponse.json(
-      { error: 'Ledger sync cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/ledger-sync', 'Ledger sync cron failed');
   }
 }

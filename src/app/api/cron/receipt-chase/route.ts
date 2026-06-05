@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { runReceiptChase, type ChaseReport } from '@/lib/channels/chase-agent';
 import { writeAuditLog } from '@/lib/audit';
@@ -117,12 +118,7 @@ async function handler(request: NextRequest) {
       entityErrors: entityErrors.length > 0 ? entityErrors : undefined,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/receipt-chase' } });
-    console.error('[Cron Receipt Chase] Error:', error);
-    return NextResponse.json(
-      { error: 'Receipt chase cron failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/receipt-chase', 'Receipt chase cron failed');
   }
 }
 

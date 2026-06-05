@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
-import { captureException, withSentryHandler } from '@/lib/sentry';
+import { withSentryHandler } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { writeAuditLog } from '@/lib/audit';
@@ -117,12 +118,7 @@ async function handler(request: NextRequest) {
       errors,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'cron/plaid-sync' } });
-    console.error('[Cron Plaid Sync] Error:', error);
-    return NextResponse.json(
-      { error: 'Cron sync failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'cron/plaid-sync', 'Cron sync failed');
   }
 }
 
