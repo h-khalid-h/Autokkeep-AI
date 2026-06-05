@@ -5,6 +5,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { normalizeMerchantName } from '@/lib/vendors/service';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import {
   dispatchReceiptRequest,
   type ChannelConnection,
@@ -425,7 +426,7 @@ export async function runReceiptChase(
       )
       .eq('entity_id', entityId)
       .eq('document_status', 'missing')
-      .eq('status', 'approved')
+      .eq('status', TRANSACTION_STATUS.APPROVED)
       .order('date', { ascending: true })
       .limit(200);
 
@@ -646,7 +647,7 @@ export async function runReceiptChase(
       const resolvedIds = new Set(
         (freshStatuses || [])
           .filter((tx: { id: string; document_status: string; status: string }) =>
-            tx.document_status !== 'missing' || tx.status !== 'approved'
+            tx.document_status !== 'missing' || tx.status !== TRANSACTION_STATUS.APPROVED
           )
           .map((tx: { id: string }) => tx.id)
       );

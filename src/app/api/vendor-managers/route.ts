@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: List vendor managers for user's entities ──────────────────────────
@@ -47,12 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ vendorManagers: vendorManagers || [] });
   } catch (error) {
-    console.error('[VendorManagers] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to fetch vendor managers' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendor-managers-get', 'Failed to fetch vendor managers');
   }
 }
 
@@ -127,12 +122,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ vendorManager }, { status: 201 });
   } catch (error) {
-    console.error('[VendorManagers] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to create vendor manager' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendor-managers-post', 'Failed to create vendor manager');
   }
 }
 
@@ -219,12 +209,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ vendorManager });
   } catch (error) {
-    console.error('[VendorManagers] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to update vendor manager' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendor-managers-put', 'Failed to update vendor manager');
   }
 }
 
@@ -291,11 +276,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[VendorManagers] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to delete vendor manager' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'vendor-managers-delete', 'Failed to delete vendor manager');
   }
 }

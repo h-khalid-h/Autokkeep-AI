@@ -4,6 +4,7 @@
 
 import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ async function fetchFinancialContext(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency')
     .eq('entity_id', entityId)
-    .neq('status', 'removed')
+    .neq('status', TRANSACTION_STATUS.REMOVED)
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: false })

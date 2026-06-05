@@ -8,6 +8,7 @@
 
 import { Resend } from 'resend';
 import { formatCurrency } from '@/lib/currency/converter';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── HTML Sanitization ──────────────────────────────────────────────────────────
 
@@ -77,8 +78,8 @@ export async function sendDigestEmail(data: DigestEmailData): Promise<{ success:
           <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.merchantName)}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(Math.abs(item.amount), data.currency || 'USD')}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">
-            <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${item.status === 'escrow_suspense' ? '#fef3c7' : '#fecaca'}; color: ${item.status === 'escrow_suspense' ? '#92400e' : '#991b1b'};">
-              ${item.status === 'escrow_suspense' ? 'Escrow' : 'Review'}
+            <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${item.status === TRANSACTION_STATUS.ESCROW_SUSPENSE ? '#fef3c7' : '#fecaca'}; color: ${item.status === TRANSACTION_STATUS.ESCROW_SUSPENSE ? '#92400e' : '#991b1b'};">
+              ${item.status === TRANSACTION_STATUS.ESCROW_SUSPENSE ? 'Escrow' : 'Review'}
             </span>
           </td>
         </tr>

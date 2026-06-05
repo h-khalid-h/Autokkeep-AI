@@ -5,6 +5,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // --- Types ---
 
@@ -38,7 +39,7 @@ export interface WeeklyDigest {
 
 // --- Core ---
 
-const REVIEW_STATUSES = ['escrow_suspense', 'human_review'] as const;
+const REVIEW_STATUSES = [TRANSACTION_STATUS.ESCROW_SUSPENSE, TRANSACTION_STATUS.HUMAN_REVIEW] as const;
 const TOP_ITEMS_LIMIT = 5;
 
 /**
@@ -88,8 +89,8 @@ export async function compileWeeklyDigest(): Promise<WeeklyDigest> {
 
     if (items.length === 0) continue;
 
-    const escrowCount = items.filter((t) => t.status === 'escrow_suspense').length;
-    const humanReviewCount = items.filter((t) => t.status === 'human_review').length;
+    const escrowCount = items.filter((t) => t.status === TRANSACTION_STATUS.ESCROW_SUSPENSE).length;
+    const humanReviewCount = items.filter((t) => t.status === TRANSACTION_STATUS.HUMAN_REVIEW).length;
     const totalValue = items.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     entityDigests.push({

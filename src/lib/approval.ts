@@ -9,6 +9,7 @@
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
 import { recordVendorPayment } from '@/lib/vendors/service';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ── Role Hierarchy ──────────────────────────────────────────────────────────────
 
@@ -299,7 +300,7 @@ export async function processApproval(
     return updated as ApprovalRequest;
   }
 
-  const newTxStatus = decision === 'approved' ? 'approved' : 'removed';
+  const newTxStatus = decision === 'approved' ? TRANSACTION_STATUS.APPROVED : TRANSACTION_STATUS.REMOVED;
 
   await db
     .from('transactions')

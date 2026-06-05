@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
@@ -184,11 +184,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Tax/Export] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to export tax data' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'tax-export', 'Failed to export tax data');
   }
 }

@@ -7,7 +7,7 @@ import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/lib/admin';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
@@ -112,10 +112,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'admin-stats' } });
-    return NextResponse.json(
-      { error: 'Failed to fetch admin stats' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'admin-stats', 'Failed to fetch admin stats');
   }
 }

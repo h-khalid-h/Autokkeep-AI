@@ -17,6 +17,7 @@
 
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Reusable Primitives ────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export const schemas = {
 
   // Transactions
   updateTransaction: z.object({
-    status: z.enum(['pending', 'rejected', 'human_review']).optional(),
+    status: z.enum([TRANSACTION_STATUS.PENDING, 'rejected', TRANSACTION_STATUS.HUMAN_REVIEW]).optional(),
     glCode: z.string().max(50).optional(),
     glName: z.string().max(200).optional(),
     notes: safeString.optional(),

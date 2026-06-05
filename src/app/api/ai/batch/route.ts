@@ -4,7 +4,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc, currency, card_holder')
       .eq('entity_id', entityId)
-      .in('status', ['pending', 'human_review']);
+      .in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW]);
 
     if (transactionIds && transactionIds.length > 0) {
       query = query.in('id', transactionIds);
@@ -240,11 +241,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(summary);
   } catch (error) {
-    console.error('[AI Batch] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Batch categorization failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'ai-batch', 'Batch categorization failed');
   }
 }

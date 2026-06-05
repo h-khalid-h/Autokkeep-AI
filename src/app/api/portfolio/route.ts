@@ -4,6 +4,7 @@
 // Returns per-entity stats for the organization's portfolio dashboard.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -57,10 +58,10 @@ export async function GET(request: NextRequest) {
         .eq('entity_id', eid).is('deleted_at', null)
         .then((r: { count: number | null }) => ({ entityId: eid, type: 'total', count: r.count ?? 0 })),
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .eq('entity_id', eid).in('status', ['human_review', 'pending']).is('deleted_at', null)
+        .eq('entity_id', eid).in('status', [TRANSACTION_STATUS.HUMAN_REVIEW, TRANSACTION_STATUS.PENDING]).is('deleted_at', null)
         .then((r: { count: number | null }) => ({ entityId: eid, type: 'pending', count: r.count ?? 0 })),
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .eq('entity_id', eid).in('status', ['approved', 'synced', 'auto_categorized']).is('deleted_at', null)
+        .eq('entity_id', eid).in('status', [TRANSACTION_STATUS.APPROVED, TRANSACTION_STATUS.SYNCED, TRANSACTION_STATUS.AUTO_CATEGORIZED]).is('deleted_at', null)
         .then((r: { count: number | null }) => ({ entityId: eid, type: 'resolved', count: r.count ?? 0 })),
     ]);
 

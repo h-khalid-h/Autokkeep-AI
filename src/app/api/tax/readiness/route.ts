@@ -4,7 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { analyzeTaxReadiness } from '@/lib/tax/readiness';
@@ -90,11 +90,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ report });
   } catch (error) {
-    console.error('[Tax/Readiness] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to analyze tax readiness' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'tax-readiness', 'Failed to analyze tax readiness');
   }
 }

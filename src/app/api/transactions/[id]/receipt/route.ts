@@ -8,7 +8,7 @@
 // Also updates any pending receipt_requests for this transaction.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
@@ -267,11 +267,6 @@ export async function POST(
       file_size: file.size,
     });
   } catch (error) {
-    console.error('[Receipt Upload] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Receipt upload failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'receipt-upload', 'Receipt upload failed');
   }
 }

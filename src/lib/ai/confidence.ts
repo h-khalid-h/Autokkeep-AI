@@ -12,6 +12,8 @@
  *   M_doc  = Document corroboration (1.0 if receipt exists, 0.0 if none)
  */
 
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
 /** Weights for composite score (must sum to 1.0) */
@@ -155,7 +157,7 @@ export function triageTransaction(
     return {
       decision: 'auto_commit',
       confidence,
-      targetStatus: 'auto_categorized',
+      targetStatus: TRANSACTION_STATUS.AUTO_CATEGORIZED,
       notificationChannel: 'none',
     };
   }
@@ -164,7 +166,7 @@ export function triageTransaction(
     return {
       decision: 'escrow_suspense',
       confidence,
-      targetStatus: 'escrow_suspense',
+      targetStatus: TRANSACTION_STATUS.ESCROW_SUSPENSE,
       notificationChannel: 'weekly_digest',
     };
   }
@@ -172,7 +174,7 @@ export function triageTransaction(
   return {
     decision: 'freeze_review',
     confidence,
-    targetStatus: 'human_review',
+    targetStatus: TRANSACTION_STATUS.HUMAN_REVIEW,
     notificationChannel: 'immediate_card',
   };
 }

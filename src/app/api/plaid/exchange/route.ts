@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
           merchant_name: t.merchant_name || t.name,
           merchant_raw: t.name,
           currency: t.iso_currency_code || 'USD',
-          status: 'pending',
+          status: TRANSACTION_STATUS.PENDING,
           confidence: 0,
           category_ai: null,
         }));

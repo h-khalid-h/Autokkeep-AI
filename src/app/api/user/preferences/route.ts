@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { getUserChannelPreference, setUserChannelPreference } from '@/lib/user-channel-prefs';
 import { rateLimit } from '@/lib/rate-limit';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { parseBody, schemas } from '@/lib/validation';
 
 // ─── GET: Return current user's channel preference for entity ───────────────
@@ -42,12 +42,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ preference });
   } catch (error) {
-    console.error('[UserPreferences] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to fetch preferences' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'user-preferences-get', 'Failed to fetch preferences');
   }
 }
 
@@ -78,11 +73,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[UserPreferences] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to update preferences' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'user-preferences-put', 'Failed to update preferences');
   }
 }

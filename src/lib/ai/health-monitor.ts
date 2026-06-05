@@ -10,6 +10,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { formatCurrency } from '@/lib/currency/converter';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -340,8 +341,8 @@ function checkUncategorizedBacklog(
     (t) =>
       !t.category_human &&
       !t.category_ai &&
-      t.status !== 'approved' &&
-      t.status !== 'removed'
+      t.status !== TRANSACTION_STATUS.APPROVED &&
+      t.status !== TRANSACTION_STATUS.REMOVED
   );
 
   if (uncategorized.length > 10) {
@@ -371,7 +372,7 @@ function checkMissingReceipts(
     (t) =>
       t.document_status === 'missing' &&
       Math.abs(t.amount) > 25 &&
-      t.status !== 'removed'
+      t.status !== TRANSACTION_STATUS.REMOVED
   );
 
   if (missing.length > 0) {
@@ -468,7 +469,7 @@ export async function runHealthCheck(
     )
     .eq('entity_id', entityId)
     .gte('date', dateThreshold)
-    .neq('status', 'removed')
+    .neq('status', TRANSACTION_STATUS.REMOVED)
     .order('date', { ascending: true });
 
   if (txError) {

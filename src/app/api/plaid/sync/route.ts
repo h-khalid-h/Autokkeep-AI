@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { captureException } from '@/lib/sentry';
 import { ingestTransactions } from '@/lib/plaid/ingest';
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, plaid_transaction_id, merchant_name, merchant_raw, amount, date, currency, category_ai')
       .eq('entity_id', entity.id)
-      .eq('status', 'pending')
+      .eq('status', TRANSACTION_STATUS.PENDING)
       .is('category_ai', null)
       .limit(1000);
 

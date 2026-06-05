@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { writeAuditLog } from '@/lib/audit';
@@ -236,11 +237,6 @@ export async function POST(request: NextRequest) {
       citationToken,
     });
   } catch (error) {
-    console.error('[AI Categorize] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Categorization failed' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'ai-categorize', 'Categorization failed');
   }
 }

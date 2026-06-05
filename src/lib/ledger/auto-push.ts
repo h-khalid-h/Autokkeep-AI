@@ -6,6 +6,7 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import type { LedgerProvider } from '@/lib/ledger/sync';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import {
   buildJournalEntryFromTransaction,
   syncJournalEntry,
@@ -63,7 +64,7 @@ export async function pushApprovedTransactionsToLedger(
   const { data: transactions, error: txError } = await supabase
     .from('transactions')
     .select('id, entity_id, amount, merchant_name, date, category_human, category_ai, ledger_sync_id')
-    .eq('status', 'approved')
+    .eq('status', TRANSACTION_STATUS.APPROVED)
     .eq('ledger_synced', false)
     .order('date', { ascending: true })
     .limit(500);

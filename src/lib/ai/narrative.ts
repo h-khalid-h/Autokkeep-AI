@@ -5,6 +5,7 @@
 
 import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -245,7 +246,7 @@ export async function generateMonthlyNarrative(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
-    .neq('status', 'removed')
+    .neq('status', TRANSACTION_STATUS.REMOVED)
     .gte('date', currentRange.start)
     .lte('date', currentRange.end)
     .order('date', { ascending: true })
@@ -255,7 +256,7 @@ export async function generateMonthlyNarrative(
     .from('transactions')
     .select('id, amount, date, merchant_name, merchant_raw, category_ai, category_human, status, currency, created_at')
     .eq('entity_id', entityId)
-    .neq('status', 'removed')
+    .neq('status', TRANSACTION_STATUS.REMOVED)
     .gte('date', previousRange.start)
     .lte('date', previousRange.end)
     .order('date', { ascending: true })

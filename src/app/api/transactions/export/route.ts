@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -135,11 +135,6 @@ export async function GET(request: NextRequest) {
       headers: csvHeaders,
     });
   } catch (error) {
-    console.error('[Export] Error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to export transactions' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'transactions-export', 'Failed to export transactions');
   }
 }

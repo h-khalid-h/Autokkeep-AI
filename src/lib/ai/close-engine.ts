@@ -10,6 +10,7 @@
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { analyzeVariance } from '@/lib/reconciliation/engine';
 import { formatCurrency } from '@/lib/currency/converter';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── F16: Separation of Duties (SOD) — Approver ≠ Closer ───────────────────
 
@@ -233,7 +234,7 @@ function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
     (t) =>
       t.document_status === 'missing' &&
       Math.abs(t.amount) > 25 &&
-      t.status !== 'removed'
+      t.status !== TRANSACTION_STATUS.REMOVED
   );
 
   if (missing.length === 0) {
@@ -261,7 +262,7 @@ function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
 function uncategorizedCheck(transactions: TransactionRow[]): CloseCheck {
   const uncategorized = transactions.filter(
     (t) =>
-      (t.status === 'pending' || t.status === 'human_review')
+      (t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.HUMAN_REVIEW)
   );
 
   if (uncategorized.length === 0) {
@@ -533,7 +534,7 @@ export async function runMonthEndClose(
     .eq('entity_id', entityId)
     .gte('date', startDate)
     .lt('date', endDate)
-    .neq('status', 'removed')
+    .neq('status', TRANSACTION_STATUS.REMOVED)
     .order('date', { ascending: true })
     .limit(50000); // Safety cap to prevent OOM for high-volume entities
 
@@ -603,7 +604,7 @@ export async function runMonthEndClose(
       .eq('entity_id', entityId)
       .gte('date', histStart.toISOString().split('T')[0])
       .lt('date', histEnd.toISOString().split('T')[0])
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .limit(30000); // Safety cap for 3 months of history
 
     if (histTxns && histTxns.length > 0) {
@@ -629,7 +630,7 @@ export async function runMonthEndClose(
       .from('transactions')
       .select('id, amount, date, merchant_name, category_ai, category_human, status, document_status')
       .eq('entity_id', entityId)
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .limit(100000); // Safety cap for all-entity reconciliation
     allTransactions = (allTxns || []) as TransactionRow[];
   } catch {

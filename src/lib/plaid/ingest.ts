@@ -7,6 +7,7 @@
 
 import { syncTransactions, type PlaidSyncResult } from '@/lib/plaid/client';
 import { decryptToken } from '@/lib/crypto';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ export async function ingestTransactions(
       merchant_name: t.merchant_name || t.name,
       merchant_raw: t.name,
       currency: t.iso_currency_code || 'USD',
-      status: 'pending',
+      status: TRANSACTION_STATUS.PENDING,
       confidence: 0,
       retention_lock_until: retentionDate,
     }));
@@ -166,7 +167,7 @@ export async function ingestTransactions(
       category_ai: null,
       confidence: 0,
       ai_reasoning: null,
-      status: 'pending',
+      status: TRANSACTION_STATUS.PENDING,
       updated_at: now,
     }));
 
@@ -192,7 +193,7 @@ export async function ingestTransactions(
     const { error: removeError } = await supabase
       .from('transactions')
       .update({
-        status: 'removed',
+        status: TRANSACTION_STATUS.REMOVED,
         updated_at: new Date().toISOString(),
       })
       .in('plaid_transaction_id', removedIds)

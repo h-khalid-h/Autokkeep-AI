@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/lib/admin';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 
@@ -175,10 +175,6 @@ export async function GET(request: NextRequest) {
       environment: envStatus,
     });
   } catch (error) {
-    captureException(error, { tags: { route: 'admin-system' } });
-    return NextResponse.json(
-      { error: 'Failed to fetch system status' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'admin-system', 'Failed to fetch system status');
   }
 }

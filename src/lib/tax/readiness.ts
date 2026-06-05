@@ -8,6 +8,7 @@
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { formatCurrency } from '@/lib/currency/converter';
 import { RECEIPT_REQUIRED_THRESHOLD, HIGH_VALUE_RECEIPT_THRESHOLD } from '@/lib/constants/compliance';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export async function analyzeTaxReadiness(
     .from('transactions')
     .select('id, merchant_name, amount, date, category_ai, category_human, document_url, status')
     .eq('entity_id', entityId)
-    .in('status', ['approved', 'auto_categorized', 'synced'])
+    .in('status', [TRANSACTION_STATUS.APPROVED, TRANSACTION_STATUS.AUTO_CATEGORIZED, TRANSACTION_STATUS.SYNCED])
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: false });
