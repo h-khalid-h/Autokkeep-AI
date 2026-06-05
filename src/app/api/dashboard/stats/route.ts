@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,16 +60,16 @@ export async function GET(request: NextRequest) {
     const [totalRes, pendingRes, autoRes, syncedRes, highConfRes, catRes] = await Promise.all([
       // Total transactions
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).neq('status', 'removed').is('deleted_at', null),
+        .in('entity_id', entityIds).neq('status', TRANSACTION_STATUS.REMOVED).is('deleted_at', null),
       // Pending review
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).in('status', ['pending', 'human_review']).is('deleted_at', null),
+        .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW]).is('deleted_at', null),
       // Auto approved
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).in('status', ['auto_categorized', 'approved']).is('deleted_at', null),
+        .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.AUTO_CATEGORIZED, TRANSACTION_STATUS.APPROVED]).is('deleted_at', null),
       // Synced
       db.from('transactions').select('id', { count: 'exact', head: true })
-        .in('entity_id', entityIds).eq('status', 'synced').is('deleted_at', null),
+        .in('entity_id', entityIds).eq('status', TRANSACTION_STATUS.SYNCED).is('deleted_at', null),
       // High confidence (>= 90)
       db.from('transactions').select('id', { count: 'exact', head: true })
         .in('entity_id', entityIds).gte('confidence', 90).is('deleted_at', null),
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('amount, base_amount')
       .in('entity_id', entityIds)
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .is('deleted_at', null)
       .gte('date', monthStart)
       .limit(50000); // F9: safety cap to prevent unbounded row fetch
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('category_ai, amount, base_amount')
       .in('entity_id', entityIds)
-      .neq('status', 'removed')
+      .neq('status', TRANSACTION_STATUS.REMOVED)
       .is('deleted_at', null)
       .not('category_ai', 'is', null)
       .order('category_ai', { ascending: true })
@@ -144,13 +145,13 @@ export async function GET(request: NextRequest) {
       .from('transactions')
       .select('status, merchant_name, amount, updated_at, date')
       .in('entity_id', entityIds)
-      .in('status', ['approved', 'auto_categorized'])
+      .in('status', [TRANSACTION_STATUS.APPROVED, TRANSACTION_STATUS.AUTO_CATEGORIZED])
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
       .limit(10);
 
     const recentActivity = (recentTxns || []).map((t: Record<string, unknown>) => ({
-      action: t.status === 'auto_categorized' ? 'auto_approved' : 'approved',
+      action: t.status === TRANSACTION_STATUS.AUTO_CATEGORIZED ? 'auto_approved' : 'approved',
       merchant: t.merchant_name,
       amount: t.amount,
       timestamp: t.updated_at || t.date,

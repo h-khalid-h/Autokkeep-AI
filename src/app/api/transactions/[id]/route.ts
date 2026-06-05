@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
@@ -241,7 +242,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
 
       updateData.status = newStatus;
-      if ((newStatus as string) === 'approved') {
+      if ((newStatus as string) === TRANSACTION_STATUS.APPROVED) {
         updateData.confidence = 100;
 
         // ── Approval hierarchy gate ────────────────────────────────────
@@ -267,7 +268,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             .from('approval_requests')
             .select('id, status')
             .eq('transaction_id', id)
-            .eq('status', 'approved')
+            .eq('status', TRANSACTION_STATUS.APPROVED)
             .limit(1);
 
           if (!existingApproval || existingApproval.length === 0) {
@@ -284,14 +285,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             await db
               .from('transactions')
               .update({
-                status: 'pending_approval',
+                status: TRANSACTION_STATUS.PENDING_APPROVAL,
                 updated_at: new Date().toISOString(),
                 updated_by: user.id,
               })
               .eq('id', id);
 
             return NextResponse.json({
-              status: 'pending_approval',
+              status: TRANSACTION_STATUS.PENDING_APPROVAL,
               approvalId: pending.id,
               requiredRole: approvalCheck.role,
               dualApproval: approvalCheck.dual,
@@ -324,7 +325,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       actorId: user.id,
       actorType: 'human',
       action:
-        (newStatus as string) === 'approved'
+        (newStatus as string) === TRANSACTION_STATUS.APPROVED
           ? 'approve'
           : 'update',
       targetType: 'transaction',
@@ -338,7 +339,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     });
 
     // Update categorization history for learning when a human approves
-    if (glCode && (newStatus as string) === 'approved' && existing.merchant_name) {
+    if (glCode && (newStatus as string) === TRANSACTION_STATUS.APPROVED && existing.merchant_name) {
       const normalizedMerchant = normalizeMerchantName(existing.merchant_name);
       const { data: existingHistory } = await db
         .from('categorization_history')
@@ -419,7 +420,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { error: deleteError } = await db
       .from('transactions')
       .update({
-        status: 'removed',
+        status: TRANSACTION_STATUS.REMOVED,
         deleted_at: new Date().toISOString(),
         deleted_by: user.id,
         updated_at: new Date().toISOString(),
@@ -437,7 +438,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await db.from('approval_requests')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('transaction_id', id)
-      .eq('status', 'pending');
+      .eq('status', TRANSACTION_STATUS.PENDING);
 
     // Log to audit
     await writeAuditLog({

@@ -11,6 +11,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { batchCategorize } from '@/lib/ai/categorizer';
 import type {
   TransactionInput,
@@ -51,7 +52,7 @@ export async function runAutoCategorize(options?: {
   const { data: transactions, error: txError } = await db
     .from('transactions')
     .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc_code, currency, card_holder, raw_bank_description')
-    .eq('status', 'pending')
+    .eq('status', TRANSACTION_STATUS.PENDING)
     .is('category_ai', null)
     .limit(BATCH_LIMIT);
 
@@ -184,13 +185,13 @@ export async function runAutoCategorize(options?: {
               db
                 .from('transactions')
                 .update({
-                  status: 'categorization_failed',
+                  status: TRANSACTION_STATUS.CATEGORIZATION_FAILED,
                   ai_reasoning: result.reasoning,
                   updated_at: new Date().toISOString(),
                 })
                 .eq('id', txId)
                 .eq('entity_id', entityId)
-                .eq('status', 'pending')
+                .eq('status', TRANSACTION_STATUS.PENDING)
             );
           } else {
             // Use composite confidence gate (PRD §4.2) instead of raw AI confidence.
@@ -204,10 +205,10 @@ export async function runAutoCategorize(options?: {
 
             const newStatus =
               composite.compositeScore >= AUTO_COMMIT_THRESHOLD
-                ? 'auto_categorized'
-                : 'human_review';
+                ? TRANSACTION_STATUS.AUTO_CATEGORIZED
+                : TRANSACTION_STATUS.HUMAN_REVIEW;
 
-            if (newStatus === 'auto_categorized') {
+            if (newStatus === TRANSACTION_STATUS.AUTO_CATEGORIZED) {
               entityAutoCategorized++;
             } else {
               entityHumanReview++;
@@ -226,7 +227,7 @@ export async function runAutoCategorize(options?: {
                 })
                 .eq('id', txId)
                 .eq('entity_id', entityId)
-                .eq('status', 'pending')
+                .eq('status', TRANSACTION_STATUS.PENDING)
             );
           }
 

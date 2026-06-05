@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { writeAuditLog } from '@/lib/audit';
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
           const { error } = await db
             .from('transactions')
             .update({
-              status: 'approved',
+              status: TRANSACTION_STATUS.APPROVED,
               category_human: parsed.glCode,
               updated_at: new Date().toISOString(),
             })
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
           const { error } = await db
             .from('transactions')
             .update({
-              status: 'approved',
+              status: TRANSACTION_STATUS.APPROVED,
               category_human: parsed.glCode,
               updated_at: new Date().toISOString(),
             })
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
           await db
             .from('transactions')
             .update({
-              status: 'approved',
+              status: TRANSACTION_STATUS.APPROVED,
               tags: ['personal', 'excluded'],
               updated_at: new Date().toISOString(),
             })

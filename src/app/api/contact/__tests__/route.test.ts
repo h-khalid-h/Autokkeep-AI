@@ -120,7 +120,7 @@ describe('POST /api/contact', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 
   it('should return 400 if message is too short', async () => {
@@ -160,6 +160,6 @@ describe('POST /api/contact', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(json.success).toBe(true);
   });
 });

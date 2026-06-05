@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { captureException } from '@/lib/sentry';
+import { handleApiError } from '@/lib/api-helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
 
@@ -48,13 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Contact form error:', error);
-    captureException(error);
-    return NextResponse.json(
-      { error: 'Failed to submit contact form' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/contact', 'Failed to submit contact form');
   }
 }

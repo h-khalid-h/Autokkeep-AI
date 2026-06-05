@@ -4,6 +4,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, merchant_name, currency, amount, vendor_id, created_by, retention_lock_until')
       .eq('entity_id', entityId)
-      .eq('status', 'pending')
+      .eq('status', TRANSACTION_STATUS.PENDING)
       .is('vendor_id', null)
       .limit(1000);
 
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
               console.error('[Process Pipeline] FX conversion failed for tx', tx.id, fxErr);
               // Flag for human review instead of silently proceeding with unconverted amount
               await db.from('transactions').update({
-                status: 'human_review',
+                status: TRANSACTION_STATUS.HUMAN_REVIEW,
                 ai_reasoning: 'FX conversion failed — manual review required',
                 updated_at: new Date().toISOString(),
               }).eq('id', tx.id);
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, merchant_name, merchant_raw, amount, date, mcc, currency, card_holder, document_url')
       .eq('entity_id', entityId)
-      .in('status', ['pending', 'human_review'])
+      .in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW])
       .is('category_ai', null)
       .limit(1000);
 
@@ -301,7 +302,7 @@ export async function POST(request: NextRequest) {
         .from('transactions')
         .select('id, merchant_name, amount, date')
         .eq('entity_id', entityId)
-        .neq('status', 'removed')
+        .neq('status', TRANSACTION_STATUS.REMOVED)
         .gte('date', sevenDaysAgo.toISOString().split('T')[0])
         .limit(5000);
       const recentTxns = (recentTransactions || []) as Array<{ id: string; merchant_name: string | null; amount: number; date: string }>;
@@ -329,7 +330,7 @@ export async function POST(request: NextRequest) {
         triageCache.set(txId, triage);
 
         let targetStatus = result.confidence === 0 && !result.glCode
-          ? 'categorization_failed'
+          ? TRANSACTION_STATUS.CATEGORIZATION_FAILED
           : triage.targetStatus;
 
         // ── F20: Approval threshold check during auto-categorization ──
@@ -344,7 +345,7 @@ export async function POST(request: NextRequest) {
               (t: { min_amount: number }) => t.min_amount <= absAmount
             );
             if (matchingThreshold) {
-              targetStatus = 'human_review';
+              targetStatus = TRANSACTION_STATUS.HUMAN_REVIEW;
               approvalOverridden = true;
               await requestApproval(
                 db,
@@ -361,7 +362,7 @@ export async function POST(request: NextRequest) {
               approvalError,
             );
             // On error, fail safe: send to human review
-            targetStatus = 'human_review';
+            targetStatus = TRANSACTION_STATUS.HUMAN_REVIEW;
             approvalOverridden = true;
           }
         }
@@ -392,7 +393,7 @@ export async function POST(request: NextRequest) {
 
               if (duplicateMatch && absAmount >= DUPLICATE_MIN_AMOUNT) {
                 fraudFlagged = true;
-                targetStatus = 'human_review';
+                targetStatus = TRANSACTION_STATUS.HUMAN_REVIEW;
               }
             }
           }
@@ -400,7 +401,7 @@ export async function POST(request: NextRequest) {
           // Check 2: Round-number suspicion — exact multiples of $100 above $500
           if (!fraudFlagged && absAmount >= ROUND_NUMBER_THRESHOLD && absAmount % ROUND_NUMBER_MODULO === 0) {
             fraudFlagged = true;
-            targetStatus = 'human_review';
+            targetStatus = TRANSACTION_STATUS.HUMAN_REVIEW;
           }
         }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import { rateLimit } from '@/lib/rate-limit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         await db
           .from('transactions')
           .update({
-            status: 'approved',
+            status: TRANSACTION_STATUS.APPROVED,
             category_human: tx?.category_ai || 'uncategorized',
             updated_at: new Date().toISOString(),
           })
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
         await db
           .from('transactions')
           .update({
-            status: 'approved',
+            status: TRANSACTION_STATUS.APPROVED,
             tags: ['personal', 'excluded'],
             updated_at: new Date().toISOString(),
           })

@@ -128,6 +128,11 @@ export async function POST(request: NextRequest) {
 
     const { webhook_type, webhook_code, item_id } = body;
 
+    // Idempotency: Plaid may retry webhooks. Transaction processing is safe
+    // against duplicates because ingestTransactions() uses upsert with
+    // onConflict: 'plaid_transaction_id' + ignoreDuplicates: true.
+    // No separate dedup table is needed.
+
     console.info(
       `[Plaid Webhook] Received: ${webhook_type}.${webhook_code} for item ${item_id}`
     );

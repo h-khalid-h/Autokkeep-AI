@@ -3,12 +3,15 @@
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useState, FormEvent, Suspense } from 'react';
+import { useState, useCallback, FormEvent, Suspense } from 'react';
 import Logo from '@/components/ui/Logo';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import styles from './page.module.css';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_MIN_LENGTH = 8;
 
 function LoginContent() {
   const router = useRouter();
@@ -24,8 +27,36 @@ function LoginContent() {
     urlError === 'auth_callback_error' ? 'Authentication failed. Please try again.' : null
   );
 
+  // Inline field validation state
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
+
+  const validateEmail = useCallback((value: string) => {
+    if (value && !EMAIL_REGEX.test(value)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError(undefined);
+    }
+  }, []);
+
+  const validatePassword = useCallback((value: string) => {
+    if (value && value.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+    } else {
+      setPasswordError(undefined);
+    }
+  }, []);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // Run validation before submit
+    validateEmail(email);
+    validatePassword(password);
+    if ((email && !EMAIL_REGEX.test(email)) || (password && password.length < PASSWORD_MIN_LENGTH)) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -86,7 +117,15 @@ function LoginContent() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Clear error as user types a valid email
+                  if (emailError && EMAIL_REGEX.test(e.target.value)) {
+                    setEmailError(undefined);
+                  }
+                }}
+                onBlur={(e) => validateEmail(e.target.value)}
+                error={emailError}
                 required
                 autoComplete="email"
                 size="lg"
@@ -101,7 +140,15 @@ function LoginContent() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    // Clear error once minimum length is met
+                    if (passwordError && e.target.value.length >= PASSWORD_MIN_LENGTH) {
+                      setPasswordError(undefined);
+                    }
+                  }}
+                  onBlur={(e) => validatePassword(e.target.value)}
+                  error={passwordError}
                   required
                   autoComplete="current-password"
                   size="lg"

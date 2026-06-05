@@ -8,6 +8,7 @@
 // Creates a journal entry to the Suspense Clearing Account for each.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
@@ -51,7 +52,7 @@ async function handler(request: NextRequest) {
     const { data, error: fetchError } = await db
       .from('transactions')
       .select('id, entity_id, amount, merchant_name, date, category_ai')
-      .eq('status', 'human_review')
+      .eq('status', TRANSACTION_STATUS.HUMAN_REVIEW)
       .lt('updated_at', cutoffDate)
       .limit(100);
 
@@ -80,12 +81,12 @@ async function handler(request: NextRequest) {
       const { data: claimed } = await db
         .from('transactions')
         .update({
-          status: 'escrow_suspense',
+          status: TRANSACTION_STATUS.ESCROW_SUSPENSE,
           ai_reasoning: `Auto-moved to suspense: unresolved for >${SUSPENSE_TIMEOUT_HOURS}h. Original AI suggestion: ${txn.category_ai || 'none'}`,
           updated_at: now,
         })
         .eq('id', txn.id)
-        .eq('status', 'human_review') // Optimistic lock — prevents double-processing
+        .eq('status', TRANSACTION_STATUS.HUMAN_REVIEW) // Optimistic lock — prevents double-processing
         .select('id');
       if (claimed && claimed.length > 0) {
         claimedIds.add(txn.id);
@@ -229,8 +230,8 @@ async function handler(request: NextRequest) {
           details: {
             action: 'suspense_timeout',
             reason: `Unresolved for >${SUSPENSE_TIMEOUT_HOURS} hours`,
-            previous_status: 'human_review',
-            new_status: 'escrow_suspense',
+            previous_status: TRANSACTION_STATUS.HUMAN_REVIEW,
+            new_status: TRANSACTION_STATUS.ESCROW_SUSPENSE,
             journal_entry_id: jeMapForAudit.get(txn.id) || null,
           },
           request,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { captureException } from '@/lib/sentry';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       .from('transactions')
       .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status')
       .eq('entity_id', entityId)
-      .eq('status', 'approved');
+      .eq('status', TRANSACTION_STATUS.APPROVED);
 
     if (transactionIds?.length) {
       query = query.in('id', transactionIds);
@@ -87,9 +88,9 @@ export async function POST(request: NextRequest) {
     const txIds = transactions.map((t: Record<string, unknown>) => t.id);
     const { data: claimed, error: claimError } = await db
       .from('transactions')
-      .update({ status: 'syncing', updated_at: new Date().toISOString() })
+      .update({ status: TRANSACTION_STATUS.SYNCING, updated_at: new Date().toISOString() })
       .in('id', txIds)
-      .eq('status', 'approved') // Only claim if still approved (another request may have claimed them)
+      .eq('status', TRANSACTION_STATUS.APPROVED) // Only claim if still approved (another request may have claimed them)
       .select('id, entity_id, date, merchant_name, amount, category_ai, category_human, currency, gl_code, status');
 
     if (claimError || !claimed?.length) {
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
           // Update transaction status
           await db
             .from('transactions')
-            .update({ status: 'synced', updated_at: new Date().toISOString() })
+            .update({ status: TRANSACTION_STATUS.SYNCED, updated_at: new Date().toISOString() })
             .eq('id', tx.id);
 
           results.synced++;
@@ -235,11 +236,11 @@ export async function POST(request: NextRequest) {
         .from('transactions')
         .select('id')
         .in('id', txIds)
-        .eq('status', 'syncing');
+        .eq('status', TRANSACTION_STATUS.SYNCING);
       if (stillSyncing?.length) {
         await db
           .from('transactions')
-          .update({ status: 'approved', updated_at: new Date().toISOString() })
+          .update({ status: TRANSACTION_STATUS.APPROVED, updated_at: new Date().toISOString() })
           .in('id', stillSyncing.map((t: Record<string, unknown>) => t.id));
       }
     }
