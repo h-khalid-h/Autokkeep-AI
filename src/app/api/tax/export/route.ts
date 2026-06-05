@@ -88,7 +88,8 @@ export async function GET(request: NextRequest) {
       .gte('date', startDate)
       .lte('date', endDate)
       .is('deleted_at', null)
-      .order('date', { ascending: true });
+      .order('date', { ascending: true })
+      .limit(50000);
 
     if (txError) {
       console.error('[Tax/Export] Query error:', txError);
@@ -104,8 +105,8 @@ export async function GET(request: NextRequest) {
     const csvLines: string[] = [];
     csvLines.push('Date,Merchant,Amount,Category (GL Code),GL Name,Deductible,Receipt');
 
-    // Track category totals for summary
-    const categoryTotals: Record<string, { amount: number; count: number; glName: string }> = {};
+    // Track category totals for summary (use integer cents to avoid float accumulation errors)
+    const categoryTotals: Record<string, { amountCents: number; count: number; glName: string }> = {};
 
     for (const tx of rows) {
       const glCode = tx.category_human || tx.category_ai || '';
@@ -124,12 +125,12 @@ export async function GET(request: NextRequest) {
         hasReceipt,
       ].join(','));
 
-      // Accumulate category totals
+      // Accumulate category totals in cents to avoid float errors
       if (glCode) {
         if (!categoryTotals[glCode]) {
-          categoryTotals[glCode] = { amount: 0, count: 0, glName };
+          categoryTotals[glCode] = { amountCents: 0, count: 0, glName };
         }
-        categoryTotals[glCode].amount += tx.amount;
+        categoryTotals[glCode].amountCents += Math.round(tx.amount * 100);
         categoryTotals[glCode].count += 1;
       }
     }
@@ -139,25 +140,25 @@ export async function GET(request: NextRequest) {
     csvLines.push('--- SUMMARY BY CATEGORY ---');
     csvLines.push('Category (GL Code),GL Name,Total Amount,Transaction Count');
 
-    const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].amount - a[1].amount);
-    let grandTotal = 0;
+    const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].amountCents - a[1].amountCents);
+    let grandTotalCents = 0;
     let totalCount = 0;
 
     for (const [code, data] of sortedCategories) {
       csvLines.push([
         escapeCSV(code),
         escapeCSV(data.glName),
-        data.amount.toFixed(2),
+        (data.amountCents / 100).toFixed(2),
         String(data.count),
       ].join(','));
-      grandTotal += data.amount;
+      grandTotalCents += data.amountCents;
       totalCount += data.count;
     }
 
     csvLines.push([
       'TOTAL',
       '',
-      grandTotal.toFixed(2),
+      (grandTotalCents / 100).toFixed(2),
       String(totalCount),
     ].join(','));
 

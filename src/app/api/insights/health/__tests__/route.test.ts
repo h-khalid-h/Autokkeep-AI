@@ -44,6 +44,10 @@ vi.mock('@/lib/api-auth', () => ({
   getApiAuthContext: vi.fn().mockResolvedValue(mockAuthContext),
 }));
 
+vi.mock('@/lib/billing/plans', () => ({
+  checkPlanLimits: vi.fn().mockResolvedValue({ allowed: true }),
+}));
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function createGetRequest(params?: Record<string, string>): NextRequest {

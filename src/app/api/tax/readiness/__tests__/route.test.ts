@@ -46,6 +46,10 @@ vi.mock('@/lib/api-auth', () => ({
   getApiAuthContext: vi.fn().mockResolvedValue(mockAuthContext),
 }));
 
+vi.mock('@/lib/billing/plans', () => ({
+  checkPlanLimits: vi.fn().mockResolvedValue({ allowed: true }),
+}));
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 const ENTITY_ID = 'a0000000-0000-4000-8000-000000000010';

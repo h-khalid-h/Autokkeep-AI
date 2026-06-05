@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { handleApiError } from '@/lib/api-helpers';
+import { handleApiError, apiError } from '@/lib/api-helpers';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
 import { parseBody, schemas } from '@/lib/validation';
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
     const { user, db } = ctx;
+
+    // Enforce plan limits for Month-End Close feature
+    const planCheck = await checkPlanLimits(db, ctx.membership.org_id, 'month_end_close');
+    if (!planCheck.allowed) {
+      return apiError(planCheck.reason || 'This feature requires a paid plan', 403);
+    }
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -103,6 +110,12 @@ export async function POST(request: NextRequest) {
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
+
+    // Enforce plan limits for Month-End Close feature
+    const planCheckPost = await checkPlanLimits(db, membership.org_id, 'month_end_close');
+    if (!planCheckPost.allowed) {
+      return apiError(planCheckPost.reason || 'This feature requires a paid plan', 403);
+    }
 
     const result = await parseBody(request, schemas.closeConversation);
     if (!result.success) return result.error;

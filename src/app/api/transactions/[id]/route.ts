@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { getApiAuthContext } from '@/lib/api-auth';
-import { handleApiError } from '@/lib/api-helpers';
+import { apiError, handleApiError } from '@/lib/api-helpers';
 import { writeAuditLog } from '@/lib/audit';
 import { checkApprovalRequired, requestApproval } from '@/lib/approval';
 import { rateLimit } from '@/lib/rate-limit';
@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const { data: existing, error: fetchError } = await db
       .from('transactions')
-      .select('id, entity_id, date, status, amount, category_ai, category_human, merchant_name, merchant_raw, confidence, description, document_url, gl_name, currency')
+      .select('id, entity_id, date, status, amount, category_ai, category_human, merchant_name, merchant_raw, confidence, description, document_url, gl_name, currency, updated_at')
       .eq('id', id)
       .in('entity_id', entityIds)
       .is('deleted_at', null)
@@ -307,8 +307,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       .from('transactions')
       .update(updateData)
       .eq('id', id)
+      .in('entity_id', entityIds)
+      .eq('updated_at', existing.updated_at)
       .select()
       .single();
+
+    if (!transaction && !updateError) {
+      return apiError('Transaction was modified by another user. Please refresh and try again.', 409);
+    }
 
     if (updateError) {
       console.error('[Transaction Update] Error:', updateError);
@@ -404,15 +410,36 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     const { data: existing, error: fetchError } = await db
       .from('transactions')
-      .select('id, entity_id, status, merchant_name, amount')
+      .select('id, entity_id, date, status, merchant_name, amount')
       .eq('id', id)
       .in('entity_id', entityIds)
+      .is('deleted_at', null)
       .single();
 
     if (fetchError || !existing) {
       return NextResponse.json(
         { error: 'Transaction not found' },
         { status: 404 }
+      );
+    }
+
+    // ── Period-lock check ──────────────────────────────────────────────
+    const [delYearStr, delMonthStr] = (existing.date as string).split('-');
+    const delYear = parseInt(delYearStr, 10);
+    const delMonth = parseInt(delMonthStr, 10);
+
+    const { data: lockedPeriod } = await db
+      .from('accounting_periods')
+      .select('is_locked')
+      .eq('entity_id', existing.entity_id)
+      .eq('year', delYear)
+      .eq('month', delMonth)
+      .single();
+
+    if (lockedPeriod?.is_locked) {
+      return NextResponse.json(
+        { error: 'Cannot delete transaction in a locked accounting period' },
+        { status: 403 }
       );
     }
 

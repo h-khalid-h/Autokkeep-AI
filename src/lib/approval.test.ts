@@ -19,6 +19,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.in = vi.fn().mockReturnValue(chain);
   chain.lte = vi.fn().mockReturnValue(chain);
   chain.neq = vi.fn().mockReturnValue(chain);
+  chain.not = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.insert = vi.fn().mockReturnValue(chain);
@@ -209,6 +210,11 @@ describe('processApproval', () => {
   };
 
   it('approves: updates approval request and transaction status to approved', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
@@ -225,9 +231,13 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        // 1st call: fetch the approval request; 2nd+: update
-        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval, 3rd+: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') {
         txCallCount++;
         // 1st call: SOD check; 2nd+: status update
@@ -244,7 +254,12 @@ describe('processApproval', () => {
     expect(writeAuditLog).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects: updates transaction status to removed', async () => {
+  it('rejects: updates transaction status to human_review', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'owner' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'rejected', approver_user_id: 'user-1' }],
@@ -252,13 +267,17 @@ describe('processApproval', () => {
     });
     const txUpdateChain = createChainMock({ data: null, error: null });
 
+    let approvalReqCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
-        const calls = mockDb.from.mock.calls.filter(
-          (c: string[]) => c[0] === 'approval_requests',
-        ).length;
-        return calls <= 1 ? fetchChain : updateChain;
+        approvalReqCallCount++;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval, 3rd+: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') return txUpdateChain;
       if (table === 'audit_log') return createChainMock({ data: null, error: null });
       return createChainMock({ data: null, error: null });
@@ -267,11 +286,29 @@ describe('processApproval', () => {
     const result = await processApproval(db, 'ar-1', 'user-1', 'owner', 'rejected', ['entity-1']);
 
     expect(result.status).toBe('rejected');
+    // Verify transaction was set to human_review (not removed)
+    expect(txUpdateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'human_review' }),
+    );
   });
 
   it('throws when actor role is insufficient', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'viewer' }, error: null });
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
-    mockDb.from.mockReturnValue(fetchChain);
+
+    let approvalReqCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        return approvalReqCallCount <= 1 ? entityIdChain : fetchChain;
+      }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
+      return createChainMock({ data: null, error: null });
+    });
 
     await expect(
       processApproval(db, 'ar-1', 'user-1', 'viewer', 'approved', ['entity-1']),
@@ -279,6 +316,8 @@ describe('processApproval', () => {
   });
 
   it('throws when approval request is not found', async () => {
+    // The first query (entity_id lookup for team check) will also fail/return null
+    // which triggers the early 'Approval request not found or access denied' error
     const fetchChain = createChainMock({ data: null, error: { message: 'not found' } });
     mockDb.from.mockReturnValue(fetchChain);
 
@@ -288,9 +327,24 @@ describe('processApproval', () => {
   });
 
   it('throws when approval is already processed', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const alreadyApproved = { ...pendingApproval, status: 'approved' };
     const fetchChain = createChainMock({ data: alreadyApproved, error: null });
-    mockDb.from.mockReturnValue(fetchChain);
+
+    let approvalReqCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'approval_requests') {
+        approvalReqCallCount++;
+        return approvalReqCallCount <= 1 ? entityIdChain : fetchChain;
+      }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
+      return createChainMock({ data: null, error: null });
+    });
 
     await expect(
       processApproval(db, 'ar-1', 'user-1', 'admin', 'approved', ['entity-1']),
@@ -298,6 +352,11 @@ describe('processApproval', () => {
   });
 
   it('calls recordVendorPayment when approved transaction has vendor_id', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
@@ -317,8 +376,13 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval, 3rd+: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') {
         txCallCount++;
         // 1st: SOD check, 2nd: status update, 3rd: vendor lookup
@@ -342,6 +406,11 @@ describe('processApproval', () => {
   });
 
   it('does NOT call recordVendorPayment when vendor_id is null', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
@@ -361,8 +430,13 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        return approvalReqCallCount <= 1 ? fetchChain : updateChain;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval, 3rd+: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') {
         txCallCount++;
         if (txCallCount <= 1) return txSodChain;
@@ -380,6 +454,11 @@ describe('processApproval', () => {
   });
 
   it('does NOT call recordVendorPayment on rejection', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'owner' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'rejected', approver_user_id: 'user-1' }],
@@ -387,13 +466,17 @@ describe('processApproval', () => {
     });
     const txUpdateChain = createChainMock({ data: null, error: null });
 
+    let approvalReqCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
-        const calls = mockDb.from.mock.calls.filter(
-          (c: string[]) => c[0] === 'approval_requests',
-        ).length;
-        return calls <= 1 ? fetchChain : updateChain;
+        approvalReqCallCount++;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval, 3rd+: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') return txUpdateChain;
       if (table === 'audit_log') return createChainMock({ data: null, error: null });
       return createChainMock({ data: null, error: null });
@@ -405,6 +488,11 @@ describe('processApproval', () => {
   });
 
   it('dual approval: first approver creates second pending request and does NOT update transaction status', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-1' }],
@@ -414,6 +502,8 @@ describe('processApproval', () => {
     const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
     // Threshold requires dual approval
     const thresholdChain = createChainMock({ data: { requires_dual_approval: true }, error: null });
+    // No own prior approvals from this user
+    const ownPriorApprovalsChain = createChainMock({ data: [], error: null });
     // No prior approvals from other users
     const priorApprovalsChain = createChainMock({ data: [], error: null });
     // Insert chain for the second pending approval request
@@ -426,13 +516,18 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        // 1st: fetch approval request, 2nd: check prior approvals,
-        // 3rd: update with optimistic lock, 4th: insert second pending
-        if (approvalReqCallCount <= 1) return fetchChain;
-        if (approvalReqCallCount <= 2) return priorApprovalsChain;
-        if (approvalReqCallCount <= 3) return updateChain;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval,
+        // 3rd: own prior approvals check, 4th: prior approvals from others,
+        // 5th: update with optimistic lock, 6th: insert second pending
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        if (approvalReqCallCount <= 3) return ownPriorApprovalsChain;
+        if (approvalReqCallCount <= 4) return priorApprovalsChain;
+        if (approvalReqCallCount <= 5) return updateChain;
         return insertSecondChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') {
         txCallCount++;
         // 1st: SOD check — there should be NO 2nd call (no status update)
@@ -469,6 +564,11 @@ describe('processApproval', () => {
   });
 
   it('dual approval: second approver (prior approval exists) completes the approval normally', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-2', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     const updateChain = createChainMock({
       data: [{ ...pendingApproval, status: 'approved', approver_user_id: 'user-2' }],
@@ -476,6 +576,8 @@ describe('processApproval', () => {
     });
     const txSodChain = createChainMock({ data: { created_by: 'user-other' }, error: null });
     const thresholdChain = createChainMock({ data: { requires_dual_approval: true }, error: null });
+    // No own prior approvals from user-2
+    const ownPriorApprovalsChain = createChainMock({ data: [], error: null });
     // A prior approval from a DIFFERENT user already exists
     const priorApprovalsChain = createChainMock({
       data: [{ id: 'ar-prior', approver_user_id: 'user-1' }],
@@ -492,11 +594,16 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        // 1st: fetch, 2nd: prior approvals check, 3rd: update
-        if (approvalReqCallCount <= 1) return fetchChain;
-        if (approvalReqCallCount <= 2) return priorApprovalsChain;
+        // 1st: entity_id lookup (team check), 2nd: fetch full approval,
+        // 3rd: own prior approvals check, 4th: prior approvals from others, 5th: update
+        if (approvalReqCallCount <= 1) return entityIdChain;
+        if (approvalReqCallCount <= 2) return fetchChain;
+        if (approvalReqCallCount <= 3) return ownPriorApprovalsChain;
+        if (approvalReqCallCount <= 4) return priorApprovalsChain;
         return updateChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') {
         txCallCount++;
         // 1st: SOD check, 2nd: status update, 3rd: vendor lookup
@@ -519,6 +626,11 @@ describe('processApproval', () => {
   });
 
   it('throws SOD violation when transaction creator tries to approve', async () => {
+    // Team membership check chains
+    const entityIdChain = createChainMock({ data: { entity_id: 'entity-1' }, error: null });
+    const orgIdChain = createChainMock({ data: { org_id: 'org-1' }, error: null });
+    const membershipChain = createChainMock({ data: { id: 'tm-1', role: 'admin' }, error: null });
+
     const fetchChain = createChainMock({ data: pendingApproval, error: null });
     // SOD check: same user created the transaction
     const txSodChain = createChainMock({ data: { created_by: 'user-1' }, error: null });
@@ -527,8 +639,11 @@ describe('processApproval', () => {
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'approval_requests') {
         approvalReqCallCount++;
-        return fetchChain;
+        // 1st: entity_id lookup (team check), 2nd+: fetch full approval
+        return approvalReqCallCount <= 1 ? entityIdChain : fetchChain;
       }
+      if (table === 'entities') return orgIdChain;
+      if (table === 'team_members') return membershipChain;
       if (table === 'transactions') return txSodChain;
       return createChainMock({ data: null, error: null });
     });

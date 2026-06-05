@@ -62,6 +62,7 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
   chain.insert = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(resolvedValue);
   chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
@@ -120,13 +121,19 @@ describe('POST /api/channels/dispatch', () => {
       ],
       error: null,
     });
+    const dedupChain = createChainMock({ data: [], error: null });
     const insertChain = createChainMock({ data: null, error: null });
 
+    let receiptRequestsCallCount = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'transactions') return txChain;
       if (table === 'channel_connections') return channelChain;
-      if (table === 'receipt_requests') return insertChain;
+      if (table === 'receipt_requests') {
+        receiptRequestsCallCount++;
+        if (receiptRequestsCallCount === 1) return dedupChain;
+        return insertChain;
+      }
       return createChainMock({ data: null, error: null });
     });
 
@@ -206,13 +213,19 @@ describe('POST /api/channels/dispatch', () => {
       ],
       error: null,
     });
+    const dedupChain = createChainMock({ data: [], error: null });
     const insertChain = createChainMock({ data: null, error: null });
 
+    let receiptRequestsCallCount2 = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'transactions') return txChain;
       if (table === 'channel_connections') return channelChain;
-      if (table === 'receipt_requests') return insertChain;
+      if (table === 'receipt_requests') {
+        receiptRequestsCallCount2++;
+        if (receiptRequestsCallCount2 === 1) return dedupChain;
+        return insertChain;
+      }
       return createChainMock({ data: null, error: null });
     });
 
@@ -256,13 +269,19 @@ describe('POST /api/channels/dispatch', () => {
       ],
       error: null,
     });
+    const dedupChain = createChainMock({ data: [], error: null });
     const insertChain = createChainMock({ data: null, error: null });
 
+    let receiptRequestsCallCount3 = 0;
     mockDb.from.mockImplementation((table: string) => {
       if (table === 'entities') return entityChain;
       if (table === 'transactions') return txChain;
       if (table === 'channel_connections') return channelChain;
-      if (table === 'receipt_requests') return insertChain;
+      if (table === 'receipt_requests') {
+        receiptRequestsCallCount3++;
+        if (receiptRequestsCallCount3 === 1) return dedupChain;
+        return insertChain;
+      }
       return createChainMock({ data: null, error: null });
     });
 

@@ -38,6 +38,10 @@ vi.mock('@/lib/validation', async (importOriginal) => {
   return { ...actual };
 });
 
+vi.mock('@/lib/billing/plans', () => ({
+  checkPlanLimits: vi.fn().mockResolvedValue({ allowed: true }),
+}));
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 const ENTITY_ID = 'a0000000-0000-4000-8000-000000000010';

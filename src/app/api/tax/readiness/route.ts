@@ -4,8 +4,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiError } from '@/lib/api-helpers';
+import { handleApiError, apiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { checkPlanLimits } from '@/lib/billing/plans';
 import { rateLimit } from '@/lib/rate-limit';
 import { analyzeTaxReadiness } from '@/lib/tax/readiness';
 import { writeAuditLog } from '@/lib/audit';
@@ -19,6 +20,12 @@ export async function GET(request: NextRequest) {
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
     const { user, membership, db } = ctx;
+
+    // Enforce plan limits for Tax Readiness feature
+    const planCheck = await checkPlanLimits(db, membership.org_id, 'tax_readiness');
+    if (!planCheck.allowed) {
+      return apiError(planCheck.reason || 'This feature requires a paid plan', 403);
+    }
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');

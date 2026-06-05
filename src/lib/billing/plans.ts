@@ -113,7 +113,7 @@ export async function checkPlanLimits(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: { from: (table: string) => any },
   orgId: string,
-  operation: 'create_entity' | 'process_transaction' | 'connect_bank' | 'sync_ledger' | 'dispatch_channel' | 'add_team_member'
+  operation: 'create_entity' | 'process_transaction' | 'connect_bank' | 'sync_ledger' | 'dispatch_channel' | 'add_team_member' | 'ai_analyst' | 'health_monitoring' | 'month_end_close' | 'tax_readiness'
 ): Promise<PlanCheckResult> {
   // Get subscription
   const { data: sub } = await supabase
@@ -285,6 +285,50 @@ export async function checkPlanLimits(
         return {
           allowed: false,
           reason: 'Channel dispatch (Slack, SMS, etc.) is not available on your current plan.',
+          currentPlan: plan,
+        };
+      }
+      break;
+    }
+
+    case 'ai_analyst': {
+      if (!limits.features.aiAnalyst) {
+        return {
+          allowed: false,
+          reason: 'AI Analyst is not available on your current plan. Upgrade to Growth or Pro to unlock AI features.',
+          currentPlan: plan,
+        };
+      }
+      break;
+    }
+
+    case 'health_monitoring': {
+      if (!limits.features.healthMonitoring) {
+        return {
+          allowed: false,
+          reason: 'Health Monitoring is not available on your current plan. Upgrade to Growth or Pro to unlock this feature.',
+          currentPlan: plan,
+        };
+      }
+      break;
+    }
+
+    case 'month_end_close': {
+      if (!limits.features.monthEndClose) {
+        return {
+          allowed: false,
+          reason: 'Month-End Close is not available on your current plan. Upgrade to Growth or Pro to unlock this feature.',
+          currentPlan: plan,
+        };
+      }
+      break;
+    }
+
+    case 'tax_readiness': {
+      if (!limits.features.taxReadiness) {
+        return {
+          allowed: false,
+          reason: 'Tax Readiness Analysis is not available on your current plan. Upgrade to Growth or Pro to unlock this feature.',
           currentPlan: plan,
         };
       }

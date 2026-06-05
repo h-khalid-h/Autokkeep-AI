@@ -159,6 +159,43 @@ export async function processApproval(
   decision: 'approved' | 'rejected',
   entityIds: string[],
 ): Promise<ApprovalRequest> {
+  // ── F5: Validate approver is still an active team member ───────────
+  // Prevents approvals from users who have been removed from the org or
+  // have not yet accepted their invitation.
+  // Resolve orgId from the entity — the entity_id is on the approval request,
+  // but we need org_id for team_members lookup. We do this early so we can
+  // fail fast before any state mutations.
+  const { data: approvalForEntity } = await db
+    .from('approval_requests')
+    .select('entity_id')
+    .eq('id', approvalId)
+    .in('entity_id', entityIds)
+    .single();
+
+  if (!approvalForEntity) {
+    throw new Error('Approval request not found or access denied');
+  }
+
+  const { data: entity } = await db
+    .from('entities')
+    .select('org_id')
+    .eq('id', approvalForEntity.entity_id)
+    .single();
+
+  if (entity?.org_id) {
+    const { data: membership } = await db
+      .from('team_members')
+      .select('id, role')
+      .eq('user_id', userId)
+      .eq('org_id', entity.org_id)
+      .not('accepted_at', 'is', null)
+      .single();
+
+    if (!membership) {
+      throw new Error('You are no longer an active team member');
+    }
+  }
+
   // Fetch the approval request — scoped to the caller's entity assignments
   // to prevent cross-org approval hijacking
   const { data: approval, error: fetchError } = await db
@@ -188,6 +225,11 @@ export async function processApproval(
   // ── F2: SOD — Creator cannot be the approver ──────────────────────────
   // COSO principle: the person who initiates a transaction must not be the
   // same person who approves it. This prevents self-dealing and embezzlement.
+  //
+  // Design note: Plaid-imported transactions have `created_by = NULL` because
+  // they are ingested automatically by the bank sync pipeline, not created by
+  // any user. In that case, no SOD restriction applies — this is intentional
+  // since there is no human initiator to conflict with the approver.
   if (decision === 'approved') {
     const { data: txn } = await db
       .from('transactions')
@@ -225,6 +267,27 @@ export async function processApproval(
     }
 
     if (threshold?.requires_dual_approval) {
+      // ── F1: Dual-approval bypass prevention ────────────────────────
+      // First, check if the current user has ALREADY approved any request
+      // for this transaction. This prevents the same user from approving
+      // both legs of a dual-approval flow. The previous check using
+      // `.neq('approver_user_id', userId)` had a subtle bug: after the
+      // first approval, the query would find 0 prior approvals from
+      // OTHER users, treating it as "first of two" again — letting the
+      // same user approve both legs.
+      const { data: ownPriorApprovals } = await db
+        .from('approval_requests')
+        .select('id')
+        .eq('transaction_id', req.transaction_id)
+        .eq('status', 'approved')
+        .eq('approver_user_id', userId);
+
+      if (ownPriorApprovals && ownPriorApprovals.length > 0) {
+        throw new Error(
+          'Dual-approval violation: you have already approved this transaction. A different user must provide the second approval.',
+        );
+      }
+
       // Check for a prior approval from a DIFFERENT user
       const { data: priorApprovals } = await db
         .from('approval_requests')
@@ -300,7 +363,10 @@ export async function processApproval(
     return updated as ApprovalRequest;
   }
 
-  const newTxStatus = decision === 'approved' ? TRANSACTION_STATUS.APPROVED : TRANSACTION_STATUS.REMOVED;
+  // F3: Rejected transactions go to HUMAN_REVIEW instead of REMOVED.
+  // This allows the creator to correct the transaction and resubmit for
+  // approval, rather than permanently removing it from the workflow.
+  const newTxStatus = decision === 'approved' ? TRANSACTION_STATUS.APPROVED : TRANSACTION_STATUS.HUMAN_REVIEW;
 
   await db
     .from('transactions')

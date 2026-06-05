@@ -93,6 +93,20 @@ export async function POST(request: NextRequest) {
 
     let result: { success: boolean; channel: string; messageId?: string; error?: string };
 
+    // Check for existing receipt request to prevent duplicates
+    const { data: existing } = await db.from('receipt_requests')
+      .select('id')
+      .eq('transaction_id', transactionId)
+      .eq('status', 'sent')
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json(
+        { error: 'A receipt request was already sent for this transaction' },
+        { status: 409 }
+      );
+    }
+
     if (preferredChannel) {
       // Use priority-based dispatch with fallback
       result = await dispatchWithFallback(connections, context, preferredChannel);
