@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 1. Sync + upsert + cursor via shared ingestion ──────────────────
-    const ingestResult = await ingestTransactions(db, connection);
+    const ingestResult = await ingestTransactions(db, connection, (entity.base_currency as string) || undefined);
 
     // ── 2. AI categorization pass on uncategorized pending transactions ──
     const { data: pendingTxns } = await db

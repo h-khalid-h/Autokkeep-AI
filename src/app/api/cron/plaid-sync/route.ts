@@ -52,6 +52,20 @@ async function handler(request: NextRequest) {
       });
     }
 
+    // Batch-fetch entity currencies and countries for all connections
+    const entityIds = [...new Set(connections.map((c: Record<string, unknown>) => c.entity_id as string))];
+    const { data: entitiesData } = await db
+      .from('entities')
+      .select('id, base_currency, country')
+      .in('id', entityIds);
+    const entityMap = new Map<string, { base_currency?: string; country?: string }>();
+    for (const e of entitiesData || []) {
+      entityMap.set(e.id as string, {
+        base_currency: (e.base_currency as string) || undefined,
+        country: (e.country as string) || undefined,
+      });
+    }
+
     let syncedCount = 0;
     let failedCount = 0;
     const errors: Array<{ connectionId: string; error: string }> = [];
@@ -64,7 +78,8 @@ async function handler(request: NextRequest) {
       const batch = connections.slice(i, i + CONCURRENCY_LIMIT);
       const batchResults = await Promise.allSettled(
         batch.map(async (connection: BankConnection) => {
-          await ingestTransactions(db, connection);
+          const ent = entityMap.get(connection.entity_id);
+          await ingestTransactions(db, connection, ent?.base_currency, ent?.country);
           return connection.id;
         })
       );

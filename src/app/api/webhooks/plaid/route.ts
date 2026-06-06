@@ -198,12 +198,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    // Fetch entity's base_currency and country for currency-aware ingestion
+    const { data: entityData } = await db
+      .from('entities')
+      .select('base_currency, country')
+      .eq('id', connection.entity_id)
+      .single();
+    const entityBaseCurrency = (entityData?.base_currency as string) || undefined;
+    const entityCountry = (entityData?.country as string) || undefined;
+
     switch (`${webhook_type}.${webhook_code}`) {
       // ── Transaction Updates ──────────────────────────────────────────────
       case 'TRANSACTIONS.SYNC_UPDATES_AVAILABLE':
       case 'TRANSACTIONS.DEFAULT_UPDATE': {
         try {
-          const ingestResult = await ingestTransactions(supabase, connection);
+          const ingestResult = await ingestTransactions(supabase, connection, entityBaseCurrency, entityCountry);
           console.info(
             `[Plaid Webhook] Synced: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );
@@ -327,7 +336,7 @@ export async function POST(request: NextRequest) {
       case 'TRANSACTIONS.INITIAL_UPDATE':
       case 'TRANSACTIONS.HISTORICAL_UPDATE': {
         try {
-          const ingestResult = await ingestTransactions(supabase, connection);
+          const ingestResult = await ingestTransactions(supabase, connection, entityBaseCurrency, entityCountry);
           console.info(
             `[Plaid Webhook] ${webhook_code} sync: +${ingestResult.added} ~${ingestResult.modified} -${ingestResult.removed}`
           );

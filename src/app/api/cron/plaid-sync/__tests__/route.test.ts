@@ -23,18 +23,33 @@ vi.mock('@/lib/plaid/ingest', () => ({
 
 // ─── Supabase admin mock ────────────────────────────────────────────────────────
 
-let mockFromResult: unknown = { data: [], error: null };
+const mockFromResults: unknown[] = [];
+let mockFromCallIndex = 0;
 
-const mockChain: Record<string, ReturnType<typeof vi.fn>> = {};
-mockChain.select = vi.fn().mockReturnValue(mockChain);
-mockChain.eq = vi.fn().mockReturnValue(mockChain);
-mockChain.or = vi.fn().mockReturnValue(mockChain);
-mockChain.limit = vi.fn().mockReturnValue(mockChain);
-mockChain.then = vi.fn((resolve: (v: unknown) => void) => resolve(mockFromResult));
+function setMockFromResults(...results: unknown[]) {
+  mockFromResults.length = 0;
+  mockFromResults.push(...results);
+  mockFromCallIndex = 0;
+}
+
+function createMockChain() {
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+  chain.select = vi.fn().mockReturnValue(chain);
+  chain.eq = vi.fn().mockReturnValue(chain);
+  chain.or = vi.fn().mockReturnValue(chain);
+  chain.in = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.then = vi.fn((resolve: (v: unknown) => void) => {
+    const result = mockFromResults[mockFromCallIndex] ?? { data: [], error: null };
+    if (mockFromCallIndex < mockFromResults.length - 1) mockFromCallIndex++;
+    resolve(result);
+  });
+  return chain;
+}
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({
-    from: vi.fn().mockReturnValue(mockChain),
+    from: vi.fn(() => createMockChain()),
   })),
 }));
 
@@ -59,7 +74,7 @@ describe('GET /api/cron/plaid-sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = 'test-cron-secret';
-    mockFromResult = { data: [], error: null };
+    setMockFromResults({ data: [], error: null });
   });
 
   it('returns 401 without CRON_SECRET header', async () => {
@@ -81,7 +96,7 @@ describe('GET /api/cron/plaid-sync', () => {
   });
 
   it('returns 200 with valid CRON_SECRET and empty connections', async () => {
-    mockFromResult = { data: [], error: null };
+    setMockFromResults({ data: [], error: null });
 
     const req = createCronRequest('test-cron-secret');
     const res = await GET(req);
@@ -94,7 +109,7 @@ describe('GET /api/cron/plaid-sync', () => {
   });
 
   it('returns 200 with null connections list', async () => {
-    mockFromResult = { data: null, error: null };
+    setMockFromResults({ data: null, error: null });
 
     const req = createCronRequest('test-cron-secret');
     const res = await GET(req);
@@ -109,7 +124,14 @@ describe('GET /api/cron/plaid-sync', () => {
       { id: 'conn-1', entity_id: 'entity-1', plaid_item_id: 'item-1', plaid_access_token: 'tok-1', cursor: null, institution_name: 'Chase', status: 'active' },
       { id: 'conn-2', entity_id: 'entity-2', plaid_item_id: 'item-2', plaid_access_token: 'tok-2', cursor: null, institution_name: 'BoA', status: 'active' },
     ];
-    mockFromResult = { data: connections, error: null };
+    // First from() = bank_connections, second from() = entities
+    setMockFromResults(
+      { data: connections, error: null },
+      { data: [
+        { id: 'entity-1', base_currency: 'USD', country: 'US' },
+        { id: 'entity-2', base_currency: 'USD', country: 'US' },
+      ], error: null }
+    );
     mockIngestTransactions.mockResolvedValue(undefined);
 
     const req = createCronRequest('test-cron-secret');
@@ -128,7 +150,14 @@ describe('GET /api/cron/plaid-sync', () => {
       { id: 'conn-ok', entity_id: 'entity-1', plaid_item_id: 'item-1', plaid_access_token: 'tok-1', cursor: null, institution_name: 'Chase', status: 'active' },
       { id: 'conn-fail', entity_id: 'entity-2', plaid_item_id: 'item-2', plaid_access_token: 'tok-2', cursor: null, institution_name: 'BoA', status: 'active' },
     ];
-    mockFromResult = { data: connections, error: null };
+    // First from() = bank_connections, second from() = entities
+    setMockFromResults(
+      { data: connections, error: null },
+      { data: [
+        { id: 'entity-1', base_currency: 'USD', country: 'US' },
+        { id: 'entity-2', base_currency: 'GBP', country: 'GB' },
+      ], error: null }
+    );
 
     mockIngestTransactions
       .mockResolvedValueOnce(undefined) // conn-ok succeeds

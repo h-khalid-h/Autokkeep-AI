@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (connections && connections.length > 0) {
       const syncResults = await Promise.allSettled(
         (connections as BankConnection[]).map(async (connection) => {
-          const ingestResult = await ingestTransactions(db, connection);
+          const ingestResult = await ingestTransactions(db, connection, baseCurrency, (entity.country as string) || undefined);
           return { connectionId: connection.id, ...ingestResult };
         })
       );
