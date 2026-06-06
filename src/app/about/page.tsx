@@ -28,7 +28,7 @@ const timeline = [
   {
     year: 'Next',
     title: 'Scaling the Vision',
-    description: 'SOC 2 Type II certification, multi-currency support, and expansion to thousands of small businesses across North America.',
+    description: 'SOC 2 Type II certification, expanded regional compliance engines, and scaling to thousands of small businesses worldwide.',
   },
 ];
 

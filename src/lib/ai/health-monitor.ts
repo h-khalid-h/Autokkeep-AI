@@ -75,7 +75,8 @@ function sortedMonthKeys(months: Map<string, TransactionRow[]>): string[] {
 
 function checkCashFlowTrend(
   entityId: string,
-  months: Map<string, TransactionRow[]>
+  months: Map<string, TransactionRow[]>,
+  currency: string = 'USD'
 ): HealthAlert | null {
   const keys = sortedMonthKeys(months);
   if (keys.length < 2) return null;
@@ -100,7 +101,7 @@ function checkCashFlowTrend(
       alertType: 'cash_flow_decline',
       severity: changePercent < -40 ? 'critical' : 'warning',
       title: 'Cash flow declining',
-      description: `Inflows dropped ${Math.abs(Math.round(changePercent))}% from ${priorMonth} to ${currentMonth}. Prior: ${formatCurrency(priorInflows)}, Current: ${formatCurrency(currentInflows)}.`,
+      description: `Inflows dropped ${Math.abs(Math.round(changePercent))}% from ${priorMonth} to ${currentMonth}. Prior: ${formatCurrency(priorInflows, currency)}, Current: ${formatCurrency(currentInflows, currency)}.`,
       data: {
         currentMonth,
         priorMonth,
@@ -118,7 +119,8 @@ function checkCashFlowTrend(
 
 function checkExpenseAnomalies(
   entityId: string,
-  months: Map<string, TransactionRow[]>
+  months: Map<string, TransactionRow[]>,
+  currency: string = 'USD'
 ): HealthAlert[] {
   const alerts: HealthAlert[] = [];
   const keys = sortedMonthKeys(months);
@@ -153,7 +155,7 @@ function checkExpenseAnomalies(
         alertType: 'expense_anomaly',
         severity: changePercent > 100 ? 'critical' : 'warning',
         title: `Spending spike in "${category}"`,
-        description: `"${category}" expenses increased ${Math.round(changePercent)}% from ${formatCurrency(priorAmount)} to ${formatCurrency(currentAmount)}.`,
+        description: `"${category}" expenses increased ${Math.round(changePercent)}% from ${formatCurrency(priorAmount, currency)} to ${formatCurrency(currentAmount, currency)}.`,
         data: {
           category,
           currentMonth,
@@ -173,7 +175,8 @@ function checkExpenseAnomalies(
 
 function checkDuplicatePayments(
   entityId: string,
-  transactions: TransactionRow[]
+  transactions: TransactionRow[],
+  currency: string = 'USD'
 ): HealthAlert[] {
   const alerts: HealthAlert[] = [];
 
@@ -212,7 +215,7 @@ function checkDuplicatePayments(
           alertType: 'duplicate_payment',
           severity: Math.abs(tx.amount) > 500 ? 'critical' : 'warning',
           title: `Possible duplicate: ${tx.merchant_name}`,
-          description: `Two payments of ${formatCurrency(Math.abs(tx.amount))} to "${tx.merchant_name}" within ${Math.round(daysDiff)} day(s) (${tx.date} and ${other.date}).`,
+          description: `Two payments of ${formatCurrency(Math.abs(tx.amount), currency)} to "${tx.merchant_name}" within ${Math.round(daysDiff)} day(s) (${tx.date} and ${other.date}).`,
           data: {
             transactionIds: [tx.id, other.id],
             vendor: tx.merchant_name,
@@ -232,7 +235,8 @@ function checkDuplicatePayments(
 
 function checkSubscriptionWaste(
   entityId: string,
-  transactions: TransactionRow[]
+  transactions: TransactionRow[],
+  currency: string = 'USD'
 ): HealthAlert[] {
   const alerts: HealthAlert[] = [];
 
@@ -274,7 +278,7 @@ function checkSubscriptionWaste(
         alertType: 'subscription_waste',
         severity: 'info',
         title: `Recurring charge: ${vendor}`,
-        description: `"${vendor}" has ${data.amounts.length} charges averaging ${formatCurrency(monthlyEstimate)}/mo. Annual estimate: ${formatCurrency(monthlyEstimate * 12)}. Review if this subscription is still needed.`,
+        description: `"${vendor}" has ${data.amounts.length} charges averaging ${formatCurrency(monthlyEstimate, currency)}/mo. Annual estimate: ${formatCurrency(monthlyEstimate * 12, currency)}. Review if this subscription is still needed.`,
         data: {
           vendor,
           chargeCount: data.amounts.length,
@@ -293,7 +297,8 @@ function checkSubscriptionWaste(
 
 function checkRevenueConcentration(
   entityId: string,
-  transactions: TransactionRow[]
+  transactions: TransactionRow[],
+  currency: string = 'USD'
 ): HealthAlert | null {
   // Plaid: negative amounts = inflows (money entering account)
   const inflows = transactions.filter((t) => t.amount < 0);
@@ -317,7 +322,7 @@ function checkRevenueConcentration(
         alertType: 'revenue_concentration',
         severity: percentage > 80 ? 'critical' : 'warning',
         title: 'Revenue concentration risk',
-        description: `${Math.round(percentage)}% of your revenue (${formatCurrency(amount)} of ${formatCurrency(totalRevenue)}) comes from "${source}". Diversifying revenue sources reduces risk.`,
+        description: `${Math.round(percentage)}% of your revenue (${formatCurrency(amount, currency)} of ${formatCurrency(totalRevenue, currency)}) comes from "${source}". Diversifying revenue sources reduces risk.`,
         data: {
           source,
           sourceAmount: amount,
@@ -366,7 +371,8 @@ function checkUncategorizedBacklog(
 
 function checkMissingReceipts(
   entityId: string,
-  transactions: TransactionRow[]
+  transactions: TransactionRow[],
+  currency: string = 'USD'
 ): HealthAlert | null {
   const missing = transactions.filter(
     (t) =>
@@ -388,7 +394,7 @@ function checkMissingReceipts(
             ? 'warning'
             : 'info',
       title: `${missing.length} transactions without receipts`,
-      description: `${missing.length} transactions totaling ${formatCurrency(totalAmount)} are missing receipt documentation. This may affect compliance.`,
+      description: `${missing.length} transactions totaling ${formatCurrency(totalAmount, currency)} are missing receipt documentation. This may affect compliance.`,
       data: {
         count: missing.length,
         totalAmount,
@@ -405,7 +411,8 @@ function checkMissingReceipts(
 function checkBurnRate(
   entityId: string,
   months: Map<string, TransactionRow[]>,
-  cashBalance: number | null
+  cashBalance: number | null,
+  currency: string = 'USD'
 ): HealthAlert | null {
   if (cashBalance === null) return null;
 
@@ -431,7 +438,7 @@ function checkBurnRate(
       alertType: 'burn_rate_warning',
       severity: runwayMonths < 3 ? 'critical' : 'warning',
       title: `${Math.round(runwayMonths)} months of runway remaining`,
-      description: `At your current burn rate of ${formatCurrency(avgMonthlyBurn)}/month, your cash balance of ${formatCurrency(cashBalance)} will last approximately ${runwayMonths.toFixed(1)} months.`,
+      description: `At your current burn rate of ${formatCurrency(avgMonthlyBurn, currency)}/month, your cash balance of ${formatCurrency(cashBalance, currency)} will last approximately ${runwayMonths.toFixed(1)} months.`,
       data: {
         cashBalance,
         avgMonthlyBurn,
@@ -457,6 +464,21 @@ export async function runHealthCheck(
   entityId: string,
   supabase: SupabaseQueryClient
 ): Promise<HealthAlert[]> {
+  // Fetch entity currency for locale-aware formatting
+  let currency = 'USD';
+  try {
+    const { data: entityRow } = await supabase
+      .from('entities')
+      .select('base_currency')
+      .eq('id', entityId)
+      .single();
+    if (entityRow?.base_currency) {
+      currency = entityRow.base_currency as string;
+    }
+  } catch {
+    // Non-fatal — default to USD
+  }
+
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   const dateThreshold = ninetyDaysAgo.toISOString().split('T')[0];
@@ -526,28 +548,28 @@ export async function runHealthCheck(
   // 3. Run all health checks
   const alerts: HealthAlert[] = [];
 
-  const cashFlowAlert = checkCashFlowTrend(entityId, months);
+  const cashFlowAlert = checkCashFlowTrend(entityId, months, currency);
   if (cashFlowAlert) alerts.push(cashFlowAlert);
 
-  const expenseAlerts = checkExpenseAnomalies(entityId, months);
+  const expenseAlerts = checkExpenseAnomalies(entityId, months, currency);
   alerts.push(...expenseAlerts);
 
-  const duplicateAlerts = checkDuplicatePayments(entityId, txns);
+  const duplicateAlerts = checkDuplicatePayments(entityId, txns, currency);
   alerts.push(...duplicateAlerts);
 
-  const subscriptionAlerts = checkSubscriptionWaste(entityId, txns);
+  const subscriptionAlerts = checkSubscriptionWaste(entityId, txns, currency);
   alerts.push(...subscriptionAlerts);
 
-  const revenueAlert = checkRevenueConcentration(entityId, txns);
+  const revenueAlert = checkRevenueConcentration(entityId, txns, currency);
   if (revenueAlert) alerts.push(revenueAlert);
 
   const backlogAlert = checkUncategorizedBacklog(entityId, txns);
   if (backlogAlert) alerts.push(backlogAlert);
 
-  const receiptAlert = checkMissingReceipts(entityId, txns);
+  const receiptAlert = checkMissingReceipts(entityId, txns, currency);
   if (receiptAlert) alerts.push(receiptAlert);
 
-  const burnRateAlert = checkBurnRate(entityId, months, cashBalance);
+  const burnRateAlert = checkBurnRate(entityId, months, cashBalance, currency);
   if (burnRateAlert) alerts.push(burnRateAlert);
 
   // 4. Persist new alerts (clear stale ones from the last 24h first)

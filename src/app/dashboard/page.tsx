@@ -7,6 +7,7 @@ import { Transaction } from '@/lib/types/transaction';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Skeleton, EmptyState } from '@/components/ui';
+import { formatCurrency } from '@/lib/currency/converter';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
 import RecentActivity from '@/components/dashboard/RecentActivity';
@@ -175,9 +176,11 @@ interface DashboardStatsData {
 function StatsBar({
   stats,
   loading,
+  entityCurrency,
 }: {
   stats: DashboardStatsData | null;
   loading: boolean;
+  entityCurrency: string;
 }) {
   if (loading) {
     return (
@@ -194,9 +197,10 @@ function StatsBar({
   if (!stats) return null;
 
   const formatVolume = (v: number) => {
-    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-    return `$${v.toFixed(0)}`;
+    const c = entityCurrency;
+    if (v >= 1_000_000) return formatCurrency(v / 1_000_000, c).replace(/\.\d+/, m => m.slice(0, 2)) + 'M';
+    if (v >= 1_000) return formatCurrency(v / 1_000, c).replace(/\.\d+/, m => m.slice(0, 2)) + 'K';
+    return formatCurrency(v, c);
   };
 
   const items = [
@@ -604,7 +608,7 @@ export default function DashboardPage() {
       <ErrorBoundary componentName="Dashboard">
         <AppShell pendingCount={0}>
           <div className={styles.pageWrapper}>
-            <StatsBar stats={null} loading={statsLoading} />
+            <StatsBar stats={null} loading={statsLoading} entityCurrency={selectedEntity?.currency || 'USD'} />
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner} />
               <p className={styles.loadingText}>Loading transactions…</p>
@@ -621,7 +625,7 @@ export default function DashboardPage() {
       <ErrorBoundary componentName="Dashboard">
         <AppShell pendingCount={0}>
           <div className={styles.pageWrapper}>
-            <StatsBar stats={stats} loading={statsLoading} />
+            <StatsBar stats={stats} loading={statsLoading} entityCurrency={selectedEntity?.currency || 'USD'} />
             <ModuleQuickAccess />
             <RecentActivity />
             <Card variant="default" padding="lg">
@@ -642,7 +646,7 @@ export default function DashboardPage() {
       <AppShell pendingCount={stats?.pending ?? 0}>
         <div className={styles.pageWrapper}>
           <h1 className="sr-only">Dashboard</h1>
-          <StatsBar stats={stats} loading={statsLoading} />
+          <StatsBar stats={stats} loading={statsLoading} entityCurrency={selectedEntity?.currency || 'USD'} />
 
           <ModuleQuickAccess />
 

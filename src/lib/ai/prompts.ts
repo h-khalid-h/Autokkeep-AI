@@ -70,7 +70,7 @@ export function buildCategorizationUserPrompt(
   let prompt = `## Transaction to Categorize\n\n`;
   prompt += `- **Merchant**: ${transaction.merchant}\n`;
   prompt += `- **Raw Bank Description**: ${transaction.merchantRaw || transaction.bankDescription || 'N/A'}\n`;
-  prompt += `- **Amount**: ${formatCurrency(transaction.amount)}\n`;
+  prompt += `- **Amount**: ${formatCurrency(transaction.amount, transaction.currency)}\n`;
   prompt += `- **Date**: ${transaction.date}\n`;
 
   if (transaction.mcc) {

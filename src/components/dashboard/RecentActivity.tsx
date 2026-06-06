@@ -53,14 +53,14 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-function getDescription(entry: AuditEntry): string {
+function getDescription(entry: AuditEntry, currency?: string): string {
   const meta = entry.metadata || {};
   const merchant = meta.merchant_name as string || meta.merchant as string || '';
   const amount = meta.amount as number || 0;
   const glCode = meta.gl_code as string || meta.glCode as string || '';
 
   if (entry.action.startsWith('transaction.') && merchant) {
-    return amount ? `${merchant} — ${formatCurrency(Math.abs(amount))}` : merchant;
+    return amount ? `${merchant} — ${formatCurrency(Math.abs(amount), currency)}` : merchant;
   }
   if (glCode) return `GL ${glCode}`;
   if (meta.entity_name) return meta.entity_name as string;
@@ -138,7 +138,7 @@ export default function RecentActivity() {
       <div className={styles.activityList}>
         {entries.map(entry => {
           const config = getActionConfig(entry.action);
-          const description = getDescription(entry);
+          const description = getDescription(entry, selectedEntity?.currency);
 
           return (
             <div key={entry.id} className={styles.activityItem}>

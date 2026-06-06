@@ -294,6 +294,14 @@ export default function TaxPage() {
             </div>
           </Card>
 
+          {/* Non-US notice */}
+          {selectedEntity?.country && selectedEntity.country !== 'US' && (
+            <div className={styles.noticeBanner} role="status">
+              <span>ℹ️</span>
+              <span>Tax Readiness analysis is currently optimized for US (IRS) tax rules. Support for additional jurisdictions is coming soon.</span>
+            </div>
+          )}
+
           {/* Error banner */}
           {error && (
             <div role="alert" className={styles.errorBanner}>

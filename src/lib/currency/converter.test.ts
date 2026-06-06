@@ -175,9 +175,9 @@ describe('formatCompactNumber', () => {
 // getSupportedCurrencies
 // ============================================
 describe('getSupportedCurrencies', () => {
-  it('returns array with 12 entries', () => {
+  it('returns array with 21 entries', () => {
     const currencies = getSupportedCurrencies();
-    expect(currencies).toHaveLength(12);
+    expect(currencies).toHaveLength(21);
   });
 
   it('each entry has code, name, and symbol', () => {

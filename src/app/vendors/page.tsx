@@ -107,6 +107,7 @@ const INITIAL_FORM: VendorFormData = {
 export default function VendorsPage() {
   const { selectedEntity } = useEntity();
   const toast = useToast();
+  const isUS = selectedEntity?.country === 'US';
   const entityCurrency = selectedEntity?.currency || 'USD';
   const fmtCurrency = useCallback(
     (amount: number) => formatCurrency(amount, entityCurrency),
@@ -303,7 +304,7 @@ export default function VendorsPage() {
   const totalPages = useMemo(() => Math.ceil(pagination.total / PAGE_SIZE), [pagination.total]);
   const showFrom = pagination.total > 0 ? page * PAGE_SIZE + 1 : 0;
   const showTo = Math.min((page + 1) * PAGE_SIZE, pagination.total);
-  const hasFilters = Boolean(search || w9Filter || eligible1099Filter);
+  const hasFilters = Boolean(search || (isUS && w9Filter) || (isUS && eligible1099Filter));
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -316,7 +317,9 @@ export default function VendorsPage() {
             <div className={styles.headerText}>
               <h1 className={styles.pageTitle}>Vendors</h1>
               <p className={styles.pageSubtitle}>
-                Manage vendors, track W-9 compliance, and monitor 1099 eligibility
+                {isUS
+                  ? 'Manage vendors, track W-9 compliance, and monitor 1099 eligibility'
+                  : 'Manage vendors and track payments'}
               </p>
             </div>
             <div className={styles.headerActions}>
@@ -339,27 +342,31 @@ export default function VendorsPage() {
                   aria-label="Search vendors"
                 />
               </div>
-              <select
-                className={styles.filterSelect}
-                value={w9Filter}
-                onChange={(e) => setW9FilterAndReset(e.target.value as W9Filter)}
-                aria-label="Filter by W-9 status"
-              >
-                <option value="">All W-9 Statuses</option>
-                <option value="not_collected">Not Collected</option>
-                <option value="requested">Requested</option>
-                <option value="received">Received</option>
-                <option value="verified">Verified</option>
-                <option value="expired">Expired</option>
-              </select>
-              <div className={styles.toggleFilter}>
-                <Toggle
-                  checked={eligible1099Filter}
-                  onChange={setEligible1099FilterAndReset}
-                  label="1099 Eligible Only"
-                  size="sm"
-                />
-              </div>
+              {isUS && (
+                <select
+                  className={styles.filterSelect}
+                  value={w9Filter}
+                  onChange={(e) => setW9FilterAndReset(e.target.value as W9Filter)}
+                  aria-label="Filter by W-9 status"
+                >
+                  <option value="">All W-9 Statuses</option>
+                  <option value="not_collected">Not Collected</option>
+                  <option value="requested">Requested</option>
+                  <option value="received">Received</option>
+                  <option value="verified">Verified</option>
+                  <option value="expired">Expired</option>
+                </select>
+              )}
+              {isUS && (
+                <div className={styles.toggleFilter}>
+                  <Toggle
+                    checked={eligible1099Filter}
+                    onChange={setEligible1099FilterAndReset}
+                    label="1099 Eligible Only"
+                    size="sm"
+                  />
+                </div>
+              )}
             </div>
           </Card>
 
@@ -437,8 +444,8 @@ export default function VendorsPage() {
                   <thead>
                     <tr>
                       <th className={styles.th}>Name</th>
-                      <th className={styles.th}>W-9 Status</th>
-                      <th className={styles.thCenter}>1099</th>
+                      {isUS && <th className={styles.th}>W-9 Status</th>}
+                      {isUS && <th className={styles.thCenter}>1099</th>}
                       <th className={styles.thRight}>YTD Payments</th>
                       <th className={styles.thRight}>Payments</th>
                       <th className={styles.th}>Last Payment</th>
@@ -451,7 +458,7 @@ export default function VendorsPage() {
                         label: vendor.w9_status,
                         variant: 'default' as const,
                       };
-                      const isAboveThreshold = vendor.ytd_payments >= THRESHOLD_1099;
+                      const isAboveThreshold = isUS && vendor.ytd_payments >= THRESHOLD_1099;
 
                       return (
                         <tr key={vendor.id} className={styles.tr}>
@@ -465,20 +472,24 @@ export default function VendorsPage() {
                               </span>
                             </div>
                           </td>
-                          <td className={styles.td}>
-                            <Badge variant={w9Cfg.variant} size="sm" dot>
-                              {w9Cfg.label}
-                            </Badge>
-                          </td>
-                          <td className={styles.tdCenter}>
-                            <span
-                              className={styles.eligibleIcon}
-                              role="img"
-                              aria-label={vendor.is_1099_eligible ? '1099 Eligible' : 'Not 1099 Eligible'}
-                            >
-                              {vendor.is_1099_eligible ? '✅' : '❌'}
-                            </span>
-                          </td>
+                          {isUS && (
+                            <td className={styles.td}>
+                              <Badge variant={w9Cfg.variant} size="sm" dot>
+                                {w9Cfg.label}
+                              </Badge>
+                            </td>
+                          )}
+                          {isUS && (
+                            <td className={styles.tdCenter}>
+                              <span
+                                className={styles.eligibleIcon}
+                                role="img"
+                                aria-label={vendor.is_1099_eligible ? '1099 Eligible' : 'Not 1099 Eligible'}
+                              >
+                                {vendor.is_1099_eligible ? '✅' : '❌'}
+                              </span>
+                            </td>
+                          )}
                           <td className={styles.tdRight}>
                             <span
                               className={`${styles.amountValue} ${isAboveThreshold ? styles.amountThreshold : ''}`}
@@ -529,7 +540,7 @@ export default function VendorsPage() {
                     label: vendor.w9_status,
                     variant: 'default' as const,
                   };
-                  const isAboveThreshold = vendor.ytd_payments >= THRESHOLD_1099;
+                  const isAboveThreshold = isUS && vendor.ytd_payments >= THRESHOLD_1099;
 
                   return (
                     <div key={vendor.id} className={styles.mobileCard}>
@@ -545,12 +556,16 @@ export default function VendorsPage() {
                         <Badge variant="default" size="sm">
                           {VENDOR_TYPE_LABELS[vendor.vendor_type] || vendor.vendor_type}
                         </Badge>
-                        <Badge variant={w9Cfg.variant} size="sm" dot>
-                          {w9Cfg.label}
-                        </Badge>
-                        <span className={styles.mobileCardField}>
-                          {vendor.is_1099_eligible ? '✅ 1099' : '❌ 1099'}
-                        </span>
+                        {isUS && (
+                          <Badge variant={w9Cfg.variant} size="sm" dot>
+                            {w9Cfg.label}
+                          </Badge>
+                        )}
+                        {isUS && (
+                          <span className={styles.mobileCardField}>
+                            {vendor.is_1099_eligible ? '✅ 1099' : '❌ 1099'}
+                          </span>
+                        )}
                         <span className={styles.mobileCardField}>
                           {formatRelativeTime(vendor.last_payment_date)}
                         </span>

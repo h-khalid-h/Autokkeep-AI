@@ -25,6 +25,15 @@ const CURRENCY_CONFIG: Record<string, { symbol: string; locale: string; decimals
   JPY: { symbol: '¥', locale: 'ja-JP', decimals: 0 },
   CHF: { symbol: 'CHF', locale: 'de-CH', decimals: 2 },
   SGD: { symbol: 'S$', locale: 'en-SG', decimals: 2 },
+  HKD: { symbol: 'HK$', locale: 'en-HK', decimals: 2 },
+  QAR: { symbol: 'QR', locale: 'ar-QA', decimals: 2 },
+  SEK: { symbol: 'kr', locale: 'sv-SE', decimals: 2 },
+  PLN: { symbol: 'zł', locale: 'pl-PL', decimals: 2 },
+  BRL: { symbol: 'R$', locale: 'pt-BR', decimals: 2 },
+  MXN: { symbol: 'MX$', locale: 'es-MX', decimals: 2 },
+  ZAR: { symbol: 'R', locale: 'en-ZA', decimals: 2 },
+  NGN: { symbol: '₦', locale: 'en-NG', decimals: 2 },
+  KES: { symbol: 'KSh', locale: 'en-KE', decimals: 2 },
 };
 
 /**

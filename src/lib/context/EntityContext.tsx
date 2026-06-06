@@ -10,6 +10,7 @@ export interface EntityItem {
   id: string;
   name: string;
   currency?: string;
+  country?: string;
 }
 
 interface EntityContextValue {
@@ -78,7 +79,7 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
 
       const { data: entityData, error: entityError } = await db
         .from('entities')
-        .select('id, name, base_currency')
+        .select('id, name, base_currency, country')
         .eq('org_id', membership.org_id)
         .order('created_at', { ascending: true });
 
@@ -89,10 +90,11 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       }
 
       let items: EntityItem[] = (entityData || []).map(
-        (e: { id: string; name: string; base_currency?: string }) => ({
+        (e: { id: string; name: string; base_currency?: string; country?: string }) => ({
           id: e.id,
           name: e.name,
           currency: e.base_currency || 'USD',
+          country: e.country || 'US',
         })
       );
 

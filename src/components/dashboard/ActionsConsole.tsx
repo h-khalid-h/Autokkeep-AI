@@ -107,7 +107,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
         body: JSON.stringify({
           channel: 'slack',
           transactionId: transaction.id,
-          message: `Receipt request for ${transaction.merchant} (${formatCurrency(transaction.amount)})`,
+          message: `Receipt request for ${transaction.merchant} (${formatCurrency(transaction.amount, currency)})`,
         }),
       });
       if (res.ok) {
@@ -120,7 +120,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
       toast.error('Failed to send Slack message');
     }
     setTimeout(() => setShowSlackModal(false), 1500);
-  }, [transaction, toast]);
+  }, [transaction, toast, currency]);
 
   const filteredAccounts = React.useMemo(() => {
     if (!categoryQuery.trim()) return chartOfAccounts;

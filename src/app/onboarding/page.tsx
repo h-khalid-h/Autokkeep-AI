@@ -45,19 +45,21 @@ const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string }> =
   AU: { currency: 'AUD', timezone: 'Australia/Sydney' },
   IN: { currency: 'INR', timezone: 'Asia/Kolkata' },
   JP: { currency: 'JPY', timezone: 'Asia/Tokyo' },
+  HK: { currency: 'HKD', timezone: 'Asia/Hong_Kong' },
+  QA: { currency: 'QAR', timezone: 'Asia/Qatar' },
   CH: { currency: 'CHF', timezone: 'Europe/Zurich' },
   SG: { currency: 'SGD', timezone: 'Asia/Singapore' },
   NL: { currency: 'EUR', timezone: 'Europe/Amsterdam' },
   IE: { currency: 'EUR', timezone: 'Europe/London' },
-  SE: { currency: 'EUR', timezone: 'Europe/Stockholm' },
+  SE: { currency: 'SEK', timezone: 'Europe/Stockholm' },
   LV: { currency: 'EUR', timezone: 'Europe/Riga' },
   LT: { currency: 'EUR', timezone: 'Europe/Vilnius' },
-  PL: { currency: 'EUR', timezone: 'Europe/Warsaw' },
-  BR: { currency: 'USD', timezone: 'America/Sao_Paulo' },
-  MX: { currency: 'USD', timezone: 'America/Mexico_City' },
-  ZA: { currency: 'USD', timezone: 'Africa/Johannesburg' },
-  NG: { currency: 'USD', timezone: 'Africa/Lagos' },
-  KE: { currency: 'USD', timezone: 'Africa/Nairobi' },
+  PL: { currency: 'PLN', timezone: 'Europe/Warsaw' },
+  BR: { currency: 'BRL', timezone: 'America/Sao_Paulo' },
+  MX: { currency: 'MXN', timezone: 'America/Mexico_City' },
+  ZA: { currency: 'ZAR', timezone: 'Africa/Johannesburg' },
+  NG: { currency: 'NGN', timezone: 'Africa/Lagos' },
+  KE: { currency: 'KES', timezone: 'Africa/Nairobi' },
 };
 
 const SUPPORTED_COUNTRIES = [
@@ -87,6 +89,8 @@ const SUPPORTED_COUNTRIES = [
   { code: 'ZA', name: 'South Africa' },
   { code: 'NG', name: 'Nigeria' },
   { code: 'KE', name: 'Kenya' },
+  { code: 'HK', name: 'Hong Kong' },
+  { code: 'QA', name: 'Qatar' },
 ];
 
 const SUPPORTED_TIMEZONES = [
@@ -119,6 +123,8 @@ const SUPPORTED_TIMEZONES = [
   { value: 'Africa/Johannesburg', label: 'SAST — Johannesburg' },
   { value: 'Africa/Lagos', label: 'WAT — Lagos' },
   { value: 'Africa/Nairobi', label: 'EAT — Nairobi' },
+  { value: 'Asia/Hong_Kong', label: 'HKT — Hong Kong' },
+  { value: 'Asia/Qatar', label: 'AST — Doha' },
 ];
 
 const STEPS: { id: OnboardingStep; title: string; icon: string; description: string }[] = [
@@ -995,7 +1001,7 @@ export default function OnboardingPage() {
                       {loading ? 'Connecting…' : '🏦 Connect Bank Account'}
                     </Button>
                     <p className={styles.bankSupportedText}>
-                      Supported: Chase, Bank of America, Wells Fargo, Capital One, and 12,000+ more
+                      Supported: 12,000+ financial institutions across the US, Canada, UK, and Europe
                     </p>
                   </>
                 )}

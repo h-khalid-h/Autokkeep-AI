@@ -271,14 +271,18 @@ export async function analyzeTaxReadiness(
   // Generate recommendations
   // Fetch accounting basis for basis-aware recommendations
   let accountingBasis = 'cash';
+  let entityCurrency = 'USD';
   try {
     const { data: entity } = await db
       .from('entities')
-      .select('accounting_basis')
+      .select('accounting_basis, base_currency')
       .eq('id', entityId)
       .single();
 
     accountingBasis = (entity?.accounting_basis as string) ?? 'cash';
+    if (entity?.base_currency) {
+      entityCurrency = entity.base_currency as string;
+    }
   } catch {
     // Non-fatal — default to cash
   }
@@ -292,6 +296,7 @@ export async function analyzeTaxReadiness(
     expenses,
     totalWithReceipts,
     accountingBasis,
+    currency: entityCurrency,
   });
 
   return {
@@ -371,6 +376,7 @@ function generateRecommendations(data: {
   expenses: TransactionRow[];
   totalWithReceipts: number;
   accountingBasis: string;
+  currency: string;
 }): string[] {
   const recs: string[] = [];
 
@@ -378,7 +384,7 @@ function generateRecommendations(data: {
   if (data.missingReceipts.length > 0) {
     const totalMissingAmount = Math.round(data.missingReceipts.reduce((sum, r) => sum + r.amount, 0) * 100) / 100;
     recs.push(
-      `Upload ${data.missingReceipts.length} missing receipt${data.missingReceipts.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalMissingAmount)} to maximize deductions and ensure audit compliance.`
+      `Upload ${data.missingReceipts.length} missing receipt${data.missingReceipts.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalMissingAmount, data.currency)} to maximize deductions and ensure audit compliance.`
     );
   }
 
@@ -402,7 +408,7 @@ function generateRecommendations(data: {
   const mealsCategory = data.deductionsByCategory.find(c => c.category === 'Meals & Entertainment');
   if (mealsCategory && mealsCategory.amount > 0) {
     recs.push(
-      `Meals & entertainment expenses of ${formatCurrency(mealsCategory.amount)} — note: only 50% is deductible per IRS rules. Estimated deductible portion: ${formatCurrency(mealsCategory.amount * 0.5)}.`
+      `Meals & entertainment expenses of ${formatCurrency(mealsCategory.amount, data.currency)} — note: only 50% is deductible per IRS rules. Estimated deductible portion: ${formatCurrency(mealsCategory.amount * 0.5, data.currency)}.`
     );
   }
 

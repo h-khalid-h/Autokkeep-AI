@@ -166,7 +166,8 @@ interface BankConnectionRow {
 
 function reconciliationCheck(
   allTransactions: TransactionRow[],
-  bankAccounts: BankAccountRow[]
+  bankAccounts: BankAccountRow[],
+  currency: string = 'USD'
 ): CloseCheck {
   if (bankAccounts.length === 0) {
     return {
@@ -197,8 +198,8 @@ function reconciliationCheck(
       status: 'pass',
       description: 'Bank and book balances match.',
       details: [
-        `Bank balance: ${formatCurrency(bankBalance)}`,
-        `Book balance: ${formatCurrency(bookBalance)}`,
+        `Bank balance: ${formatCurrency(bankBalance, currency)}`,
+        `Book balance: ${formatCurrency(bookBalance, currency)}`,
       ],
     };
   }
@@ -207,11 +208,11 @@ function reconciliationCheck(
     return {
       name: 'Bank Reconciliation',
       status: 'warning',
-      description: `Minor variance of ${formatCurrency(variance)} detected. ${varianceResult.description}`,
+      description: `Minor variance of ${formatCurrency(variance, currency)} detected. ${varianceResult.description}`,
       details: [
-        `Bank balance: ${formatCurrency(bankBalance)}`,
-        `Book balance: ${formatCurrency(bookBalance)}`,
-        `Variance: ${formatCurrency(variance)} (${varianceResult.glName})`,
+        `Bank balance: ${formatCurrency(bankBalance, currency)}`,
+        `Book balance: ${formatCurrency(bookBalance, currency)}`,
+        `Variance: ${formatCurrency(variance, currency)} (${varianceResult.glName})`,
       ],
     };
   }
@@ -219,16 +220,16 @@ function reconciliationCheck(
   return {
     name: 'Bank Reconciliation',
     status: 'fail',
-    description: `Significant variance of ${formatCurrency(variance)} between bank and books. Manual reconciliation required.`,
+    description: `Significant variance of ${formatCurrency(variance, currency)} between bank and books. Manual reconciliation required.`,
     details: [
-      `Bank balance: ${formatCurrency(bankBalance)}`,
-      `Book balance: ${formatCurrency(bookBalance)}`,
-      `Variance: ${formatCurrency(variance)}`,
+      `Bank balance: ${formatCurrency(bankBalance, currency)}`,
+      `Book balance: ${formatCurrency(bookBalance, currency)}`,
+      `Variance: ${formatCurrency(variance, currency)}`,
     ],
   };
 }
 
-function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
+function missingReceiptCheck(transactions: TransactionRow[], currency: string = 'USD'): CloseCheck {
   const missing = transactions.filter(
     (t) =>
       t.document_status === 'missing' &&
@@ -249,16 +250,16 @@ function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
   return {
     name: 'Receipt Documentation',
     status: missing.length > 10 ? 'fail' : 'warning',
-    description: `${missing.length} transactions (${formatCurrency(totalAmount)}) are missing receipt documentation.`,
+    description: `${missing.length} transactions (${formatCurrency(totalAmount, currency)}) are missing receipt documentation.`,
     count: missing.length,
     details: missing.slice(0, 5).map(
       (t) =>
-        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount))} on ${t.date}`
+        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount), currency)} on ${t.date}`
     ),
   };
 }
 
-function uncategorizedCheck(transactions: TransactionRow[]): CloseCheck {
+function uncategorizedCheck(transactions: TransactionRow[], currency: string = 'USD'): CloseCheck {
   const uncategorized = transactions.filter(
     (t) =>
       (t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.HUMAN_REVIEW)
@@ -279,14 +280,15 @@ function uncategorizedCheck(transactions: TransactionRow[]): CloseCheck {
     count: uncategorized.length,
     details: uncategorized.slice(0, 5).map(
       (t) =>
-        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount))} (${t.status})`
+        `${t.merchant_name || 'Unknown'}: ${formatCurrency(Math.abs(t.amount), currency)} (${t.status})`
     ),
   };
 }
 
 function expenseReviewCheck(
   currentTransactions: TransactionRow[],
-  historicalAvg: Map<string, number>
+  historicalAvg: Map<string, number>,
+  currency: string = 'USD'
 ): CloseCheck {
   const flagged: string[] = [];
 
@@ -304,7 +306,7 @@ function expenseReviewCheck(
       const deviation = ((amount - avg) / avg) * 100;
       if (deviation > 50 && amount > 100) {
         flagged.push(
-          `"${cat}": ${formatCurrency(amount)} (+${Math.round(deviation)}% vs ${formatCurrency(avg)} avg)`
+          `"${cat}": ${formatCurrency(amount, currency)} (+${Math.round(deviation)}% vs ${formatCurrency(avg, currency)} avg)`
         );
       }
     }
@@ -382,7 +384,8 @@ async function trialBalanceCheck(
   entityId: string,
   startDate: string,
   endDate: string,
-  supabase: SupabaseQueryClient
+  supabase: SupabaseQueryClient,
+  currency: string = 'USD'
 ): Promise<CloseCheck> {
   try {
     // Fetch all posted journal entries for the period, then sum their lines
@@ -434,12 +437,12 @@ async function trialBalanceCheck(
       return {
         name: 'Trial Balance',
         status: 'pass',
-        description: `Trial balance verified. Total debits (${formatCurrency(totalDebit)}) equal total credits (${formatCurrency(totalCredit)}).`,
+        description: `Trial balance verified. Total debits (${formatCurrency(totalDebit, currency)}) equal total credits (${formatCurrency(totalCredit, currency)}).`,
         details: [
           `Journal entries: ${entries.length}`,
           `Journal lines: ${lines.length}`,
-          `Total debits: ${formatCurrency(totalDebit)}`,
-          `Total credits: ${formatCurrency(totalCredit)}`,
+          `Total debits: ${formatCurrency(totalDebit, currency)}`,
+          `Total credits: ${formatCurrency(totalCredit, currency)}`,
         ],
       };
     }
@@ -447,11 +450,11 @@ async function trialBalanceCheck(
     return {
       name: 'Trial Balance',
       status: 'fail',
-      description: `Trial balance is OUT OF BALANCE by ${formatCurrency(imbalance)}. This must be resolved before closing.`,
+      description: `Trial balance is OUT OF BALANCE by ${formatCurrency(imbalance, currency)}. This must be resolved before closing.`,
       details: [
-        `Total debits: ${formatCurrency(totalDebit)}`,
-        `Total credits: ${formatCurrency(totalCredit)}`,
-        `Imbalance: ${formatCurrency(imbalance)}`,
+        `Total debits: ${formatCurrency(totalDebit, currency)}`,
+        `Total credits: ${formatCurrency(totalCredit, currency)}`,
+        `Imbalance: ${formatCurrency(imbalance, currency)}`,
       ],
     };
   } catch (error) {
@@ -516,7 +519,8 @@ export async function runMonthEndClose(
   year: number,
   month: number,
   supabase: SupabaseQueryClient,
-  closingUserId?: string
+  closingUserId?: string,
+  currency: string = 'USD'
 ): Promise<CloseReport> {
   // Compute date range for the period
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -638,14 +642,14 @@ export async function runMonthEndClose(
   }
 
   // Run all checks (including async trial balance check and F16 SOD check)
-  const tbCheck = await trialBalanceCheck(entityId, startDate, endDate, supabase);
+  const tbCheck = await trialBalanceCheck(entityId, startDate, endDate, supabase, currency);
 
   const checks: CloseCheck[] = [
     tbCheck,
-    reconciliationCheck(allTransactions, bankAccounts),
-    missingReceiptCheck(txns),
-    uncategorizedCheck(txns),
-    expenseReviewCheck(txns, historicalAvg),
+    reconciliationCheck(allTransactions, bankAccounts, currency),
+    missingReceiptCheck(txns, currency),
+    uncategorizedCheck(txns, currency),
+    expenseReviewCheck(txns, historicalAvg, currency),
     bankFeedCheck(bankConnections),
   ];
 
@@ -662,9 +666,14 @@ export async function runMonthEndClose(
   try {
     const { data: entity } = await supabase
       .from('entities')
-      .select('accounting_basis')
+      .select('accounting_basis, base_currency')
       .eq('id', entityId)
       .single();
+
+    // Update currency from entity if available
+    if (entity?.base_currency) {
+      currency = entity.base_currency as string;
+    }
 
     const basis = (entity?.accounting_basis as string) ?? 'cash';
     checks.push({
