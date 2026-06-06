@@ -109,7 +109,7 @@ export function buildCloseReminderSlackBlocks(
     elements: [
       {
         type: 'mrkdwn',
-        text: `🤖 Autokkeep Close Reminder · ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+        text: `🤖 Autokkeep Close Reminder · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
       },
     ],
   });

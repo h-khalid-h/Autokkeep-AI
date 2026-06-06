@@ -243,7 +243,7 @@ async function handler(request: NextRequest) {
 
           // Build the period label (e.g., "May 2026")
           const periodDate = new Date(entity.current_period + '-01');
-          const periodLabel = periodDate.toLocaleDateString('en-US', {
+          const periodLabel = periodDate.toLocaleDateString(undefined, {
             month: 'long',
             year: 'numeric',
           });

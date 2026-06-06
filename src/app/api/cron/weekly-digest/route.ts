@@ -116,7 +116,7 @@ async function handler(request: NextRequest) {
               amount: item.amount,
               status: item.status,
             })),
-            digestDate: new Date().toLocaleDateString('en-US', {
+            digestDate: new Date().toLocaleDateString(undefined, {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
