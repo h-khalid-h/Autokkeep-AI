@@ -235,6 +235,10 @@ export async function analyzeTaxReadiness(
     }
   }
 
+  // Round accumulated totals to prevent float64 drift across large datasets
+  totalExpenses = Math.round(totalExpenses * 100) / 100;
+  totalDeductible = Math.round(totalDeductible * 100) / 100;
+
   // Build deductions by category (sorted by amount descending)
   const deductionsByCategory = Array.from(categoryMap.entries())
     .filter(([, data]) => data.deductible)
@@ -372,7 +376,7 @@ function generateRecommendations(data: {
 
   // Missing receipts
   if (data.missingReceipts.length > 0) {
-    const totalMissingAmount = data.missingReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const totalMissingAmount = Math.round(data.missingReceipts.reduce((sum, r) => sum + r.amount, 0) * 100) / 100;
     recs.push(
       `Upload ${data.missingReceipts.length} missing receipt${data.missingReceipts.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalMissingAmount)} to maximize deductions and ensure audit compliance.`
     );

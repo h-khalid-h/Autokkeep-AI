@@ -179,13 +179,12 @@ function reconciliationCheck(
   // Sum ALL transaction amounts to get cumulative book balance.
   // Plaid convention: positive = outflow (expense), negative = inflow (income).
   // Negating the sum converts net outflows into a net position (positive = net inflows).
-  const bookBalance = -allTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const bookBalance = Math.round(-allTransactions.reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
 
   // Sum bank account balances
-  const bankBalance = bankAccounts.reduce(
-    (sum, acc) => sum + (acc.current_balance || 0),
-    0
-  );
+  const bankBalance = Math.round(
+    bankAccounts.reduce((sum, acc) => sum + (acc.current_balance || 0), 0) * 100
+  ) / 100;
 
   // Use the variance analysis engine
   const varianceResult = analyzeVariance(bankBalance, bookBalance, 'bank_reconciliation');
@@ -245,7 +244,7 @@ function missingReceiptCheck(transactions: TransactionRow[]): CloseCheck {
     };
   }
 
-  const totalAmount = missing.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalAmount = Math.round(missing.reduce((s, t) => s + Math.abs(t.amount), 0) * 100) / 100;
 
   return {
     name: 'Receipt Documentation',
@@ -421,12 +420,12 @@ async function trialBalanceCheck(
       };
     }
 
-    const totalDebit = (lines as { debit: number; credit: number }[]).reduce(
-      (sum, l) => sum + (l.debit || 0), 0
-    );
-    const totalCredit = (lines as { debit: number; credit: number }[]).reduce(
-      (sum, l) => sum + (l.credit || 0), 0
-    );
+    const totalDebit = Math.round(
+      (lines as { debit: number; credit: number }[]).reduce((sum, l) => sum + (l.debit || 0), 0) * 100
+    ) / 100;
+    const totalCredit = Math.round(
+      (lines as { debit: number; credit: number }[]).reduce((sum, l) => sum + (l.credit || 0), 0
+    ) * 100) / 100;
 
     // Allow $0.01 tolerance for floating-point rounding
     const imbalance = Math.abs(totalDebit - totalCredit);

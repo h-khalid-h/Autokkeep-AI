@@ -88,57 +88,86 @@ export async function GET(request: NextRequest) {
       ? Math.round((highConfidence / categorizedCount) * 1000) / 10
       : 0;
 
-    // Monthly volume: fetch only current month's amounts
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const { data: monthTxns } = await db
-      .from('transactions')
-      .select('amount, base_amount')
-      .in('entity_id', entityIds)
-      .neq('status', TRANSACTION_STATUS.REMOVED)
-      .is('deleted_at', null)
-      .gte('date', monthStart)
-      .limit(50000); // F9: safety cap to prevent unbounded row fetch
-
-    const monthlyVolume = (monthTxns || [])
-      .reduce((sum: number, t: Record<string, unknown>) => {
-        const val = Number(t.base_amount ?? t.amount) || 0; // F5: prefer base_amount for multi-currency
-        return sum + Math.abs(val);
-      }, 0);
-
-    // Top categories: use server-side aggregation to avoid row limits
-    // Fetch all categories with their counts using a targeted query
-    // We use a two-pass approach: first get distinct categories, then count each
-    const { data: catTxns } = await db
-      .from('transactions')
-      .select('category_ai, amount, base_amount')
-      .in('entity_id', entityIds)
-      .neq('status', TRANSACTION_STATUS.REMOVED)
-      .is('deleted_at', null)
-      .not('category_ai', 'is', null)
-      .order('category_ai', { ascending: true })
-      .limit(10000); // F8: safety cap to prevent unbounded row fetch
-
-    const categoryMap: Record<string, { count: number; amount: number }> = {};
-    for (const t of (catTxns || [])) {
-      const code = t.category_ai;
-      if (!code) continue;
-      if (!categoryMap[code]) {
-        categoryMap[code] = { count: 0, amount: 0 };
+    // Monthly volume: use server-side aggregation RPC (migration 041)
+    // Falls back to client-side sum if RPC not deployed
+    let monthlyVolume = 0;
+    try {
+      const { data: rpcResult, error: rpcErr } = await db.rpc('get_monthly_volume', {
+        p_entity_ids: entityIds,
+      });
+      if (!rpcErr && rpcResult !== null) {
+        monthlyVolume = Number(rpcResult) || 0;
+      } else {
+        throw new Error(rpcErr?.message || 'RPC returned null');
       }
-      categoryMap[code].count++;
-      const catVal = Number((t as Record<string, unknown>).base_amount ?? t.amount) || 0; // F5: prefer base_amount
-      categoryMap[code].amount += Math.abs(catVal);
+    } catch {
+      // Fallback: client-side aggregation (pre-migration 041)
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const { data: monthTxns } = await db
+        .from('transactions')
+        .select('amount, base_amount')
+        .in('entity_id', entityIds)
+        .neq('status', TRANSACTION_STATUS.REMOVED)
+        .is('deleted_at', null)
+        .gte('date', monthStart)
+        .limit(50000);
+
+      monthlyVolume = (monthTxns || [])
+        .reduce((sum: number, t: Record<string, unknown>) => {
+          const val = Number(t.base_amount ?? t.amount) || 0;
+          return sum + Math.abs(val);
+        }, 0);
     }
 
-    const topCategories = Object.entries(categoryMap)
-      .map(([code, data]) => ({
-        code,
-        count: data.count,
-        amount: Math.round(data.amount * 100) / 100,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+    // Top categories: use server-side GROUP BY RPC (migration 041)
+    // Falls back to client-side aggregation if RPC not deployed
+    let topCategories: Array<{ code: string; count: number; amount: number }> = [];
+    try {
+      const { data: catRpcResult, error: catRpcErr } = await db.rpc('get_top_categories', {
+        p_entity_ids: entityIds,
+        p_limit: 10,
+      });
+      if (!catRpcErr && catRpcResult) {
+        topCategories = (catRpcResult as Array<{ code: string; txn_count: number; total_amount: number }>).map(
+          (r) => ({ code: r.code, count: Number(r.txn_count), amount: Number(r.total_amount) })
+        );
+      } else {
+        throw new Error(catRpcErr?.message || 'RPC returned null');
+      }
+    } catch {
+      // Fallback: client-side aggregation (pre-migration 041)
+      const { data: catTxns } = await db
+        .from('transactions')
+        .select('category_ai, amount, base_amount')
+        .in('entity_id', entityIds)
+        .neq('status', TRANSACTION_STATUS.REMOVED)
+        .is('deleted_at', null)
+        .not('category_ai', 'is', null)
+        .order('category_ai', { ascending: true })
+        .limit(10000);
+
+      const categoryMap: Record<string, { count: number; amount: number }> = {};
+      for (const t of (catTxns || [])) {
+        const code = t.category_ai;
+        if (!code) continue;
+        if (!categoryMap[code]) {
+          categoryMap[code] = { count: 0, amount: 0 };
+        }
+        categoryMap[code].count++;
+        const catVal = Number((t as Record<string, unknown>).base_amount ?? t.amount) || 0;
+        categoryMap[code].amount += Math.abs(catVal);
+      }
+
+      topCategories = Object.entries(categoryMap)
+        .map(([code, data]) => ({
+          code,
+          count: data.count,
+          amount: Math.round(data.amount * 100) / 100,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+    }
 
     // Recent activity: last 10 transactions with server-side ordering
     const { data: recentTxns } = await db
