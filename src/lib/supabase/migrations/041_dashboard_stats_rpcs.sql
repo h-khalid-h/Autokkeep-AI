@@ -17,7 +17,7 @@ SECURITY INVOKER
 SET search_path = public
 AS $$
   SELECT COALESCE(
-    SUM(ABS(COALESCE(base_amount, amount))),
+    SUM(ABS(amount)),
     0
   )
   FROM transactions
@@ -39,7 +39,7 @@ AS $$
   SELECT
     category_ai AS code,
     COUNT(*) AS txn_count,
-    ROUND(SUM(ABS(COALESCE(base_amount, amount))), 2) AS total_amount
+    ROUND(SUM(ABS(amount)), 2) AS total_amount
   FROM transactions
   WHERE entity_id = ANY(p_entity_ids)
     AND status != 'removed'
