@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { formatCurrency } from '@/lib/currency/converter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
@@ -288,7 +289,7 @@ export default function TransactionsPage() {
   const avgConfidence = useMemo(() => transactions.length > 0
     ? Math.round(transactions.reduce((sum, tx) => sum + (tx.confidence ?? 0), 0) / transactions.length)
     : 0, [transactions]);
-  const pendingCount = useMemo(() => transactions.filter(tx => tx.status === 'pending' || tx.status === 'human_review').length, [transactions]);
+  const pendingCount = useMemo(() => transactions.filter(tx => tx.status === TRANSACTION_STATUS.PENDING || tx.status === TRANSACTION_STATUS.HUMAN_REVIEW).length, [transactions]);
 
   // Pagination (memoized)
   const totalPages = useMemo(() => Math.ceil(pagination.total / PAGE_SIZE), [pagination.total]);
@@ -591,7 +592,7 @@ export default function TransactionsPage() {
                             </td>
                             <td className={styles.actionCell}>
                               <div className={styles.actionGroup}>
-                                {(tx.status === 'pending' || tx.status === 'human_review') && (
+                                {(tx.status === TRANSACTION_STATUS.PENDING || tx.status === TRANSACTION_STATUS.HUMAN_REVIEW) && (
                                   <Button
                                     as={Link}
                                     href="/dashboard"

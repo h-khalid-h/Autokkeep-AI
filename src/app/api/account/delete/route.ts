@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
               .select('id')
               .eq('org_id', membership.org_id);
 
-            // Clean up storage (receipts) - list then remove
+            // Clean up storage (receipts) - parallel via Promise.allSettled
             if (entities) {
-              for (const entity of entities) {
-                try {
+              await Promise.allSettled(
+                entities.map(async (entity: { id: string }) => {
                   const { data: files } = await db.storage
                     .from('documents')
                     .list(`receipts/${entity.id}`);
@@ -60,42 +60,41 @@ export async function POST(request: NextRequest) {
                     const filePaths = files.map((f: { name: string }) => `receipts/${entity.id}/${f.name}`);
                     await db.storage.from('documents').remove(filePaths);
                   }
-                } catch {
-                  // Storage cleanup is best-effort
-                }
-              }
+                }),
+              );
             }
 
-            // Revoke Plaid access tokens (privacy compliance)
-            const { data: bankConns } = await db
-              .from('bank_connections')
-              .select('plaid_access_token')
-              .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
+            // Fetch bank + ledger connections in parallel
+            const entityIds = entities?.map((e: { id: string }) => e.id) || [];
+            const [bankConnsResult, ledgerConnsResult] = await Promise.allSettled([
+              db.from('bank_connections').select('plaid_access_token').in('entity_id', entityIds),
+              db.from('ledger_connections').select('provider, access_token').in('entity_id', entityIds),
+            ]);
 
+            // Revoke Plaid access tokens (privacy compliance) - parallel
+            const bankConns = bankConnsResult.status === 'fulfilled' ? bankConnsResult.value.data : null;
             if (bankConns) {
               const { removeItem } = await import('@/lib/plaid/client');
-              for (const conn of bankConns) {
-                if (conn.plaid_access_token) {
-                  let token = conn.plaid_access_token;
-                  try {
-                    token = decryptToken(token);
-                  } catch {
-                    // Token may not be encrypted or decryption key unavailable — use as-is
-                  }
-                  await removeItem(token);
-                }
-              }
+              await Promise.allSettled(
+                bankConns
+                  .filter((conn: { plaid_access_token: string | null }) => conn.plaid_access_token)
+                  .map(async (conn: { plaid_access_token: string | null }) => {
+                    let token = conn.plaid_access_token!;
+                    try {
+                      token = decryptToken(token);
+                    } catch {
+                      // Token may not be encrypted or decryption key unavailable — use as-is
+                    }
+                    await removeItem(token);
+                  }),
+              );
             }
 
-            // Revoke ledger OAuth tokens (QBO/Xero)
-            const { data: ledgerConns } = await db
-              .from('ledger_connections')
-              .select('provider, access_token')
-              .in('entity_id', entities?.map((e: { id: string }) => e.id) || []);
-
+            // Revoke ledger OAuth tokens (QBO/Xero) - parallel
+            const ledgerConns = ledgerConnsResult.status === 'fulfilled' ? ledgerConnsResult.value.data : null;
             if (ledgerConns) {
-              for (const conn of ledgerConns) {
-                try {
+              await Promise.allSettled(
+                ledgerConns.map(async (conn: { provider: string; access_token: string | null }) => {
                   if (conn.provider === 'quickbooks' && conn.access_token) {
                     let qboToken = conn.access_token;
                     try {
@@ -111,10 +110,8 @@ export async function POST(request: NextRequest) {
                     });
                   }
                   // Xero tokens auto-expire in 30 min; no revocation endpoint needed
-                } catch {
-                  // Token revocation is best-effort
-                }
-              }
+                }),
+              );
             }
 
             // Cancel Stripe subscription before deleting org

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/lib/types/transaction';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Skeleton, EmptyState } from '@/components/ui';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
@@ -61,16 +62,16 @@ function buildTags(tx: RawTransaction): string[] {
 
 function mapStatus(dbStatus: string): Transaction['status'] {
   switch (dbStatus) {
-    case 'pending': return 'pending';
-    case 'human_review': return 'human_review';
-    case 'auto_categorized': return 'auto_categorized';
-    case 'approved': return 'approved';
-    case 'removed': return 'removed';
-    case 'escrow_suspense': return 'escrow_suspense';
-    case 'categorization_failed': return 'categorization_failed';
-    case 'syncing': return 'syncing';
-    case 'synced': return 'synced';
-    case 'pending_approval': return 'pending_approval';
+    case TRANSACTION_STATUS.PENDING: return 'pending';
+    case TRANSACTION_STATUS.HUMAN_REVIEW: return 'human_review';
+    case TRANSACTION_STATUS.AUTO_CATEGORIZED: return 'auto_categorized';
+    case TRANSACTION_STATUS.APPROVED: return 'approved';
+    case TRANSACTION_STATUS.REMOVED: return 'removed';
+    case TRANSACTION_STATUS.ESCROW_SUSPENSE: return 'escrow_suspense';
+    case TRANSACTION_STATUS.CATEGORIZATION_FAILED: return 'categorization_failed';
+    case TRANSACTION_STATUS.SYNCING: return 'syncing';
+    case TRANSACTION_STATUS.SYNCED: return 'synced';
+    case TRANSACTION_STATUS.PENDING_APPROVAL: return 'pending_approval';
     default: return 'pending';
   }
 }
@@ -264,7 +265,7 @@ export default function DashboardPage() {
         if (!cancelled) {
           // Fallback: compute from local transactions
           const total = transactions.length;
-          const pending = transactions.filter((t) => t.status === 'pending' || t.status === 'human_review').length;
+          const pending = transactions.filter((t) => t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.HUMAN_REVIEW).length;
           setStats({ total, pending, approved: 0, autoRate: 0, monthlyVolume: 0 });
         }
       } finally {
@@ -411,7 +412,7 @@ export default function DashboardPage() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            status: 'approved',
+            status: TRANSACTION_STATUS.APPROVED,
             glCode: transaction.suggestedGLCode,
           }),
         });
@@ -509,7 +510,7 @@ export default function DashboardPage() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            status: 'approved',
+            status: TRANSACTION_STATUS.APPROVED,
             glCode,
             glName,
           }),

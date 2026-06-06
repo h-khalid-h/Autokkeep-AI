@@ -4,7 +4,7 @@
 -- Routes receipt chases to the person responsible for that vendor relationship,
 -- not just the card holder. Pattern-based matching allows wildcards (e.g. 'AMAZON%').
 
-CREATE TABLE vendor_managers (
+CREATE TABLE IF NOT EXISTS vendor_managers (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   entity_id       uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
   vendor_pattern  text NOT NULL,

@@ -16,6 +16,7 @@ import { withSentryHandler } from '@/lib/sentry';
 import { handleApiError } from '@/lib/api-helpers';
 import { getGLCode } from '@/lib/entity-settings';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 // GL codes are now entity-configurable via entity_settings table.
 // These constants serve only as type-safe key references for getGLCode().
@@ -33,11 +34,8 @@ interface StaleTransaction {
 async function handler(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const cronError = verifyCronAuth(request);
+    if (cronError) return cronError;
 
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-suspense-timeout' });
     if (limited) return limited;

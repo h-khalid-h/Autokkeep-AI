@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { formatCurrency } from '@/lib/currency/converter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
@@ -98,10 +99,10 @@ export default function AnalyticsPage() {
 
           if (filtered.length === 0) continue;
 
-          const autoApproved = filtered.filter((t: RawTxn) => t.status === 'auto_categorized' || t.status === 'approved').length;
-          const humanReviewed = filtered.filter((t: RawTxn) => t.status === 'approved' && t.category_human).length;
-          const pending = filtered.filter((t: RawTxn) => t.status === 'pending' || t.status === 'human_review').length;
-          const synced = filtered.filter((t: RawTxn) => t.status === 'synced').length;
+          const autoApproved = filtered.filter((t: RawTxn) => t.status === TRANSACTION_STATUS.AUTO_CATEGORIZED || t.status === TRANSACTION_STATUS.APPROVED).length;
+          const humanReviewed = filtered.filter((t: RawTxn) => t.status === TRANSACTION_STATUS.APPROVED && t.category_human).length;
+          const pending = filtered.filter((t: RawTxn) => t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.HUMAN_REVIEW).length;
+          const synced = filtered.filter((t: RawTxn) => t.status === TRANSACTION_STATUS.SYNCED).length;
           const highConf = filtered.filter((t: RawTxn) => (t.confidence || 0) >= 80).length;
 
           // Build category aggregation

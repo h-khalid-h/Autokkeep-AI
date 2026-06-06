@@ -11,6 +11,7 @@ import { extractReceiptData } from '@/lib/ocr/extractor';
 import { matchReceiptToTransaction } from '@/lib/ocr/matcher';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,11 +39,8 @@ interface ProcessingResult {
 export async function POST(request: NextRequest) {
   try {
     // ── Verify cron secret ──────────────────────────────────────────────
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const cronError = verifyCronAuth(request);
+    if (cronError) return cronError;
 
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-ocr-process' });
     if (limited) return limited;

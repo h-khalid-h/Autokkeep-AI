@@ -11,15 +11,13 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestTransactions, type BankConnection } from '@/lib/plaid/ingest';
 import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 async function handler(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify cron secret (timing-safe)
+    const cronError = verifyCronAuth(request);
+    if (cronError) return cronError;
 
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-plaid-sync' });
     if (limited) return limited;

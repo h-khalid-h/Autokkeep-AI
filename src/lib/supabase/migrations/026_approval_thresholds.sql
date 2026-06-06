@@ -5,7 +5,7 @@
 -- configured amount require explicit approval from users of sufficient role
 -- before moving from human_review → approved.
 
-CREATE TABLE approval_thresholds (
+CREATE TABLE IF NOT EXISTS approval_thresholds (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   entity_id             uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
   min_amount            decimal(15,2) NOT NULL,
@@ -21,7 +21,7 @@ CREATE POLICY "Entity-scoped thresholds"
   ON approval_thresholds FOR ALL
   USING (entity_id IN (SELECT public.auth_user_entity_ids()));
 
-CREATE TABLE approval_requests (
+CREATE TABLE IF NOT EXISTS approval_requests (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   entity_id         uuid NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
   transaction_id    uuid NOT NULL REFERENCES transactions(id),

@@ -65,11 +65,15 @@ export async function checkApprovalRequired(
   entityId: string,
   amount: number,
 ): Promise<ApprovalCheck | null> {
+  // Use absolute value so negative amounts (refunds) trigger the same
+  // approval rules as positive amounts of equal magnitude.
+  const absAmount = Math.abs(amount);
+
   const { data, error } = await db
     .from('approval_thresholds')
     .select('id, required_role, dual_approval, min_amount')
     .eq('entity_id', entityId)
-    .lte('min_amount', amount)
+    .lte('min_amount', absAmount)
     .order('min_amount', { ascending: false })
     .limit(1);
 

@@ -11,15 +11,13 @@ import { withSentryHandler } from '@/lib/sentry';
 import { handleApiError } from '@/lib/api-helpers';
 import { runAutoCategorize } from '@/lib/ai/auto-categorize';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 async function handler(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify cron secret (timing-safe)
+    const cronError = verifyCronAuth(request);
+    if (cronError) return cronError;
 
     const limited = await rateLimit(request, { max: 5, windowSeconds: 60, prefix: 'cron-auto-categorize' });
     if (limited) return limited;
