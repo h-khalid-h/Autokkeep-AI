@@ -42,6 +42,7 @@ const navGroups: NavGroup[] = [
     label: 'Management',
     items: [
       { label: 'Portfolio', href: '/portfolio', icon: '🏢' },
+      { label: 'Vendors', href: '/vendors', icon: '🤝' },
       { label: 'Analytics', href: '/analytics', icon: '📈' },
       { label: 'GL Codes', href: '/chart-of-accounts', icon: '📒' },
     ],

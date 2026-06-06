@@ -1,0 +1,470 @@
+/* ============================================
+   VENDORS PAGE — CSS Module
+   ============================================ */
+
+/* ─── Page Layout ─────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ─── Filters ─────────────────────────────── */
+.filtersCard {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchWrapper {
+  flex: 1 1 280px;
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchInput {
+  padding-left: var(--space-9) !important;
+}
+
+.filterSelect {
+  flex: 0 1 180px;
+  min-width: 140px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color 150ms ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+}
+
+.filterSelect:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.toggleFilter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.toggleLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+/* ─── Error Banner ────────────────────────── */
+.errorBanner {
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive-text);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.errorBannerText {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── Table Container ─────────────────────── */
+.tableCard {
+  overflow: hidden;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+/* ─── Table ───────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  white-space: nowrap;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thRight {
+  composes: th;
+  text-align: right;
+}
+
+.thCenter {
+  composes: th;
+  text-align: center;
+}
+
+.tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background 150ms ease;
+}
+
+.tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.td {
+  padding: var(--space-3) var(--space-4);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.tdRight {
+  composes: td;
+  text-align: right;
+}
+
+.tdCenter {
+  composes: td;
+  text-align: center;
+}
+
+/* ─── Name Cell ───────────────────────────── */
+.vendorNameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vendorName {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.vendorType {
+  display: inline-flex;
+}
+
+/* ─── Currency Cell ───────────────────────── */
+.amountValue {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+}
+
+.amountThreshold {
+  color: var(--color-warning);
+}
+
+/* ─── 1099 Indicator ──────────────────────── */
+.eligibleIcon {
+  font-size: var(--text-base);
+}
+
+/* ─── Action Buttons ──────────────────────── */
+.actionCell {
+  composes: td;
+  white-space: nowrap;
+}
+
+.actionGroup {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+/* ─── Relative Time ───────────────────────── */
+.relativeTime {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ─── Pagination ──────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.paginationInfo {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pageIndicator {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+}
+
+/* ─── Mobile Card View ────────────────────── */
+.mobileCards {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mobileCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  transition: box-shadow 150ms ease;
+}
+
+.mobileCard:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.mobileCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.mobileCardName {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+}
+
+.mobileCardAmount {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  white-space: nowrap;
+}
+
+.mobileCardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.mobileCardField {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.mobileCardActions {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ─── Modal Form ──────────────────────────── */
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.formLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.formInput {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.formInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.formSelect {
+  composes: formInput;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+}
+
+.formTextarea {
+  composes: formInput;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* ─── Delete Confirm ──────────────────────── */
+.deleteConfirmText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.deleteConfirmName {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ─── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .tableScroll {
+    display: none;
+  }
+
+  .mobileCards {
+    display: flex;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .filtersCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchWrapper {
+    flex: 1 1 100%;
+  }
+
+  .filterSelect {
+    flex: 1 1 100%;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
