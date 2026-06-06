@@ -114,6 +114,197 @@ function AlertCard({
   );
 }
 
+// ─── Region display names ───────────────────────────────────────────────────
+
+const COMPLIANCE_REGIONS = [
+  { key: 'united_states', label: '🇺🇸 United States', flag: '🇺🇸' },
+  { key: 'estonia', label: '🇪🇪 Estonia', flag: '🇪🇪' },
+  { key: 'qatar', label: '🇶🇦 Qatar', flag: '🇶🇦' },
+  { key: 'hong_kong', label: '🇭🇰 Hong Kong', flag: '🇭🇰' },
+  { key: 'japan', label: '🇯🇵 Japan', flag: '🇯🇵' },
+  { key: 'india', label: '🇮🇳 India', flag: '🇮🇳' },
+] as const;
+
+interface ComplianceViolation {
+  code: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info';
+}
+
+interface ComplianceResult {
+  score: number;
+  violations: ComplianceViolation[];
+  region: string;
+}
+
+function ComplianceSection({ entityId }: { entityId: string }) {
+  const [selectedRegion, setSelectedRegion] = React.useState<string | null>(null);
+  const [result, setResult] = React.useState<ComplianceResult | null>(null);
+  const [meta, setMeta] = React.useState<{ transactionCount: number; periodStart: string; periodEnd: string } | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleRunCheck = React.useCallback(async (region: string) => {
+    setSelectedRegion(region);
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const res = await fetch('/api/compliance/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId, region }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Compliance check failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      setResult(data.result);
+      setMeta(data.meta);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to run compliance check');
+    } finally {
+      setLoading(false);
+    }
+  }, [entityId]);
+
+  const getViolationCardClass = (severity: string) => {
+    switch (severity) {
+      case 'critical': return styles.violationCardCritical;
+      case 'warning': return styles.violationCardWarning;
+      default: return styles.violationCardInfo;
+    }
+  };
+
+  const getViolationIcon = (severity: string) => {
+    switch (severity) {
+      case 'critical': return '🚨';
+      case 'warning': return '⚠️';
+      default: return 'ℹ️';
+    }
+  };
+
+  return (
+    <div className={styles.complianceSection}>
+      <h2 className={styles.complianceSectionTitle}>Compliance Check</h2>
+      <p className={styles.complianceSectionSubtitle}>
+        Run a multi-jurisdiction compliance check against the last 90 days of transactions.
+      </p>
+
+      {/* Region selector */}
+      <div className={styles.regionSelector} role="group" aria-label="Select jurisdiction">
+        {COMPLIANCE_REGIONS.map((region) => (
+          <button
+            key={region.key}
+            className={`${styles.regionButton} ${selectedRegion === region.key ? styles.regionButtonActive : ''}`}
+            onClick={() => handleRunCheck(region.key)}
+            disabled={loading}
+            aria-pressed={selectedRegion === region.key}
+          >
+            {region.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <Card padding="md">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <Skeleton variant="circle" width={60} height={60} />
+            <div style={{ flex: 1 }}>
+              <Skeleton variant="rect" width="60%" height={16} />
+              <Skeleton variant="rect" width="40%" height={12} />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div role="alert" className={styles.errorBanner}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Results */}
+      {result && !loading && (
+        <div className={styles.complianceResult}>
+          {/* Score */}
+          <Card variant="elevated" padding="md" className={styles.complianceScorePanel}>
+            <Gauge
+              value={result.score}
+              size="md"
+              color={getGaugeColor(result.score)}
+              caption="Compliance"
+            />
+            {meta && (
+              <div className={styles.complianceMeta}>
+                <span className={styles.complianceMetaItem}>
+                  {meta.transactionCount} txns
+                </span>
+                <span className={styles.complianceMetaItem}>
+                  90 days
+                </span>
+              </div>
+            )}
+          </Card>
+
+          {/* Violations */}
+          <div className={styles.violationList}>
+            {result.violations.length === 0 ? (
+              <Card padding="md">
+                <div className={styles.complianceEmpty}>
+                  <div className={styles.complianceEmptyIcon}>✅</div>
+                  <div className={styles.complianceEmptyText}>
+                    No compliance violations found for{' '}
+                    {COMPLIANCE_REGIONS.find(r => r.key === selectedRegion)?.label || selectedRegion}.
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              result.violations.map((v, i) => (
+                <Card key={`${v.code}-${i}`} padding="sm" className={`${styles.violationCard} ${getViolationCardClass(v.severity)}`}>
+                  <span className={styles.violationIcon}>{getViolationIcon(v.severity)}</span>
+                  <div className={styles.violationBody}>
+                    <div className={styles.violationTitle}>
+                      {v.title}
+                      <Badge
+                        variant={getSeverityBadgeVariant(v.severity)}
+                        size="sm"
+                        style={{ marginLeft: 'var(--space-2)' }}
+                      >
+                        {v.severity}
+                      </Badge>
+                    </div>
+                    <p className={styles.violationDescription}>{v.description}</p>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Initial state — no region selected */}
+      {!selectedRegion && !loading && (
+        <Card padding="md">
+          <div className={styles.complianceEmpty}>
+            <div className={styles.complianceEmptyIcon}>🏛️</div>
+            <div className={styles.complianceEmptyText}>
+              Select a jurisdiction above to run a compliance check.
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ─── Health Dashboard Page ──────────────────────────────────────────────────
 
 export default function HealthPage() {
@@ -397,8 +588,14 @@ export default function HealthPage() {
               </div>
             </div>
           )}
+
+          {/* Compliance Section */}
+          {selectedEntity && (
+            <ComplianceSection entityId={selectedEntity.id} />
+          )}
         </div>
       </ErrorBoundary>
     </AppShell>
   );
 }
+
