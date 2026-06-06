@@ -343,3 +343,124 @@ describe('DELETE /api/chart-of-accounts', () => {
     expect(json.soft_deleted).toBeUndefined();
   });
 });
+
+describe('POST /api/chart-of-accounts — parent_id', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getApiAuthContext as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthContext);
+  });
+
+  it('should reject invalid parent_id (not a UUID)', async () => {
+    const req = createPostRequest({
+      code: '1100',
+      name: 'Sub Account',
+      type: 'asset',
+      parent_id: 'not-a-uuid',
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe('Validation failed');
+  });
+
+  it('should accept valid parent_id (UUID format)', async () => {
+    const parentId = '7d374be6-d01d-4dc2-84a6-69bd10cb12fa';
+    const newAccount = { id: 'acc-new', code: '1100', name: 'Sub', type: 'asset', is_active: true, parent_id: parentId };
+
+    // Entity lookup
+    const entityChain = createChainMock({ data: [{ id: 'entity-1' }], error: null });
+    // Duplicate check (no dupe)
+    const dupCheckChain = createChainMock({ data: null, error: null });
+    // Parent validation (parent exists in same entity)
+    const parentCheckChain = createChainMock({ data: { id: parentId, entity_id: 'entity-1' }, error: null });
+    // Insert
+    const insertChain = createChainMock({ data: newAccount, error: null });
+
+    let coaCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'entities') return entityChain;
+      if (table === 'chart_of_accounts') {
+        coaCallCount++;
+        if (coaCallCount === 1) return dupCheckChain; // duplicate check
+        if (coaCallCount === 2) return parentCheckChain; // parent validation
+        return insertChain; // insert
+      }
+      return createChainMock({ data: null, error: null });
+    });
+
+    const req = createPostRequest({
+      code: '1100',
+      name: 'Sub Account',
+      type: 'asset',
+      parent_id: parentId,
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+  });
+});
+
+describe('PUT /api/chart-of-accounts — parent_id', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getApiAuthContext as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthContext);
+  });
+
+  it('should reject self-referencing parent_id', async () => {
+    const accountId = '7d374be6-d01d-4dc2-84a6-69bd10cb12fa';
+
+    // Existing account check
+    const existingChain = createChainMock({
+      data: { id: accountId, entity_id: 'entity-1' },
+      error: null,
+    });
+
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'chart_of_accounts') return existingChain;
+      return createChainMock({ data: null, error: null });
+    });
+
+    const req = createPutRequest({
+      id: accountId,
+      parent_id: accountId, // self-reference!
+    });
+    const res = await PUT(req);
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toContain('cannot be its own parent');
+  });
+
+  it('should accept null parent_id to remove parent', async () => {
+    const accountId = '7d374be6-d01d-4dc2-84a6-69bd10cb12fa';
+    const updatedAccount = { id: accountId, code: '1100', name: 'Sub', type: 'asset', parent_id: null };
+
+    // Existing account check
+    const existingChain = createChainMock({
+      data: { id: accountId, entity_id: 'entity-1' },
+      error: null,
+    });
+    // Update chain
+    const updateChain = createChainMock({ data: updatedAccount, error: null });
+
+    let coaCallCount = 0;
+    mockDb.from.mockImplementation((table: string) => {
+      if (table === 'chart_of_accounts') {
+        coaCallCount++;
+        if (coaCallCount === 1) return existingChain;
+        return updateChain;
+      }
+      return createChainMock({ data: null, error: null });
+    });
+
+    const req = createPutRequest({
+      id: accountId,
+      parent_id: null,
+    });
+    const res = await PUT(req);
+
+    expect(res.status).toBe(200);
+  });
+});
+
