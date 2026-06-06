@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
 
           // Build exceptions
           const exceptions = filtered
-            .filter((t: RawTxn) => (t.confidence || 0) < 85 && t.status !== 'synced')
+            .filter((t: RawTxn) => (t.confidence || 0) < 85 && t.status !== TRANSACTION_STATUS.SYNCED)
             .slice(0, 3)
             .map((t: RawTxn) => ({
               merchant: t.merchant_name || t.merchant_raw || 'Unknown',
@@ -250,6 +250,7 @@ export default function AnalyticsPage() {
     <ErrorBoundary>
       <AppShell>
         <div className={styles.pageContainer}>
+          <h1 className="sr-only">Analytics</h1>
           {/* Empty state banner */}
           {!hasData && (
             <EmptyState
@@ -304,6 +305,7 @@ export default function AnalyticsPage() {
                   variant={timeRange === range.id ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setTimeRange(range.id)}
+                  aria-pressed={timeRange === range.id}
                 >
                   {range.label}
                 </Button>

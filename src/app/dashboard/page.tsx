@@ -639,6 +639,7 @@ export default function DashboardPage() {
     <ErrorBoundary componentName="Dashboard">
       <AppShell pendingCount={stats?.pending ?? 0}>
         <div className={styles.pageWrapper}>
+          <h1 className="sr-only">Dashboard</h1>
           <StatsBar stats={stats} loading={statsLoading} />
 
           <ModuleQuickAccess />

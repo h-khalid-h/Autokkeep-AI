@@ -193,8 +193,17 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchData();
+    let cancelled = false;
+
+    async function load() {
+      await fetchData();
+      // fetchData handles its own state — the cancelled flag
+      // guards against a rapid unmount/remount cycle.
+      if (cancelled) return;
+    }
+
+    void load();
+    return () => { cancelled = true; };
   }, [fetchData]);
 
   return (

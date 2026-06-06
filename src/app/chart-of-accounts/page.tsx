@@ -108,6 +108,9 @@ export default function ChartOfAccountsPage() {
   // Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Bulk action confirmation (replaces window.confirm)
+  const [bulkConfirmAction, setBulkConfirmAction] = useState<'deactivate' | 'delete' | null>(null);
+
   // CSV import ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -693,14 +696,10 @@ export default function ChartOfAccountsPage() {
             </div>
             {selectedIds.size > 0 && (
               <div className={styles.toolbarActions}>
-                <Button variant="ghost" size="sm" onClick={() => {
-                  if (window.confirm(`Deactivate ${selectedIds.size} account(s)? They will be hidden from dropdowns.`)) bulkDeactivate();
-                }}>
+                <Button variant="ghost" size="sm" onClick={() => setBulkConfirmAction('deactivate')}>
                   ⏸ Deactivate ({selectedIds.size})
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => {
-                  if (window.confirm(`Permanently delete ${selectedIds.size} account(s)? This cannot be undone.`)) bulkDelete();
-                }}>
+                <Button variant="destructive" size="sm" onClick={() => setBulkConfirmAction('delete')}>
                   🗑 Delete ({selectedIds.size})
                 </Button>
               </div>
@@ -1003,6 +1002,38 @@ export default function ChartOfAccountsPage() {
               </Button>
             </div>
             </form>
+          </Modal>
+
+          {/* ── Bulk Action Confirmation Modal ─────────────────────────── */}
+          <Modal
+            isOpen={bulkConfirmAction !== null}
+            onClose={() => setBulkConfirmAction(null)}
+            title={bulkConfirmAction === 'delete' ? 'Delete Accounts' : 'Deactivate Accounts'}
+            size="sm"
+            footer={
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <Button variant="secondary" size="sm" onClick={() => setBulkConfirmAction(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant={bulkConfirmAction === 'delete' ? 'destructive' : 'primary'}
+                  size="sm"
+                  onClick={() => {
+                    if (bulkConfirmAction === 'delete') bulkDelete();
+                    else bulkDeactivate();
+                    setBulkConfirmAction(null);
+                  }}
+                >
+                  {bulkConfirmAction === 'delete' ? '🗑 Delete' : '⏸ Deactivate'}
+                </Button>
+              </div>
+            }
+          >
+            <p style={{ margin: 0, lineHeight: 1.6 }}>
+              {bulkConfirmAction === 'delete'
+                ? <>Permanently delete <strong>{selectedIds.size} account(s)</strong>? This cannot be undone.</>
+                : <>Deactivate <strong>{selectedIds.size} account(s)</strong>? They will be hidden from dropdowns.</>}
+            </p>
           </Modal>
         </div>
       </ErrorBoundary>

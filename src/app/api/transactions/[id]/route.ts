@@ -17,6 +17,8 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ─── GET: Single transaction with full details ──────────────────────────────────
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -25,6 +27,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json({ error: 'Invalid transaction ID format' }, { status: 400 });
+    }
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
@@ -68,6 +73,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json({ error: 'Invalid transaction ID format' }, { status: 400 });
+    }
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
@@ -389,6 +397,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (limited) return limited;
 
     const { id } = await context.params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json({ error: 'Invalid transaction ID format' }, { status: 400 });
+    }
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;

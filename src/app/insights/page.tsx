@@ -278,6 +278,7 @@ export default function InsightsPage() {
     <ErrorBoundary componentName="AI Financial Analyst">
       <AppShell fullWidth>
         <div className={styles.page}>
+          <h1 className="sr-only">AI Financial Analyst</h1>
           {/* ── Conversation Sidebar ── */}
           <aside className={`${styles.sidebar} ${sidebarOpen ? '' : styles.sidebarCollapsed}`}>
             <div className={styles.sidebarHeader}>

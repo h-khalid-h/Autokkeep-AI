@@ -21,11 +21,15 @@ vi.mock('@/lib/audit', () => ({
 // Mock getApiAuthContext
 const mockDb = { from: vi.fn() };
 
+const MOCK_TXN_ID = '00000000-0000-4000-8000-000000000001';
+const MOCK_ENTITY_ID = '00000000-0000-4000-8000-000000000010';
+const MOCK_USER_ID = '00000000-0000-4000-8000-000000000020';
+
 const mockAuthContext = {
-  user: { id: 'user-1', email: 'user@example.com' },
+  user: { id: MOCK_USER_ID, email: 'user@example.com' },
   membership: { id: 'tm-1', org_id: 'org-1', role: 'owner' },
   db: mockDb,
-  entityIds: ['entity-1'],
+  entityIds: [MOCK_ENTITY_ID],
   error: null as NextResponse | null,
 };
 
@@ -44,7 +48,7 @@ function createRequest(method: string, url: string, body?: Record<string, unknow
 }
 
 const mockRouteContext = {
-  params: Promise.resolve({ id: 'txn-1' }),
+  params: Promise.resolve({ id: MOCK_TXN_ID }),
 };
 
 /** Fluent chain builder for Supabase query mocks */
@@ -70,8 +74,8 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
 }
 
 const mockTransaction = {
-  id: 'txn-1',
-  entity_id: 'entity-1',
+  id: MOCK_TXN_ID,
+  entity_id: MOCK_ENTITY_ID,
   merchant_name: 'Acme Corp',
   amount: 100.00,
   date: '2025-06-15',
@@ -217,7 +221,7 @@ describe('/api/transactions/[id]', () => {
     });
 
     it('should soft-delete a transaction', async () => {
-      const entitiesChain = createChainMock({ data: [{ id: 'entity-1' }], error: null });
+      const entitiesChain = createChainMock({ data: [{ id: MOCK_ENTITY_ID }], error: null });
       const existingChain = createChainMock({ data: mockTransaction, error: null });
       const deleteChain = createChainMock({ data: null, error: null });
       const auditChain = createChainMock({ data: null, error: null });

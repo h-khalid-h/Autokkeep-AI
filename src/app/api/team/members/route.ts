@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * DELETE /api/team/members
@@ -14,6 +17,10 @@ import { writeAuditLog } from '@/lib/audit';
  */
 export async function DELETE(request: NextRequest) {
   try {
+    // Rate limit: 10 removals per minute
+    const limited = await rateLimit(request, { max: 10, windowSeconds: 60, prefix: 'team-remove' });
+    if (limited) return limited;
+
     // Auth check — only org admins/owners can remove members
     const ctx = await getApiAuthContext(request, { requireRole: ['owner', 'admin'] });
     if (ctx.error) return ctx.error;
@@ -23,9 +30,9 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const { userId: targetUserId } = body as { userId?: string };
 
-    if (!targetUserId || typeof targetUserId !== 'string') {
+    if (!targetUserId || typeof targetUserId !== 'string' || !UUID_RE.test(targetUserId)) {
       return NextResponse.json(
-        { error: 'userId is required in request body' },
+        { error: 'userId is required and must be a valid UUID' },
         { status: 400 }
       );
     }

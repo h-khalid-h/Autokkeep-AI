@@ -20,12 +20,15 @@ vi.mock('@/lib/vendors/service', () => ({
   W9_EXPIRATION_YEARS: 3,
 }));
 
+const MOCK_VENDOR_ID = 'b0000000-0000-4000-8000-000000000001';
+const MOCK_ENTITY_ID = 'b0000000-0000-4000-8000-000000000010';
+
 const mockDb = { from: vi.fn() };
 const mockAuthContext = {
   user: { id: 'a0000000-0000-4000-8000-000000000001', email: 'user@example.com' },
   membership: { id: 'a0000000-0000-4000-8000-000000000002', org_id: 'org-1', role: 'owner' },
   db: mockDb,
-  entityIds: ['ent-1'],
+  entityIds: [MOCK_ENTITY_ID],
   error: null as NextResponse | null,
 };
 
@@ -64,7 +67,7 @@ function createDeleteRequest(): NextRequest {
   return new NextRequest('http://localhost:3000/api/vendors/v-1', { method: 'DELETE' });
 }
 
-const routeContext = { params: Promise.resolve({ id: 'v-1' }) };
+const routeContext = { params: Promise.resolve({ id: MOCK_VENDOR_ID }) };
 
 // ─── Tests ──────────────────────────────────────────────────────────────────────
 
@@ -113,8 +116,8 @@ describe('GET /api/vendors/[id]', () => {
 
   it('should return vendor with compliance status on success', async () => {
     const vendor = {
-      id: 'v-1',
-      entity_id: 'ent-1',
+      id: MOCK_VENDOR_ID,
+      entity_id: MOCK_ENTITY_ID,
       name: 'Test Vendor',
       vendor_type: 'individual',
       w9_status: 'received',
@@ -168,7 +171,7 @@ describe('PATCH /api/vendors/[id]', () => {
   });
 
   it('should update vendor and return updated data', async () => {
-    const existing = { id: 'v-1', entity_id: 'ent-1', name: 'Vendor', w9_status: 'not_collected' };
+    const existing = { id: MOCK_VENDOR_ID, entity_id: MOCK_ENTITY_ID, name: 'Vendor', w9_status: 'not_collected' };
     const fetchChain = createChainMock({ data: existing, error: null });
     const updated = { ...existing, email: 'new@test.com' };
     const updateChain = createChainMock({ data: updated, error: null });
@@ -182,7 +185,7 @@ describe('PATCH /api/vendors/[id]', () => {
   });
 
   it('should return 400 when no fields provided', async () => {
-    const existing = { id: 'v-1', entity_id: 'ent-1', name: 'Vendor', w9_status: 'not_collected' };
+    const existing = { id: MOCK_VENDOR_ID, entity_id: MOCK_ENTITY_ID, name: 'Vendor', w9_status: 'not_collected' };
     const fetchChain = createChainMock({ data: existing, error: null });
     mockDb.from.mockReturnValue(fetchChain);
 
@@ -222,7 +225,7 @@ describe('DELETE /api/vendors/[id]', () => {
   });
 
   it('should soft-delete vendor and return success', async () => {
-    const existing = { id: 'v-1', entity_id: 'ent-1', name: 'Vendor', vendor_type: 'individual', is_active: true };
+    const existing = { id: MOCK_VENDOR_ID, entity_id: MOCK_ENTITY_ID, name: 'Vendor', vendor_type: 'individual', is_active: true };
     const fetchChain = createChainMock({ data: existing, error: null });
     const deleteChain = createChainMock({ data: null, error: null });
     mockDb.from.mockReturnValueOnce(fetchChain).mockReturnValueOnce(deleteChain).mockReturnValue(deleteChain);

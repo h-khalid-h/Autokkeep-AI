@@ -5,7 +5,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { useEntityFetch } from '@/lib/hooks/useEntityFetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Gauge, Progress, Skeleton, EmptyState, useToast } from '@/components/ui';
+import { Card, Badge, Button, Gauge, Progress, Skeleton, EmptyState, Modal, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -171,6 +171,7 @@ export default function ClosePage() {
   const toast = useToast();
   const [isClosing, setIsClosing] = React.useState(false);
   const [closeResult, setCloseResult] = React.useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = React.useState(false);
 
   // ─── Fetch close report using shared hook ─────────────────────────────────
   const fetchParams = React.useMemo(
@@ -204,8 +205,7 @@ export default function ClosePage() {
   const handleClosePeriod = React.useCallback(async () => {
     if (!selectedEntity?.id || !data?.report.isReady) return;
 
-    const periodLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
-    if (!window.confirm(`Close ${periodLabel}? This will lock all transactions for this period. This action cannot be undone.`)) return;
+    setShowCloseConfirm(false);
 
     setIsClosing(true);
     setCloseResult(null);
@@ -395,7 +395,7 @@ export default function ClosePage() {
                     <div className={styles.closeButtonWrapper}>
                       <Button
                         variant="primary"
-                        onClick={handleClosePeriod}
+                        onClick={() => setShowCloseConfirm(true)}
                         disabled={!data.report.isReady || isClosing}
                         isLoading={isClosing}
                         aria-label="Close period"
@@ -430,6 +430,36 @@ export default function ClosePage() {
             </div>
           )}
         </div>
+
+          {/* Close Period Confirmation Modal */}
+          <Modal
+            isOpen={showCloseConfirm}
+            onClose={() => setShowCloseConfirm(false)}
+            title="Close Period"
+            size="sm"
+            footer={
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <Button variant="secondary" size="sm" onClick={() => setShowCloseConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleClosePeriod}
+                  disabled={isClosing}
+                  isLoading={isClosing}
+                >
+                  🔒 Close Period
+                </Button>
+              </div>
+            }
+          >
+            <p style={{ margin: 0, lineHeight: 1.6 }}>
+              Close <strong>{MONTH_NAMES[selectedMonth - 1]} {selectedYear}</strong>?
+              This will <strong>lock all transactions</strong> for this period.
+              This action cannot be undone.
+            </p>
+          </Modal>
       </ErrorBoundary>
     </AppShell>
   );
