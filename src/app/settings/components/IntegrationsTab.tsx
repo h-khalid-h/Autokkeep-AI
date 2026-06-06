@@ -6,6 +6,26 @@ import type { EntityData, ConnectionStatus } from '../types';
 import CardSkeletonBlock from './CardSkeletonBlock';
 import styles from '../page.module.css';
 
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  if (diffMs < 0) return 'just now';
+
+  const diffSeconds = Math.floor(diffMs / 1000);
+  if (diffSeconds < 60) return 'just now';
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
 export default function IntegrationsTab({
   loading,
   entities,
@@ -191,6 +211,13 @@ export default function IntegrationsTab({
     return 'available';
   };
 
+  const getLastSync = (key: string): string | null => {
+    if (key === 'Plaid') return connections.plaidLastSync ?? null;
+    if (key === 'QuickBooks Online') return connections.quickbooksLastSync ?? null;
+    if (key === 'Xero') return connections.xeroLastSync ?? null;
+    return null;
+  };
+
   const getHandler = (key: string): (() => void) | undefined => {
     if (key === 'Plaid') return handlePlaidConnect;
     if (key === 'QuickBooks Online') return () => handleLedgerConnect('quickbooks');
@@ -302,6 +329,7 @@ export default function IntegrationsTab({
               const status = getStatus(item.name);
               const handler = getHandler(item.name);
               const isItemLoading = actionLoading === item.name.toLowerCase().replace(/\s.*/, '');
+              const lastSync = getLastSync(item.name);
 
               return (
                 <Card key={item.name} padding="sm">
@@ -313,7 +341,18 @@ export default function IntegrationsTab({
                     </div>
                     <div className={styles.integrationActions}>
                       {status === 'configured' && (
-                        <Badge variant="success">Connected</Badge>
+                        <div>
+                          <Badge variant="success">Connected</Badge>
+                          {lastSync ? (
+                            <div className={styles.integrationDesc} style={{ marginTop: '4px', fontSize: 'var(--text-xs, 0.75rem)' }}>
+                              Last sync: {formatRelativeTime(lastSync)}
+                            </div>
+                          ) : status === 'configured' && (item.name === 'Plaid' || item.name === 'QuickBooks Online' || item.name === 'Xero') ? (
+                            <div className={styles.integrationDesc} style={{ marginTop: '4px', fontSize: 'var(--text-xs, 0.75rem)' }}>
+                              Never synced
+                            </div>
+                          ) : null}
+                        </div>
                       )}
                       {handler ? (
                         <Button

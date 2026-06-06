@@ -32,6 +32,9 @@ export interface ConnectionStatus {
   quickbooks: boolean;
   xero: boolean;
   slack: boolean;
+  plaidLastSync?: string | null;
+  quickbooksLastSync?: string | null;
+  xeroLastSync?: string | null;
 }
 
 // ─── Entity Tab Types ───────────────────────────────────────────────────────────

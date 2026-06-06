@@ -3,6 +3,7 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import ContextInsightCard from '@/components/dashboard/ContextInsightCard';
+import TransactionNotes from '@/components/dashboard/TransactionNotes';
 import dynamic from 'next/dynamic';
 const ActionsConsole = dynamic(() => import('@/components/dashboard/ActionsConsole'), { ssr: false });
 import styles from './TransactionDetailPanel.module.css';
@@ -14,6 +15,7 @@ export interface TransactionDetailPanelProps {
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onChangeCategory: (id: string, newCategory: string) => void;
+  onNotesUpdated?: (id: string, notes: string) => void;
   chartOfAccounts?: { code: string; name: string }[];
   loading?: boolean;
 }
@@ -25,6 +27,7 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
   onApprove,
   onReject,
   onChangeCategory,
+  onNotesUpdated,
   chartOfAccounts = [],
   loading,
 }) => {
@@ -51,6 +54,15 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
     [onChangeCategory]
   );
 
+  const handleNotesSaved = React.useCallback(
+    (newNotes: string) => {
+      if (transaction) {
+        onNotesUpdated?.(transaction.id, newNotes);
+      }
+    },
+    [transaction, onNotesUpdated]
+  );
+
   if (loading) {
     return (
       <main className="dashboard-content" aria-label="Transaction review area">
@@ -69,6 +81,15 @@ const TransactionDetailPanel: React.FC<TransactionDetailPanelProps> = ({
     >
       {/* Center: Context Insight */}
       <ContextInsightCard transaction={transaction} />
+
+      {/* Notes */}
+      {transaction && (
+        <TransactionNotes
+          transactionId={transaction.id}
+          initialNotes={transaction.description || ''}
+          onSaved={handleNotesSaved}
+        />
+      )}
 
       {/* Bottom: Actions Console */}
       <ActionsConsole

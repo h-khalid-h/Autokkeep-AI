@@ -1,17 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Transaction } from '@/lib/types/transaction';
 import styles from './ContextInsightCard.module.css';
 
 interface ContextInsightCardProps {
   transaction: Transaction | null;
   currency?: string;
+  onReceiptUploaded?: (transaction: Transaction) => void;
 }
+
+type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
 const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
   transaction,
   currency = 'USD',
+  onReceiptUploaded,
 }) => {
   const txCurrency = transaction?.rawData?.currency || currency;
   const formattedAmount = transaction
@@ -21,9 +25,29 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
       }).format(transaction.amount)
     : '';
 
+  const [uploadState, setUploadState] = useState<UploadState>('idle');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [localDocStatus, setLocalDocStatus] = useState<'found' | 'missing' | 'partial' | null>(null);
+  const [localDocUrl, setLocalDocUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset local state when transaction changes
+  const currentTxId = transaction?.id;
+  const prevTxIdRef = useRef<string | undefined>(undefined);
+  if (currentTxId !== prevTxIdRef.current) {
+    prevTxIdRef.current = currentTxId;
+    if (uploadState !== 'idle') setUploadState('idle');
+    if (uploadError !== null) setUploadError(null);
+    if (localDocStatus !== null) setLocalDocStatus(null);
+    if (localDocUrl !== null) setLocalDocUrl(null);
+  }
+
+  const effectiveDocStatus = localDocStatus ?? transaction?.documentStatus;
+  const effectiveDocUrl = localDocUrl ?? transaction?.documentUrl;
+
   const documentStatusBadge = React.useMemo(() => {
-    if (!transaction) return 'badge';
-    switch (transaction.documentStatus) {
+    if (!effectiveDocStatus) return 'badge';
+    switch (effectiveDocStatus) {
       case 'found':
         return 'badge badge-success';
       case 'missing':
@@ -33,11 +57,11 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
       default:
         return 'badge';
     }
-  }, [transaction]);
+  }, [effectiveDocStatus]);
 
   const documentStatusIcon = React.useMemo(() => {
-    if (!transaction) return '📄';
-    switch (transaction.documentStatus) {
+    if (!effectiveDocStatus) return '📄';
+    switch (effectiveDocStatus) {
       case 'found':
         return '✅';
       case 'missing':
@@ -47,7 +71,61 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
       default:
         return '📄';
     }
-  }, [transaction]);
+  }, [effectiveDocStatus]);
+
+  const handleUpload = useCallback(async (file: File) => {
+    if (!transaction) return;
+
+    setUploadState('uploading');
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('receipt', file);
+
+      const response = await fetch(`/api/transactions/${transaction.id}/receipt`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData: { error?: string } = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed (${response.status})`);
+      }
+
+      const result: { document_url?: string; document_status?: string } = await response.json();
+
+      setLocalDocStatus('found');
+      if (result.document_url) {
+        setLocalDocUrl(result.document_url);
+      }
+      setUploadState('success');
+
+      if (onReceiptUploaded) {
+        onReceiptUploaded({
+          ...transaction,
+          documentStatus: 'found',
+          documentUrl: result.document_url ?? transaction.documentUrl,
+        });
+      }
+    } catch (err) {
+      setUploadState('error');
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    }
+  }, [transaction, onReceiptUploaded]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void handleUpload(file);
+    }
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+  }, [handleUpload]);
+
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   if (!transaction) {
     return (
@@ -156,11 +234,68 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                   Status
                 </span>
                 <span className={documentStatusBadge}>
-                  {transaction.documentStatus.toUpperCase()}
+                  {effectiveDocStatus?.toUpperCase() ?? 'UNKNOWN'}
                 </span>
               </div>
               {transaction.documentNote && (
                 <p className="text-body">{transaction.documentNote}</p>
+              )}
+            </div>
+
+            {/* Receipt Upload / View Section */}
+            <div className="card-accent" style={{ marginTop: 'var(--space-3)' }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                aria-label="Upload receipt file"
+              />
+
+              {effectiveDocStatus === 'found' && effectiveDocUrl && (
+                <a
+                  href={effectiveDocUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.receiptLink}
+                >
+                  📄 View Receipt
+                </a>
+              )}
+
+              {effectiveDocStatus === 'found' && !effectiveDocUrl && (
+                <span className="text-body" style={{ color: 'var(--success)' }}>
+                  ✅ Receipt attached
+                </span>
+              )}
+
+              {(effectiveDocStatus === 'missing' || effectiveDocStatus === 'partial') && (
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  disabled={uploadState === 'uploading'}
+                  className={styles.uploadButton}
+                  aria-busy={uploadState === 'uploading'}
+                >
+                  {uploadState === 'uploading' ? (
+                    <span className={styles.uploadSpinner}>⏳ Uploading…</span>
+                  ) : (
+                    '📎 Upload Receipt'
+                  )}
+                </button>
+              )}
+
+              {uploadState === 'error' && uploadError && (
+                <p className={styles.uploadError} role="alert">
+                  {uploadError}
+                </p>
+              )}
+
+              {uploadState === 'success' && (
+                <p className={styles.uploadSuccess}>
+                  ✅ Receipt uploaded successfully
+                </p>
               )}
             </div>
 

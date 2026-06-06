@@ -16,6 +16,7 @@ interface Account {
   type: string;
   active: boolean;
   description?: string;
+  parent_id?: string | null;
 }
 
 type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense' | 'COGS';
@@ -59,6 +60,7 @@ interface ApiAccountRow {
   type: string;
   is_active?: boolean;
   description?: string;
+  parent_id?: string | null;
 }
 
 function mapApiAccount(row: ApiAccountRow): Account {
@@ -70,6 +72,7 @@ function mapApiAccount(row: ApiAccountRow): Account {
     type: displayType(row.type),
     active: row.is_active !== false,
     description: row.description || '',
+    parent_id: row.parent_id || null,
   };
 }
 
@@ -98,6 +101,7 @@ export default function ChartOfAccountsPage() {
   const [formType, setFormType] = useState<AccountType>('Expense');
   const [formDescription, setFormDescription] = useState('');
   const [formActive, setFormActive] = useState(true);
+  const [formParentId, setFormParentId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -143,12 +147,48 @@ export default function ChartOfAccountsPage() {
     return a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q);
   }), [accounts, search]);
 
-  const sorted = useMemo(() => [...filtered].sort((a, b) => {
-    const av = sortField === 'code' ? a.code : a.name.toLowerCase();
-    const bv = sortField === 'code' ? b.code : b.name.toLowerCase();
-    const cmp = av.localeCompare(bv);
-    return sortDir === 'asc' ? cmp : -cmp;
-  }), [filtered, sortField, sortDir]);
+  const sorted = useMemo(() => {
+    // First sort filtered accounts by the chosen field
+    const base = [...filtered].sort((a, b) => {
+      const av = sortField === 'code' ? a.code : a.name.toLowerCase();
+      const bv = sortField === 'code' ? b.code : b.name.toLowerCase();
+      const cmp = av.localeCompare(bv);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    // Build hierarchical ordering: parents followed by their children
+    const childrenMap = new Map<string | null, Account[]>();
+    for (const acct of base) {
+      const key = acct.parent_id || null;
+      const list = childrenMap.get(key);
+      if (list) {
+        list.push(acct);
+      } else {
+        childrenMap.set(key, [acct]);
+      }
+    }
+
+    const result: Account[] = [];
+    const addWithChildren = (parentId: string | null) => {
+      const children = childrenMap.get(parentId);
+      if (!children) return;
+      for (const child of children) {
+        result.push(child);
+        addWithChildren(child.id);
+      }
+    };
+    addWithChildren(null);
+
+    // Append any accounts whose parent was filtered out (orphans in current view)
+    const inResult = new Set(result.map(a => a.id));
+    for (const acct of base) {
+      if (!inResult.has(acct.id)) {
+        result.push(acct);
+      }
+    }
+
+    return result;
+  }, [filtered, sortField, sortDir]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -187,6 +227,7 @@ export default function ChartOfAccountsPage() {
     setFormType('Expense');
     setFormDescription('');
     setFormActive(true);
+    setFormParentId(null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -198,6 +239,7 @@ export default function ChartOfAccountsPage() {
     setFormType(account.type as AccountType);
     setFormDescription(account.description || '');
     setFormActive(account.active);
+    setFormParentId(account.parent_id || null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -231,6 +273,7 @@ export default function ChartOfAccountsPage() {
             type: formType,
             description: formDescription,
             is_active: formActive,
+            parent_id: formParentId || null,
           }),
         });
 
@@ -279,6 +322,7 @@ export default function ChartOfAccountsPage() {
             type: formType,
             description: formDescription,
             active: formActive,
+            parent_id: formParentId || null,
           }),
         });
 
@@ -766,7 +810,12 @@ export default function ChartOfAccountsPage() {
                             />
                           </td>
                           <td className={styles.cellCode}>{account.code}</td>
-                          <td className={styles.cellName}>{account.name}</td>
+                          <td className={styles.cellName}>
+                            {account.parent_id && (
+                              <span style={{ color: 'var(--color-text-tertiary, #999)', marginRight: 4 }}>└─</span>
+                            )}
+                            {account.name}
+                          </td>
                           <td>
                             <Badge variant={badgeVariant} size="sm">
                               {displayType(account.type)}
@@ -897,6 +946,24 @@ export default function ChartOfAccountsPage() {
                   <option value="Revenue">Revenue</option>
                   <option value="Expense">Expense</option>
                   <option value="COGS">COGS</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="form-parent" className={styles.formLabel}>Parent Account</label>
+                <select
+                  id="form-parent"
+                  className={styles.formSelect}
+                  value={formParentId || ''}
+                  onChange={e => setFormParentId(e.target.value || null)}
+                >
+                  <option value="">None (top-level)</option>
+                  {accounts
+                    .filter(a => a.id !== editingAccount?.id)
+                    .map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.code} — {a.name}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div className={`${styles.formGroup} ${styles.formFullWidth}`}>

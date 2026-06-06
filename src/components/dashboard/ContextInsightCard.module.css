@@ -11,3 +11,63 @@
   letter-spacing: 0.08em;
   color: var(--color-text-tertiary);
 }
+
+.uploadButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.uploadButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle, rgba(99, 102, 241, 0.08));
+}
+
+.uploadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.uploadSpinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.receiptLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.receiptLink:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.uploadError {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-destructive, #ef4444);
+}
+
+.uploadSuccess {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-success, #22c55e);
+}

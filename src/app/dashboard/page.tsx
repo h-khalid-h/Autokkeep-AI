@@ -48,6 +48,7 @@ interface RawTransaction {
   mcc_code: string | null;
   currency: string | null;
   document_status: string | null;
+  description: string | null;
 }
 
 function buildTags(tx: RawTransaction): string[] {
@@ -99,6 +100,7 @@ const mapTransaction = (tx: RawTransaction): Transaction => ({
     currency: tx.currency || 'USD',
   },
   documentStatus: (tx.document_status || 'missing') as Transaction['documentStatus'],
+  description: tx.description || undefined,
 });
 
 // ─── Quick Access Module Cards ──────────────────────────────────────────────
@@ -509,6 +511,20 @@ export default function DashboardPage() {
     [transactions, chartOfAccounts]
   );
 
+  // ─── Notes update handler ──────────────────────────────────────────────────
+  const handleNotesUpdated = React.useCallback(
+    (id: string, notes: string) => {
+      const description = notes || undefined;
+      setTransactions((prev) =>
+        prev.map((tx) => (tx.id === id ? { ...tx, description } : tx))
+      );
+      setSelectedTransaction((prev) =>
+        prev && prev.id === id ? { ...prev, description } : prev
+      );
+    },
+    []
+  );
+
   // ─── Keyboard shortcut handler ─────────────────────────────────────────────
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -642,6 +658,7 @@ export default function DashboardPage() {
                 onApprove={handleApproveById}
                 onReject={handleRejectById}
                 onChangeCategory={handleChangeCategoryById}
+                onNotesUpdated={handleNotesUpdated}
                 chartOfAccounts={chartOfAccounts}
               />
             </Card>

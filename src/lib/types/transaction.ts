@@ -27,4 +27,6 @@ export interface Transaction {
   };
   documentStatus: 'found' | 'missing' | 'partial';
   documentNote?: string;
+  description?: string;
+  documentUrl?: string | null;
 }

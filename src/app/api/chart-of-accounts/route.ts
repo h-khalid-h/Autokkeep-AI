@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Fetch chart of accounts
     const { data: accounts, error: queryError } = await db
       .from('chart_of_accounts')
-      .select('id, entity_id, code, name, type, is_active, created_at')
+      .select('id, entity_id, code, name, type, is_active, parent_id, created_at')
       .in('entity_id', entityIds)
       .order('code', { ascending: true })
       .limit(1000);
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const parsed = await parseBody(request, schemas.createAccount);
     if (!parsed.success) return parsed.error;
-    const { code, name, type, description, active, entityId, is_active: _is_active } = parsed.data;
+    const { code, name, type, description, active, entityId, is_active: _is_active, parent_id } = parsed.data;
 
     // Resolve entity_id: use provided entityId or default to first entity
     let resolvedEntityId = entityId;
@@ -119,16 +119,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate parent_id if provided
+    if (parent_id) {
+      const { data: parentAccount } = await db
+        .from('chart_of_accounts')
+        .select('id')
+        .eq('id', parent_id)
+        .eq('entity_id', resolvedEntityId)
+        .single();
+
+      if (!parentAccount) {
+        return NextResponse.json(
+          { error: 'Parent account not found in this entity' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Insert new account
+    const insertPayload: Record<string, unknown> = {
+      entity_id: resolvedEntityId,
+      code,
+      name,
+      type: type.toLowerCase(),
+      is_active: active !== false,
+    };
+    if (parent_id !== undefined) {
+      insertPayload.parent_id = parent_id || null;
+    }
+
     const { data: account, error: insertError } = await db
       .from('chart_of_accounts')
-      .insert({
-        entity_id: resolvedEntityId,
-        code,
-        name,
-        type: type.toLowerCase(),
-        is_active: active !== false,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -174,7 +196,7 @@ export async function PUT(request: NextRequest) {
 
     const parsed = await parseBody(request, schemas.updateAccount);
     if (!parsed.success) return parsed.error;
-    const { id, code, name, type, is_active, entityId: _entityId } = parsed.data;
+    const { id, code, name, type, is_active, entityId: _entityId, parent_id } = parsed.data;
 
     // Verify the account belongs to an entity in this org
     const { data: existing } = await db
@@ -197,6 +219,34 @@ export async function PUT(request: NextRequest) {
     if (name !== undefined) updates.name = name;
     if (type !== undefined) updates.type = type.toLowerCase();
     if (is_active !== undefined) updates.is_active = is_active;
+    if (parent_id !== undefined) {
+      if (parent_id === null) {
+        updates.parent_id = null;
+      } else {
+        // Prevent self-referencing
+        if (parent_id === id) {
+          return NextResponse.json(
+            { error: 'An account cannot be its own parent' },
+            { status: 400 }
+          );
+        }
+        // Validate parent exists in same entity
+        const { data: parentAccount } = await db
+          .from('chart_of_accounts')
+          .select('id')
+          .eq('id', parent_id)
+          .eq('entity_id', existing.entity_id)
+          .single();
+
+        if (!parentAccount) {
+          return NextResponse.json(
+            { error: 'Parent account not found in this entity' },
+            { status: 400 }
+          );
+        }
+        updates.parent_id = parent_id;
+      }
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(

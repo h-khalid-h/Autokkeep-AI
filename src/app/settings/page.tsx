@@ -121,12 +121,12 @@ export default function SettingsPage() {
             .limit(1),
           db
             .from('bank_connections')
-            .select('id, entity_id, status')
+            .select('id, entity_id, status, last_synced_at')
             .in('entity_id', entityIds)
             .eq('status', 'active'),
           db
             .from('ledger_connections')
-            .select('id, entity_id, provider, is_active')
+            .select('id, entity_id, provider, is_active, last_synced_at')
             .in('entity_id', entityIds)
             .eq('is_active', true),
           db
@@ -149,11 +149,24 @@ export default function SettingsPage() {
           setSubscription(subResult.data[0]);
         }
 
+        // Extract the most recent last_synced_at for each provider
+        const plaidLastSync = bankConnsResult.data
+          ?.map((c: Record<string, unknown>) => c.last_synced_at as string | null)
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ?? null;
+
+        const qbConn = ledgerConnsResult.data?.find((c: Record<string, unknown>) => c.provider === 'quickbooks');
+        const xeroConn = ledgerConnsResult.data?.find((c: Record<string, unknown>) => c.provider === 'xero');
+
         setConnections({
           plaid: (bankConnsResult.data && bankConnsResult.data.length > 0) || false,
-          quickbooks: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: Record<string, unknown>) => c.provider === 'quickbooks')) || false,
-          xero: (ledgerConnsResult.data && ledgerConnsResult.data.some((c: Record<string, unknown>) => c.provider === 'xero')) || false,
+          quickbooks: !!qbConn,
+          xero: !!xeroConn,
           slack: (channelConnsResult.data && channelConnsResult.data.some((c: Record<string, unknown>) => c.channel_type === 'slack')) || false,
+          plaidLastSync,
+          quickbooksLastSync: (qbConn?.last_synced_at as string | null) ?? null,
+          xeroLastSync: (xeroConn?.last_synced_at as string | null) ?? null,
         });
 
         setTransactionCount(txCountResult.count || 0);
