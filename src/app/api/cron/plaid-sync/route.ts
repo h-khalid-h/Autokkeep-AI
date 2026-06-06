@@ -82,7 +82,7 @@ async function handler(request: NextRequest) {
               .from('bank_connections')
               .update({ status: 'active', updated_at: new Date().toISOString() })
               .eq('id', connId);
-            console.log(`[Cron Plaid Sync] Restored errored connection ${connId} to active`);
+            console.info(`[Cron Plaid Sync] Restored errored connection ${connId} to active`);
           }
         } else {
           failedCount++;
