@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCsvTransactions } from './csv-parser';
-import type { CsvParseResult, ParsedTransaction } from './csv-parser';
+import type { ParsedTransaction } from './csv-parser';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
