@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
       const { data: monthTxns } = await db
         .from('transactions')
-        .select('amount, base_amount')
+        .select('amount')
         .in('entity_id', entityIds)
         .neq('status', TRANSACTION_STATUS.REMOVED)
         .is('deleted_at', null)
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
       monthlyVolume = (monthTxns || [])
         .reduce((sum: number, t: Record<string, unknown>) => {
-          const val = Number(t.base_amount ?? t.amount) || 0;
+          const val = Number(t.amount) || 0;
           return sum + Math.abs(val);
         }, 0);
     }
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       // Fallback: client-side aggregation (pre-migration 041)
       const { data: catTxns } = await db
         .from('transactions')
-        .select('category_ai, amount, base_amount')
+        .select('category_ai, amount')
         .in('entity_id', entityIds)
         .neq('status', TRANSACTION_STATUS.REMOVED)
         .is('deleted_at', null)
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           categoryMap[code] = { count: 0, amount: 0 };
         }
         categoryMap[code].count++;
-        const catVal = Number((t as Record<string, unknown>).base_amount ?? t.amount) || 0;
+        const catVal = Number(t.amount) || 0;
         categoryMap[code].amount += Math.abs(catVal);
       }
 
