@@ -7,7 +7,6 @@ import { writeAuditLog } from '@/lib/audit';
 import {
   parseTwilioWebhook,
   parseUserResponse,
-  extractTransactionRef as _extractTransactionRef,
   validateTwilioSignature,
 } from '@/lib/channels/twilio';
 import { createAdminClient } from '@/lib/supabase/admin';
