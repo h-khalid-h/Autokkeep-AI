@@ -177,7 +177,7 @@
 .progressTrack {
   height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-secondary);
   overflow: hidden;
 }
 
@@ -203,7 +203,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .feedRowLeft {
@@ -274,7 +274,7 @@
 }
 
 .resultRowOdd {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-bg-subtle);
 }
 
 .cellDate {
