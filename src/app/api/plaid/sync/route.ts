@@ -12,6 +12,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { categorizeTransaction } from '@/lib/ai/categorizer';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { membership, db, user } = ctx;
 
     const bodyResult = await parseBody(request, schemas.plaidSync);
     if (!bodyResult.success) return bodyResult.error;
@@ -169,6 +170,18 @@ export async function POST(request: NextRequest) {
           .eq('entity_id', entity.id);
       }
     }
+
+    writeAuditLog({
+      supabase: db,
+      entityId: entity.id,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'sync',
+      targetType: 'plaid_transactions',
+      targetId: connectionId,
+      details: { entityId: entity.id, connectionId, transactionCount: ingestResult.added + ingestResult.modified },
+      request,
+    });
 
     return NextResponse.json({
       added: ingestResult.added,

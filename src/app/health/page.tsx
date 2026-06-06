@@ -144,8 +144,14 @@ function ComplianceSection({ entityId }: { entityId: string }) {
   const [meta, setMeta] = React.useState<{ transactionCount: number; periodStart: string; periodEnd: string } | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const complianceAbortRef = React.useRef<AbortController | null>(null);
 
   const handleRunCheck = React.useCallback(async (region: string) => {
+    // Abort any in-flight compliance check
+    complianceAbortRef.current?.abort();
+    const controller = new AbortController();
+    complianceAbortRef.current = controller;
+
     setSelectedRegion(region);
     setLoading(true);
     setError(null);
@@ -156,6 +162,7 @@ function ComplianceSection({ entityId }: { entityId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entityId, region }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -166,7 +173,8 @@ function ComplianceSection({ entityId }: { entityId: string }) {
       const data = await res.json();
       setResult(data.result);
       setMeta(data.meta);
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Failed to run compliance check');
     } finally {
       setLoading(false);
@@ -312,6 +320,7 @@ export default function HealthPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [dismissingIds, setDismissingIds] = React.useState<Set<string>>(new Set());
   const toast = useToast();
+  const healthAbortRef = React.useRef<AbortController | null>(null);
 
   // ─── Fetch health data using shared hook ──────────────────────────────────
   const buildHealthUrl = React.useCallback(
@@ -333,17 +342,23 @@ export default function HealthPage() {
       if (!selectedEntity?.id) return;
 
       if (refresh) {
+        // Abort any in-flight health refresh
+        healthAbortRef.current?.abort();
+        const controller = new AbortController();
+        healthAbortRef.current = controller;
+
         setIsRefreshing(true);
         try {
           const url = `/api/insights/health?entityId=${selectedEntity.id}&refresh=true`;
-          const res = await fetch(url);
+          const res = await fetch(url, { signal: controller.signal });
           if (!res.ok) {
             const body = await res.json().catch(() => ({}));
             throw new Error(body.error || `Failed to fetch health data (${res.status})`);
           }
           // After refresh, refetch via hook to update state
           await refetch();
-        } catch (err) {
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === 'AbortError') return;
           console.error('[Health] Refresh error:', err);
         } finally {
           setIsRefreshing(false);

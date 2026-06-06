@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 
 /**
  * POST /api/team/claim
@@ -80,6 +81,17 @@ export async function POST(request: NextRequest) {
       console.error('[Team Claim] Update error:', updateError);
       return NextResponse.json({ error: 'Failed to claim invite' }, { status: 500 });
     }
+
+    writeAuditLog({
+      supabase: db,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'update',
+      targetType: 'team_invite',
+      targetId: inviteId,
+      details: { org_id: invite.org_id, claimed_email: user.email },
+      request,
+    });
 
     return NextResponse.json({ success: true, org_id: invite.org_id });
   } catch (err) {

@@ -471,6 +471,14 @@ function OrganizationsTab() {
                 padding="sm"
                 className={styles.orgRow}
                 onClick={() => setExpandedId(expandedId === org.id ? null : org.id)}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedId(expandedId === org.id ? null : org.id);
+                  }
+                }}
               >
                 <div className={styles.orgRowInner}>
                   <div className={styles.orgInfo}>

@@ -8,6 +8,7 @@ import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { exportToCSV, exportToSQL } from '@/lib/ledger/csv-export';
 import { rateLimit } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getApiAuthContext(request);
     if (ctx.error) return ctx.error;
-    const { membership, db } = ctx;
+    const { membership, db, user } = ctx;
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('entityId');
@@ -59,6 +60,16 @@ export async function GET(request: NextRequest) {
 
     if (format === 'sql') {
       const sqlDump = await exportToSQL(db, entityId, exportOptions);
+      writeAuditLog({
+        supabase: db,
+        entityId,
+        actorId: user.id,
+        actorType: 'human',
+        action: 'export',
+        targetType: 'ledger_data',
+        details: { entityId, format: 'sql', count: sqlDump.split('\n').length },
+        request,
+      });
       return new NextResponse(sqlDump, {
         status: 200,
         headers: {
@@ -70,6 +81,16 @@ export async function GET(request: NextRequest) {
 
     // Default: CSV
     const csv = await exportToCSV(db, entityId, exportOptions);
+    writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'export',
+      targetType: 'ledger_data',
+      details: { entityId, format: 'csv', count: csv.split('\n').length },
+      request,
+    });
     return new NextResponse(csv, {
       status: 200,
       headers: {

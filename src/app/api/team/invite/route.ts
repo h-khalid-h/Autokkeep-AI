@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 
 const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'Autokkeep <noreply@autokkeep.com>';
 
@@ -86,6 +87,17 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    writeAuditLog({
+      supabase: db,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'create',
+      targetType: 'team_invite',
+      targetId: normalizedEmail,
+      details: { org_id: membership.org_id, role, email: normalizedEmail },
+      request,
+    });
 
     // Create a team_invites record to track the invite lifecycle
     const { error: inviteInsertError } = await db

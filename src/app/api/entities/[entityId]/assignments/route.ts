@@ -4,6 +4,7 @@ import { handleApiError } from '@/lib/api-helpers';
 import { getApiAuthContext } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseBody, schemas } from '@/lib/validation';
+import { writeAuditLog } from '@/lib/audit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -110,6 +111,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Failed to auto-assign user to all entities' }, { status: 500 });
       }
 
+      writeAuditLog({
+        supabase: db,
+        entityId,
+        actorId: user.id,
+        actorType: 'human',
+        action: 'create',
+        targetType: 'entity_assignment',
+        targetId: userId,
+        details: { bulk: true, count: entityIds.length, role: targetRole },
+        request,
+      });
+
       return NextResponse.json(
         { message: 'User auto-assigned to all entities (owner/admin role)', count: entityIds.length },
         { status: 201 }
@@ -130,6 +143,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       console.error('[Entity Assignments POST] Insert error:', insertError);
       return NextResponse.json({ error: 'Failed to create assignment' }, { status: 500 });
     }
+
+    writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: user.id,
+      actorType: 'human',
+      action: 'create',
+      targetType: 'entity_assignment',
+      targetId: userId,
+      details: { entity_id: entityId, user_id: userId },
+      request,
+    });
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (err) {
@@ -178,6 +203,18 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (count === 0) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
+
+    writeAuditLog({
+      supabase: db,
+      entityId,
+      actorId: ctx.user.id,
+      actorType: 'human',
+      action: 'delete',
+      targetType: 'entity_assignment',
+      targetId: userId,
+      details: { entity_id: entityId, user_id: userId },
+      request,
+    });
 
     return NextResponse.json({ message: 'Assignment removed' });
   } catch (err) {
