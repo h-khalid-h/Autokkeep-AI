@@ -163,11 +163,19 @@ function ModuleQuickAccess() {
 
 // ─── Stats Bar (using design tokens) ────────────────────────────────────────
 
+interface DashboardStatsData {
+  total: number;
+  pending: number;
+  approved: number;
+  autoRate: number;
+  monthlyVolume: number;
+}
+
 function StatsBar({
   stats,
   loading,
 }: {
-  stats: { total: number; pending: number; approved: number; rejected: number; autoRate: number } | null;
+  stats: DashboardStatsData | null;
   loading: boolean;
 }) {
   if (loading) {
@@ -184,12 +192,18 @@ function StatsBar({
 
   if (!stats) return null;
 
+  const formatVolume = (v: number) => {
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
+    return `$${v.toFixed(0)}`;
+  };
+
   const items = [
-    { label: 'Total', value: stats.total, icon: '📊' },
+    { label: 'Total', value: stats.total.toLocaleString(), icon: '📊' },
     { label: 'Pending', value: stats.pending, icon: '⏳' },
-    { label: 'Approved', value: stats.approved, icon: '✅' },
-    { label: 'Rejected', value: stats.rejected, icon: '❌' },
-    { label: 'Auto Rate', value: `${stats.autoRate}%`, icon: '🤖' },
+    { label: 'Approved', value: stats.approved.toLocaleString(), icon: '✅' },
+    { label: 'AI Accuracy', value: `${stats.autoRate}%`, icon: '🤖' },
+    { label: 'Month Vol', value: formatVolume(stats.monthlyVolume), icon: '💰' },
   ];
 
   return (
@@ -218,26 +232,49 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [_reasoningExpanded, setReasoningExpanded] = React.useState(false);
-  const [rejectedCount, setRejectedCount] = React.useState(0);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
+  const [stats, setStats] = React.useState<DashboardStatsData | null>(null);
+  const [statsLoading, setStatsLoading] = React.useState(true);
 
-  // ─── Compute stats from transactions ────────────────────────────────────────
-  const stats = React.useMemo(() => {
-    if (isLoading) return null;
-    const total = transactions.length;
-    const pending = transactions.filter((t) => t.status === 'pending' || t.status === 'human_review').length;
-    const approved = transactions.filter((t) => t.status === 'approved').length;
-    // rejectedCount tracks rejections made during this session (transactions removed
-    // from the list are no longer in the array, so we use the accumulated counter)
-    const rejected = rejectedCount;
-    const autoRate = total > 0
-      ? Math.round((transactions.filter((t) => t.status === 'auto_categorized').length / total) * 100)
-      : 0;
-    return { total, pending, approved, rejected, autoRate };
-  }, [transactions, isLoading, rejectedCount]);
+  // ─── Fetch real stats from API ──────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!selectedEntity?.id) return;
+    let cancelled = false;
+
+    async function fetchStats() {
+      setStatsLoading(true);
+      try {
+        const res = await fetch(`/api/dashboard/stats?entityId=${selectedEntity!.id}`);
+        if (!res.ok) throw new Error(`Stats fetch failed (${res.status})`);
+        const data = await res.json();
+        if (!cancelled) {
+          setStats({
+            total: data.totalTransactions ?? 0,
+            pending: data.pendingReview ?? 0,
+            approved: data.autoApproved ?? 0,
+            autoRate: data.aiAccuracy ?? 0,
+            monthlyVolume: data.monthlyVolume ?? 0,
+          });
+        }
+      } catch (err) {
+        console.error('[Dashboard] Stats fetch error:', err);
+        if (!cancelled) {
+          // Fallback: compute from local transactions
+          const total = transactions.length;
+          const pending = transactions.filter((t) => t.status === 'pending' || t.status === 'human_review').length;
+          setStats({ total, pending, approved: 0, autoRate: 0, monthlyVolume: 0 });
+        }
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    }
+
+    fetchStats();
+    return () => { cancelled = true; };
+  }, [selectedEntity?.id, transactions.length]); // re-fetch when transactions change
 
   // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
@@ -424,7 +461,7 @@ export default function DashboardPage() {
         const res = await fetch(`/api/transactions/${transaction.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'removed' }),
+          body: JSON.stringify({ status: 'rejected' }),
         });
 
         if (!res.ok) {
@@ -434,7 +471,7 @@ export default function DashboardPage() {
         }
 
         setExitingId(transaction.id);
-        setRejectedCount((prev) => prev + 1);
+
 
         setTimeout(() => {
           setTransactions((prev) => {
@@ -565,7 +602,7 @@ export default function DashboardPage() {
       <ErrorBoundary componentName="Dashboard">
         <AppShell pendingCount={0}>
           <div className={styles.pageWrapper}>
-            <StatsBar stats={null} loading={true} />
+            <StatsBar stats={null} loading={statsLoading} />
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner} />
               <p className={styles.loadingText}>Loading transactions…</p>
@@ -582,7 +619,7 @@ export default function DashboardPage() {
       <ErrorBoundary componentName="Dashboard">
         <AppShell pendingCount={0}>
           <div className={styles.pageWrapper}>
-            <StatsBar stats={stats} loading={false} />
+            <StatsBar stats={stats} loading={statsLoading} />
             <ModuleQuickAccess />
             <RecentActivity />
             <Card variant="default" padding="lg">
@@ -602,7 +639,7 @@ export default function DashboardPage() {
     <ErrorBoundary componentName="Dashboard">
       <AppShell pendingCount={stats?.pending ?? 0}>
         <div className={styles.pageWrapper}>
-          <StatsBar stats={stats} loading={false} />
+          <StatsBar stats={stats} loading={statsLoading} />
 
           <ModuleQuickAccess />
 
