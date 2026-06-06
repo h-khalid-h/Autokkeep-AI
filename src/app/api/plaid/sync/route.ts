@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Validate entity access
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency')
       .eq('id', connection.entity_id)
       .eq('org_id', membership.org_id)
       .single();
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
           amount: txn.amount,
           date: txn.date,
           mcc: undefined,
-          currency: txn.currency || 'USD',
+          currency: txn.currency || (entity.base_currency as string) || 'USD',
           bankDescription: txn.merchant_raw,
         };
 

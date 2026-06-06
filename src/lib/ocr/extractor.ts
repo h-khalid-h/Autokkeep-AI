@@ -25,23 +25,25 @@ export interface ExtractedReceiptData {
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
-const RECEIPT_EXTRACTION_PROMPT = `You are an expert receipt/invoice OCR data extractor. Analyze the provided receipt or invoice image and extract structured data.
+function buildReceiptPrompt(defaultCurrency: string): string {
+  return `You are an expert receipt/invoice OCR data extractor. Analyze the provided receipt or invoice image and extract structured data.
 
 Rules:
 - Extract the vendor/merchant name exactly as shown on the receipt
 - Extract the total amount as a number (no currency symbols)
 - Extract the date in ISO 8601 format (YYYY-MM-DD)
 - Extract the tax amount if visible, otherwise return null
-- Detect the currency from the receipt (default to "USD" if unclear)
+- Detect the currency from the receipt (default to "${defaultCurrency}" if unclear)
 - Extract individual line items with their descriptions and amounts
 - Infer the business purpose from context clues such as the vendor type, line items, and any notes on the receipt (e.g. "Client lunch", "Office supplies", "Travel expense"). Return null if no business purpose can be reasonably inferred.
 - If a field cannot be determined, use reasonable defaults:
   - vendor: "Unknown Vendor"
   - amount: 0
   - date: today's date in YYYY-MM-DD
-  - currency: "USD"
+  - currency: "${defaultCurrency}"
   - lineItems: empty array
   - business_purpose: null`;
+}
 
 // ─── Extractor ─────────────────────────────────────────────────────────────────
 
@@ -53,11 +55,12 @@ Rules:
  * @returns Extracted receipt data with vendor, amount, date, tax, currency, and line items
  * @throws Error if the API call fails or returns empty/invalid data
  */
-export async function extractReceiptData(fileUrl: string): Promise<ExtractedReceiptData> {
+export async function extractReceiptData(fileUrl: string, entityBaseCurrency?: string): Promise<ExtractedReceiptData> {
+  const defaultCurrency = entityBaseCurrency || 'USD';
   const response = await callWithFallback((model) => ({
     model,
     messages: [
-      { role: 'system', content: RECEIPT_EXTRACTION_PROMPT },
+      { role: 'system', content: buildReceiptPrompt(defaultCurrency) },
       {
         role: 'user',
         content: [
@@ -127,7 +130,7 @@ export async function extractReceiptData(fileUrl: string): Promise<ExtractedRece
     amount: parsed.amount,
     date: parsed.date || new Date().toISOString().split('T')[0],
     tax: parsed.tax ?? null,
-    currency: parsed.currency || 'USD',
+    currency: parsed.currency || defaultCurrency,
     lineItems: Array.isArray(parsed.lineItems)
       ? parsed.lineItems.map((item) => ({
           description: item.description,

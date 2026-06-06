@@ -107,8 +107,16 @@ export async function POST(request: NextRequest) {
               return { id: item.id, status: 'skipped' as const, skipped: true };
             }
 
+            // Step 0: Fetch entity's base currency for correct OCR defaults
+            const { data: entityData } = await db
+              .from('entities')
+              .select('base_currency')
+              .eq('id', item.entity_id)
+              .single();
+            const entityBaseCurrency = (entityData?.base_currency as string) || undefined;
+
             // Step 1: Extract receipt data via OCR
-            const extractedData = await extractReceiptData(item.file_url);
+            const extractedData = await extractReceiptData(item.file_url, entityBaseCurrency);
 
             // Step 2: Match to a transaction
             const match = await matchReceiptToTransaction(

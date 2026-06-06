@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       date: transaction.date,
       mcc: transaction.mcc || transaction.rawData?.mcc,
       currency:
-        transaction.currency || transaction.rawData?.currency || 'USD',
+        transaction.currency || transaction.rawData?.currency || (entity.base_currency as string) || 'USD',
       cardHolder: transaction.cardHolder || transaction.card_holder,
       bankDescription:
         transaction.bankDescription ||
