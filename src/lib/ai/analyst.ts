@@ -5,6 +5,7 @@
 import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -185,9 +186,9 @@ async function fetchFinancialContext(
 
 function buildFinancialContextString(ctx: FinancialContext): string {
   let contextStr = `## Financial Summary (${ctx.dateRange.start} to ${ctx.dateRange.end})\n\n`;
-  contextStr += `- **Total Income**: $${ctx.totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  contextStr += `- **Total Expenses**: $${ctx.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  contextStr += `- **Net Income**: $${ctx.netIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  contextStr += `- **Total Income**: ${formatCurrency(ctx.totalIncome, ctx.currency)}\n`;
+  contextStr += `- **Total Expenses**: ${formatCurrency(ctx.totalExpenses, ctx.currency)}\n`;
+  contextStr += `- **Net Income**: ${formatCurrency(ctx.netIncome, ctx.currency)}\n`;
   contextStr += `- **Transaction Count**: ${ctx.transactionCount}\n`;
   contextStr += `- **Currency**: ${ctx.currency}\n\n`;
 
@@ -195,7 +196,7 @@ function buildFinancialContextString(ctx: FinancialContext): string {
     contextStr += `## Top Expense Categories\n\n`;
     contextStr += `| Category | Total | # Transactions |\n|----------|-------|----------------|\n`;
     for (const cat of ctx.topExpenseCategories) {
-      contextStr += `| ${cat.category} | $${cat.total.toLocaleString('en-US', { minimumFractionDigits: 2 })} | ${cat.count} |\n`;
+      contextStr += `| ${cat.category} | ${formatCurrency(cat.total, ctx.currency)} | ${cat.count} |\n`;
     }
     contextStr += `\n`;
   }
@@ -203,7 +204,7 @@ function buildFinancialContextString(ctx: FinancialContext): string {
   if (ctx.topIncomeCategories.length > 0) {
     contextStr += `## Top Income Sources\n\n`;
     for (const cat of ctx.topIncomeCategories) {
-      contextStr += `- ${cat.category}: $${cat.total.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cat.count} transactions)\n`;
+      contextStr += `- ${cat.category}: ${formatCurrency(cat.total, ctx.currency)} (${cat.count} transactions)\n`;
     }
     contextStr += `\n`;
   }
@@ -212,7 +213,7 @@ function buildFinancialContextString(ctx: FinancialContext): string {
     contextStr += `## Monthly Trend\n\n`;
     contextStr += `| Month | Income | Expenses | Net |\n|-------|--------|----------|-----|\n`;
     for (const m of ctx.monthlyTrend) {
-      contextStr += `| ${m.month} | $${m.income.toLocaleString('en-US', { minimumFractionDigits: 2 })} | $${m.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })} | $${m.net.toLocaleString('en-US', { minimumFractionDigits: 2 })} |\n`;
+      contextStr += `| ${m.month} | ${formatCurrency(m.income, ctx.currency)} | ${formatCurrency(m.expenses, ctx.currency)} | ${formatCurrency(m.net, ctx.currency)} |\n`;
     }
   }
 
@@ -324,7 +325,7 @@ export async function analyzeFinancialQuestion(
 
     // Provide a graceful fallback response
     const fallbackAnswer = financialContext.transactionCount > 0
-      ? `I wasn't able to fully analyze your question, but here's what I can see from your data:\n\n• You have ${financialContext.transactionCount} transactions in the last 90 days\n• Total income: $${financialContext.totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n• Total expenses: $${financialContext.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n• Net income: $${financialContext.netIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n\nPlease try rephrasing your question or try again in a moment.`
+      ? `I wasn't able to fully analyze your question, but here's what I can see from your data:\n\n• You have ${financialContext.transactionCount} transactions in the last 90 days\n• Total income: ${formatCurrency(financialContext.totalIncome, financialContext.currency)}\n• Total expenses: ${formatCurrency(financialContext.totalExpenses, financialContext.currency)}\n• Net income: ${formatCurrency(financialContext.netIncome, financialContext.currency)}\n\nPlease try rephrasing your question or try again in a moment.`
       : 'I don\'t have enough transaction data to answer your question. Please make sure your bank accounts are connected and transactions have been synced.';
 
     return {

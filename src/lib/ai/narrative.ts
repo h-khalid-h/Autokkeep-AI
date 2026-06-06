@@ -6,6 +6,7 @@
 import { callWithFallback } from './openai-client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ function buildNarrativePrompt(
   revenueChange: number,
   expenseChange: number,
   newVendors: string[],
+  currency: string = 'USD',
 ): string {
   const topCategories = Array.from(currentMonth.categoryBreakdown.entries())
     .map(([name, data]) => {
@@ -160,25 +162,25 @@ function buildNarrativePrompt(
 
   let prompt = `Generate a monthly financial narrative for the period ${periodStart} to ${periodEnd}.\n\n`;
   prompt += `## Current Month Financial Data\n`;
-  prompt += `- Total Revenue: $${currentMonth.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  prompt += `- Total Expenses: $${currentMonth.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  prompt += `- Net Income: $${(currentMonth.revenue - currentMonth.expenses).toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  prompt += `- Total Revenue: ${formatCurrency(currentMonth.revenue, currency)}\n`;
+  prompt += `- Total Expenses: ${formatCurrency(currentMonth.expenses, currency)}\n`;
+  prompt += `- Net Income: ${formatCurrency(currentMonth.revenue - currentMonth.expenses, currency)}\n`;
   prompt += `- Transaction Count: ${currentMonth.transactions.length}\n`;
   prompt += `- Revenue Change vs Last Month: ${revenueChange >= 0 ? '+' : ''}${revenueChange}%\n`;
   prompt += `- Expense Change vs Last Month: ${expenseChange >= 0 ? '+' : ''}${expenseChange}%\n`;
-  prompt += `- Recurring Expenses: $${currentMonth.recurringExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  prompt += `- One-time Expenses: $${currentMonth.oneTimeExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n\n`;
+  prompt += `- Recurring Expenses: ${formatCurrency(currentMonth.recurringExpenses, currency)}\n`;
+  prompt += `- One-time Expenses: ${formatCurrency(currentMonth.oneTimeExpenses, currency)}\n\n`;
 
   prompt += `## Previous Month Financial Data\n`;
-  prompt += `- Total Revenue: $${previousMonth.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  prompt += `- Total Expenses: $${previousMonth.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-  prompt += `- Net Income: $${(previousMonth.revenue - previousMonth.expenses).toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  prompt += `- Total Revenue: ${formatCurrency(previousMonth.revenue, currency)}\n`;
+  prompt += `- Total Expenses: ${formatCurrency(previousMonth.expenses, currency)}\n`;
+  prompt += `- Net Income: ${formatCurrency(previousMonth.revenue - previousMonth.expenses, currency)}\n`;
   prompt += `- Transaction Count: ${previousMonth.transactions.length}\n\n`;
 
   if (topCategories.length > 0) {
     prompt += `## Top Expense Categories (Current Month)\n`;
     for (const cat of topCategories) {
-      prompt += `- ${cat.name}: $${cat.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cat.change >= 0 ? '+' : ''}${cat.change}% change)\n`;
+      prompt += `- ${cat.name}: ${formatCurrency(cat.amount, currency)} (${cat.change >= 0 ? '+' : ''}${cat.change}% change)\n`;
     }
     prompt += `\n`;
   }
@@ -193,7 +195,7 @@ function buildNarrativePrompt(
 
   prompt += `## Cash Flow Summary\n`;
   const cashFlow = currentMonth.revenue - currentMonth.expenses;
-  prompt += `- Net Cash Flow: $${cashFlow.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cashFlow >= 0 ? 'Positive' : 'Negative'})\n`;
+  prompt += `- Net Cash Flow: ${formatCurrency(cashFlow, currency)} (${cashFlow >= 0 ? 'Positive' : 'Negative'})\n`;
   prompt += `- Recurring Expense Ratio: ${currentMonth.expenses > 0 ? Math.round((currentMonth.recurringExpenses / currentMonth.expenses) * 100) : 0}% of total expenses\n\n`;
 
   prompt += `Generate the narrative with 4 sections. Each section should contain 2-4 bullet points that are insightful, actionable, and written in plain English. Reference specific numbers.`;
@@ -296,6 +298,9 @@ export async function generateMonthlyNarrative(
     .slice(0, 5);
 
   // Step 3: Generate narrative via OpenAI
+  // Determine currency from first transaction
+  const currency = currentTxns[0]?.currency || previousTxns[0]?.currency || 'USD';
+
   const userPrompt = buildNarrativePrompt(
     currentMonthData,
     previousMonthData,
@@ -303,7 +308,8 @@ export async function generateMonthlyNarrative(
     currentRange.end,
     revenueChange,
     expenseChange,
-    newVendors
+    newVendors,
+    currency
   );
 
   let sections: FinancialNarrative['sections'] = {
@@ -377,7 +383,7 @@ export async function generateMonthlyNarrative(
     sections = {
       whatHappened: [
         `Your business processed ${currentTxns.length} transactions this month.`,
-        `Total revenue was $${currentMonthData.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} with expenses of $${currentMonthData.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
+        `Total revenue was ${formatCurrency(currentMonthData.revenue, currency)} with expenses of ${formatCurrency(currentMonthData.expenses, currency)}.`,
       ],
       whyItHappened: [
         revenueChange !== 0
@@ -390,7 +396,7 @@ export async function generateMonthlyNarrative(
           : 'No new vendors this month.',
       ],
       requiresAttention: netIncome < 0
-        ? [`Net income is negative ($${netIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}). Review expenses to identify potential savings.`]
+        ? [`Net income is negative (${formatCurrency(netIncome, currency)}). Review expenses to identify potential savings.`]
         : ['No immediate concerns identified.'],
     };
   }

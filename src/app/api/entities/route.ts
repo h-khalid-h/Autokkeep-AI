@@ -10,6 +10,8 @@ const createEntitySchema = z.object({
   name: z.string().min(1, 'Entity name is required').max(255),
   fiscalYearEnd: z.string().regex(/^(0[1-9]|1[0-2]|[1-9])$/, 'Must be 1-12 or 01-12').optional().default('12'),
   currency: z.string().max(3).toUpperCase().optional().default('USD'),
+  country: z.string().length(2).toUpperCase().optional().default('US'),
+  timezone: z.string().max(50).optional().default('America/New_York'),
 });
 
 /**
@@ -17,7 +19,7 @@ const createEntitySchema = z.object({
  * Creates a new entity within the authenticated user's existing organization.
  * Validates name uniqueness, entity count limit, and input format.
  *
- * Body: { name: string, fiscalYearEnd?: string, currency?: string }
+ * Body: { name: string, fiscalYearEnd?: string, currency?: string, country?: string, timezone?: string }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const parsed = await parseBody(request, createEntitySchema);
     if (!parsed.success) return parsed.error;
-    const { name, fiscalYearEnd, currency } = parsed.data;
+    const { name, fiscalYearEnd, currency, country, timezone } = parsed.data;
 
     const orgId = membership.org_id;
 
@@ -69,8 +71,10 @@ export async function POST(request: NextRequest) {
         name,
         fiscal_year_end: fiscalYearEnd,
         base_currency: currency,
+        country,
+        timezone,
       })
-      .select('id, name, base_currency')
+      .select('id, name, base_currency, country')
       .single();
 
     if (insertError) {

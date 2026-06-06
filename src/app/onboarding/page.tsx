@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getSupportedCurrencies } from '@/lib/currency/converter';
+import { useToast } from '@/components/ui';
 import Logo from '@/components/ui/Logo';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -138,6 +139,7 @@ const STEPS: { id: OnboardingStep; title: string; icon: string; description: str
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [entityName, setEntityName] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -314,7 +316,7 @@ export default function OnboardingPage() {
     };
     checkPendingInvite();
     return () => controller.abort();
-  }, [router]);
+  }, [router, toast]);
 
   // ── Load Plaid Link SDK when bank step is active ───────────────────────
   useEffect(() => {
@@ -433,13 +435,16 @@ export default function OnboardingPage() {
 
       if (rpcError || !result) {
         console.error('[Onboarding] Bootstrap RPC error:', rpcError);
-        setError(rpcError?.message || 'Failed to create entity. Please try again.');
+        const errorMsg = rpcError?.message || 'Failed to create entity. Please try again.';
+        setError(errorMsg);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
 
       const newEntityId = result.entityId;
       setEntityId(newEntityId);
+      toast.success('Entity created successfully!');
 
       // Immediately update entity with country + timezone
       const { error: updateError } = await (supabase as unknown as SupabaseQueryClient)
@@ -458,7 +463,9 @@ export default function OnboardingPage() {
       goNext();
     } catch (err) {
       console.error('[Onboarding] Entity creation error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      const errorMsg = 'An unexpected error occurred. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -505,7 +512,9 @@ export default function OnboardingPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || 'Failed to initiate bank connection. You can skip and connect later.');
+        const errorMsg = data.error || 'Failed to initiate bank connection. You can skip and connect later.';
+        setError(errorMsg);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
@@ -516,7 +525,9 @@ export default function OnboardingPage() {
       // Wait for Plaid SDK to be available (may still be loading)
       const plaidObj = await waitForPlaid();
       if (!plaidObj) {
-        setError('Plaid Link SDK failed to load. Please refresh the page and try again.');
+        const errorMsg = 'Plaid Link SDK failed to load. Please refresh the page and try again.';
+        setError(errorMsg);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
@@ -540,10 +551,13 @@ export default function OnboardingPage() {
               throw new Error(errData.error || 'Exchange failed');
             }
             setBankConnected(true);
+            toast.success('Bank account connected!');
             goNext();
           } catch (exchangeErr) {
             console.error('[Onboarding] Plaid exchange error:', exchangeErr);
-            setError('Connected to bank but failed to save. Please try again from Settings.');
+            const errorMsg = 'Connected to bank but failed to save. Please try again from Settings.';
+            setError(errorMsg);
+            toast.error(errorMsg);
           }
         },
         onExit: () => {
@@ -553,7 +567,9 @@ export default function OnboardingPage() {
       (handler as Record<string, unknown> & { open: () => void }).open();
     } catch (err) {
       console.error('[Onboarding] Plaid link error:', err);
-      setError('Failed to connect to Plaid. You can skip and connect later from the dashboard.');
+      const errorMsg = 'Failed to connect to Plaid. You can skip and connect later from the dashboard.';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
     }
   };
@@ -607,7 +623,9 @@ export default function OnboardingPage() {
       goNext();
     } catch (err) {
       console.error('[Onboarding] Ledger connect error:', err);
-      setError('Failed to start ledger connection. You can skip and connect later.');
+      const errorMsg = 'Failed to start ledger connection. You can skip and connect later.';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
     }
   };
@@ -637,13 +655,18 @@ export default function OnboardingPage() {
 
       if (channelError) {
         console.error('[Onboarding] Channel save error:', channelError);
+        toast.warning('Channel preference saved with warnings');
         // Non-fatal — still proceed
+      } else {
+        toast.success('Channel configured!');
       }
 
       goNext();
     } catch (err) {
       console.error('[Onboarding] Channel setup error:', err);
-      setError('Failed to save channel preference. You can configure this later.');
+      const errorMsg = 'Failed to save channel preference. You can configure this later.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -791,10 +814,12 @@ export default function OnboardingPage() {
                           }),
                         });
                       }
+                      toast.success('Welcome aboard!');
                       localStorage.removeItem(ONBOARDING_STORAGE_KEY);
                       router.push('/dashboard');
                     } catch {
                       // Redirect anyway on failure — preference can be set later
+                      toast.warning('Preferences could not be saved — you can update them later.');
                       localStorage.removeItem(ONBOARDING_STORAGE_KEY);
                       router.push('/dashboard');
                     }
@@ -1026,7 +1051,7 @@ export default function OnboardingPage() {
               </p>
               <div className={styles.ledgerList}>
                 {[
-                  { id: 'quickbooks', name: 'QuickBooks Online', icon: '📗', desc: 'Most popular for US businesses' },
+                  { id: 'quickbooks', name: 'QuickBooks Online', icon: '📗', desc: 'Cloud accounting & invoicing' },
                   { id: 'xero', name: 'Xero', icon: '📘', desc: 'Popular worldwide, especially UK/AU' },
                   { id: 'none', name: 'No ledger yet', icon: '📋', desc: 'I\'ll connect one later' },
                 ].map((ledger) => (

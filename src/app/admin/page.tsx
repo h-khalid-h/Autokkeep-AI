@@ -2,7 +2,7 @@
 
 import React from 'react';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Input, Skeleton, EmptyState, Tabs } from '@/components/ui';
+import { Card, Badge, Button, Input, Skeleton, EmptyState, Tabs, useToast } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { formatCurrency } from '@/lib/currency/converter';
 import styles from './page.module.css';
@@ -189,6 +189,7 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
 // ─── Page Component ─────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const toast = useToast();
   const [stats, setStats] = React.useState<AdminStats | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -208,7 +209,12 @@ export default function AdminDashboardPage() {
         const data = await res.json();
         if (!cancelled) setStats(data);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load stats');
+        if (!cancelled) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to load stats';
+          setError(errorMsg);
+          toast.error(errorMsg);
+        }
+        return;
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -216,7 +222,7 @@ export default function AdminDashboardPage() {
 
     fetchStats();
     return () => { cancelled = true; };
-  }, []);
+  }, [toast]);
 
   return (
     <ErrorBoundary componentName="Admin">
@@ -370,6 +376,7 @@ function OverviewTab({ stats, loading }: { stats: AdminStats | null; loading: bo
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function OrganizationsTab() {
+  const toast = useToast();
   const [orgs, setOrgs] = React.useState<OrgItem[]>([]);
   const [pagination, setPagination] = React.useState<OrgPagination>({
     total: 0,
@@ -395,7 +402,9 @@ function OrganizationsTab() {
 
       const res = await fetch(`/api/admin/organizations?${params}`);
       if (!res.ok) {
-        setError(`Failed to load organizations (${res.status})`);
+        const errorMsg = `Failed to load organizations (${res.status})`;
+        setError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
       const data = await res.json();
@@ -403,11 +412,13 @@ function OrganizationsTab() {
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, hasMore: false });
     } catch (err) {
       console.error('[Admin] Organizations fetch error:', err);
-      setError('Network error — could not load organizations');
+      const errorMsg = 'Network error — could not load organizations';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   const isInitialMount = React.useRef(true);
 
@@ -572,6 +583,7 @@ function OrganizationsTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function SystemTab() {
+  const toast = useToast();
   const [data, setData] = React.useState<SystemData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -585,21 +597,29 @@ function SystemTab() {
       try {
         const res = await fetch('/api/admin/system');
         if (!res.ok) {
-          if (!cancelled) setError(`System health check failed (${res.status})`);
+          if (!cancelled) {
+            const errorMsg = `System health check failed (${res.status})`;
+            setError(errorMsg);
+            toast.error(errorMsg);
+          }
           return;
         }
         const json = await res.json();
         if (!cancelled) setData(json);
       } catch (err) {
         console.error('[Admin] System health error:', err);
-        if (!cancelled) setError('Network error — could not reach system health endpoint');
+        if (!cancelled) {
+          const errorMsg = 'Network error — could not reach system health endpoint';
+          setError(errorMsg);
+          toast.error(errorMsg);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
     fetchSystem();
     return () => { cancelled = true; };
-  }, []);
+  }, [toast]);
 
   if (loading) {
     return (

@@ -10,6 +10,7 @@
 import { writeAuditLog } from '@/lib/audit';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { getGLCode } from '@/lib/entity-settings';
+import { formatCurrency } from '@/lib/currency/converter';
 
 // ─── F21: Entity-Configurable GL Codes ─────────────────────────────────────
 
@@ -102,7 +103,8 @@ export function analyzeVariance(
   bankAmount: number,
   expectedAmount: number,
   merchantName: string,
-  gl: Required<GLCodeOverrides> = { bankFeesGL: '6180', suspenseGL: '2900', cashGL: '1010' }
+  gl: Required<GLCodeOverrides> = { bankFeesGL: '6180', suspenseGL: '2900', cashGL: '1010' },
+  currency: string = 'USD'
 ): {
   isKnownFee: boolean;
   glCode: string;
@@ -142,7 +144,7 @@ export function analyzeVariance(
     isKnownFee: false,
     glCode: gl.suspenseGL,
     glName: 'Suspense/Clearing',
-    description: `Unrecognized variance of $${variance.toFixed(2)} — requires manual review`,
+    description: `Unrecognized variance of ${formatCurrency(variance, currency)} — requires manual review`,
   };
 }
 
@@ -153,7 +155,8 @@ export function analyzeVariance(
 export async function createFeeAdjustingEntry(
   supabase: SupabaseQueryClient,
   input: ReconciliationInput,
-  glOverrides?: GLCodeOverrides
+  glOverrides?: GLCodeOverrides,
+  currency: string = 'USD'
 ): Promise<ReconciliationResult> {
   const gl: Required<GLCodeOverrides> = {
     bankFeesGL: glOverrides?.bankFeesGL ?? '6180',
@@ -178,7 +181,8 @@ export async function createFeeAdjustingEntry(
     input.bankAmount,
     input.expectedAmount,
     input.merchantName,
-    gl
+    gl,
+    currency
   );
 
   // F9: Auto-post guard — only auto-post known fees ≤$10.
@@ -193,7 +197,7 @@ export async function createFeeAdjustingEntry(
       entity_id: input.entityId,
       transaction_id: input.transactionId,
       entry_date: input.date,
-      memo: `Auto-reconciliation: ${analysis.description} for ${input.merchantName} ($${absVariance.toFixed(2)})${!canAutoPost && analysis.isKnownFee ? ' [pending review]' : ''}`,
+      memo: `Auto-reconciliation: ${analysis.description} for ${input.merchantName} (${formatCurrency(absVariance, currency)})${!canAutoPost && analysis.isKnownFee ? ' [pending review]' : ''}`,
       status: canAutoPost ? 'posted' : 'draft',
       posted_at: canAutoPost ? new Date().toISOString() : null,
       created_at: new Date().toISOString(),
@@ -283,7 +287,7 @@ export async function createFeeAdjustingEntry(
     reasoning: canAutoPost
       ? `Auto-reconciled: ${analysis.description}. Adjusting entry posted.`
       : analysis.isKnownFee
-        ? `Known fee (${analysis.description}) of $${absVariance.toFixed(2)} created as draft for review.`
-        : `Variance of $${absVariance.toFixed(2)} routed to ${analysis.glName} for manual review.`,
+        ? `Known fee (${analysis.description}) of ${formatCurrency(absVariance, currency)} created as draft for review.`
+        : `Variance of ${formatCurrency(absVariance, currency)} routed to ${analysis.glName} for manual review.`,
   };
 }

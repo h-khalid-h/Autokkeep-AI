@@ -10,6 +10,25 @@ import {
   CountryCode,
 } from 'plaid';
 
+// ─── Country Code Mapping ──────────────────────────────────────────────────────
+
+/** Maps entity country codes to Plaid-supported CountryCode values. */
+const PLAID_COUNTRY_MAP: Record<string, CountryCode> = {
+  US: CountryCode.Us,
+  CA: CountryCode.Ca,
+  GB: CountryCode.Gb,
+  IE: CountryCode.Ie,
+  FR: CountryCode.Fr,
+  ES: CountryCode.Es,
+  NL: CountryCode.Nl,
+  DE: CountryCode.De,
+};
+
+/** Resolves entity country to a Plaid CountryCode, defaulting to US. */
+function getPlaidCountryCode(entityCountry?: string): CountryCode {
+  return (entityCountry && PLAID_COUNTRY_MAP[entityCountry]) || CountryCode.Us;
+}
+
 // ─── Plaid Client Singleton ────────────────────────────────────────────────────
 
 let plaidClient: PlaidApi | null = null;
@@ -43,7 +62,8 @@ export function getPlaidClient(): PlaidApi {
  */
 export async function createLinkToken(
   userId: string,
-  _entityId: string
+  _entityId: string,
+  entityCountry?: string
 ): Promise<string> {
   const client = getPlaidClient();
 
@@ -56,7 +76,7 @@ export async function createLinkToken(
     user: { client_user_id: userId },
     client_name: 'Autokkeep',
     products: [Products.Transactions],
-    country_codes: [CountryCode.Us],
+    country_codes: [getPlaidCountryCode(entityCountry)],
     language: 'en',
     ...(webhookUrl ? { webhook: webhookUrl } : {}),
   });
@@ -70,7 +90,8 @@ export async function createLinkToken(
  */
 export async function createUpdateLinkToken(
   userId: string,
-  accessToken: string
+  accessToken: string,
+  entityCountry?: string
 ): Promise<string> {
   const client = getPlaidClient();
 
@@ -83,7 +104,7 @@ export async function createUpdateLinkToken(
     user: { client_user_id: userId },
     client_name: 'Autokkeep',
     access_token: accessToken,
-    country_codes: [CountryCode.Us],
+    country_codes: [getPlaidCountryCode(entityCountry)],
     language: 'en',
     ...(webhookUrl ? { webhook: webhookUrl } : {}),
   });
@@ -238,11 +259,11 @@ export async function getAccounts(accessToken: string) {
 /**
  * Gets institution details by Plaid institution ID.
  */
-export async function getInstitution(institutionId: string) {
+export async function getInstitution(institutionId: string, entityCountry?: string) {
   const client = getPlaidClient();
   const response = await client.institutionsGetById({
     institution_id: institutionId,
-    country_codes: [CountryCode.Us],
+    country_codes: [getPlaidCountryCode(entityCountry)],
   });
   return response.data.institution;
 }

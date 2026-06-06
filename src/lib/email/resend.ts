@@ -113,7 +113,7 @@ export async function sendDigestEmail(data: DigestEmailData): Promise<{ success:
                   <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Items Pending</div>
                 </div>
                 <div style="flex: 1; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-                  <div style="font-size: 28px; font-weight: 700; color: #1e293b;">$${data.totalValue.toFixed(0)}</div>
+                  <div style="font-size: 28px; font-weight: 700; color: #1e293b;">${formatCurrency(data.totalValue, data.currency || 'USD')}</div>
                   <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Value</div>
                 </div>
               </div>

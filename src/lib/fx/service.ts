@@ -60,6 +60,12 @@ const APPROXIMATE_USD_RATES: Record<string, number> = {
   'SEK': 10.45,
   'NOK': 10.62,
   'DKK': 6.87,
+  'SAR': 3.75,
+  'EGP': 30.90,
+  'NGN': 1550.0,
+  'KES': 153.50,
+  'PLN': 4.03,
+  'ZAR': 18.60,
 };
 
 export class StaleRatesError extends Error {

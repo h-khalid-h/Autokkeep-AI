@@ -12,6 +12,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { triageTransaction, type RuleMatchType } from '@/lib/ai/confidence';
 import { generateCitationToken } from '@/lib/ai/privacy-parser';
+import { formatCurrency } from '@/lib/currency/converter';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import type {
   TransactionInput,
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
             approveUrl: `${appUrl}/transactions?action=approve&id=${transaction.id}`,
             rejectUrl: `${appUrl}/transactions?action=reject&id=${transaction.id}`,
           });
-          console.info(`[AI Categorize] Alert email sent to ${adminEmail} for $${transaction.amount} transaction`);
+          console.info(`[AI Categorize] Alert email sent to ${adminEmail} for ${formatCurrency(transaction.amount, transactionInput.currency)} transaction`);
         }
       } catch (alertError) {
         // Don't fail the categorization if alert dispatch fails
