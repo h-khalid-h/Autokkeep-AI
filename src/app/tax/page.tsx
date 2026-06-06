@@ -112,6 +112,7 @@ export default function TaxPage() {
   const [data, setData] = React.useState<TaxReadinessReport | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [retryKey, setRetryKey] = React.useState(0);
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
@@ -247,7 +248,7 @@ export default function TaxPage() {
 
     doFetch();
     return () => controller.abort();
-  }, [selectedEntity?.id, selectedYear]);
+  }, [selectedEntity?.id, selectedYear, retryKey]);
 
   const currency = selectedEntity?.currency || 'USD';
 
@@ -296,7 +297,10 @@ export default function TaxPage() {
           {/* Error banner */}
           {error && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              <span>⚠️ {error}</span>
+              <Button variant="ghost" size="sm" onClick={() => setRetryKey((k) => k + 1)}>
+                Retry
+              </Button>
             </div>
           )}
 

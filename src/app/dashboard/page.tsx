@@ -232,6 +232,7 @@ export default function DashboardPage() {
   const [exitingId, setExitingId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [retryKey, setRetryKey] = React.useState(0);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
@@ -313,7 +314,7 @@ export default function DashboardPage() {
 
     fetchTransactions();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -651,7 +652,13 @@ export default function DashboardPage() {
           {error && (
             <div className={styles.errorBanner} role="alert">
               <span className={styles.errorBannerIcon}>⚠️</span>
-              Could not load transactions. Please try refreshing. ({error})
+              <span>Could not load transactions. ({error})</span>
+              <button
+                className={styles.retryButton}
+                onClick={() => setRetryKey((k) => k + 1)}
+              >
+                Retry
+              </button>
             </div>
           )}
 

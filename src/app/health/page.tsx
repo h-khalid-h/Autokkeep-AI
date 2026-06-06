@@ -483,7 +483,10 @@ export default function HealthPage() {
           {/* Error banner */}
           {error && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              <span>⚠️ {error}</span>
+              <Button variant="ghost" size="sm" onClick={() => refetch()}>
+                Retry
+              </Button>
             </div>
           )}
 

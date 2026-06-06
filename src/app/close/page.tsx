@@ -309,7 +309,10 @@ export default function ClosePage() {
           {/* Error banner */}
           {(error || closeError) && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error || closeError}
+              <span>⚠️ {error || closeError}</span>
+              <Button variant="ghost" size="sm" onClick={fetchReport}>
+                Retry
+              </Button>
             </div>
           )}
 
