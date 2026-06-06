@@ -106,18 +106,18 @@
 }
 
 .complianceSuccess {
-  background: rgba(34, 197, 94, 0.06);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: var(--color-success-subtle);
+  border-color: var(--color-success-border);
 }
 
 .complianceWarning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.35);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.08);
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning-border);
+  box-shadow: var(--shadow-glow-warning);
 }
 
 .complianceInfo {
-  background: rgba(148, 163, 184, 0.06);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: var(--color-info-subtle);
+  border-color: var(--color-info-border);
 }
 
