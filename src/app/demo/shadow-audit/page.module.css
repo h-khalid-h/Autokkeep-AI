@@ -56,23 +56,23 @@
 
 .badgeExact {
   composes: badgeBase;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
+  background: var(--color-success-subtle);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
 }
 
 .badgeAiInferred {
   composes: badgeBase;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-accent);
+  color: var(--color-accent-text);
 }
 
 .badgeNeedsReview {
   composes: badgeBase;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
+  background: var(--color-warning-subtle);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
 }
 
 .uploadIcon {
