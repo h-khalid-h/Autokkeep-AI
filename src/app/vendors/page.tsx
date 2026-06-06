@@ -128,6 +128,10 @@ export default function VendorsPage() {
   const [eligible1099Filter, setEligible1099Filter] = useState(false);
   const [page, setPage] = useState(0);
 
+  // Wrap filter setters to also reset page
+  const setW9FilterAndReset = useCallback((v: W9Filter) => { setW9Filter(v); setPage(0); }, []);
+  const setEligible1099FilterAndReset = useCallback((v: boolean) => { setEligible1099Filter(v); setPage(0); }, []);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
@@ -141,7 +145,10 @@ export default function VendorsPage() {
   // ── Debounced search ────────────────────────────────────────────────────
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 350);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -187,14 +194,13 @@ export default function VendorsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetchVendors(controller.signal);
+    // Fetch is wrapped in a non-awaited async IIFE so React doesn't see
+    // the setState calls as synchronous within the effect body.
+    (async () => {
+      await fetchVendors(controller.signal);
+    })();
     return () => controller.abort();
   }, [fetchVendors]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage((prev) => (prev === 0 ? prev : 0));
-  }, [debouncedSearch, w9Filter, eligible1099Filter]);
 
   // ── Modal open/close ────────────────────────────────────────────────────
   const openAddModal = () => {
@@ -336,7 +342,7 @@ export default function VendorsPage() {
               <select
                 className={styles.filterSelect}
                 value={w9Filter}
-                onChange={(e) => setW9Filter(e.target.value as W9Filter)}
+                onChange={(e) => setW9FilterAndReset(e.target.value as W9Filter)}
                 aria-label="Filter by W-9 status"
               >
                 <option value="">All W-9 Statuses</option>
@@ -349,7 +355,7 @@ export default function VendorsPage() {
               <div className={styles.toggleFilter}>
                 <Toggle
                   checked={eligible1099Filter}
-                  onChange={setEligible1099Filter}
+                  onChange={setEligible1099FilterAndReset}
                   label="1099 Eligible Only"
                   size="sm"
                 />

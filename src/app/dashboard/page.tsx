@@ -240,14 +240,17 @@ export default function DashboardPage() {
   const [statsLoading, setStatsLoading] = React.useState(true);
 
   // ─── Fetch real stats from API ──────────────────────────────────────────────
+  const selectedEntityId = selectedEntity?.id;
+  const transactionCount = transactions.length;
+
   React.useEffect(() => {
-    if (!selectedEntity?.id) return;
+    if (!selectedEntityId) return;
     let cancelled = false;
 
     async function fetchStats() {
       setStatsLoading(true);
       try {
-        const res = await fetch(`/api/dashboard/stats?entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/dashboard/stats?entityId=${selectedEntityId}`);
         if (!res.ok) throw new Error(`Stats fetch failed (${res.status})`);
         const data = await res.json();
         if (!cancelled) {
@@ -263,9 +266,7 @@ export default function DashboardPage() {
         console.error('[Dashboard] Stats fetch error:', err);
         if (!cancelled) {
           // Fallback: compute from local transactions
-          const total = transactions.length;
-          const pending = transactions.filter((t) => t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.HUMAN_REVIEW).length;
-          setStats({ total, pending, approved: 0, autoRate: 0, monthlyVolume: 0 });
+          setStats({ total: transactionCount, pending: 0, approved: 0, autoRate: 0, monthlyVolume: 0 });
         }
       } finally {
         if (!cancelled) setStatsLoading(false);
@@ -274,7 +275,7 @@ export default function DashboardPage() {
 
     fetchStats();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id, transactions.length]); // re-fetch when transactions change
+  }, [selectedEntityId, transactionCount]); // re-fetch when transactions change
 
   // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
