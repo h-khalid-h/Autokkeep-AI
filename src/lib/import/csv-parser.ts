@@ -97,13 +97,62 @@ const MONTH_NAMES: Record<string, number> = {
   october: 10, november: 11, december: 12,
 };
 
+// ─── Delimiter Auto-Detection ───────────────────────────────────────────────────
+
+const CANDIDATE_DELIMITERS = [',', ';', '\t'] as const;
+
+/**
+ * Detects the most likely delimiter by scanning the first few lines of the CSV.
+ * Counts occurrences of each candidate delimiter per line, then picks the one
+ * that appears most consistently (highest minimum count across all sampled lines).
+ * Defaults to ',' if tied.
+ */
+function detectDelimiter(lines: string[]): string {
+  const sampleLines = lines.slice(0, Math.min(3, lines.length));
+  if (sampleLines.length === 0) return ',';
+
+  let bestDelimiter = ',';
+  let bestScore = -1;
+
+  for (const delimiter of CANDIDATE_DELIMITERS) {
+    const counts = sampleLines.map((line) => {
+      let count = 0;
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (!inQuotes && char === delimiter) {
+          count++;
+        }
+      }
+      return count;
+    });
+
+    // Use the minimum count across sample lines as the consistency score
+    const minCount = Math.min(...counts);
+    if (minCount > bestScore) {
+      bestScore = minCount;
+      bestDelimiter = delimiter;
+    }
+  }
+
+  return bestDelimiter;
+}
+
+function delimiterLabel(delimiter: string): string {
+  if (delimiter === '\t') return 'tab';
+  if (delimiter === ';') return 'semicolon';
+  return 'comma';
+}
+
 // ─── CSV Field Parsing (RFC 4180) ───────────────────────────────────────────────
 
 /**
  * Parses a single CSV line into fields, handling quoted fields with
  * embedded commas, quotes, and newlines.
  */
-function parseCsvLine(line: string): string[] {
+function parseCsvLine(line: string, delimiter: string = ','): string[] {
   const fields: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -131,7 +180,7 @@ function parseCsvLine(line: string): string[] {
       if (char === '"') {
         inQuotes = true;
         i++;
-      } else if (char === ',') {
+      } else if (char === delimiter) {
         fields.push(current.trim());
         current = '';
         i++;
@@ -301,8 +350,9 @@ function detectColumns(headerFields: string[]): ColumnMapping | null {
   };
 }
 
-function describeFormat(mapping: ColumnMapping, headers: string[]): string {
+function describeFormat(mapping: ColumnMapping, headers: string[], delimiter: string): string {
   const parts: string[] = [];
+  parts.push(`delimiter=${delimiterLabel(delimiter)}`);
   parts.push(`date="${headers[mapping.date]}"`);
   parts.push(`desc="${headers[mapping.description]}"`);
   if (mapping.debit !== undefined && mapping.credit !== undefined) {
@@ -342,8 +392,11 @@ export function parseCsvTransactions(csvText: string): CsvParseResult {
     };
   }
 
+  // Auto-detect delimiter from first few lines
+  const delimiter = detectDelimiter(lines);
+
   // Parse header row
-  const headerFields = parseCsvLine(lines[0]);
+  const headerFields = parseCsvLine(lines[0], delimiter);
   const mapping = detectColumns(headerFields);
 
   if (!mapping) {
@@ -357,13 +410,13 @@ export function parseCsvTransactions(csvText: string): CsvParseResult {
     };
   }
 
-  const detectedFormat = describeFormat(mapping, headerFields);
+  const detectedFormat = describeFormat(mapping, headerFields, delimiter);
   const useDebitCredit = mapping.debit !== undefined && mapping.credit !== undefined;
 
   // Parse data rows (skip header)
   for (let rowIdx = 1; rowIdx < lines.length; rowIdx++) {
     const line = lines[rowIdx];
-    const fields = parseCsvLine(line);
+    const fields = parseCsvLine(line, delimiter);
 
     // Skip rows that don't have enough fields
     if (fields.length <= Math.max(mapping.date, mapping.description)) {

@@ -984,7 +984,7 @@ export default function OnboardingPage() {
           {/* Bank Step */}
           {currentStep === 'bank' && (() => {
             // Countries where Plaid is supported
-            const PLAID_COUNTRIES = new Set(['US', 'CA', 'GB', 'IE', 'FR', 'ES', 'NL', 'DE']);
+            const PLAID_COUNTRIES = new Set(['US', 'CA', 'GB', 'IE', 'FR', 'NL', 'DE']);
             const isPlaidSupported = PLAID_COUNTRIES.has(country);
 
             return (

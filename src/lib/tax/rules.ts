@@ -140,6 +140,7 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     highValueReceiptThreshold: 250,
     fiscalConvention: 'calendar',
     retentionYears: 10,
+    hasMileageDeduction: true,
     hasHomeOfficeDeduction: true,
     taxSystemLabel: 'Körperschaftsteuer',
     jurisdictionNotes: [
@@ -169,7 +170,9 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     fiscalConvention: 'calendar',
     retentionYears: 7,
     taxSystemLabel: 'Vennootschapsbelasting',
-    jurisdictionNotes: [],
+    jurisdictionNotes: [
+      'Dutch entrepreneurs may qualify for zelfstandigenaftrek (self-employed deduction) and startersaftrek (starter deduction).',
+    ],
   },
   IE: {
     authority: 'Revenue',
@@ -180,7 +183,9 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     fiscalConvention: 'calendar',
     retentionYears: 6,
     taxSystemLabel: 'Corporation Tax',
-    jurisdictionNotes: [],
+    jurisdictionNotes: [
+      'Irish small companies may qualify for the Start-up Relief for Entrepreneurs (SURE) scheme.',
+    ],
   },
   SE: {
     authority: 'Skatteverket',
@@ -191,7 +196,9 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     fiscalConvention: 'calendar',
     retentionYears: 7,
     taxSystemLabel: 'Bolagsskatt',
-    jurisdictionNotes: [],
+    jurisdictionNotes: [
+      'Swedish sole traders (enskild firma) can claim egenavgifter deduction for social security contributions.',
+    ],
   },
   FI: {
     authority: 'Vero',
@@ -239,7 +246,9 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     fiscalConvention: 'calendar',
     retentionYears: 5,
     taxSystemLabel: 'CIT',
-    jurisdictionNotes: [],
+    jurisdictionNotes: [
+      'Polish small businesses may qualify for the liniowy (flat 19%) tax rate or ryczałt (lump-sum) taxation.',
+    ],
   },
   LV: {
     authority: 'VID',
@@ -263,7 +272,9 @@ const COUNTRY_TAX_RULES: Record<string, Partial<TaxRules>> = {
     fiscalConvention: 'calendar',
     retentionYears: 10,
     taxSystemLabel: 'Pelno mokestis',
-    jurisdictionNotes: [],
+    jurisdictionNotes: [
+      'Lithuanian small companies with under 10 employees and €300K revenue may qualify for the reduced 0% or 5% CIT rate.',
+    ],
   },
 
   // ── Middle East ───────────────────────────────────────────────────────────
