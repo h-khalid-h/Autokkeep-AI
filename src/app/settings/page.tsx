@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Tabs } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -142,7 +143,7 @@ export default function SettingsPage() {
             .from('transactions')
             .select('id', { count: 'exact', head: true })
             .in('entity_id', entityIds)
-            .eq('status', 'human_review'),
+            .eq('status', TRANSACTION_STATUS.HUMAN_REVIEW),
         ]);
 
         if (subResult.data?.[0]) {
