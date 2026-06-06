@@ -45,6 +45,7 @@ interface VendorFormData {
   email: string;
   phone: string;
   address: string;
+  w9Status: W9Status;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ const INITIAL_FORM: VendorFormData = {
   email: '',
   phone: '',
   address: '',
+  w9Status: 'not_collected',
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -108,6 +110,50 @@ export default function VendorsPage() {
   const { selectedEntity } = useEntity();
   const toast = useToast();
   const isUS = selectedEntity?.country === 'US';
+  const isIN = selectedEntity?.country === 'IN';
+  const isUKEU = selectedEntity?.country && ['GB', 'DE', 'FR', 'NL', 'IE', 'EE', 'FI', 'SE', 'LV', 'LT', 'PL'].includes(selectedEntity.country);
+
+  const complianceLabel = useMemo(() => {
+    if (isUS) return 'W-9 Status';
+    if (isIN) return 'PAN Status';
+    if (isUKEU) return 'VAT Registration';
+    return 'Compliance Status';
+  }, [isUS, isIN, isUKEU]);
+
+  const eligibleLabel = useMemo(() => {
+    if (isUS) return '1099 Eligible';
+    if (isIN) return 'TDS Eligible';
+    return null;
+  }, [isUS, isIN]);
+
+  const getComplianceStatusBadge = useCallback((status: W9Status) => {
+    const defaultCfg = W9_STATUS_MAP[status] || { label: status, variant: 'default' as const };
+    if (isUS) return defaultCfg;
+
+    if (isIN) {
+      const labels: Record<W9Status, string> = {
+        not_collected: 'No PAN',
+        requested: 'PAN Requested',
+        received: 'PAN Received',
+        verified: 'PAN Verified',
+        expired: 'Invalid PAN',
+      };
+      return { label: labels[status] || status, variant: defaultCfg.variant };
+    }
+
+    if (isUKEU) {
+      const labels: Record<W9Status, string> = {
+        not_collected: 'No VAT ID',
+        requested: 'Requested',
+        received: 'VAT Received',
+        verified: 'VAT Verified',
+        expired: 'Invalid VAT',
+      };
+      return { label: labels[status] || status, variant: defaultCfg.variant };
+    }
+
+    return defaultCfg;
+  }, [isUS, isIN, isUKEU]);
   const entityCurrency = selectedEntity?.currency || 'USD';
   const fmtCurrency = useCallback(
     (amount: number) => formatCurrency(amount, entityCurrency),
@@ -218,6 +264,7 @@ export default function VendorsPage() {
       email: vendor.email || '',
       phone: vendor.phone || '',
       address: vendor.address || '',
+      w9Status: vendor.w9_status || 'not_collected',
     });
     setIsModalOpen(true);
   };
@@ -248,6 +295,7 @@ export default function VendorsPage() {
             email: formData.email || null,
             phone: formData.phone || null,
             address: formData.address || null,
+            w9Status: formData.w9Status,
           }),
         });
         if (!res.ok) throw new Error('Failed to update vendor');
@@ -304,7 +352,7 @@ export default function VendorsPage() {
   const totalPages = useMemo(() => Math.ceil(pagination.total / PAGE_SIZE), [pagination.total]);
   const showFrom = pagination.total > 0 ? page * PAGE_SIZE + 1 : 0;
   const showTo = Math.min((page + 1) * PAGE_SIZE, pagination.total);
-  const hasFilters = Boolean(search || (isUS && w9Filter) || (isUS && eligible1099Filter));
+  const hasFilters = Boolean(search || w9Filter || eligible1099Filter);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -319,7 +367,11 @@ export default function VendorsPage() {
               <p className={styles.pageSubtitle}>
                 {isUS
                   ? 'Manage vendors, track W-9 compliance, and monitor 1099 eligibility'
-                  : 'Manage vendors and track payments'}
+                  : isIN
+                    ? 'Manage vendors, track PAN compliance, and monitor TDS eligibility'
+                    : isUKEU
+                      ? 'Manage vendors and track VAT registration compliance'
+                      : 'Manage vendors and track payments'}
               </p>
             </div>
             <div className={styles.headerActions}>
@@ -342,27 +394,27 @@ export default function VendorsPage() {
                   aria-label="Search vendors"
                 />
               </div>
-              {isUS && (
-                <select
-                  className={styles.filterSelect}
-                  value={w9Filter}
-                  onChange={(e) => setW9FilterAndReset(e.target.value as W9Filter)}
-                  aria-label="Filter by W-9 status"
-                >
-                  <option value="">All W-9 Statuses</option>
-                  <option value="not_collected">Not Collected</option>
-                  <option value="requested">Requested</option>
-                  <option value="received">Received</option>
-                  <option value="verified">Verified</option>
-                  <option value="expired">Expired</option>
-                </select>
-              )}
-              {isUS && (
+              <select
+                className={styles.filterSelect}
+                value={w9Filter}
+                onChange={(e) => setW9FilterAndReset(e.target.value as W9Filter)}
+                aria-label={`Filter by ${complianceLabel}`}
+              >
+                <option value="">All Statuses</option>
+                <option value="not_collected">
+                  {isUS ? 'Not Collected' : isIN ? 'No PAN' : isUKEU ? 'No VAT ID' : 'Not Collected'}
+                </option>
+                <option value="requested">Requested</option>
+                <option value="received">Received</option>
+                <option value="verified">Verified</option>
+                <option value="expired">Expired</option>
+              </select>
+              {eligibleLabel && (
                 <div className={styles.toggleFilter}>
                   <Toggle
                     checked={eligible1099Filter}
                     onChange={setEligible1099FilterAndReset}
-                    label="1099 Eligible Only"
+                    label={`${eligibleLabel} Only`}
                     size="sm"
                   />
                 </div>
@@ -398,7 +450,15 @@ export default function VendorsPage() {
               <EmptyState
                 icon="🏢"
                 title="No Vendors Yet"
-                description={isUS ? 'Add your first vendor to start tracking W-9 compliance and 1099 eligibility.' : 'Add your first vendor to start tracking payments and compliance.'}
+                description={
+                  isUS
+                    ? 'Add your first vendor to start tracking W-9 compliance and 1099 eligibility.'
+                    : isIN
+                      ? 'Add your first vendor to start tracking PAN compliance and TDS eligibility.'
+                      : isUKEU
+                        ? 'Add your first vendor to start tracking VAT registration compliance.'
+                        : 'Add your first vendor to start tracking payments and compliance.'
+                }
                 action={
                   <Button variant="primary" onClick={openAddModal}>
                     + Add Vendor
@@ -444,8 +504,8 @@ export default function VendorsPage() {
                   <thead>
                     <tr>
                       <th className={styles.th}>Name</th>
-                      {isUS && <th className={styles.th}>W-9 Status</th>}
-                      {isUS && <th className={styles.thCenter}>1099</th>}
+                      <th className={styles.th}>{complianceLabel}</th>
+                      {eligibleLabel && <th className={styles.thCenter}>{eligibleLabel}</th>}
                       <th className={styles.thRight}>YTD Payments</th>
                       <th className={styles.thRight}>Payments</th>
                       <th className={styles.th}>Last Payment</th>
@@ -454,11 +514,9 @@ export default function VendorsPage() {
                   </thead>
                   <tbody>
                     {vendors.map((vendor) => {
-                      const w9Cfg = W9_STATUS_MAP[vendor.w9_status] || {
-                        label: vendor.w9_status,
-                        variant: 'default' as const,
-                      };
-                      const isAboveThreshold = isUS && vendor.ytd_payments >= THRESHOLD_1099;
+                      const compCfg = getComplianceStatusBadge(vendor.w9_status);
+                      const threshold = isUS ? 600 : isIN ? 30000 : Infinity;
+                      const isAboveThreshold = vendor.ytd_payments >= threshold;
 
                       return (
                         <tr key={vendor.id} className={styles.tr}>
@@ -472,19 +530,17 @@ export default function VendorsPage() {
                               </span>
                             </div>
                           </td>
-                          {isUS && (
-                            <td className={styles.td}>
-                              <Badge variant={w9Cfg.variant} size="sm" dot>
-                                {w9Cfg.label}
-                              </Badge>
-                            </td>
-                          )}
-                          {isUS && (
+                          <td className={styles.td}>
+                            <Badge variant={compCfg.variant} size="sm" dot>
+                              {compCfg.label}
+                            </Badge>
+                          </td>
+                          {eligibleLabel && (
                             <td className={styles.tdCenter}>
                               <span
                                 className={styles.eligibleIcon}
                                 role="img"
-                                aria-label={vendor.is_1099_eligible ? '1099 Eligible' : 'Not 1099 Eligible'}
+                                aria-label={vendor.is_1099_eligible ? 'Eligible' : 'Not Eligible'}
                               >
                                 {vendor.is_1099_eligible ? '✅' : '❌'}
                               </span>
@@ -493,7 +549,7 @@ export default function VendorsPage() {
                           <td className={styles.tdRight}>
                             <span
                               className={`${styles.amountValue} ${isAboveThreshold ? styles.amountThreshold : ''}`}
-                              title={isAboveThreshold ? `Above $${THRESHOLD_1099} threshold` : undefined}
+                              title={isAboveThreshold ? `Above threshold` : undefined}
                             >
                               {fmtCurrency(vendor.ytd_payments)}
                             </span>
@@ -536,11 +592,9 @@ export default function VendorsPage() {
               {/* Mobile Cards */}
               <div className={styles.mobileCards}>
                 {vendors.map((vendor) => {
-                  const w9Cfg = W9_STATUS_MAP[vendor.w9_status] || {
-                    label: vendor.w9_status,
-                    variant: 'default' as const,
-                  };
-                  const isAboveThreshold = isUS && vendor.ytd_payments >= THRESHOLD_1099;
+                  const compCfg = getComplianceStatusBadge(vendor.w9_status);
+                  const threshold = isUS ? 600 : isIN ? 30000 : Infinity;
+                  const isAboveThreshold = vendor.ytd_payments >= threshold;
 
                   return (
                     <div key={vendor.id} className={styles.mobileCard}>
@@ -556,14 +610,12 @@ export default function VendorsPage() {
                         <Badge variant="default" size="sm">
                           {VENDOR_TYPE_LABELS[vendor.vendor_type] || vendor.vendor_type}
                         </Badge>
-                        {isUS && (
-                          <Badge variant={w9Cfg.variant} size="sm" dot>
-                            {w9Cfg.label}
-                          </Badge>
-                        )}
-                        {isUS && (
+                        <Badge variant={compCfg.variant} size="sm" dot>
+                          {compCfg.label}
+                        </Badge>
+                        {eligibleLabel && (
                           <span className={styles.mobileCardField}>
-                            {vendor.is_1099_eligible ? '✅ 1099' : '❌ 1099'}
+                            {vendor.is_1099_eligible ? `✅ ${eligibleLabel}` : `❌ ${eligibleLabel}`}
                           </span>
                         )}
                         <span className={styles.mobileCardField}>
@@ -686,6 +738,30 @@ export default function VendorsPage() {
                 <option value="government">Government</option>
               </select>
             </div>
+
+            {editingVendor && (
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="vendor-compliance">
+                  {complianceLabel}
+                </label>
+                <select
+                  id="vendor-compliance"
+                  className={styles.formSelect}
+                  value={formData.w9Status}
+                  onChange={(e) =>
+                    setFormData((f) => ({ ...f, w9Status: e.target.value as W9Status }))
+                  }
+                >
+                  <option value="not_collected">
+                    {isUS ? 'Not Collected' : isIN ? 'No PAN' : isUKEU ? 'No VAT ID' : 'Not Collected'}
+                  </option>
+                  <option value="requested">Requested</option>
+                  <option value="received">Received</option>
+                  <option value="verified">Verified</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            )}
 
             <div className={styles.formRow}>
               <div className={styles.formField}>

@@ -299,7 +299,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
               )}
 
               {effectiveDocStatus === 'found' && !effectiveDocUrl && (
-                <span className="text-body" style={{ color: 'var(--success)' }}>
+                <span className="text-body" style={{ color: 'var(--color-success)' }}>
                   ✅ Receipt attached
                 </span>
               )}
@@ -361,11 +361,11 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                   marginTop: 'var(--space-3)',
                   background: `linear-gradient(90deg, ${
                     transaction.confidence < 75
-                      ? 'var(--destructive)'
+                      ? 'var(--color-destructive)'
                       : transaction.confidence < 95
-                      ? 'var(--warning)'
-                      : 'var(--success)'
-                  } ${transaction.confidence}%, var(--bg-elevated) ${transaction.confidence}%)`,
+                      ? 'var(--color-warning)'
+                      : 'var(--color-success)'
+                  } ${transaction.confidence}%, var(--color-bg-elevated) ${transaction.confidence}%)`,
                   animation: 'none',
                 }}
               />

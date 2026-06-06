@@ -289,7 +289,7 @@ export default function ShadowAuditPage() {
           }
           .upload-zone-idle { animation: pulse-border 2.5s ease-in-out infinite; }
           .progress-bar-fill {
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-primary));
+            background: linear-gradient(90deg, var(--color-accent), var(--color-brand-secondary), var(--color-accent));
             background-size: 200% 100%;
             animation: shimmer 1.5s linear infinite;
           }
@@ -347,7 +347,7 @@ export default function ShadowAuditPage() {
                 <p className="text-h4" style={{ marginBottom: '8px' }}>
                   Drag & drop your CSV file here
                 </p>
-                <p className="text-body" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-body" style={{ color: 'var(--color-text-secondary)' }}>
                   or click to browse • Accepts .csv files
                 </p>
                 {uploadError && (
@@ -363,7 +363,7 @@ export default function ShadowAuditPage() {
                   <span className={styles.fileIcon}>📄</span>
                   <div>
                     <div className="text-h4">{fileName}</div>
-                    <div className="text-caption" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-caption" style={{ color: 'var(--color-text-secondary)' }}>
                       {rows.length} rows • {headers.length} columns detected
                     </div>
                   </div>
@@ -372,7 +372,7 @@ export default function ShadowAuditPage() {
                 <h3 className="text-h4" style={{ marginBottom: '20px' }}>
                   Map Your Columns
                 </h3>
-                <p className="text-body" style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>
+                <p className="text-body" style={{ marginBottom: '24px', color: 'var(--color-text-secondary)' }}>
                   We auto-detected your columns. Adjust if needed:
                 </p>
 
@@ -474,12 +474,12 @@ export default function ShadowAuditPage() {
                     { label: 'Exact Match', value: stats.exact, color: '#10b981' },
                     { label: 'AI Inferred', value: stats.inferred, color: '#3b82f6' },
                     { label: 'Needs Review', value: stats.review, color: '#f59e0b' },
-                    { label: 'Avg Confidence', value: `${stats.avgConf}%`, color: 'var(--accent-primary)' },
-                    { label: 'Processing Time', value: `${stats.time}s`, color: 'var(--accent-primary)' },
+                    { label: 'Avg Confidence', value: `${stats.avgConf}%`, color: 'var(--color-accent)' },
+                    { label: 'Processing Time', value: `${stats.time}s`, color: 'var(--color-accent)' },
                   ].map((s) => (
                     <div key={s.label} className={`card ${styles.statCard}`}>
                       <div className={styles.statCardValue} style={{ color: s.color }}>{s.value}</div>
-                      <div className="text-caption" style={{ color: 'var(--text-secondary)' }}>{s.label}</div>
+                      <div className="text-caption" style={{ color: 'var(--color-text-secondary)' }}>{s.label}</div>
                     </div>
                   ))}
                 </div>

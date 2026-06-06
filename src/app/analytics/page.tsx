@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { formatCurrency } from '@/lib/currency/converter';
+import { getTaxRules } from '@/lib/tax/rules';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Progress, Skeleton, EmptyState } from '@/components/ui';
@@ -67,6 +68,16 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
+  const [rawTransactions, setRawTransactions] = useState<RawTxn[]>([]);
+  const [customTaxRate, setCustomTaxRate] = useState<number | null>(null);
+  const [estimatedMileage, setEstimatedMileage] = useState<number>(3000);
+  const [estimatedHomeOfficeSqFt, setEstimatedHomeOfficeSqFt] = useState<number>(200);
+
+  // Reset custom tax rate when selectedEntity changes
+  useEffect(() => {
+    setCustomTaxRate(null);
+  }, [selectedEntity?.id]);
+
   // Fetch real transaction stats on mount
   useEffect(() => {
     if (!selectedEntity?.id) return;
@@ -80,10 +91,12 @@ export default function AnalyticsPage() {
         const txns = result.transactions || [];
 
         if (txns.length === 0) {
+          setRawTransactions([]);
           setIsLoading(false);
           return; // No data yet — show empty state
         }
 
+        setRawTransactions(txns);
         setHasData(true);
 
         const now = Date.now();
@@ -187,6 +200,86 @@ export default function AnalyticsPage() {
   const entityCurrency = selectedEntity?.currency || 'USD';
 
   const fmtCurrency = (n: number) => formatCurrency(n, entityCurrency);
+
+  const taxRules = useMemo(() => {
+    return getTaxRules(selectedEntity?.country);
+  }, [selectedEntity?.country]);
+
+  const activeTaxRate = customTaxRate !== null ? customTaxRate : (taxRules.defaultTaxRate * 100);
+
+  const taxMetrics = useMemo(() => {
+    if (rawTransactions.length === 0) {
+      return { revenue: 0, expenses: 0, mealsTotal: 0, mealsNonDeductible: 0, netIncome: 0, taxableIncome: 0, estimatedTax: 0, mileageDeduction: 0, homeOfficeDeduction: 0 };
+    }
+
+    const cutoffDays: Record<TimeRange, number> = {
+      '7d': 7, '30d': 30, '90d': 90, 'ytd': Math.max(1, Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000)),
+    };
+    const cutoff = new Date(Date.now() - cutoffDays[timeRange] * 86400000).toISOString();
+    const filtered = rawTransactions.filter((tx) => tx.date >= cutoff.slice(0, 10));
+
+    let revenue = 0;
+    let expenses = 0;
+    let mealsTotal = 0;
+
+    const mealsKeywords = ['meals', 'entertainment', 'dining', 'restaurant', 'food & drink'];
+
+    for (const tx of filtered) {
+      const amt = Math.abs(tx.amount);
+      if (tx.amount < 0) {
+        revenue += amt;
+      } else {
+        expenses += amt;
+        const cat = (tx.category_human || tx.category_ai || '').toLowerCase();
+        if (mealsKeywords.some((kw) => cat.includes(kw))) {
+          mealsTotal += amt;
+        }
+      }
+    }
+
+    const mealsNonDeductible = mealsTotal * (1 - taxRules.mealsDeductionRate);
+    
+    // Mileage deduction
+    let mileageRate = 0.5;
+    if (selectedEntity?.country === 'US') mileageRate = 0.67;
+    else if (selectedEntity?.country === 'CA') mileageRate = 0.70;
+    else if (selectedEntity?.country === 'GB') mileageRate = 0.45;
+    else if (selectedEntity?.country === 'AU') mileageRate = 0.85;
+
+    const mileageDeduction = taxRules.hasMileageDeduction ? (estimatedMileage * mileageRate) : 0;
+
+    // Home office deduction
+    let homeOfficeDeduction = 0;
+    if (taxRules.hasHomeOfficeDeduction) {
+      if (selectedEntity?.country === 'US') {
+        homeOfficeDeduction = Math.min(estimatedHomeOfficeSqFt * 5, 1500);
+      } else if (selectedEntity?.country === 'DE') {
+        homeOfficeDeduction = 1260;
+      } else if (selectedEntity?.country === 'GB') {
+        homeOfficeDeduction = 312;
+      } else if (selectedEntity?.country === 'CA') {
+        homeOfficeDeduction = 500;
+      } else if (selectedEntity?.country === 'AU') {
+        homeOfficeDeduction = 1000;
+      }
+    }
+
+    const netIncome = revenue - expenses;
+    const taxableIncome = Math.max(0, netIncome - mealsNonDeductible - mileageDeduction - homeOfficeDeduction);
+    const estimatedTax = taxableIncome * (activeTaxRate / 100);
+
+    return {
+      revenue,
+      expenses,
+      mealsTotal,
+      mealsNonDeductible,
+      netIncome,
+      taxableIncome,
+      estimatedTax,
+      mileageDeduction,
+      homeOfficeDeduction,
+    };
+  }, [rawTransactions, timeRange, taxRules, activeTaxRate, estimatedMileage, estimatedHomeOfficeSqFt, selectedEntity?.country]);
 
   const autoRate = useMemo(() => data.totalTransactions > 0
     ? ((data.autoApproved / data.totalTransactions) * 100).toFixed(1)
@@ -427,6 +520,112 @@ export default function AnalyticsPage() {
               </div>
             </Card>
           </div>
+
+          {/* Tax Estimator & Deductions Panel */}
+          {taxRules.hasIncomeTax && (
+            <Card padding="lg" className={styles.taxEstimatorCard}>
+              <div className={styles.taxEstimatorHeader}>
+                <div className={styles.sectionTitle}>
+                  🏛️ Tax Estimate & Regional Deductions ({taxRules.authority})
+                </div>
+                <Badge variant="success">{taxRules.taxSystemLabel}</Badge>
+              </div>
+
+              <div className={styles.taxEstimatorGrid}>
+                {/* Left side: Rates & Sliders */}
+                <div className={styles.taxControls}>
+                  <div className={styles.controlRow}>
+                    <label className={styles.controlLabel}>
+                      Effective Tax Rate: <strong>{activeTaxRate.toFixed(1)}%</strong>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="0.5"
+                      value={activeTaxRate}
+                      onChange={(e) => setCustomTaxRate(parseFloat(e.target.value))}
+                      className={styles.sliderInput}
+                    />
+                    <div className={styles.sliderTicks}>
+                      <span>0%</span>
+                      <span>Default ({ (taxRules.defaultTaxRate * 100).toFixed(0) }%)</span>
+                      <span>50%</span>
+                    </div>
+                  </div>
+
+                  {taxRules.hasMileageDeduction && (
+                    <div className={styles.controlRow}>
+                      <label className={styles.controlLabel}>
+                        Estimated Business Travel: <strong>{estimatedMileage.toLocaleString()} {selectedEntity?.country === 'US' || selectedEntity?.country === 'GB' ? 'miles' : 'km'}</strong>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="20000"
+                        step="500"
+                        value={estimatedMileage}
+                        onChange={(e) => setEstimatedMileage(parseInt(e.target.value, 10))}
+                        className={styles.sliderInput}
+                      />
+                    </div>
+                  )}
+
+                  {taxRules.hasHomeOfficeDeduction && selectedEntity?.country === 'US' && (
+                    <div className={styles.controlRow}>
+                      <label className={styles.controlLabel}>
+                        Home Office Size: <strong>{estimatedHomeOfficeSqFt} sq ft</strong>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="500"
+                        step="10"
+                        value={estimatedHomeOfficeSqFt}
+                        onChange={(e) => setEstimatedHomeOfficeSqFt(parseInt(e.target.value, 10))}
+                        className={styles.sliderInput}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: Calculations breakdown */}
+                <div className={styles.taxCalculations}>
+                  <div className={styles.calcRow}>
+                    <span>Net Business Income:</span>
+                    <span className={styles.calcVal}>{fmtCurrency(taxMetrics.netIncome)}</span>
+                  </div>
+                  {taxMetrics.mealsTotal > 0 && (
+                    <div className={styles.calcRowSub}>
+                      <span>Non-Deductible Meals ({((1 - taxRules.mealsDeductionRate) * 100).toFixed(0)}% limit):</span>
+                      <span className={styles.calcValWarning}>+ {fmtCurrency(taxMetrics.mealsNonDeductible)}</span>
+                    </div>
+                  )}
+                  {taxMetrics.mileageDeduction > 0 && (
+                    <div className={styles.calcRowSub}>
+                      <span>Mileage Allowance Deduction:</span>
+                      <span className={styles.calcValSuccess}>- {fmtCurrency(taxMetrics.mileageDeduction)}</span>
+                    </div>
+                  )}
+                  {taxMetrics.homeOfficeDeduction > 0 && (
+                    <div className={styles.calcRowSub}>
+                      <span>Home Office Deduction:</span>
+                      <span className={styles.calcValSuccess}>- {fmtCurrency(taxMetrics.homeOfficeDeduction)}</span>
+                    </div>
+                  )}
+                  <div className={styles.calcDivider} />
+                  <div className={styles.calcRowHighlight}>
+                    <span>Estimated Taxable Income:</span>
+                    <span>{fmtCurrency(taxMetrics.taxableIncome)}</span>
+                  </div>
+                  <div className={styles.calcRowTotal}>
+                    <span>Est. Tax Liability ({activeTaxRate.toFixed(1)}%):</span>
+                    <span className={styles.calcValHighlight}>{fmtCurrency(taxMetrics.estimatedTax)}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Recent Exceptions */}
           <Card padding="lg" className={styles.exceptionsCard}>

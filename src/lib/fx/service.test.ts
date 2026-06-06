@@ -7,11 +7,11 @@ import {
   StaleRatesError,
 } from './service';
 
-// RATES_AS_OF is '2025-01-15'. Mock Date.now() to be within the 90-day window
+// RATES_AS_OF is '2026-06-01'. Mock Date.now() to be within the 90-day window
 // so tests that call getExchangeRate / convertAmount don't throw StaleRatesError.
-const FRESH_DATE = new Date('2025-02-01T00:00:00Z').getTime();
+const FRESH_DATE = new Date('2026-06-05T00:00:00Z').getTime();
 // A date well beyond the 90-day window for staleness tests
-const STALE_DATE = new Date('2026-06-01T00:00:00Z').getTime();
+const STALE_DATE = new Date('2026-10-01T00:00:00Z').getTime();
 
 beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(FRESH_DATE);

@@ -27,7 +27,7 @@
 }
 
 .statusTitle {
-  color: var(--accent-primary);
+  color: var(--color-accent);
   margin-bottom: 4px;
 }
 
@@ -97,7 +97,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 /* ── Recent Incidents ── */
@@ -126,7 +126,7 @@
 .incidentDate {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .incidentResolved {
@@ -158,6 +158,6 @@
 }
 
 .ctaLink {
-  color: var(--accent-primary);
+  color: var(--color-accent);
   font-weight: 600;
 }

@@ -318,7 +318,7 @@ export default function TermsPage() {
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--warning)"
+              stroke="var(--color-warning)"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"

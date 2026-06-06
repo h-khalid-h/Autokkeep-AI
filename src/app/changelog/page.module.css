@@ -12,7 +12,7 @@
 
 .entryCard {
   padding: 32px;
-  border-left: 4px solid var(--accent-primary);
+  border-left: 4px solid var(--color-accent);
 }
 
 .entryHeader {
@@ -24,7 +24,7 @@
 }
 
 .versionBadge {
-  background: var(--accent-gradient);
+  background: var(--color-brand-gradient);
   color: #fff;
   padding: 4px 14px;
   border-radius: 9999px;
@@ -35,7 +35,7 @@
 
 .entryDate {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .changesList {
@@ -57,6 +57,6 @@
 }
 
 .ctaText {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   text-align: center;
 }

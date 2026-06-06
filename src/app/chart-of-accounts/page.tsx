@@ -76,6 +76,42 @@ function mapApiAccount(row: ApiAccountRow): Account {
   };
 }
 
+function getLocalizedGuidanceNotice(countryCode?: string) {
+  switch (countryCode) {
+    case 'US':
+      return {
+        title: '🇺🇸 US Tax Mapping Guidance (IRS Schedule C)',
+        text: 'Ensure Expense and Asset GL accounts map correctly to IRS Schedule C/Form 1120 lines to streamline annual tax filings. Be mindful of W-9 collection requirements for independent contractors (Form 1099-NEC) with payments exceeding $600.',
+      };
+    case 'GB':
+      return {
+        title: '🇬🇧 UK Tax Mapping Guidance (HMRC MTD)',
+        text: 'Classified expense and revenue accounts must align with HMRC Making Tax Digital (MTD) standards. Verify that standard, reduced, zero, or exempt VAT rate codes are assigned properly to avoid reporting discrepancies.',
+      };
+    case 'IN':
+      return {
+        title: '🇮🇳 India Tax Mapping Guidance (TDS §194J/C)',
+        text: 'Categorize vendor professional fees and contractor payment accounts under Indian Income Tax Act §194C/J. Autokkeep flags compliance warnings for payments exceeding the ₹30,000 threshold when PAN is uncollected.',
+      };
+    case 'EE':
+      return {
+        title: '🇪🇪 Estonia Tax Mapping Guidance (EMTA TSD)',
+        text: 'Payroll, wage, dividend distributions, and related tax categories must be accurately separated. This guarantees error-free monthly TSD declarations, due by the 10th of each calendar month to EMTA.',
+      };
+    default:
+      if (countryCode && ['DE', 'FR', 'NL', 'IE', 'FI', 'SE', 'LV', 'LT', 'PL'].includes(countryCode)) {
+        return {
+          title: `🇪🇺 EU Tax Mapping Guidance (EU VAT Directive)`,
+          text: 'Transactions must split out domestic, intra-community acquisition (reverse charge), and export vat tax rate codes correctly in your GL mapping to facilitate standard EU VAT return filings.',
+        };
+      }
+      return {
+        title: '🌐 General GL Alignment Notice',
+        text: 'Check that your GL accounts are fully mapped to standard tax categories to ensure automatic categorization, transaction matching, and clean month-end close readiness scores.',
+      };
+  }
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function ChartOfAccountsPage() {
   const { selectedEntity } = useEntity();
@@ -640,6 +676,22 @@ export default function ChartOfAccountsPage() {
               Manage GL accounts for {selectedEntity?.name || 'your entity'}
             </p>
           </div>
+
+          {/* ── GL Code Alignment Notice ───────────────────────────────── */}
+          {(() => {
+            const notice = getLocalizedGuidanceNotice(selectedEntity?.country);
+            return (
+              <div className={styles.noticeCard}>
+                <div className={styles.noticeInner}>
+                  <span className={styles.noticeIcon} aria-hidden="true">💡</span>
+                  <div className={styles.noticeContent}>
+                    <h2 className={styles.noticeTitle}>{notice.title}</h2>
+                    <p className={styles.noticeText}>{notice.text}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Error Banner ──────────────────────────────────────────── */}
           {error && (

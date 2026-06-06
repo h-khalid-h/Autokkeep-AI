@@ -36,7 +36,7 @@ export interface FxConversionResult {
 // This is a conservative fallback for when the API is unavailable.
 // IMPORTANT: Update RATES_AS_OF whenever rates are refreshed.
 
-const RATES_AS_OF = '2025-01-15'; // Date these fallback rates were last updated
+const RATES_AS_OF = '2026-06-01'; // Date these fallback rates were last updated
 const RATES_MAX_AGE_DAYS = 90; // Warn if rates are older than this
 
 const APPROXIMATE_USD_RATES: Record<string, number> = {

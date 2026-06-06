@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Logo from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
-import { useLanding, Language } from '@/lib/context/LandingContext';
+import { useLanding, Language, COUNTRY_ALLOWED_LANGUAGES } from '@/lib/context/LandingContext';
 import styles from './Navbar.module.css';
 
 const supportedCountries = [
@@ -54,6 +54,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { country, language, setCountry, setLanguage, t } = useLanding();
+  const allowedCodes = (COUNTRY_ALLOWED_LANGUAGES[country] || ['en']) as string[];
+  const visibleLanguages = supportedLanguages.filter((l) => allowedCodes.includes(l.code));
 
   useEffect(() => {
     const handleScroll = () => {
@@ -132,7 +134,7 @@ export default function Navbar() {
             className={styles.select}
             aria-label="Select language"
           >
-            {supportedLanguages.map((l) => (
+            {visibleLanguages.map((l) => (
               <option key={l.code} value={l.code} className={styles.option}>
                 {l.label}
               </option>
@@ -205,7 +207,7 @@ export default function Navbar() {
               className={styles.mobileSelect}
               aria-label="Select language"
             >
-              {supportedLanguages.map((l) => (
+              {visibleLanguages.map((l) => (
                 <option key={l.code} value={l.code}>
                   {l.label}
                 </option>

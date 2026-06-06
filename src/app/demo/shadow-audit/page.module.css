@@ -18,7 +18,7 @@
 .selectInput {
   background: rgba(0, 0, 0, 0.4);
   color: #fff;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.875rem;
@@ -37,8 +37,8 @@
   text-align: left;
   padding: 12px 16px;
   font-weight: 600;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -112,7 +112,7 @@
 .columnLabel {
   display: block;
   margin-bottom: 8px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
@@ -126,7 +126,7 @@
 }
 
 .previewLabel {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
   font-weight: 600;
 }
@@ -138,7 +138,7 @@
 
 .previewCellDate {
   padding: 8px 16px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -170,7 +170,7 @@
 
 .processingPercent {
   font-family: var(--font-mono);
-  color: var(--accent-primary);
+  color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -189,7 +189,7 @@
 
 .processingCaption {
   margin-top: 12px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .liveFeed {
@@ -216,7 +216,7 @@
 
 .feedDate {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-family: var(--font-mono);
   flex-shrink: 0;
 }
@@ -237,7 +237,7 @@
 
 .feedCategory {
   font-size: 0.8rem;
-  color: var(--accent-primary);
+  color: var(--color-accent);
 }
 
 .statsGrid {
@@ -281,7 +281,7 @@
   padding: 10px 16px;
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -304,7 +304,7 @@
 .cellCategory {
   padding: 10px 16px;
   font-size: 0.85rem;
-  color: var(--accent-primary);
+  color: var(--color-accent);
   font-weight: 500;
 }
 
@@ -312,7 +312,7 @@
   padding: 10px 16px;
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .cellConfidence {
@@ -337,7 +337,7 @@
 
 .ctaSubtitle {
   margin-bottom: 24px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .heroSection {

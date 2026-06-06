@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-4, 16px);
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .spinner {
@@ -19,7 +19,7 @@
 
 .loadingText {
   font-size: var(--text-sm, 14px);
-  color: var(--text-secondary, #888);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 

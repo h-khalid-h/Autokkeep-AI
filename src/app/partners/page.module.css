@@ -15,7 +15,7 @@
 .heroSubtitle {
   max-width: 720px;
   margin: 24px auto 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .heroCta {
@@ -47,7 +47,7 @@
 }
 
 .benefitBody {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -58,12 +58,12 @@
 }
 
 .statValue {
-  color: var(--accent-primary);
+  color: var(--color-accent);
   margin-bottom: 12px;
 }
 
 .statDesc {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .accentBanner {
@@ -87,7 +87,7 @@
 
 .stepNumber {
   font-family: var(--font-mono);
-  color: var(--accent-primary);
+  color: var(--color-accent);
   opacity: 0.35;
   display: block;
   margin-bottom: 16px;
@@ -99,7 +99,7 @@
 }
 
 .stepBody {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -129,13 +129,13 @@
 
 .sliderValue {
   font-family: var(--font-mono);
-  color: var(--accent-primary);
+  color: var(--color-accent);
   font-weight: 700;
 }
 
 .sliderInput {
   width: 100%;
-  accent-color: var(--accent-primary);
+  accent-color: var(--color-accent);
   height: 6px;
   cursor: pointer;
 }
@@ -147,12 +147,12 @@
 }
 
 .sliderRangeLabel {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .divider {
   height: 1px;
-  background: var(--border-primary);
+  background: var(--color-border);
   margin: 8px 0 36px;
 }
 
@@ -168,18 +168,18 @@
 .outputCardAccent {
   padding: 24px;
   text-align: center;
-  border-color: var(--accent-primary);
+  border-color: var(--color-accent);
 }
 
 .outputLabel {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .outputLabelAccent {
-  color: var(--accent-primary);
+  color: var(--color-accent);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -193,16 +193,16 @@
 .outputValueAccent {
   margin: 0;
   font-family: var(--font-mono);
-  color: var(--accent-primary);
+  color: var(--color-accent);
 }
 
 .outputStatAccent {
-  color: var(--accent-primary);
+  color: var(--color-accent);
   margin: 0;
 }
 
 .calcDisclaimer {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-top: 24px;
   text-align: center;
   font-style: italic;
@@ -219,7 +219,7 @@
 }
 
 .shadowAuditBody {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   max-width: 640px;
   margin: 0 auto 28px;
 }
@@ -236,7 +236,7 @@
 
 .tierCardHighlight {
   composes: tierCard;
-  border-color: var(--accent-primary);
+  border-color: var(--color-accent);
   box-shadow: 0 0 40px rgba(30, 111, 255, 0.12);
 }
 
@@ -259,11 +259,11 @@
 }
 
 .tierUnit {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .tierDesc {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
 }
 
@@ -276,14 +276,14 @@
 
 .tierFeatureItem {
   padding: 8px 0;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .tierCheck {
-  color: var(--success);
+  color: var(--color-success);
   font-size: 16px;
   line-height: 1;
 }
@@ -330,7 +330,7 @@
 .faqAnswer {
   padding: 0 24px 24px;
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
@@ -340,7 +340,7 @@
 }
 
 .ctaSubtext {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto 16px;
   font-size: 1.05rem;
@@ -354,8 +354,8 @@
 .successCard {
   padding: 40px 32px;
   text-align: center;
-  border-color: var(--success-border);
-  background: var(--success-subtle);
+  border-color: var(--color-success-border);
+  background: var(--color-success-subtle);
 }
 
 .successEmoji {
@@ -368,7 +368,7 @@
 }
 
 .successBody {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -382,8 +382,8 @@
   width: 100%;
   padding: 14px 18px;
   border-radius: 12px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-secondary);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
   color: inherit;
   font-size: 1rem;
   font-family: inherit;
@@ -393,7 +393,7 @@
 }
 
 .formInput:focus {
-  border-color: var(--accent-primary);
+  border-color: var(--color-accent);
 }
 
 .submitBtn {

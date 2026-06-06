@@ -14,8 +14,8 @@ export default function NotFound() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--bg-primary)',
-      color: 'var(--text-primary)',
+      background: 'var(--color-bg-primary)',
+      color: 'var(--color-text-primary)',
       fontFamily: 'var(--font-sans)',
       textAlign: 'center',
       padding: '24px',
@@ -23,7 +23,7 @@ export default function NotFound() {
       <div style={{
         fontSize: '6rem',
         fontWeight: 900,
-        background: 'var(--accent-gradient)',
+        background: 'var(--color-brand-gradient)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         lineHeight: 1,
@@ -40,7 +40,7 @@ export default function NotFound() {
       </h1>
       <p style={{
         fontSize: '1rem',
-        color: 'var(--text-secondary)',
+        color: 'var(--color-text-secondary)',
         marginBottom: '32px',
         maxWidth: '400px',
       }}>
@@ -59,7 +59,7 @@ export default function NotFound() {
             fontWeight: 600,
             fontSize: '0.9rem',
             textDecoration: 'none',
-            background: 'var(--accent-gradient)',
+            background: 'var(--color-brand-gradient)',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
@@ -80,9 +80,9 @@ export default function NotFound() {
             fontWeight: 600,
             fontSize: '0.9rem',
             textDecoration: 'none',
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-primary)',
+            background: 'var(--color-bg-secondary)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
             cursor: 'pointer',
             transition: 'transform 0.15s ease, box-shadow 0.15s ease',
           }}

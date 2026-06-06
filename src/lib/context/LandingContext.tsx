@@ -272,9 +272,41 @@ const COUNTRY_LANGUAGES: Record<string, Language> = {
   HK: 'en',
   ZA: 'en',
   NG: 'en',
-  KE: 'en',
   Global: 'en',
 };
+
+export const COUNTRY_ALLOWED_LANGUAGES: Record<string, Language[]> = {
+  Global: ['en'],
+  US: ['en'],
+  GB: ['en'],
+  AU: ['en'],
+  IE: ['en'],
+  ZA: ['en'],
+  SG: ['en'],
+  HK: ['en'],
+  NL: ['en'],
+  SE: ['en'],
+  FI: ['en'],
+  PL: ['en'],
+  LV: ['en'],
+  LT: ['en'],
+  NG: ['en'],
+  KE: ['en'],
+  IN: ['en'],
+  CA: ['en', 'fr'],
+  CH: ['en', 'de', 'fr'],
+  DE: ['en', 'de'],
+  FR: ['en', 'fr'],
+  BR: ['en', 'pt'],
+  MX: ['en', 'es'],
+  JP: ['en', 'ja'],
+  EE: ['en', 'et'],
+  AE: ['en', 'ar'],
+  SA: ['en', 'ar'],
+  QA: ['en', 'ar'],
+  EG: ['en', 'ar'],
+};
+
 
 // ─── Context Definition ──────────────────────────────────────────────────────
 
@@ -352,6 +384,8 @@ export function LandingProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setLanguage = (l: Language) => {
+    const allowed = COUNTRY_ALLOWED_LANGUAGES[country] || ['en'];
+    if (!allowed.includes(l)) return;
     setLanguageState(l);
     setDir(l === 'ar' ? 'rtl' : 'ltr');
     

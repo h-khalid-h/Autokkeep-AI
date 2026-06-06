@@ -511,6 +511,172 @@ function generateSummary(checks: CloseCheck[], readinessScore: number): string {
   return `Not ready to close. ${failCount} critical check(s) failed. Resolve these issues before attempting month-end close.`;
 }
 
+// ─── Country-Specific Tax & Compliance checks ─────────────────────────────────
+
+async function us1099Check(
+  entityId: string,
+  supabase: SupabaseQueryClient,
+  currency: string = 'USD'
+): Promise<CloseCheck> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('id, name, w9_status, ytd_payments, is_1099_eligible')
+      .eq('entity_id', entityId)
+      .eq('is_active', true)
+      .eq('is_1099_eligible', true)
+      .gte('ytd_payments', 600);
+
+    if (error) {
+      return {
+        name: 'IRS 1099-NEC Readiness',
+        status: 'warning',
+        description: `Could not verify 1099 compliance: ${error.message}`,
+      };
+    }
+
+    const missingW9 = (vendors || []).filter(
+      (v: any) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
+    );
+
+    if (missingW9.length === 0) {
+      return {
+        name: 'IRS 1099-NEC Readiness',
+        status: 'pass',
+        description: 'All 1099-eligible vendors exceeding $600 have verified W-9s.',
+      };
+    }
+
+    return {
+      name: 'IRS 1099-NEC Readiness',
+      status: 'fail',
+      description: `${missingW9.length} 1099-eligible vendor(s) exceeded $600 YTD without a completed W-9 form.`,
+      count: missingW9.length,
+      details: missingW9.map(
+        (v: any) => `${v.name}: ${formatCurrency(v.ytd_payments, currency)} (W-9: ${v.w9_status})`
+      ),
+    };
+  } catch (error) {
+    return {
+      name: 'IRS 1099-NEC Readiness',
+      status: 'warning',
+      description: 'Error running 1099-NEC readiness check.',
+    };
+  }
+}
+
+async function indiaTdsCheck(
+  entityId: string,
+  supabase: SupabaseQueryClient,
+  currency: string = 'INR'
+): Promise<CloseCheck> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('id, name, w9_status, ytd_payments, is_1099_eligible')
+      .eq('entity_id', entityId)
+      .eq('is_active', true)
+      .gte('ytd_payments', 30000);
+
+    if (error) {
+      return {
+        name: 'TDS Compliance (§194J/C)',
+        status: 'warning',
+        description: `Could not verify TDS compliance: ${error.message}`,
+      };
+    }
+
+    const missingPan = (vendors || []).filter(
+      (v: any) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
+    );
+
+    if (missingPan.length === 0) {
+      return {
+        name: 'TDS Compliance (§194J/C)',
+        status: 'pass',
+        description: 'All vendors exceeding ₹30,000 professional/contractor limit have valid PAN cards collected.',
+      };
+    }
+
+    return {
+      name: 'TDS Compliance (§194J/C)',
+      status: 'fail',
+      description: `${missingPan.length} professional/contractor vendor(s) exceeded ₹30,000 threshold without a PAN card.`,
+      count: missingPan.length,
+      details: missingPan.map(
+        (v: any) => `${v.name}: ${formatCurrency(v.ytd_payments, currency)} (PAN: ${v.w9_status === 'requested' ? 'Requested' : 'Not Collected'})`
+      ),
+    };
+  } catch (error) {
+    return {
+      name: 'TDS Compliance (§194J/C)',
+      status: 'warning',
+      description: 'Error running TDS compliance check.',
+    };
+  }
+}
+
+function vatReconciliationCheck(
+  transactions: TransactionRow[],
+  countryCode: string
+): CloseCheck {
+  const expenseTxns = transactions.filter((t) => t.amount > 0);
+  const missingVat = expenseTxns.filter((t) => {
+    const cat = (t.category_human || t.category_ai || '').toLowerCase();
+    return !cat.includes('vat') && !cat.includes('reverse_charge');
+  });
+
+  if (missingVat.length === 0) {
+    return {
+      name: 'VAT Return Reconciliation',
+      status: 'pass',
+      description: `All expense transactions have associated VAT tax rate codes for ${countryCode}.`,
+    };
+  }
+
+  const pct = Math.round((missingVat.length / (expenseTxns.length || 1)) * 100);
+  const status = pct > 20 ? 'fail' : 'warning';
+
+  return {
+    name: 'VAT Return Reconciliation',
+    status,
+    description: `${missingVat.length} of ${expenseTxns.length} expense transaction(s) (${pct}%) are missing VAT tax rate code classifications.`,
+    count: missingVat.length,
+    details: missingVat.slice(0, 5).map(
+      (t) => `${t.merchant_name || 'Unknown'}: ${t.category_human || t.category_ai || 'Uncategorized'}`
+    ),
+  };
+}
+
+function estoniaTsdCheck(
+  transactions: TransactionRow[]
+): CloseCheck {
+  const payrollTxns = transactions.filter((t) => {
+    const cat = (t.category_human || t.category_ai || '').toLowerCase();
+    return cat.includes('payroll') || cat.includes('wages') || cat.includes('salary') || cat.includes('dividend') || cat.includes('tax');
+  });
+
+  const missingDocs = payrollTxns.filter((t) => t.document_status !== 'found');
+
+  if (missingDocs.length === 0) {
+    return {
+      name: 'EMTA TSD Monthly Declaration',
+      status: 'pass',
+      description: 'TSD monthly declaration readiness verified. All salary/payroll payments have required declarations.',
+    };
+  }
+
+  return {
+    name: 'EMTA TSD Monthly Declaration',
+    status: 'warning',
+    description: `${missingDocs.length} payroll/distribution transaction(s) require EMTA TSD verification before monthly filing.`,
+    count: missingDocs.length,
+    details: missingDocs.slice(0, 5).map(
+      (t) => `${t.merchant_name || 'Unknown'}: ${new Date(t.date).toLocaleDateString()}`
+    ),
+  };
+}
+
 // ─── Main Close Engine Entry Point ─────────────────────────────────────────
 
 /**
@@ -526,6 +692,28 @@ export async function runMonthEndClose(
   currency: string = 'USD',
   countryCode?: string
 ): Promise<CloseReport> {
+  // Resolve country, currency, and basis from entity
+  let resolvedCountry = countryCode;
+  let resolvedCurrency = currency;
+  let entityBasis = 'cash';
+  let hasEntityData = false;
+  try {
+    const { data: entity } = await supabase
+      .from('entities')
+      .select('base_currency, country, accounting_basis')
+      .eq('id', entityId)
+      .maybeSingle();
+
+    if (entity) {
+      hasEntityData = true;
+      if (entity.base_currency) resolvedCurrency = entity.base_currency as string;
+      if (entity.country) resolvedCountry = entity.country as string;
+      if (entity.accounting_basis) entityBasis = entity.accounting_basis as string;
+    }
+  } catch (err) {
+    console.error('[CloseEngine] Failed to resolve entity metadata:', err);
+  }
+
   // Compute date range for the period
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endMonth = month === 12 ? 1 : month + 1;
@@ -646,16 +834,31 @@ export async function runMonthEndClose(
   }
 
   // Run all checks (including async trial balance check and F16 SOD check)
-  const tbCheck = await trialBalanceCheck(entityId, startDate, endDate, supabase, currency);
+  const tbCheck = await trialBalanceCheck(entityId, startDate, endDate, supabase, resolvedCurrency);
 
   const checks: CloseCheck[] = [
     tbCheck,
-    reconciliationCheck(allTransactions, bankAccounts, currency),
-    missingReceiptCheck(txns, currency, countryCode),
-    uncategorizedCheck(txns, currency),
-    expenseReviewCheck(txns, historicalAvg, currency),
+    reconciliationCheck(allTransactions, bankAccounts, resolvedCurrency),
+    missingReceiptCheck(txns, resolvedCurrency, resolvedCountry),
+    uncategorizedCheck(txns, resolvedCurrency),
+    expenseReviewCheck(txns, historicalAvg, resolvedCurrency),
     bankFeedCheck(bankConnections),
   ];
+
+  // Inject country-specific tax readiness checks
+  const resolvedCountryCode = resolvedCountry || countryCode;
+  if (resolvedCountryCode === 'US') {
+    const usCheck = await us1099Check(entityId, supabase, resolvedCurrency);
+    checks.push(usCheck);
+  } else if (resolvedCountryCode === 'IN') {
+    const inCheck = await indiaTdsCheck(entityId, supabase, resolvedCurrency);
+    checks.push(inCheck);
+  } else if (resolvedCountryCode && ['GB', 'DE', 'FR', 'NL', 'IE', 'EE', 'FI', 'SE', 'LV', 'LT', 'PL'].includes(resolvedCountryCode)) {
+    checks.push(vatReconciliationCheck(txns, resolvedCountryCode));
+    if (resolvedCountryCode === 'EE') {
+      checks.push(estoniaTsdCheck(txns));
+    }
+  }
 
   // F16: Separation of Duties check — only run when we know who is closing
   if (closingUserId) {
@@ -667,31 +870,22 @@ export async function runMonthEndClose(
 
   // Accounting Basis check — informational only
   // Surfaces the entity's GAAP accounting basis so it's visible in the close report
-  try {
-    const { data: entity } = await supabase
-      .from('entities')
-      .select('accounting_basis, base_currency')
-      .eq('id', entityId)
-      .single();
-
-    // Update currency and country from entity if available
-    if (entity?.base_currency) {
-      currency = entity.base_currency as string;
+  if (hasEntityData) {
+    try {
+      const basis = entityBasis || 'cash';
+      checks.push({
+        name: 'Accounting Basis',
+        status: 'pass',
+        description: `Entity uses ${basis} basis accounting.`,
+        details: [
+          basis === 'accrual'
+            ? 'Revenue and expenses are recognized when earned/incurred, regardless of cash movement.'
+            : 'Revenue and expenses are recognized when cash is received/paid.',
+        ],
+      });
+    } catch {
+      // Non-fatal — basis check is informational
     }
-
-    const basis = (entity?.accounting_basis as string) ?? 'cash';
-    checks.push({
-      name: 'Accounting Basis',
-      status: 'pass',
-      description: `Entity uses ${basis} basis accounting.`,
-      details: [
-        basis === 'accrual'
-          ? 'Revenue and expenses are recognized when earned/incurred, regardless of cash movement.'
-          : 'Revenue and expenses are recognized when cash is received/paid.',
-      ],
-    });
-  } catch {
-    // Non-fatal — basis check is informational
   }
 
   const readinessScore = calculateReadinessScore(checks);

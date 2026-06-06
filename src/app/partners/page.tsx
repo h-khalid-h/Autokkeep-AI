@@ -454,7 +454,7 @@ export default function PartnersPage() {
                   <Anim key={i} delay={i * 80}>
                     <div
                       className={`card ${styles.faqCard}`}
-                      style={isOpen ? { borderColor: 'var(--accent-primary)' } : undefined} /* dynamic */
+                      style={isOpen ? { borderColor: 'var(--color-accent)' } : undefined} /* dynamic */
                     >
                       <button
                         onClick={() => toggleFaq(i)}

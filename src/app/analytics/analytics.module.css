@@ -496,3 +496,160 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* ─── Tax Estimator & Deductions Card ─────────── */
+.taxEstimatorCard {
+  margin-bottom: var(--space-6);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+}
+
+.taxEstimatorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+}
+
+.taxEstimatorGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .taxEstimatorGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.taxControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-right: 0;
+}
+
+@media (min-width: 768px) {
+  .taxControls {
+    border-right: 1px solid var(--color-border);
+    padding-right: var(--space-6);
+  }
+}
+
+.controlRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.controlLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.controlLabel strong {
+  color: var(--color-text-primary);
+}
+
+.sliderInput {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-primary);
+  outline: none;
+}
+
+.sliderInput::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.sliderInput::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.sliderTicks {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xxs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.taxCalculations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.calcRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.calcRowSub {
+  composes: calcRow;
+  font-size: var(--text-xs);
+  padding-left: var(--space-4);
+  color: var(--color-text-tertiary);
+}
+
+.calcVal {
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+.calcValSuccess {
+  composes: calcVal;
+  color: var(--color-success-text);
+  font-weight: var(--weight-semibold);
+}
+
+.calcValWarning {
+  composes: calcVal;
+  color: var(--color-warning-text);
+  font-weight: var(--weight-semibold);
+}
+
+.calcDivider {
+  height: 1px;
+  background: var(--color-border-primary);
+  margin: var(--space-2) 0;
+}
+
+.calcRowHighlight {
+  composes: calcRow;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.calcRowTotal {
+  composes: calcRow;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  background: var(--color-accent-subtle);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border-accent);
+  margin-top: var(--space-2);
+}
+
+.calcValHighlight {
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+}

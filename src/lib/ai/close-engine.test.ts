@@ -816,3 +816,82 @@ describe('closePeriod', () => {
     expect(result.message).toContain('db_error');
   });
 });
+
+describe('runMonthEndClose country-specific checks', () => {
+  it('applies US 1099 check when country is US', async () => {
+    // Mock vendors with missing W9 and payments >= 600
+    const mockVendors = [
+      { id: 'v-1', name: 'USA Vendor', w9_status: 'not_collected', ytd_payments: 1000, is_1099_eligible: true },
+    ];
+    const supabase = createMockSupabase({ transactions: [makeTx()] });
+    // Mock the from('vendors') query specifically
+    const originalFrom = supabase.from;
+    supabase.from = vi.fn((table: string) => {
+      if (table === 'vendors') {
+        const chain = {} as any;
+        chain.select = vi.fn().mockReturnValue(chain);
+        chain.eq = vi.fn().mockReturnValue(chain);
+        chain.gte = vi.fn().mockReturnValue(chain);
+        chain.then = (resolve: any) => resolve({ data: mockVendors, error: null });
+        return chain;
+      }
+      return originalFrom(table);
+    });
+
+    const report = await runMonthEndClose('entity-1', 2025, 6, supabase, undefined, 'USD', 'US');
+    const usCheck = report.checks.find(c => c.name === 'IRS 1099-NEC Readiness');
+    expect(usCheck).toBeDefined();
+    expect(usCheck!.status).toBe('fail');
+    expect(usCheck!.description).toContain('exceeded $600 YTD without a completed W-9');
+  });
+
+  it('applies India TDS check when country is IN', async () => {
+    const mockVendors = [
+      { id: 'v-2', name: 'Indian Contractor', w9_status: 'requested', ytd_payments: 45000, is_1099_eligible: true },
+    ];
+    const supabase = createMockSupabase({ transactions: [makeTx()] });
+    const originalFrom = supabase.from;
+    supabase.from = vi.fn((table: string) => {
+      if (table === 'vendors') {
+        const chain = {} as any;
+        chain.select = vi.fn().mockReturnValue(chain);
+        chain.eq = vi.fn().mockReturnValue(chain);
+        chain.gte = vi.fn().mockReturnValue(chain);
+        chain.then = (resolve: any) => resolve({ data: mockVendors, error: null });
+        return chain;
+      }
+      return originalFrom(table);
+    });
+
+    const report = await runMonthEndClose('entity-1', 2025, 6, supabase, undefined, 'INR', 'IN');
+    const tdsCheck = report.checks.find(c => c.name === 'TDS Compliance (§194J/C)');
+    expect(tdsCheck).toBeDefined();
+    expect(tdsCheck!.status).toBe('fail');
+    expect(tdsCheck!.description).toContain('exceeded ₹30,000 threshold without a PAN card');
+  });
+
+  it('applies VAT check when country is UK/EU', async () => {
+    // 1 transaction with positive amount (expense) but no VAT in category
+    const transactions = [
+      makeTx({ amount: 100, category_human: 'Software Subscription', status: 'approved' }),
+    ];
+    const supabase = createMockSupabase({ transactions });
+    const report = await runMonthEndClose('entity-1', 2025, 6, supabase, undefined, 'GBP', 'GB');
+    const vatCheck = report.checks.find(c => c.name === 'VAT Return Reconciliation');
+    expect(vatCheck).toBeDefined();
+    expect(vatCheck!.status).toBe('fail');
+    expect(vatCheck!.description).toContain('missing VAT tax rate code');
+  });
+
+  it('applies Estonia TSD check when country is EE', async () => {
+    const transactions = [
+      makeTx({ amount: 500, category_human: 'Wages and Salaries', status: 'approved', document_status: 'missing' }),
+    ];
+    const supabase = createMockSupabase({ transactions });
+    const report = await runMonthEndClose('entity-1', 2025, 6, supabase, undefined, 'EUR', 'EE');
+    const tsdCheck = report.checks.find(c => c.name === 'EMTA TSD Monthly Declaration');
+    expect(tsdCheck).toBeDefined();
+    expect(tsdCheck!.status).toBe('warning');
+    expect(tsdCheck!.description).toContain('require EMTA TSD verification');
+  });
+});

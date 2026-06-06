@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .guardInner {
@@ -14,7 +14,7 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: var(--accent-gradient);
+  background: var(--color-brand-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
