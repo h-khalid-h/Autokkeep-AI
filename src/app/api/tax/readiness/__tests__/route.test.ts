@@ -153,7 +153,7 @@ describe('GET /api/tax/readiness', () => {
   });
 
   it('should return tax readiness report on happy path', async () => {
-    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003' }, error: null });
+    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003', country: 'US' }, error: null });
     mockDb.from.mockReturnValue(entityChain);
 
     const req = createGetRequest({ entityId: ENTITY_ID, taxYear: '2026' });
@@ -163,11 +163,11 @@ describe('GET /api/tax/readiness', () => {
     const json = await res.json();
     expect(json.report).toBeDefined();
     expect(json.report.score).toBe(85);
-    expect(analyzeTaxReadiness).toHaveBeenCalledWith(ENTITY_ID, 2026, mockDb);
+    expect(analyzeTaxReadiness).toHaveBeenCalledWith(ENTITY_ID, 2026, mockDb, undefined, 'US');
   });
 
   it('should default to current year when taxYear not provided', async () => {
-    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003' }, error: null });
+    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003', country: 'US' }, error: null });
     mockDb.from.mockReturnValue(entityChain);
 
     const req = createGetRequest({ entityId: ENTITY_ID });
@@ -178,6 +178,8 @@ describe('GET /api/tax/readiness', () => {
       ENTITY_ID,
       new Date().getFullYear(),
       mockDb,
+      undefined,
+      'US',
     );
   });
 });

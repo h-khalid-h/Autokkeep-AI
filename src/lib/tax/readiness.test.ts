@@ -283,6 +283,7 @@ describe('analyzeTaxReadiness', () => {
       const tx = makeTx({ amount: 1000, category_human: '6200' });
       const db = createMockSupabase([tx]);
 
+      // DEFAULT rules: 25% tax rate
       const report = await analyzeTaxReadiness('entity-1', 2025, db);
 
       // $1000 deductible * 0.25 = $250
@@ -409,7 +410,8 @@ describe('analyzeTaxReadiness', () => {
       const tx = makeTx({ category_human: '6200', amount: 100 });
       const db = createMockSupabase([tx]);
 
-      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+      // US rules include hasHomeOfficeDeduction = true
+      const report = await analyzeTaxReadiness('entity-1', 2025, db, undefined, 'US');
 
       const homeOfficeRec = report.recommendations.find((r) =>
         r.includes('home office')
@@ -513,7 +515,8 @@ describe('analyzeTaxReadiness', () => {
         merchant_name: 'Restaurant Downtown',
       });
       const db = createMockSupabase([tx]);
-      const report = await analyzeTaxReadiness('entity-1', 2025, db);
+      // US rules: 50% meals deduction
+      const report = await analyzeTaxReadiness('entity-1', 2025, db, undefined, 'US');
 
       expect(report.totalDeductible).toBe(100); // 200 * 0.5
     });
@@ -530,7 +533,8 @@ describe('analyzeTaxReadiness', () => {
         }), // Meals — 50% deduction
       ];
       const db = createMockSupabase(transactions);
-      const report = await analyzeTaxReadiness('entity-1', 2025, db, 0.25);
+      // US rules: 50% meals, 0.25 explicit tax rate
+      const report = await analyzeTaxReadiness('entity-1', 2025, db, 0.25, 'US');
 
       // totalDeductible = 1000 + (400 * 0.5) = 1200
       expect(report.totalDeductible).toBe(1200);

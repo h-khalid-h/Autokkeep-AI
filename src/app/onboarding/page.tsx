@@ -982,24 +982,32 @@ export default function OnboardingPage() {
           )}
 
           {/* Bank Step */}
-          {currentStep === 'bank' && (
+          {currentStep === 'bank' && (() => {
+            // Countries where Plaid is supported
+            const PLAID_COUNTRIES = new Set(['US', 'CA', 'GB', 'IE', 'FR', 'ES', 'NL', 'DE']);
+            const isPlaidSupported = PLAID_COUNTRIES.has(country);
+
+            return (
             <div>
               <h2 className={styles.stepHeading}>🏦 Connect Your Bank</h2>
               <p className={styles.stepDescription}>
-                We use Plaid to securely connect to your bank. Your credentials are never stored on our servers.
+                {isPlaidSupported
+                  ? 'We use Plaid to securely connect to your bank. Your credentials are never stored on our servers.'
+                  : 'Import your bank transactions via CSV file. Download a statement from your bank and upload it here.'}
               </p>
               <Card variant="elevated" padding="lg" className={styles.bankCenter}>
                 {bankConnected ? (
                   <>
                     <span className={styles.bankEmoji}>✅</span>
                     <p className={styles.bankSuccessText}>
-                      Bank account connected successfully!
+                      {isPlaidSupported ? 'Bank account connected successfully!' : 'Transactions imported successfully!'}
                     </p>
                     <p className={styles.bankCaption}>
-                      Autokkeep will begin importing transactions shortly.
+                      Autokkeep will begin processing your transactions shortly.
                     </p>
                   </>
-                ) : bankLinkToken ? (
+                ) : isPlaidSupported ? (
+                  bankLinkToken ? (
                   <>
                     <span className={styles.bankEmoji}>🔗</span>
                     <p className={styles.bankBody}>
@@ -1009,7 +1017,7 @@ export default function OnboardingPage() {
                       If the window didn&apos;t open, please check your pop-up blocker.
                     </p>
                   </>
-                ) : (
+                  ) : (
                   <>
                     <span className={styles.bankEmoji}>🔒</span>
                     <p className={styles.bankBody}>
@@ -1029,6 +1037,65 @@ export default function OnboardingPage() {
                       Supported: 12,000+ financial institutions across the US, Canada, UK, and Europe
                     </p>
                   </>
+                  )
+                ) : (
+                  <>
+                    <span className={styles.bankEmoji}>📄</span>
+                    <p className={styles.bankBody}>
+                      Upload a CSV bank statement to import your transactions.
+                      Most banks allow you to download statements in CSV format from online banking.
+                    </p>
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      style={{ display: 'none' }}
+                      id="csv-upload-input"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !entityId) return;
+                        setLoading(true);
+                        setError(null);
+                        try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('entityId', entityId);
+                          const res = await fetch('/api/transactions/import', {
+                            method: 'POST',
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          if (!res.ok) {
+                            throw new Error(data.error || 'Import failed');
+                          }
+                          setBankConnected(true);
+                          toast.success(`Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}`);
+                          if (data.skipped > 0) {
+                            toast.info(`${data.skipped} duplicate transaction${data.skipped !== 1 ? 's' : ''} skipped`);
+                          }
+                        } catch (err) {
+                          console.error('[Onboarding] CSV import error:', err);
+                          const errorMsg = err instanceof Error ? err.message : 'Failed to import CSV';
+                          setError(errorMsg);
+                          toast.error(errorMsg);
+                        } finally {
+                          setLoading(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={() => document.getElementById('csv-upload-input')?.click()}
+                      disabled={loading}
+                      isLoading={loading}
+                    >
+                      {loading ? 'Importing…' : '📤 Upload CSV Statement'}
+                    </Button>
+                    <p className={styles.bankSupportedText}>
+                      Accepted format: CSV with columns for date, description, and amount
+                    </p>
+                  </>
                 )}
               </Card>
               <div className={styles.navButtons}>
@@ -1040,7 +1107,8 @@ export default function OnboardingPage() {
                 </Button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Ledger Step */}
           {currentStep === 'ledger' && (

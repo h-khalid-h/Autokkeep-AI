@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate entity access against org
+    // Validate entity access against org and fetch country for country-aware analysis
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, country')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Run tax readiness analysis
-    const report = await analyzeTaxReadiness(entityId, taxYear, db);
+    // Run tax readiness analysis with country-aware rules
+    const entityCountry = (entity.country as string) || 'US';
+    const report = await analyzeTaxReadiness(entityId, taxYear, db, undefined, entityCountry);
 
     // Audit log: tax readiness analysis executed (F24: persist full breakdown)
     const receiptCompliancePct = report.missingReceipts.length > 0

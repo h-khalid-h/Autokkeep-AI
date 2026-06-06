@@ -461,7 +461,7 @@ export default function AnalyticsPage() {
             <div className={styles.closeStatusInner}>
               <div>
                 <div className={styles.closeStatusTitle}>
-                  📊 Monthly Close Status — {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                  📊 Monthly Close Status — {new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                 </div>
                 <p className={styles.closeStatusDesc}>
                   {data.pending > 0

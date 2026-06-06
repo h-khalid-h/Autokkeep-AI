@@ -313,7 +313,7 @@ export default function InsightsPage() {
                   >
                     <div className={styles.sidebarItemTitle}>{conv.title}</div>
                     <div className={styles.sidebarItemDate}>
-                      {new Date(conv.updated_at).toLocaleDateString('en-US', {
+                      {new Date(conv.updated_at).toLocaleDateString(undefined, {
                         month: 'short',
                         day: 'numeric',
                       })}

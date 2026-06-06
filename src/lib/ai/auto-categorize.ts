@@ -147,6 +147,14 @@ export async function runAutoCategorize(options?: {
           })
         );
 
+        // Fetch entity's base currency for fallback
+        const { data: entityData } = await db
+          .from('entities')
+          .select('base_currency')
+          .eq('id', entityId)
+          .single();
+        const entityBaseCurrency = (entityData?.base_currency as string) || 'USD';
+
         // Build TransactionInput array
         const transactionInputs: TransactionInput[] = entityTxs.map(
           (t: Record<string, unknown>) => ({
@@ -156,7 +164,7 @@ export async function runAutoCategorize(options?: {
             amount: t.amount as number,
             date: t.date as string,
             mcc: (t.mcc_code as string) || undefined,
-            currency: (t.currency as string) || 'USD',
+            currency: (t.currency as string) || entityBaseCurrency,
             cardHolder: (t.card_holder as string) || undefined,
             bankDescription: (t.raw_bank_description as string) || (t.merchant_raw as string) || undefined,
           })

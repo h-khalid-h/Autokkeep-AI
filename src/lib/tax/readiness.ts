@@ -7,8 +7,9 @@
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { formatCurrency } from '@/lib/currency/converter';
-import { RECEIPT_REQUIRED_THRESHOLD, HIGH_VALUE_RECEIPT_THRESHOLD } from '@/lib/constants/compliance';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { getTaxRules, getMissingReceiptWarning, getMealsDeductionNote } from '@/lib/tax/rules';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -156,7 +157,7 @@ function categorizeTransaction(tx: TransactionRow): { category: string; deductib
 }
 
 // ─── Receipt Threshold ──────────────────────────────────────────────────────
-// IRS requires receipts for expenses ≥ $75 (centralized via compliance constants)
+// Receipt thresholds are now country-aware via getComplianceThresholds()
 
 // ─── Main Analyzer ──────────────────────────────────────────────────────────
 
@@ -164,8 +165,15 @@ export async function analyzeTaxReadiness(
   entityId: string,
   taxYear: number,
   db: SupabaseQueryClient,
-  taxRate: number = 0.25
+  taxRate?: number,
+  entityCountry?: string
 ): Promise<TaxReadinessReport> {
+  // Resolve country-specific tax rules and compliance thresholds
+  const taxRules = getTaxRules(entityCountry);
+  const compliance = getComplianceThresholds(entityCountry);
+  const effectiveTaxRate = taxRate ?? taxRules.defaultTaxRate;
+  const receiptThreshold = compliance.RECEIPT_REQUIRED_THRESHOLD;
+  const highValueThreshold = compliance.HIGH_VALUE_RECEIPT_THRESHOLD;
   // Fetch all approved/categorized transactions for the tax year
   const startDate = `${taxYear}-01-01`;
   const endDate = `${taxYear}-12-31`;
@@ -211,9 +219,9 @@ export async function analyzeTaxReadiness(
     categoryMap.set(category, existing);
 
     if (deductible) {
-      // IRS: Meals & entertainment only 50% deductible
+      // Country-aware: meals deduction rate varies by jurisdiction
       const isMeals = category === 'Meals & Entertainment';
-      totalDeductible += isMeals ? absAmount * 0.5 : absAmount;
+      totalDeductible += isMeals ? absAmount * taxRules.mealsDeductionRate : absAmount;
       totalDeductibleCount += 1;
     }
 
@@ -224,8 +232,8 @@ export async function analyzeTaxReadiness(
       if (deductible) deductibleWithReceipts++;
     }
 
-    // Flag missing receipts on deductible expenses above threshold
-    if (deductible && !hasReceipt && absAmount >= RECEIPT_REQUIRED_THRESHOLD) {
+    // Flag missing receipts on deductible expenses above country-specific threshold
+    if (deductible && !hasReceipt && absAmount >= receiptThreshold) {
       missingReceipts.push({
         id: tx.id,
         merchant: tx.merchant_name || 'Unknown',
@@ -243,9 +251,9 @@ export async function analyzeTaxReadiness(
   const deductionsByCategory = Array.from(categoryMap.entries())
     .filter(([, data]) => data.deductible)
     .map(([category, data]) => {
-      // IRS: Meals & entertainment only 50% deductible
+      // Country-aware: meals deduction rate varies by jurisdiction
       const isMeals = category === 'Meals & Entertainment';
-      const adjustedAmount = isMeals ? data.amount * 0.5 : data.amount;
+      const adjustedAmount = isMeals ? data.amount * taxRules.mealsDeductionRate : data.amount;
       return {
         category,
         amount: Math.round(adjustedAmount * 100) / 100,
@@ -255,7 +263,7 @@ export async function analyzeTaxReadiness(
     .sort((a, b) => b.amount - a.amount);
 
   // Calculate estimated savings
-  const estimatedSavings = Math.round(totalDeductible * taxRate * 100) / 100;
+  const estimatedSavings = Math.round(totalDeductible * effectiveTaxRate * 100) / 100;
 
   // Calculate readiness score (0-100)
   const readinessScore = calculateReadinessScore({
@@ -266,6 +274,7 @@ export async function analyzeTaxReadiness(
     totalWithReceipts,
     deductibleWithReceipts,
     totalDeductibleCount,
+    highValueThreshold,
   });
 
   // Generate recommendations
@@ -297,6 +306,8 @@ export async function analyzeTaxReadiness(
     totalWithReceipts,
     accountingBasis,
     currency: entityCurrency,
+    entityCountry: entityCountry || 'US',
+    taxRules,
   });
 
   return {
@@ -322,6 +333,7 @@ function calculateReadinessScore(data: {
   totalWithReceipts: number;
   deductibleWithReceipts: number;
   totalDeductibleCount: number;
+  highValueThreshold: number;
 }): number {
   if (data.expenses.length === 0) return 100;
 
@@ -335,7 +347,7 @@ function calculateReadinessScore(data: {
   score -= Math.round((1 - receiptRate) * 40);
 
   // Missing high-value receipts penalty (20% weight)
-  const highValueMissing = data.missingReceipts.filter(r => r.amount >= HIGH_VALUE_RECEIPT_THRESHOLD);
+  const highValueMissing = data.missingReceipts.filter(r => r.amount >= data.highValueThreshold);
   if (highValueMissing.length > 0) {
     const penalty = Math.min(20, highValueMissing.length * 3);
     score -= penalty;
@@ -377,6 +389,8 @@ function generateRecommendations(data: {
   totalWithReceipts: number;
   accountingBasis: string;
   currency: string;
+  entityCountry: string;
+  taxRules: import('@/lib/tax/rules').TaxRules;
 }): string[] {
   const recs: string[] = [];
 
@@ -388,11 +402,12 @@ function generateRecommendations(data: {
     );
   }
 
-  // High-value missing receipts
-  const highValueMissing = data.missingReceipts.filter(r => r.amount >= 500);
+  // High-value missing receipts (country-aware threshold and authority name)
+  const hvThreshold = data.taxRules.highValueReceiptThreshold;
+  const highValueMissing = data.missingReceipts.filter(r => r.amount >= hvThreshold);
   if (highValueMissing.length > 0) {
     recs.push(
-      `⚠️ ${highValueMissing.length} expense${highValueMissing.length !== 1 ? 's' : ''} over $500 missing receipts — these are high-priority for IRS audit compliance.`
+      getMissingReceiptWarning(highValueMissing.length, hvThreshold, data.entityCountry)
     );
   }
 
@@ -404,42 +419,56 @@ function generateRecommendations(data: {
     );
   }
 
-  // Meals deduction note (50% rule)
+  // Meals deduction note (country-aware rate)
   const mealsCategory = data.deductionsByCategory.find(c => c.category === 'Meals & Entertainment');
   if (mealsCategory && mealsCategory.amount > 0) {
-    recs.push(
-      `Meals & entertainment expenses of ${formatCurrency(mealsCategory.amount, data.currency)} — note: only 50% is deductible per IRS rules. Estimated deductible portion: ${formatCurrency(mealsCategory.amount * 0.5, data.currency)}.`
+    const mealsNote = getMealsDeductionNote(
+      mealsCategory.amount,
+      formatCurrency(mealsCategory.amount, data.currency),
+      formatCurrency(mealsCategory.amount * data.taxRules.mealsDeductionRate, data.currency),
+      data.entityCountry
     );
+    if (mealsNote) recs.push(mealsNote);
   }
 
-  // Vehicle expenses
-  const vehicleCategory = data.deductionsByCategory.find(c => c.category === 'Vehicle & Transport');
-  if (vehicleCategory && vehicleCategory.amount > 1000) {
-    recs.push(
-      'Consider maintaining a mileage log for vehicle expenses — the standard mileage rate may provide a larger deduction than actual expenses.'
-    );
+  // Vehicle expenses (only show mileage suggestion where applicable)
+  if (data.taxRules.hasMileageDeduction) {
+    const vehicleCategory = data.deductionsByCategory.find(c => c.category === 'Vehicle & Transport');
+    if (vehicleCategory && vehicleCategory.amount > 1000) {
+      recs.push(
+        `Consider maintaining a mileage log for vehicle expenses — ${data.taxRules.authority} mileage rates may provide a larger deduction than actual expenses.`
+      );
+    }
   }
 
-  // Home office suggestion
-  const rentCategory = data.deductionsByCategory.find(c => c.category === 'Rent & Utilities');
-  if (!rentCategory || rentCategory.amount === 0) {
-    recs.push(
-      'If you work from home, consider tracking home office expenses — you may qualify for the simplified home office deduction.'
-    );
+  // Home office suggestion (only where applicable)
+  if (data.taxRules.hasHomeOfficeDeduction) {
+    const rentCategory = data.deductionsByCategory.find(c => c.category === 'Rent & Utilities');
+    if (!rentCategory || rentCategory.amount === 0) {
+      recs.push(
+        'If you work from home, consider tracking home office expenses — you may qualify for a home office deduction.'
+      );
+    }
+  }
+
+  // Country-specific jurisdiction notes
+  for (const note of data.taxRules.jurisdictionNotes) {
+    recs.push(note);
   }
 
   // Score-based recommendations
+  const authorityName = data.taxRules.authority;
   if (data.readinessScore >= 90) {
     recs.push(
-      '✅ Your tax records are in excellent shape. Consider scheduling a review with your CPA to finalize deductions.'
+      '✅ Your tax records are in excellent shape. Consider scheduling a review with your tax advisor to finalize deductions.'
     );
   } else if (data.readinessScore >= 70) {
     recs.push(
-      'Your records are mostly ready. Address the missing receipts above to improve your readiness score before filing.'
+      `Your records are mostly ready. Address the missing receipts above to improve your readiness score before ${authorityName} filing.`
     );
   } else {
     recs.push(
-      'Your tax readiness needs attention. Focus on uploading receipts and categorizing expenses to avoid potential audit issues.'
+      `Your tax readiness needs attention. Focus on uploading receipts and categorizing expenses to avoid potential ${authorityName} audit issues.`
     );
   }
 

@@ -53,7 +53,7 @@ const features = [
       </svg>
     ),
     title: 'Tax Readiness',
-    description: 'Stay audit-ready year-round with GAAP-compliant categorization and exportable reports.',
+    description: 'Stay audit-ready year-round with GAAP & IFRS-compliant categorization and exportable reports.',
   },
   {
     icon: (

@@ -11,6 +11,7 @@ import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { analyzeVariance } from '@/lib/reconciliation/engine';
 import { formatCurrency } from '@/lib/currency/converter';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 
 // ─── F16: Separation of Duties (SOD) — Approver ≠ Closer ───────────────────
 
@@ -229,11 +230,13 @@ function reconciliationCheck(
   };
 }
 
-function missingReceiptCheck(transactions: TransactionRow[], currency: string = 'USD'): CloseCheck {
+function missingReceiptCheck(transactions: TransactionRow[], currency: string = 'USD', countryCode?: string): CloseCheck {
+  const thresholds = getComplianceThresholds(countryCode);
+  const receiptThreshold = thresholds.RECEIPT_REQUIRED_THRESHOLD;
   const missing = transactions.filter(
     (t) =>
       t.document_status === 'missing' &&
-      Math.abs(t.amount) > 25 &&
+      Math.abs(t.amount) > receiptThreshold &&
       t.status !== TRANSACTION_STATUS.REMOVED
   );
 
@@ -520,7 +523,8 @@ export async function runMonthEndClose(
   month: number,
   supabase: SupabaseQueryClient,
   closingUserId?: string,
-  currency: string = 'USD'
+  currency: string = 'USD',
+  countryCode?: string
 ): Promise<CloseReport> {
   // Compute date range for the period
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -647,7 +651,7 @@ export async function runMonthEndClose(
   const checks: CloseCheck[] = [
     tbCheck,
     reconciliationCheck(allTransactions, bankAccounts, currency),
-    missingReceiptCheck(txns, currency),
+    missingReceiptCheck(txns, currency, countryCode),
     uncategorizedCheck(txns, currency),
     expenseReviewCheck(txns, historicalAvg, currency),
     bankFeedCheck(bankConnections),
@@ -670,7 +674,7 @@ export async function runMonthEndClose(
       .eq('id', entityId)
       .single();
 
-    // Update currency from entity if available
+    // Update currency and country from entity if available
     if (entity?.base_currency) {
       currency = entity.base_currency as string;
     }

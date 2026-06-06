@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
+import { getTaxAuthorityName } from '@/lib/tax/rules';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Button, Gauge, Skeleton, EmptyState, useToast } from '@/components/ui';
@@ -261,6 +262,7 @@ export default function TaxPage() {
             <h1 className={styles.title}>Tax Readiness</h1>
             <p className={styles.subtitle}>
               AI-powered tax deduction analysis for {selectedEntity?.name || 'your entity'}
+              {selectedEntity?.country && ` — ${getTaxAuthorityName(selectedEntity.country)} rules`}
             </p>
           </div>
 
@@ -294,13 +296,6 @@ export default function TaxPage() {
             </div>
           </Card>
 
-          {/* Non-US notice */}
-          {selectedEntity?.country && selectedEntity.country !== 'US' && (
-            <div className={styles.noticeBanner} role="status">
-              <span>ℹ️</span>
-              <span>Tax Readiness analysis is currently optimized for US (IRS) tax rules. Support for additional jurisdictions is coming soon.</span>
-            </div>
-          )}
 
           {/* Error banner */}
           {error && (

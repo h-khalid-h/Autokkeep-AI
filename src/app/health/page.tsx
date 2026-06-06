@@ -138,8 +138,18 @@ interface ComplianceResult {
   region: string;
 }
 
-function ComplianceSection({ entityId }: { entityId: string }) {
-  const [selectedRegion, setSelectedRegion] = React.useState<string | null>(null);
+const COUNTRY_TO_REGION: Record<string, string> = {
+  US: 'united_states',
+  EE: 'estonia',
+  QA: 'qatar',
+  HK: 'hong_kong',
+  JP: 'japan',
+  IN: 'india',
+};
+
+function ComplianceSection({ entityId, countryCode }: { entityId: string; countryCode?: string }) {
+  const initialRegion = (countryCode && COUNTRY_TO_REGION[countryCode]) || 'united_states';
+  const [selectedRegion, setSelectedRegion] = React.useState<string | null>(initialRegion);
   const [result, setResult] = React.useState<ComplianceResult | null>(null);
   const [meta, setMeta] = React.useState<{ transactionCount: number; periodStart: string; periodEnd: string } | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -609,7 +619,7 @@ export default function HealthPage() {
 
           {/* Compliance Section */}
           {selectedEntity && (
-            <ComplianceSection entityId={selectedEntity.id} />
+            <ComplianceSection entityId={selectedEntity.id} countryCode={selectedEntity.country} />
           )}
         </div>
       </ErrorBoundary>

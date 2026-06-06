@@ -28,6 +28,8 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.order = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
   chain.insert = vi.fn().mockReturnValue(chain);
+  chain.single = vi.fn().mockResolvedValue(resolvedValue);
+  chain.maybeSingle = vi.fn().mockResolvedValue(resolvedValue);
   // Terminal — when awaited, resolves
   chain.then = vi.fn((resolve: (v: unknown) => void) => resolve(resolvedValue));
   return chain;
@@ -67,6 +69,7 @@ describe('runAutoCategorize', () => {
     const updateChain = createChainMock({ data: null, error: null });
 
     let callCount = 0;
+    const entityChain = createChainMock({ data: { base_currency: 'USD' }, error: null });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'transactions' && callCount === 0) {
         callCount++;
@@ -75,6 +78,7 @@ describe('runAutoCategorize', () => {
       if (table === 'categorization_rules') return rulesChain;
       if (table === 'chart_of_accounts') return chartChain;
       if (table === 'categorization_history') return historyChain;
+      if (table === 'entities') return entityChain;
       return updateChain;
     });
 
@@ -110,12 +114,14 @@ describe('runAutoCategorize', () => {
     const updateChain = createChainMock({ data: null, error: null });
 
     let callCount = 0;
+    const entityChain = createChainMock({ data: { base_currency: 'USD' }, error: null });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'transactions' && callCount === 0) {
         callCount++;
         return txChain;
       }
       if (table === 'categorization_rules' || table === 'chart_of_accounts' || table === 'categorization_history') return emptyChain;
+      if (table === 'entities') return entityChain;
       return updateChain;
     });
 
