@@ -232,7 +232,6 @@ export default function DashboardPage() {
   const [exitingId, setExitingId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [_reasoningExpanded, setReasoningExpanded] = React.useState(false);
   const [chartOfAccounts, setChartOfAccounts] = React.useState<{ code: string; name: string }[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = React.useState(false);
@@ -586,7 +585,7 @@ export default function DashboardPage() {
           });
           break;
         case 'toggle-reasoning':
-          setReasoningExpanded((prev) => !prev);
+          // Reasoning is always visible in ContextInsightCard — no-op shortcut
           break;
         default:
           break;

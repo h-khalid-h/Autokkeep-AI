@@ -21,6 +21,8 @@ function createChainMock(resolvedValue: { data?: unknown; error?: unknown }) {
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
+  chain.lt = vi.fn().mockReturnValue(chain);
+  chain.not = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
   chain.upsert = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(resolvedValue);
@@ -97,7 +99,7 @@ describe('ingestTransactions', () => {
     });
     txnChain.then = vi.fn((resolve: (v: unknown) => void) => resolve({ data: null, error: null }));
 
-    const connChain = createChainMock({ data: null, error: null });
+    const connChain = createChainMock({ data: [{ id: 'conn-001' }], error: null });
 
     const mockDb = makeMockDb();
     mockDb.from.mockImplementation((table: string) => {
@@ -162,7 +164,7 @@ describe('ingestTransactions', () => {
     });
     txnChain.then = vi.fn((resolve: (v: unknown) => void) => resolve({ data: null, error: null }));
 
-    const connChain = createChainMock({ data: null, error: null });
+    const connChain = createChainMock({ data: [{ id: 'conn-001' }], error: null });
 
     const mockDb = makeMockDb();
     mockDb.from.mockImplementation((table: string) => {
@@ -192,7 +194,7 @@ describe('ingestTransactions', () => {
     });
 
     const bankAccountsChain = createChainMock({ data: [], error: null });
-    const connChain = createChainMock({ data: null, error: null });
+    const connChain = createChainMock({ data: [{ id: 'conn-001' }], error: null });
 
     const mockDb = makeMockDb();
     mockDb.from.mockImplementation((table: string) => {
@@ -241,7 +243,7 @@ describe('ingestTransactions', () => {
     });
     txnChain.then = vi.fn((resolve: (v: unknown) => void) => resolve({ data: null, error: null }));
 
-    const connChain = createChainMock({ data: null, error: null });
+    const connChain = createChainMock({ data: [{ id: 'conn-001' }], error: null });
 
     const mockDb = makeMockDb();
     mockDb.from.mockImplementation((table: string) => {

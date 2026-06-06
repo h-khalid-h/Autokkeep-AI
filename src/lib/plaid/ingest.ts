@@ -34,6 +34,9 @@ type SupabaseClient = Pick<SupabaseQueryClient, 'from'>;
 
 // ─── Core Ingestion ─────────────────────────────────────────────────────────
 
+/** Stale lock threshold: if a sync_in_progress lock is older than this, assume crash. */
+const STALE_LOCK_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Sync transactions from Plaid and persist changes to the database.
  *
@@ -43,10 +46,55 @@ type SupabaseClient = Pick<SupabaseQueryClient, 'from'>;
  *   3. Soft-deleting removed transactions
  *   4. Updating the cursor on the bank connection
  *
+ * Uses an optimistic lock (sync_in_progress column) to prevent concurrent
+ * syncs of the same connection from cron + webhooks racing.
+ *
  * @param supabase – any Supabase client (user-scoped or admin)
  * @param connection – the bank_connections row (must include encrypted token)
  */
 export async function ingestTransactions(
+  supabase: SupabaseClient,
+  connection: BankConnection,
+): Promise<IngestResult> {
+  // ── 0. Acquire optimistic sync lock ─────────────────────────────────────
+  // If another process is already syncing this connection, skip it.
+  // First, release any stale locks (crashed processes) older than 5 minutes.
+  const staleThreshold = new Date(Date.now() - STALE_LOCK_MS).toISOString();
+  await supabase
+    .from('bank_connections')
+    .update({ sync_in_progress: false, sync_started_at: null })
+    .eq('id', connection.id)
+    .eq('sync_in_progress', true)
+    .lt('sync_started_at', staleThreshold);
+
+  // Try to claim the lock
+  const { data: lockRows } = await supabase
+    .from('bank_connections')
+    .update({ sync_in_progress: true, sync_started_at: new Date().toISOString() })
+    .eq('id', connection.id)
+    .eq('sync_in_progress', false)
+    .select('id');
+
+  if (!lockRows || lockRows.length === 0) {
+    // Another process holds the lock — skip this connection
+    return { added: 0, modified: 0, removed: 0, modifications_reset: 0, cursor: null };
+  }
+
+  try {
+    return await doIngest(supabase, connection);
+  } finally {
+    // ── Release lock ─────────────────────────────────────────────────────
+    await supabase
+      .from('bank_connections')
+      .update({ sync_in_progress: false, sync_started_at: null })
+      .eq('id', connection.id);
+  }
+}
+
+/**
+ * Internal ingestion logic, called after lock is acquired.
+ */
+async function doIngest(
   supabase: SupabaseClient,
   connection: BankConnection,
 ): Promise<IngestResult> {
