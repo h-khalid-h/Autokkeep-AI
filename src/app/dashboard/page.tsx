@@ -11,6 +11,13 @@ import { formatCurrency } from '@/lib/currency/converter';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import {
+  SpendingTrendChart,
+  CategoryDonutChart,
+  CashFlowBarChart,
+  transformStatsToTrendData,
+  transformCategoriesToDonutData,
+} from '@/components/charts';
 
 import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -243,6 +250,9 @@ export default function DashboardPage() {
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
   const [stats, setStats] = React.useState<DashboardStatsData | null>(null);
   const [statsLoading, setStatsLoading] = React.useState(true);
+  const [trendData, setTrendData] = React.useState<Array<{ month: string; income: number; expenses: number; net: number }>>([]);
+  const [categoryData, setCategoryData] = React.useState<Array<{ name: string; value: number; code: string }>>([]);
+  const [chartsLoading, setChartsLoading] = React.useState(true);
 
   // ─── Fetch real stats from API ──────────────────────────────────────────────
   const selectedEntityId = selectedEntity?.id;
@@ -281,6 +291,42 @@ export default function DashboardPage() {
     fetchStats();
     return () => { cancelled = true; };
   }, [selectedEntityId, transactionCount]); // re-fetch when transactions change
+
+  // ─── Fetch trend data for charts ────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!selectedEntityId) return;
+    let cancelled = false;
+
+    async function fetchTrends() {
+      setChartsLoading(true);
+      try {
+        const res = await fetch(`/api/dashboard/trends?entityId=${selectedEntityId}&months=6`);
+        if (!res.ok) throw new Error(`Trends fetch failed (${res.status})`);
+        const data = await res.json();
+        if (!cancelled) {
+          const trends = transformStatsToTrendData(data.monthlyTrends || []);
+          setTrendData(trends);
+
+          const categories = transformCategoriesToDonutData(
+            data.categoryBreakdown || [],
+            chartOfAccounts.map((a) => ({ code: a.code, name: a.name }))
+          );
+          setCategoryData(categories);
+        }
+      } catch (err) {
+        console.error('[Dashboard] Trends fetch error:', err);
+        if (!cancelled) {
+          setTrendData([]);
+          setCategoryData([]);
+        }
+      } finally {
+        if (!cancelled) setChartsLoading(false);
+      }
+    }
+
+    fetchTrends();
+    return () => { cancelled = true; };
+  }, [selectedEntityId, chartOfAccounts]);
 
   // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
@@ -647,6 +693,44 @@ export default function DashboardPage() {
         <div className={styles.pageWrapper}>
           <h1 className="sr-only">Dashboard</h1>
           <StatsBar stats={stats} loading={statsLoading} entityCurrency={selectedEntity?.currency || 'USD'} />
+
+          {/* ── Financial Charts ──────────────────────────────────────── */}
+          {chartsLoading ? (
+            <div className={styles.chartsGrid}>
+              <div className={styles.chartPlaceholder}><Skeleton variant="rect" width="100%" height={240} /></div>
+              <div className={styles.chartPlaceholder}><Skeleton variant="rect" width="100%" height={240} /></div>
+            </div>
+          ) : (trendData.length > 0 || categoryData.length > 0) ? (
+            <div className={styles.chartsGrid}>
+              {trendData.length > 0 && (
+                <Card variant="default" padding="md" className={styles.chartCard}>
+                  <h3 className={styles.chartTitle}>Spending Trend</h3>
+                  <SpendingTrendChart
+                    data={trendData}
+                    currency={selectedEntity?.currency || 'USD'}
+                  />
+                </Card>
+              )}
+              {categoryData.length > 0 && (
+                <Card variant="default" padding="md" className={styles.chartCard}>
+                  <h3 className={styles.chartTitle}>Expense Categories</h3>
+                  <CategoryDonutChart
+                    data={categoryData}
+                    currency={selectedEntity?.currency || 'USD'}
+                  />
+                </Card>
+              )}
+              {trendData.length > 0 && (
+                <Card variant="default" padding="md" className={styles.chartCard}>
+                  <h3 className={styles.chartTitle}>Cash Flow</h3>
+                  <CashFlowBarChart
+                    data={trendData}
+                    currency={selectedEntity?.currency || 'USD'}
+                  />
+                </Card>
+              )}
+            </div>
+          ) : null}
 
           <ModuleQuickAccess />
 

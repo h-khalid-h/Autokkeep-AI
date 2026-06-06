@@ -152,6 +152,9 @@ export interface Transaction {
   converted_amount: number | null;
   tags: string[] | null;
   aging_days: number;
+  parent_transaction_id: string | null;
+  is_split: boolean;
+  split_index: number | null;
   deleted_at: string | null;
   deleted_by: string | null;
   updated_by: string | null;
@@ -364,7 +367,7 @@ export interface Database {
       >;
       transactions: TableDefinition<
         Transaction,
-        Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'status' | 'document_status' | 'currency' | 'aging_days'> & {
+        Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'status' | 'document_status' | 'currency' | 'aging_days' | 'parent_transaction_id' | 'is_split' | 'split_index'> & {
           id?: string;
           created_at?: string;
           updated_at?: string;
@@ -372,6 +375,9 @@ export interface Database {
           document_status?: DocumentStatusType;
           currency?: string;
           aging_days?: number;
+          parent_transaction_id?: string | null;
+          is_split?: boolean;
+          split_index?: number | null;
         },
         Partial<Omit<Transaction, 'id'>>
       >;
