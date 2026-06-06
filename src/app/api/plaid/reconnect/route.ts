@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Validate access
     const { data: connection } = await db
       .from('bank_connections')
-      .select('*, entity:entities!inner(org_id)')
+      .select('*, entity:entities!inner(org_id, country)')
       .eq('id', connectionId)
       .single();
 
@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
     // Create update-mode link token for re-authentication
     const linkToken = await createUpdateLinkToken(
       user.id,
-      decryptToken(connection.plaid_access_token)
+      decryptToken(connection.plaid_access_token),
+      connection.entity?.country
     );
 
     return NextResponse.json({ link_token: linkToken });

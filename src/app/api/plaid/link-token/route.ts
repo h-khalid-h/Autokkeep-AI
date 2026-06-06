@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Validate entity access
     const { data: entity, error: entityError } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, country')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Plaid Link token
-    const linkToken = await createLinkToken(user.id, entityId);
+    const linkToken = await createLinkToken(user.id, entityId, entity.country);
 
     return NextResponse.json({ link_token: linkToken });
   } catch (error) {

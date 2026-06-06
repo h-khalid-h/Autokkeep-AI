@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    const baseCurrency = (entity.base_currency as string) || 'USD';
 
     // Fetch pending transactions
     let query = db
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
       amount: t.amount,
       date: t.date,
       mcc: t.mcc || undefined,
-      currency: t.currency || 'USD',
+      currency: t.currency || baseCurrency,
       cardHolder: t.card_holder || undefined,
       bankDescription: t.merchant_raw,
     }));

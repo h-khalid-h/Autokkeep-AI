@@ -91,6 +91,8 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    const baseCurrency = (entity.base_currency as string) || 'USD';
+
     // ── Step 1: Sync from all connected banks ──────────────────────────────
 
     const { data: connections } = await db
@@ -134,7 +136,6 @@ export async function POST(request: NextRequest) {
       .limit(1000);
 
     if (freshTransactions && freshTransactions.length > 0) {
-      const baseCurrency = (entity.base_currency as string) || 'USD';
       const entityCountry = (entity.country as string) || 'US';
       const retentionYears = getComplianceThresholds(entityCountry).RETENTION_YEARS;
       const retentionEnd = new Date();
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
           amount: t.amount,
           date: t.date,
           mcc: t.mcc || undefined,
-          currency: t.currency || 'USD',
+          currency: t.currency || baseCurrency,
           cardHolder: t.card_holder || undefined,
           bankDescription: t.merchant_raw,
         })

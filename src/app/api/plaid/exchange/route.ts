@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Validate entity access
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, country, base_currency')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     let institutionName = result.data.institutionName || 'Unknown Institution';
     if (institutionId) {
       try {
-        const institution = await getInstitution(institutionId);
+        const institution = await getInstitution(institutionId, entity.country);
         institutionName = institution.name;
       } catch {
         console.warn(
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           date: t.date,
           merchant_name: t.merchant_name || t.name,
           merchant_raw: t.name,
-          currency: t.iso_currency_code || 'USD',
+          currency: t.iso_currency_code || entity.base_currency || 'USD',
           status: TRANSACTION_STATUS.PENDING,
           confidence: 0,
           category_ai: null,

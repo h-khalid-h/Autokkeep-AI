@@ -8,6 +8,7 @@
 import { syncTransactions, type PlaidSyncResult } from '@/lib/plaid/client';
 import { decryptToken } from '@/lib/crypto';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ const STALE_LOCK_MS = 5 * 60 * 1000; // 5 minutes
 export async function ingestTransactions(
   supabase: SupabaseClient,
   connection: BankConnection,
+  entityBaseCurrency?: string,
+  entityCountry?: string,
 ): Promise<IngestResult> {
   // ── 0. Acquire optimistic sync lock ─────────────────────────────────────
   // If another process is already syncing this connection, skip it.
@@ -81,7 +84,7 @@ export async function ingestTransactions(
   }
 
   try {
-    return await doIngest(supabase, connection);
+    return await doIngest(supabase, connection, entityBaseCurrency, entityCountry);
   } finally {
     // ── Release lock ─────────────────────────────────────────────────────
     await supabase
@@ -97,6 +100,8 @@ export async function ingestTransactions(
 async function doIngest(
   supabase: SupabaseClient,
   connection: BankConnection,
+  entityBaseCurrency?: string,
+  entityCountry?: string,
 ): Promise<IngestResult> {
   // ── 1. Fetch changes from Plaid ───────────────────────────────────────
   const syncResult: PlaidSyncResult = await syncTransactions(
@@ -159,9 +164,10 @@ async function doIngest(
 
   // ── 2. Upsert new transactions ────────────────────────────────────────
   if (syncResult.added.length > 0) {
-    const sevenYearsLater = new Date();
-    sevenYearsLater.setFullYear(sevenYearsLater.getFullYear() + 7);
-    const retentionDate = sevenYearsLater.toISOString().split('T')[0];
+    const retentionYears = getComplianceThresholds(entityCountry).RETENTION_YEARS;
+    const retentionEndDate = new Date();
+    retentionEndDate.setFullYear(retentionEndDate.getFullYear() + retentionYears);
+    const retentionDate = retentionEndDate.toISOString().split('T')[0];
 
     // Filter out transactions in locked periods
     const eligible = syncResult.added.filter((t) => !isInLockedPeriod(t.date));
@@ -182,7 +188,7 @@ async function doIngest(
       date: t.date,
       merchant_name: t.merchant_name || t.name,
       merchant_raw: t.name,
-      currency: t.iso_currency_code || 'USD',
+      currency: t.iso_currency_code || entityBaseCurrency || 'USD',
       status: TRANSACTION_STATUS.PENDING,
       confidence: 0,
       retention_lock_until: retentionDate,

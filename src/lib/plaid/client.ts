@@ -19,7 +19,6 @@ const PLAID_COUNTRY_MAP: Record<string, CountryCode> = {
   GB: CountryCode.Gb,
   IE: CountryCode.Ie,
   FR: CountryCode.Fr,
-  ES: CountryCode.Es,
   NL: CountryCode.Nl,
   DE: CountryCode.De,
 };

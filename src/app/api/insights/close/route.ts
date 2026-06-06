@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     // Validate entity access against org
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency, country')
       .eq('id', entityId)
       .eq('org_id', ctx.membership.org_id)
       .single();
@@ -83,7 +83,9 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     // Run close checks
-    const report = await runMonthEndClose(entityId, year, month, db, user.id);
+    const entityBaseCurrency = (entity.base_currency as string) || undefined;
+    const entityCountry = (entity.country as string) || undefined;
+    const report = await runMonthEndClose(entityId, year, month, db, user.id, entityBaseCurrency, entityCountry);
 
     return NextResponse.json({
       report,
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Validate entity access against org
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency, country')
       .eq('id', body.entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -137,7 +139,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Run close checks to verify readiness
-    const report = await runMonthEndClose(body.entityId, body.year, body.month, db);
+    const postEntityBaseCurrency = (entity.base_currency as string) || undefined;
+    const postEntityCountry = (entity.country as string) || undefined;
+    const report = await runMonthEndClose(body.entityId, body.year, body.month, db, user.id, postEntityBaseCurrency, postEntityCountry);
 
     if (report.readinessScore < 80) {
       return NextResponse.json(

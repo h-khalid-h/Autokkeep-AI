@@ -11,6 +11,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { parseCsvTransactions } from '@/lib/import/csv-parser';
 import type { ParsedTransaction } from '@/lib/import/csv-parser';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Validate entity access
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id')
+      .select('id, org_id, base_currency, country')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -63,6 +64,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    const baseCurrency = (entity.base_currency as string) || 'USD';
+    const entityCountry = (entity.country as string) || 'US';
 
     // Extract and validate CSV file
     const file = formData.get('file');
@@ -128,8 +132,9 @@ export async function POST(request: NextRequest) {
     let duplicatesSkipped = 0;
     const importErrors: string[] = [...parseResult.errors];
 
+    const retentionYears = getComplianceThresholds(entityCountry).RETENTION_YEARS;
     const retentionDate = new Date();
-    retentionDate.setFullYear(retentionDate.getFullYear() + 7);
+    retentionDate.setFullYear(retentionDate.getFullYear() + retentionYears);
     const retentionLockStr = retentionDate.toISOString().split('T')[0];
 
     for (let i = 0; i < parseResult.transactions.length; i++) {
@@ -170,7 +175,7 @@ export async function POST(request: NextRequest) {
             merchant_raw: tx.description,
             amount: tx.amount,
             date: tx.date,
-            currency: tx.currency || 'USD',
+            currency: tx.currency || baseCurrency,
             description: tx.reference || `CSV import: ${tx.description}`,
             status: TRANSACTION_STATUS.PENDING,
             confidence: 0,

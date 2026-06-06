@@ -131,7 +131,7 @@ describe('POST /api/plaid/link-token', () => {
   });
 
   it('should return 500 when createLinkToken throws', async () => {
-    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003' }, error: null });
+    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003', country: 'US' }, error: null });
     mockDb.from.mockReturnValue(entityChain);
     (createLinkToken as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Plaid API error'));
 
@@ -144,7 +144,7 @@ describe('POST /api/plaid/link-token', () => {
   });
 
   it('should return link token on happy path', async () => {
-    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003' }, error: null });
+    const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'a0000000-0000-4000-8000-000000000003', country: 'US' }, error: null });
     mockDb.from.mockReturnValue(entityChain);
     (createLinkToken as ReturnType<typeof vi.fn>).mockResolvedValue('link-sandbox-xyz789');
 
@@ -154,6 +154,6 @@ describe('POST /api/plaid/link-token', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.link_token).toBe('link-sandbox-xyz789');
-    expect(createLinkToken).toHaveBeenCalledWith('a0000000-0000-4000-8000-000000000001', ENTITY_ID);
+    expect(createLinkToken).toHaveBeenCalledWith('a0000000-0000-4000-8000-000000000001', ENTITY_ID, 'US');
   });
 });
