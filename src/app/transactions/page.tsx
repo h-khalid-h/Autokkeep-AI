@@ -56,7 +56,7 @@ const STATUS_BADGE_MAP: Record<string, { label: string; variant: 'warning' | 'de
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const getConfidenceVariant = (conf: number): 'destructive' | 'warning' | 'success' => {

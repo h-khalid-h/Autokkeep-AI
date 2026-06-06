@@ -333,7 +333,7 @@ describe('getVendors1099Status', () => {
     });
     mockDb.from.mockReturnValue(chain);
 
-    const result = await getVendors1099Status(db, 'entity-1');
+    const result = await getVendors1099Status(db, 'entity-1', 'US');
 
     expect(result).toHaveLength(1);
     expect(result[0].exceeds1099Threshold).toBe(true);
@@ -366,7 +366,7 @@ describe('getVendors1099Status', () => {
     });
     mockDb.from.mockReturnValue(chain);
 
-    const result = await getVendors1099Status(db, 'entity-1');
+    const result = await getVendors1099Status(db, 'entity-1', 'US');
 
     expect(result).toHaveLength(1);
     expect(result[0].exceeds1099Threshold).toBe(false);
@@ -402,7 +402,7 @@ describe('getVendors1099Status', () => {
     });
     mockDb.from.mockReturnValue(chain);
 
-    const result = await getVendors1099Status(db, 'entity-1');
+    const result = await getVendors1099Status(db, 'entity-1', 'US');
 
     expect(result).toHaveLength(1);
     expect(result[0].w9Expired).toBe(true);
@@ -414,7 +414,7 @@ describe('getVendors1099Status', () => {
     const chain = createChainMock({ data: null, error: { message: 'timeout' } });
     mockDb.from.mockReturnValue(chain);
 
-    const result = await getVendors1099Status(db, 'entity-1');
+    const result = await getVendors1099Status(db, 'entity-1', 'US');
 
     expect(result).toEqual([]);
   });
@@ -455,7 +455,7 @@ describe('getW9Summary', () => {
     });
     mockDb.from.mockReturnValue(chain);
 
-    const result = await getW9Summary(db, 'entity-1');
+    const result = await getW9Summary(db, 'entity-1', 'US');
 
     expect(result.totalVendors).toBe(4);
     expect(result.verified).toBe(2);   // 'verified' + 'received'

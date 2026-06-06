@@ -528,6 +528,16 @@ export default function EntityTab({
     }
   };
 
+  // ── Tax ID label/placeholder helper ─────────────────────────────────────────
+  const EU_COUNTRIES = ['DE', 'FR', 'NL', 'IE', 'EE', 'FI', 'PL', 'LV', 'LT', 'SE'];
+  const getTaxIdMeta = (country: string) => {
+    if (country === 'US') return { label: 'Tax ID / EIN', placeholder: 'e.g. 12-3456789' };
+    if (country === 'GB') return { label: 'Tax Reference / UTR', placeholder: 'e.g. 1234567890' };
+    if (EU_COUNTRIES.includes(country)) return { label: 'VAT Number', placeholder: `e.g. ${country}123456789` };
+    return { label: 'Tax ID', placeholder: 'e.g. 123456789' };
+  };
+  const taxIdMeta = getTaxIdMeta(profile?.country || 'US');
+
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (pageLoading) {
     return (
@@ -622,14 +632,14 @@ export default function EntityTab({
                 />
               </div>
               <div>
-                <label htmlFor="tax-id" className={styles.fieldLabel}>Tax ID / EIN</label>
+                <label htmlFor="tax-id" className={styles.fieldLabel}>{taxIdMeta.label}</label>
                 <input
                   id="tax-id"
                   type="text"
                   className={styles.select}
                   value={profile.tax_id || ''}
                   onChange={(e) => setProfile({ ...profile, tax_id: e.target.value || null })}
-                  placeholder="e.g. 12-3456789"
+                  placeholder={taxIdMeta.placeholder}
                   disabled={!canManage}
                 />
               </div>

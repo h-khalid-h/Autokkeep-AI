@@ -9,10 +9,8 @@ import { writeAuditLog } from '@/lib/audit';
 import { rateLimit } from '@/lib/rate-limit';
 import { handleApiError } from '@/lib/api-helpers';
 import { parseBody, schemas } from '@/lib/validation';
-import {
-  IRS_1099_THRESHOLD,
-  W9_EXPIRATION_YEARS,
-} from '@/lib/vendors/service';
+import { W9_EXPIRATION_YEARS } from '@/lib/vendors/service';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -58,22 +56,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // Fetch entity country for country-specific compliance thresholds
+    const { data: entityData } = await db
+      .from('entities')
+      .select('country')
+      .eq('id', vendor.entity_id)
+      .single();
+    const entityCountry = (entityData?.country as string) || 'US';
+    const threshold = getComplianceThresholds(entityCountry).VENDOR_REPORTING_THRESHOLD;
+
     // Compute compliance status
     const w9Expired = vendor.w9_received_at
       ? new Date(vendor.w9_received_at).getTime() <
         Date.now() - W9_EXPIRATION_YEARS * 365.25 * 24 * 60 * 60 * 1000
       : false;
 
+    // For countries without vendor reporting (threshold === Infinity), thresholds are not applicable
+    const thresholdApplicable = threshold !== Infinity;
     const complianceStatus = {
       w9Status: w9Expired ? 'expired' : vendor.w9_status,
       is1099Eligible: vendor.is_1099_eligible,
       ytdPayments: vendor.ytd_payments,
-      exceeds1099Threshold: vendor.ytd_payments >= IRS_1099_THRESHOLD,
+      exceeds1099Threshold: thresholdApplicable && vendor.ytd_payments >= threshold,
       needs1099Filing:
-        vendor.is_1099_eligible && vendor.ytd_payments >= IRS_1099_THRESHOLD,
+        thresholdApplicable && vendor.is_1099_eligible && vendor.ytd_payments >= threshold,
       needsW9Collection:
+        thresholdApplicable &&
         vendor.is_1099_eligible &&
-        vendor.ytd_payments >= IRS_1099_THRESHOLD &&
+        vendor.ytd_payments >= threshold &&
         (vendor.w9_status === 'not_collected' || vendor.w9_status === 'requested' || w9Expired),
       w9Expired,
     };

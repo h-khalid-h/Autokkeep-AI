@@ -18,7 +18,7 @@ import { resolveOrCreateVendor, normalizeMerchantName } from '@/lib/vendors/serv
 import { applyFxConversion } from '@/lib/fx/service';
 import { parseBody, schemas } from '@/lib/validation';
 import { DUPLICATE_MIN_AMOUNT, ROUND_NUMBER_THRESHOLD, ROUND_NUMBER_MODULO, DUPLICATE_TOLERANCE } from '@/lib/constants/fraud';
-import { IRS_RETENTION_YEARS } from '@/lib/constants/compliance';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 import type {
   TransactionInput,
   CategorizationRule,
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const { data: entity } = await db
       .from('entities')
-      .select('id, org_id, base_currency')
+      .select('id, org_id, base_currency, country')
       .eq('id', entityId)
       .eq('org_id', membership.org_id)
       .single();
@@ -135,8 +135,10 @@ export async function POST(request: NextRequest) {
 
     if (freshTransactions && freshTransactions.length > 0) {
       const baseCurrency = (entity.base_currency as string) || 'USD';
+      const entityCountry = (entity.country as string) || 'US';
+      const retentionYears = getComplianceThresholds(entityCountry).RETENTION_YEARS;
       const retentionEnd = new Date();
-      retentionEnd.setFullYear(retentionEnd.getFullYear() + IRS_RETENTION_YEARS);
+      retentionEnd.setFullYear(retentionEnd.getFullYear() + retentionYears);
       const retentionDate = retentionEnd.toISOString().split('T')[0];
 
       const enrichResults = await Promise.allSettled(
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
             updates.created_by = user.id;
           }
 
-          // F12: Set retention lock if missing (IRS 7-year rule)
+          // F12: Set retention lock if missing (country-specific retention)
           if (!tx.retention_lock_until) {
             updates.retention_lock_until = retentionDate;
           }

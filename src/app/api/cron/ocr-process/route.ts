@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
               // ── Matched: update transaction and OCR queue ────────────────
 
               // Build transaction update — propagate businessPurpose to
-              // description for IRS 4-element substantiation compliance
+              // description for tax authority substantiation compliance
               const txUpdate: Record<string, unknown> = {
                 document_status: 'found',
                 updated_at: new Date().toISOString(),

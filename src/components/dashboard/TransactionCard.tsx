@@ -44,7 +44,7 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
     }, [transaction.confidence]);
 
     const formattedAmount = React.useMemo(() => {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat(undefined, {
         style: 'currency',
         currency: 'USD',
       }).format(transaction.amount);

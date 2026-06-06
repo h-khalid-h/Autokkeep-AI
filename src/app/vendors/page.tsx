@@ -398,7 +398,7 @@ export default function VendorsPage() {
               <EmptyState
                 icon="🏢"
                 title="No Vendors Yet"
-                description="Add your first vendor to start tracking W-9 compliance and 1099 eligibility."
+                description={isUS ? 'Add your first vendor to start tracking W-9 compliance and 1099 eligibility.' : 'Add your first vendor to start tracking payments and compliance.'}
                 action={
                   <Button variant="primary" onClick={openAddModal}>
                     + Add Vendor
@@ -723,7 +723,7 @@ export default function VendorsPage() {
               <textarea
                 id="vendor-address"
                 className={styles.formTextarea}
-                placeholder="123 Main St, Suite 100, City, State ZIP"
+                placeholder="123 Main St, City, Region, Postal Code"
                 value={formData.address}
                 onChange={(e) => setFormData((f) => ({ ...f, address: e.target.value }))}
                 rows={2}

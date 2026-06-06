@@ -273,7 +273,7 @@ export default function AccountPage() {
   }, [deleteConfirmText, toast]);
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return new Date(dateStr).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

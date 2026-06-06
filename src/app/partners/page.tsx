@@ -6,7 +6,7 @@ import Footer from '@/components/landing/Footer';
 import styles from './page.module.css';
 
 /* ─────────────────────── helpers ─────────────────────── */
-const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const fmt = (n: number) => new Intl.NumberFormat(undefined).format(n);
 const usd = (n: number) => `$${fmt(n)}`;
 
 /* ─────────────── intersection-observer hook ─────────────── */

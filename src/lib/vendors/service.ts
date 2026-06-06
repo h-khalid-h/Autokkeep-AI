@@ -8,10 +8,14 @@
  */
 
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { getComplianceThresholds } from '@/lib/constants/compliance';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** IRS 1099-NEC reporting threshold */
+/**
+ * @deprecated Use `getComplianceThresholds(country).VENDOR_REPORTING_THRESHOLD` instead.
+ * Kept for backward compatibility — hardcoded to US IRS 1099-NEC threshold.
+ */
 export const IRS_1099_THRESHOLD = 600;
 
 /** W-9 expiration period (3 years from received date) */
@@ -181,22 +185,32 @@ export async function recordVendorPayment(
 // ─── 1099 Compliance ────────────────────────────────────────────────────────
 
 /**
- * Get all vendors approaching or exceeding the 1099-NEC threshold.
+ * Get all vendors approaching or exceeding the vendor reporting threshold.
  *
- * Returns vendors who are:
- * - 1099-eligible (non-corporate)
- * - Have YTD payments ≥ $600 (or approaching at ≥ $400)
+ * Uses country-specific thresholds via `getComplianceThresholds`.
+ * For countries where the threshold is Infinity (most non-US), returns
+ * an empty array since vendor reporting is not applicable.
+ *
+ * @param entityCountry - ISO 3166-1 alpha-2 country code (defaults to 'US')
  */
 export async function getVendors1099Status(
   db: SupabaseQueryClient,
   entityId: string,
+  entityCountry?: string,
 ): Promise<VendorComplianceStatus[]> {
+  const threshold = getComplianceThresholds(entityCountry).VENDOR_REPORTING_THRESHOLD;
+
+  // For countries without vendor reporting requirements, skip entirely
+  if (threshold === Infinity) return [];
+
+  const approachingThreshold = Math.round(threshold * 2 / 3); // ~67% of threshold as early warning
+
   const { data: vendors, error } = await db
     .from('vendors')
     .select('id, entity_id, name, normalized_name, vendor_type, w9_status, w9_received_at, is_1099_eligible, ytd_payments, ytd_payment_count, last_payment_date, email, is_active, created_at, updated_at')
     .eq('entity_id', entityId)
     .eq('is_active', true)
-    .gte('ytd_payments', 400) // Include approaching threshold
+    .gte('ytd_payments', approachingThreshold)
     .order('ytd_payments', { ascending: false })
     .limit(1000);
 
@@ -215,12 +229,12 @@ export async function getVendors1099Status(
       w9Status: w9Expired ? 'expired' : v.w9_status,
       is1099Eligible: v.is_1099_eligible,
       ytdPayments: v.ytd_payments,
-      exceeds1099Threshold: v.ytd_payments >= IRS_1099_THRESHOLD,
+      exceeds1099Threshold: v.ytd_payments >= threshold,
       needs1099Filing:
-        v.is_1099_eligible && v.ytd_payments >= IRS_1099_THRESHOLD,
+        v.is_1099_eligible && v.ytd_payments >= threshold,
       needsW9Collection:
         v.is_1099_eligible &&
-        v.ytd_payments >= IRS_1099_THRESHOLD &&
+        v.ytd_payments >= threshold &&
         (v.w9_status === 'not_collected' || v.w9_status === 'requested' || w9Expired),
       w9Expired,
     };
@@ -229,10 +243,13 @@ export async function getVendors1099Status(
 
 /**
  * Get W-9 collection summary for an entity.
+ *
+ * @param entityCountry - ISO 3166-1 alpha-2 country code (defaults to 'US')
  */
 export async function getW9Summary(
   db: SupabaseQueryClient,
   entityId: string,
+  entityCountry?: string,
 ): Promise<{
   totalVendors: number;
   verified: number;
@@ -241,6 +258,8 @@ export async function getW9Summary(
   expired: number;
   needsAttention: number;
 }> {
+  const threshold = getComplianceThresholds(entityCountry).VENDOR_REPORTING_THRESHOLD;
+
   const { data: vendors } = await db
     .from('vendors')
     .select('w9_status, w9_received_at, is_1099_eligible, ytd_payments')
@@ -271,9 +290,11 @@ export async function getW9Summary(
     }
 
     // Needs attention: 1099-eligible, above threshold, missing W-9
+    // Skip for countries without vendor reporting requirements
     if (
+      threshold !== Infinity &&
       v.is_1099_eligible &&
-      v.ytd_payments >= IRS_1099_THRESHOLD &&
+      v.ytd_payments >= threshold &&
       ((v.w9_status !== 'verified' && v.w9_status !== 'received') || isExpired)
     ) {
       needsAttention++;

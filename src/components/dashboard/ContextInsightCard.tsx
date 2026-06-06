@@ -19,7 +19,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
 }) => {
   const txCurrency = transaction?.rawData?.currency || currency;
   const formattedAmount = transaction
-    ? new Intl.NumberFormat('en-US', {
+    ? new Intl.NumberFormat(undefined, {
         style: 'currency',
         currency: txCurrency,
       }).format(transaction.amount)

@@ -259,7 +259,7 @@ const ActionsConsole: React.FC<ActionsConsoleProps> = ({
                 <div className="insight-row">
                   <span className="insight-row-label">Amount</span>
                   <span className="insight-row-value">
-                    {new Intl.NumberFormat('en-US', {
+                    {new Intl.NumberFormat(undefined, {
                       style: 'currency',
                       currency: currency,
                     }).format(transaction.amount)}
