@@ -19,7 +19,7 @@
 
 .subtitle {
   font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   margin-bottom: 48px;
   line-height: 1.6;
 }
@@ -31,8 +31,8 @@
 }
 
 .postCard {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 32px;
   text-decoration: none;
@@ -41,8 +41,8 @@
 }
 
 .postCard:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
 }
 
 .postMeta {
@@ -63,7 +63,7 @@
 
 .metaText {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-tertiary);
 }
 
 .postTitle {
@@ -76,6 +76,6 @@
 
 .postExcerpt {
   font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }

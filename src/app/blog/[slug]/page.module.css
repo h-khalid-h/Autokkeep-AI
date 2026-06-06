@@ -42,7 +42,7 @@
 
 .metaText {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-tertiary);
 }
 
 .title {
