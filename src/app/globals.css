@@ -161,3 +161,60 @@ html.theme-transition *::after {
               border-color var(--duration-moderate) var(--ease-out),
               box-shadow var(--duration-moderate) var(--ease-out) !important;
 }
+
+/* ─── Premium Glassmorphism & Micro-animations ───────────────────────── */
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-lift:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Transaction Swipe/Exit animations */
+@keyframes swipe-out-right {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+    max-height: 100px;
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+  }
+  30% {
+    transform: translateX(50px);
+    opacity: 0.5;
+    max-height: 100px;
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+  }
+  100% {
+    transform: translateX(120px);
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    overflow: hidden;
+  }
+}
+
+.exit-animation {
+  animation: swipe-out-right var(--duration-moderate) var(--ease-in-out) forwards !important;
+}
+

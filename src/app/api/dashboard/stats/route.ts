@@ -186,6 +186,39 @@ export async function GET(request: NextRequest) {
       timestamp: t.updated_at || t.date,
     }));
 
+    // Previous month volume for comparison badge
+    let previousMonthVolume = 0;
+    try {
+      const today = new Date();
+      const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0); // last day of prev month
+      const prevStartStr = prevMonthStart.toISOString().slice(0, 10);
+      const prevEndStr = prevMonthEnd.toISOString().slice(0, 10);
+
+      const { data: prevTxns } = await db
+        .from('transactions')
+        .select('amount')
+        .in('entity_id', entityIds)
+        .neq('status', TRANSACTION_STATUS.REMOVED)
+        .is('deleted_at', null)
+        .gte('date', prevStartStr)
+        .lte('date', prevEndStr)
+        .limit(50000);
+
+      previousMonthVolume = (prevTxns || [])
+        .reduce((sum: number, t: Record<string, unknown>) => {
+          const val = Number(t.amount) || 0;
+          return sum + Math.abs(val);
+        }, 0);
+    } catch {
+      // Non-critical — skip comparison if it fails
+    }
+
+    // Volume change percentage
+    const volumeChange = previousMonthVolume > 0
+      ? Math.round(((monthlyVolume - previousMonthVolume) / previousMonthVolume) * 1000) / 10
+      : null;
+
     return NextResponse.json({
       totalTransactions,
       pendingReview,
@@ -193,6 +226,8 @@ export async function GET(request: NextRequest) {
       synced,
       aiAccuracy,
       monthlyVolume: Math.round(monthlyVolume * 100) / 100,
+      previousMonthVolume: Math.round(previousMonthVolume * 100) / 100,
+      volumeChange,
       topCategories,
       recentActivity,
     });

@@ -6,6 +6,9 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 const NotificationBell = dynamic(() => import('@/components/dashboard/NotificationBell'), { ssr: false });
 import UserMenu from '@/components/dashboard/UserMenu';
+import { useEntity } from '@/lib/context/EntityContext';
+import { getCountryFlag } from '@/lib/country';
+import { getTaxAuthorityName } from '@/lib/tax/rules';
 import styles from './TopBar.module.css';
 
 /* ─── Route → title mapping ─── */
@@ -57,6 +60,7 @@ export default function TopBar({
   actions,
 }: TopBarProps) {
   const pathname = usePathname();
+  const { selectedEntity } = useEntity();
 
   const breadcrumbs = useMemo(() => buildBreadcrumbs(pathname), [pathname]);
   const pageTitle = routeTitles[pathname] || breadcrumbs[breadcrumbs.length - 1]?.label || 'Dashboard';
@@ -105,6 +109,14 @@ export default function TopBar({
 
       {/* Right: search + actions + notifications + user */}
       <div className={styles.rightSection}>
+        {/* Active Jurisdiction Badge */}
+        {selectedEntity && selectedEntity.country && (
+          <div className={styles.jurisdictionBadge} title={`Jurisdiction: ${selectedEntity.country}`}>
+            <span className={styles.flagIcon}>{getCountryFlag(selectedEntity.country)}</span>
+            <span className={styles.authorityLabel}>{getTaxAuthorityName(selectedEntity.country)}</span>
+          </div>
+        )}
+
         {/* Search trigger */}
         <button
           className={styles.searchTrigger}

@@ -29,13 +29,15 @@
   flex-direction: column;
   width: 100%;
   max-height: calc(100vh - var(--space-16));
-  background-color: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--glass-shadow);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  animation: panelScaleIn var(--duration-moderate) var(--ease-out);
+  animation: panelScaleIn var(--duration-moderate) var(--ease-spring);
 }
 
 @keyframes panelScaleIn {

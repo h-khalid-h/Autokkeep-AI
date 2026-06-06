@@ -9,6 +9,42 @@ import AppShell from '@/components/layout/AppShell';
 import { Card, Button, Gauge, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
 
+// ─── Localized Tax Forms Mapping ─────────────────────────────────────────────
+
+interface TaxFormItem {
+  name: string;
+  desc: string;
+  linkText: string;
+}
+
+const LOCAL_TAX_FORMS: Record<string, TaxFormItem[]> = {
+  US: [
+    { name: 'IRS Form 1099-NEC', desc: 'Nonemployee Compensation reporting for independent contractors and vendors.', linkText: 'Export Contractor Data' },
+    { name: 'Schedule C (Form 1040)', desc: 'Report income or loss from a business operated as a sole proprietorship.', linkText: 'Prepare Schedule C Data' },
+    { name: 'IRS Form 1120', desc: 'U.S. Corporation Income Tax Return for incorporated entities.', linkText: 'Generate Form 1120 Workbook' }
+  ],
+  GB: [
+    { name: 'HMRC Form CT600', desc: 'Corporation Tax Return for company profits, tax calculations, and relief claims.', linkText: 'Export CT600 Details' },
+    { name: 'VAT Return (Form VAT100)', desc: 'Report VAT due on sales and VAT reclaimable on purchases.', linkText: 'Generate VAT Report' }
+  ],
+  CA: [
+    { name: 'CRA Form T2', desc: 'Corporation Income Tax Return for Canadian incorporated entities.', linkText: 'Export T2 Financial Data' },
+    { name: 'GST/HST Return (Form GST34)', desc: 'Report Goods and Services Tax / Harmonized Sales Tax collected.', linkText: 'Prepare GST/HST Worksheet' }
+  ],
+  EE: [
+    { name: 'EMTA Form TSD', desc: 'Declaration of income and social tax, unemployment insurance premiums, and pension contributions.', linkText: 'Export TSD Declaration' }
+  ],
+  DE: [
+    { name: 'Körperschaftsteuererklärung (KSt 1)', desc: 'German corporate income tax declaration for corporations.', linkText: 'Einnahmenüberschussrechnung (EÜR)' },
+    { name: 'Gewerbesteuererklärung (GewSt 1 A)', desc: 'German trade tax declaration filed with the local municipality.', linkText: 'Export GewSt Data' }
+  ]
+};
+
+const DEFAULT_TAX_FORMS: TaxFormItem[] = [
+  { name: 'General Ledger Audit Trail', desc: 'Comprehensive transaction logs and audit trail for local compliance verification.', linkText: 'Export Audit Log (CSV)' },
+  { name: 'IFRS Income Statement', desc: 'Standardized global profit and loss statement following International Financial Reporting Standards.', linkText: 'Download Income Statement' }
+];
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface DeductionCategory {
@@ -473,6 +509,29 @@ export default function TaxPage() {
                       </div>
                     </section>
                   )}
+
+                  {/* Recommended Local Tax Forms & Actions */}
+                  <section style={{ marginBottom: 'var(--space-5)' }}>
+                    <h3 className={styles.sectionTitle}>📋 Recommended Local Tax Forms & Actions</h3>
+                    <div className={styles.formsGrid}>
+                      {(LOCAL_TAX_FORMS[selectedEntity?.country || 'US'] || DEFAULT_TAX_FORMS).map((form, i) => (
+                        <Card key={i} variant="interactive" padding="md" className={styles.formCard}>
+                          <div className={styles.formDetails}>
+                            <h4 className={styles.formName}>{form.name}</h4>
+                            <p className={styles.formDesc}>{form.desc}</p>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className={styles.formBtn}
+                              onClick={() => toast.success(`Preparing export for ${form.name}…`)}
+                            >
+                              {form.linkText} →
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </section>
 
                   {/* Recommendations */}
                   {data.recommendations.length > 0 && (

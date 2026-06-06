@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/ui/Logo';
 import { useEntity } from '@/lib/context/EntityContext';
 import { createClient } from '@/lib/supabase/client';
+import { getCountryFlag } from '@/lib/country';
 import styles from './Sidebar.module.css';
 
 /* ─── Navigation config ─── */
@@ -200,7 +201,9 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
             aria-expanded={entityDropdownOpen}
             aria-haspopup="listbox"
           >
-            <span className={styles.entityIcon}>{entityInitials}</span>
+            <span className={styles.entityIcon}>
+              {selectedEntity?.country ? getCountryFlag(selectedEntity.country) : entityInitials}
+            </span>
             <span className={styles.entityName}>
               {selectedEntity?.name || 'Select Entity'}
             </span>
@@ -224,7 +227,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
                   aria-selected={entity.id === selectedEntity?.id}
                 >
                   <span className={styles.entityIcon}>
-                    {entity.name.slice(0, 2).toUpperCase()}
+                    {entity.country ? getCountryFlag(entity.country) : entity.name.slice(0, 2).toUpperCase()}
                   </span>
                   <span>{entity.name}</span>
                 </button>

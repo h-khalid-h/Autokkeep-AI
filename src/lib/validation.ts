@@ -63,9 +63,14 @@ export const schemas = {
   }),
 
   batchTransactions: z.object({
-    action: z.enum(['approve', 'reject']),
+    action: z.enum(['approve', 'reject', 'categorize']),
     transactionIds: z.array(uuid).min(1).max(100),
-  }),
+    glCode: z.string().min(1).max(50).optional(),
+    glName: z.string().max(200).optional(),
+  }).refine(
+    (data) => data.action !== 'categorize' || (data.glCode && data.glCode.length > 0),
+    { message: 'glCode is required for categorize action', path: ['glCode'] }
+  ),
 
   // Chart of Accounts
   createAccount: z.object({

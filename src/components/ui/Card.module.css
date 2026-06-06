@@ -3,11 +3,14 @@
    ============================================ */
 
 .card {
-  background-color: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
+  box-shadow: var(--glass-shadow);
   transition:
     box-shadow var(--duration-normal) var(--ease-out),
     transform var(--duration-normal) var(--ease-out),
@@ -37,8 +40,8 @@
 
 /* Elevated: shadow instead of strong border */
 .elevated {
-  border-color: var(--color-border-subtle);
-  box-shadow: var(--shadow-md);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-md), var(--glass-shadow);
 }
 
 /* Interactive: hover lift */
@@ -47,13 +50,13 @@
 }
 
 .interactive:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  transform: translateY(-3px) scale(1.005);
+  border-color: var(--color-accent-muted);
 }
 
 .interactive:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 

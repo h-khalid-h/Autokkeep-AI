@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Transaction } from '@/lib/types/transaction';
+import { useEntity } from '@/lib/context/EntityContext';
+import { getTaxRules } from '@/lib/tax/rules';
 import styles from './ContextInsightCard.module.css';
 
 interface ContextInsightCardProps {
@@ -17,7 +19,11 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
   currency = 'USD',
   onReceiptUploaded,
 }) => {
-  const txCurrency = transaction?.rawData?.currency || currency;
+  const { selectedEntity } = useEntity();
+  const activeCountry = selectedEntity?.country || 'US';
+  const taxRules = getTaxRules(activeCountry);
+
+  const txCurrency = transaction?.rawData?.currency || selectedEntity?.currency || currency;
   const formattedAmount = transaction
     ? new Intl.NumberFormat(undefined, {
         style: 'currency',
@@ -119,7 +125,6 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
     if (file) {
       void handleUpload(file);
     }
-    // Reset input so the same file can be re-selected
     e.target.value = '';
   }, [handleUpload]);
 
@@ -143,6 +148,10 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
       </div>
     );
   }
+
+  // Compliance rules checking
+  const isReceiptRequired = transaction.amount >= taxRules.receiptThreshold;
+  const isDocMissing = effectiveDocStatus === 'missing' || effectiveDocStatus === 'partial';
 
   return (
     <section aria-label="Transaction context insight">
@@ -216,7 +225,7 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
                   Currency
                 </span>
                 <span className="insight-row-value" role="cell">
-                  {transaction.rawData.currency}
+                  {txCurrency}
                 </span>
               </div>
             </div>
@@ -227,6 +236,31 @@ const ContextInsightCard: React.FC<ContextInsightCardProps> = ({
             <h3 className="text-caption" aria-hidden="true">
               ASSOCIATED DOCUMENTS
             </h3>
+
+            {/* Local Compliance Indicator */}
+            <div className={`${styles.complianceCard} ${
+              !isDocMissing ? styles.complianceSuccess :
+              isReceiptRequired ? styles.complianceWarning : styles.complianceInfo
+            }`}>
+              <div className={styles.complianceHeader}>
+                <span className={styles.complianceIcon}>
+                  {!isDocMissing ? '🛡️' : isReceiptRequired ? '⚠️' : 'ℹ️'}
+                </span>
+                <span className={styles.complianceTitle}>
+                  {taxRules.authority} Compliance Check
+                </span>
+              </div>
+              <p className={styles.complianceText}>
+                {!isDocMissing ? (
+                  `Receipt verified. This expense meets standard ${taxRules.authority} guidelines. Keep records for ${taxRules.retentionYears} years.`
+                ) : isReceiptRequired ? (
+                  `Receipt required! ${taxRules.authority} guidelines mandate receipts for expenses ≥ ${txCurrency} ${taxRules.receiptThreshold} (Current: ${formattedAmount}).`
+                ) : (
+                  `Receipt optional. This expense is below the ${taxRules.authority} threshold of ${txCurrency} ${taxRules.receiptThreshold}.`
+                )}
+              </p>
+            </div>
+
             <div className="card-accent">
               <div className="flex-between">
                 <span className="text-h4">

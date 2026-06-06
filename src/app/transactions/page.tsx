@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEntity } from '@/lib/context/EntityContext';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
 import { formatCurrency } from '@/lib/currency/converter';
+import { getTaxRules } from '@/lib/tax/rules';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Button, Card, Badge, Input, Skeleton, EmptyState, useToast } from '@/components/ui';
@@ -525,6 +526,11 @@ export default function TransactionsPage() {
                       const glCode = tx.category_human || tx.category_ai || '—';
                       const isNegative = tx.amount < 0;
 
+                      const country = selectedEntity?.country || 'US';
+                      const taxRules = getTaxRules(country);
+                      const isReceiptRequired = Math.abs(tx.amount) >= taxRules.receiptThreshold;
+
+
                       return (
                         <React.Fragment key={tx.id}>
                           <tr
@@ -650,6 +656,14 @@ export default function TransactionsPage() {
                                         {tx.document_status === 'found' ? '✅ Attached' : tx.document_status === 'partial' ? '⏳ Partial' : '❌ Missing'}
                                       </Badge>
                                     </div>
+                                    {tx.document_status !== 'found' && (
+                                       <div style={{ marginTop: 'var(--space-2)', fontSize: '11px', color: isReceiptRequired ? 'var(--color-destructive)' : 'var(--color-text-secondary)', fontWeight: isReceiptRequired ? 'bold' : 'normal' }}>
+                                         {isReceiptRequired 
+                                           ? `⚠️ Receipt required by ${taxRules.authority} (expenses ≥ ${tx.currency} ${taxRules.receiptThreshold})`
+                                           : `ℹ️ Receipt optional (below ${taxRules.authority} threshold of ${tx.currency} ${taxRules.receiptThreshold})`
+                                         }
+                                       </div>
+                                     )}
                                     {tx.description && (
                                       <div className={styles.expandedField}>
                                         <span className={styles.expandedFieldLabel}>Notes:</span> {tx.description}

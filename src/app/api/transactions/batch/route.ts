@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const parsed = await parseBody(request, batchSchema);
     if (!parsed.success) return parsed.error;
-    const { transactionIds, action, entityId } = parsed.data;
+    const { transactionIds, action, entityId, glCode, glName } = parsed.data;
 
     const { data: entity } = await db
       .from('entities')
@@ -88,6 +88,72 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
+
+    // ── Handle categorize action ──────────────────────────────────────────
+    if (action === 'categorize') {
+      if (!glCode) {
+        return NextResponse.json(
+          { error: 'glCode is required for categorize action' },
+          { status: 400 }
+        );
+      }
+
+      const categorizePayload: Record<string, unknown> = {
+        category_human: glCode,
+        status: TRANSACTION_STATUS.APPROVED,
+        updated_at: now,
+        confidence: 100,
+      };
+      if (glName) {
+        categorizePayload.gl_name = glName;
+      }
+
+      const { data: catUpdated, error: catError } = await db
+        .from('transactions')
+        .update(categorizePayload)
+        .in('id', unlockedIds)
+        .eq('entity_id', entityId)
+        .select('id');
+
+      if (catError) {
+        console.error('[Batch] Categorize error:', catError);
+        return NextResponse.json({ error: 'Failed to categorize transactions' }, { status: 500 });
+      }
+
+      // Audit log per transaction
+      for (const txId of unlockedIds) {
+        await writeAuditLog({
+          supabase: db,
+          entityId,
+          actorId: user.id,
+          actorType: 'human',
+          action: 'categorize',
+          targetType: 'transaction',
+          targetId: txId,
+          details: {
+            gl_code: glCode,
+            gl_name: glName || null,
+            batch_size: transactionIds.length,
+          },
+          request,
+        });
+      }
+
+      const catResponse: Record<string, unknown> = {
+        success: true,
+        action: 'categorize',
+        updated: catUpdated?.length || 0,
+        total: transactionIds.length,
+        glCode,
+      };
+
+      if (lockedIds.length > 0) {
+        catResponse.warning = `${lockedIds.length} transaction(s) skipped because they are in locked accounting periods`;
+        catResponse.skipped_locked_ids = lockedIds;
+      }
+
+      return NextResponse.json(catResponse);
+    }
 
     // ── Approval threshold check for approve action ──
     const skipped: { id: string; reason: string }[] = [];

@@ -2,6 +2,10 @@
 
 import React from 'react';
 import { Transaction } from '@/lib/types/transaction';
+import { Badge } from '@/components/ui';
+import { useEntity } from '@/lib/context/EntityContext';
+import { getTaxRules } from '@/lib/tax/rules';
+import { getCountryFlag } from '@/lib/country';
 import styles from './TransactionCard.module.css';
 
 interface TransactionCardProps {
@@ -15,6 +19,11 @@ interface TransactionCardProps {
 
 const TransactionCard: React.FC<TransactionCardProps> = React.memo(
   ({ transaction, isActive, onClick, isExiting = false, isSelected = false, onToggleSelect }) => {
+    const { selectedEntity } = useEntity();
+    const activeCountry = selectedEntity?.country || 'US';
+    const taxRules = getTaxRules(activeCountry);
+    const flag = getCountryFlag(activeCountry);
+
     const handleClick = React.useCallback(() => {
       onClick(transaction);
     }, [onClick, transaction]);
@@ -37,35 +46,34 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
       [onToggleSelect, transaction.id]
     );
 
-    const confidenceBadgeClass = React.useMemo(() => {
-      if (transaction.confidence < 75) return 'badge badge-destructive';
-      if (transaction.confidence < 95) return 'badge badge-warning';
-      return 'badge badge-success';
+    const confidenceVariant = React.useMemo(() => {
+      if (transaction.confidence < 75) return 'destructive';
+      if (transaction.confidence < 95) return 'warning';
+      return 'success';
     }, [transaction.confidence]);
 
     const formattedAmount = React.useMemo(() => {
+      const txCurrency = transaction.rawData?.currency || selectedEntity?.currency || 'USD';
       return new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency: 'USD',
+        currency: txCurrency,
       }).format(transaction.amount);
-    }, [transaction.amount]);
+    }, [transaction.amount, transaction.rawData?.currency, selectedEntity?.currency]);
+
+    const isReceiptRequired = transaction.amount >= taxRules.receiptThreshold;
+    const isDocMissing = transaction.documentStatus === 'missing' || transaction.documentStatus === 'partial';
 
     return (
       <article
-        className={`tx-card${isActive ? ' active' : ''}${isSelected ? ' selected' : ''}`}
+        className={`${styles.card} ${isActive ? styles.active : ''} ${isSelected ? styles.selected : ''} ${isExiting ? 'exit-animation' : ''}`}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
         aria-label={`Transaction ${transaction.merchant}, ${formattedAmount}, confidence ${transaction.confidence}%`}
         data-active={isActive}
-        style={
-          isExiting
-            ? { animation: 'slide-out-left 0.3s var(--ease-out) forwards' }
-            : {}
-        }
       >
-        <div className="tx-card-header">
+        <div className={styles.header}>
           {onToggleSelect && (
             <input
               type="checkbox"
@@ -76,22 +84,33 @@ const TransactionCard: React.FC<TransactionCardProps> = React.memo(
               className={styles.checkbox}
             />
           )}
-          <span className="tx-card-merchant">
-            <span aria-hidden="true">{transaction.icon}</span>
+          <span className={styles.merchant}>
+            <span className={styles.merchantIcon} aria-hidden="true">{transaction.icon}</span>
             {transaction.merchant}
           </span>
-          <span className="tx-card-amount">{formattedAmount}</span>
+          <span className={styles.amount}>{formattedAmount}</span>
         </div>
-        <div className="tx-card-meta">
-          <span className={confidenceBadgeClass}>
+        <div className={styles.meta}>
+          <Badge variant={confidenceVariant} size="sm">
             {transaction.confidence}%
+          </Badge>
+          
+          {/* Dynamic Compliance Pill */}
+          <span className={`${styles.compliancePill} ${
+            !isDocMissing ? styles.pillSuccess :
+            isReceiptRequired ? styles.pillWarning : styles.pillInfo
+          }`} title={`${taxRules.authority} compliance status`}>
+            <span className={styles.flagIcon}>{flag}</span>
+            <span className={styles.authorityName}>{taxRules.authority}</span>
+            <span>{!isDocMissing ? '✅' : isReceiptRequired ? '⚠️' : 'ℹ️'}</span>
           </span>
+
           {transaction.tags.map((tag) => (
-            <span key={tag} className="pill">
+            <span key={tag} className={styles.pill}>
               {tag}
             </span>
           ))}
-          <span className="pill">{transaction.agingDays}d</span>
+          <span className={styles.pill}>{transaction.agingDays}d</span>
         </div>
       </article>
     );

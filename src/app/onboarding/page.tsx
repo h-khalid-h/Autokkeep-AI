@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getSupportedCurrencies } from '@/lib/currency/converter';
+import { getTaxRules } from '@/lib/tax/rules';
+import { getCountryFlag } from '@/lib/country';
 import { useToast } from '@/components/ui';
 import Logo from '@/components/ui/Logo';
 import { Card } from '@/components/ui/Card';
@@ -902,6 +904,21 @@ export default function OnboardingPage() {
                       <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
                     ))}
                   </select>
+                  
+                  {/* Local Compliance Alert Badge */}
+                  {(() => {
+                    const rules = getTaxRules(country);
+                    const flag = getCountryFlag(country);
+                    const countryName = SUPPORTED_COUNTRIES.find(c => c.code === country)?.name || country;
+                    return (
+                      <div className={styles.localNoticeBadge}>
+                        <span className={styles.noticeFlag}>{flag}</span>
+                        <span className={styles.noticeText}>
+                          Configured for <strong>{countryName}</strong> — Autokkeep will apply <strong>{rules.taxSystemLabel}</strong> guidelines under <strong>{rules.authority}</strong> rules ({rules.retentionYears}-year audit trail).
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className={styles.fieldGroup}>
                   <label htmlFor="entity-currency" className={styles.selectLabel}>Base Currency</label>
@@ -1036,6 +1053,26 @@ export default function OnboardingPage() {
                     <p className={styles.bankSupportedText}>
                       Supported: 12,000+ financial institutions across the US, Canada, UK, and Europe
                     </p>
+
+                    {/* Open Banking Compliance Badge */}
+                    {(() => {
+                      const EU_COUNTRIES = new Set(['GB', 'DE', 'FR', 'NL', 'IE', 'EE', 'FI', 'SE', 'LV', 'LT', 'PL']);
+                      const isEU = EU_COUNTRIES.has(country);
+                      const isUSCA = country === 'US' || country === 'CA';
+                      return (
+                        <div className={styles.bankComplianceBadge}>
+                          <span className={styles.complianceBadgeIcon}>{isEU ? '🇪🇺' : isUSCA ? '🇺🇸' : '🌐'}</span>
+                          <span className={styles.complianceBadgeText}>
+                            {isEU 
+                              ? 'PSD2/PSD3 Open Banking Compliant: Synced via secure APIs regulated in the EU/UK.'
+                              : isUSCA 
+                                ? 'Secure US/CA Banking Sync: Multi-factor authentication via Plaid.'
+                                : 'Global Bank Connection: Fully encrypted bank data transfer.'
+                            }
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </>
                   )
                 ) : (

@@ -3,6 +3,7 @@
 import { EntityProvider } from '@/lib/context/EntityContext';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/ui/ToastProvider';
+import { LandingProvider } from '@/lib/context/LandingContext';
 import dynamic from 'next/dynamic';
 const CommandPalette = dynamic(
   () => import('@/components/ui/CommandPalette').then(mod => mod.CommandPalette),
@@ -14,8 +15,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <EntityProvider>
       <ThemeProvider>
         <ToastProvider>
-          {children}
-          <CommandPalette />
+          <LandingProvider>
+            {children}
+            <CommandPalette />
+          </LandingProvider>
         </ToastProvider>
       </ThemeProvider>
     </EntityProvider>

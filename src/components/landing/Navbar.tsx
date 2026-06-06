@@ -4,17 +4,56 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Logo from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
+import { useLanding, Language } from '@/lib/context/LandingContext';
 import styles from './Navbar.module.css';
 
-const navLinks = [
-  { label: 'Features', href: '/#features' },
-  { label: 'Pricing', href: '/#pricing' },
-  { label: 'Demo', href: '/demo/shadow-audit' },
+const supportedCountries = [
+  { code: 'Global', flag: '🌐', name: 'Global' },
+  { code: 'US', flag: '🇺🇸', name: 'United States' },
+  { code: 'CA', flag: '🇨🇦', name: 'Canada' },
+  { code: 'GB', flag: '🇬🇧', name: 'United Kingdom' },
+  { code: 'DE', flag: '🇩🇪', name: 'Germany' },
+  { code: 'FR', flag: '🇫🇷', name: 'France' },
+  { code: 'NL', flag: '🇳🇱', name: 'Netherlands' },
+  { code: 'IE', flag: '🇮🇪', name: 'Ireland' },
+  { code: 'SE', flag: '🇸🇪', name: 'Sweden' },
+  { code: 'FI', flag: '🇫🇮', name: 'Finland' },
+  { code: 'EE', flag: '🇪🇪', name: 'Estonia' },
+  { code: 'CH', flag: '🇨🇭', name: 'Switzerland' },
+  { code: 'PL', flag: '🇵🇱', name: 'Poland' },
+  { code: 'LV', flag: '🇱🇻', name: 'Latvia' },
+  { code: 'LT', flag: '🇱🇹', name: 'Lithuania' },
+  { code: 'AE', flag: '🇦🇪', name: 'UAE' },
+  { code: 'SA', flag: '🇸🇦', name: 'Saudi Arabia' },
+  { code: 'QA', flag: '🇶🇦', name: 'Qatar' },
+  { code: 'EG', flag: '🇪🇬', name: 'Egypt' },
+  { code: 'AU', flag: '🇦🇺', name: 'Australia' },
+  { code: 'IN', flag: '🇮🇳', name: 'India' },
+  { code: 'JP', flag: '🇯🇵', name: 'Japan' },
+  { code: 'SG', flag: '🇸🇬', name: 'Singapore' },
+  { code: 'HK', flag: '🇭🇰', name: 'Hong Kong' },
+  { code: 'ZA', flag: '🇿🇦', name: 'South Africa' },
+  { code: 'NG', flag: '🇳🇬', name: 'Nigeria' },
+  { code: 'KE', flag: '🇰🇪', name: 'Kenya' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brazil' },
+  { code: 'MX', flag: '🇲🇽', name: 'Mexico' }
+];
+
+const supportedLanguages = [
+  { code: 'en', label: 'English (EN)' },
+  { code: 'de', label: 'Deutsch (DE)' },
+  { code: 'fr', label: 'Français (FR)' },
+  { code: 'pt', label: 'Português (PT)' },
+  { code: 'es', label: 'Español (ES)' },
+  { code: 'ja', label: '日本語 (JA)' },
+  { code: 'et', label: 'Eesti (ET)' },
+  { code: 'ar', label: 'العربية (AR)' }
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { country, language, setCountry, setLanguage, t } = useLanding();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,25 +95,56 @@ export default function Navbar() {
 
       {/* Desktop nav links */}
       <div className={styles.navLinks}>
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={styles.navLink}
-            onClick={handleLinkClick}
-          >
-            {link.label}
-          </Link>
-        ))}
+        <Link href="/#features" className={styles.navLink} onClick={handleLinkClick}>
+          {t('features')}
+        </Link>
+        <Link href="/#pricing" className={styles.navLink} onClick={handleLinkClick}>
+          {t('pricing')}
+        </Link>
+        <Link href="/demo/shadow-audit" className={styles.navLink} onClick={handleLinkClick}>
+          {t('demo')}
+        </Link>
       </div>
 
       {/* Desktop actions */}
       <div className={styles.actions}>
+        {/* Country Selector */}
+        <div className={styles.selectWrapper}>
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className={styles.select}
+            aria-label="Select country"
+          >
+            {supportedCountries.map((c) => (
+              <option key={c.code} value={c.code} className={styles.option}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Language Selector */}
+        <div className={styles.selectWrapper}>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as Language)}
+            className={styles.select}
+            aria-label="Select language"
+          >
+            {supportedLanguages.map((l) => (
+              <option key={l.code} value={l.code} className={styles.option}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <Button variant="ghost" size="sm" as={Link} href="/auth/login">
-          Log in
+          {t('login')}
         </Button>
         <Button variant="primary" size="sm" as={Link} href="/auth/signup">
-          Start Free Trial
+          {t('startFreeTrial')}
         </Button>
       </div>
 
@@ -99,22 +169,57 @@ export default function Navbar() {
 
       {/* Mobile menu panel */}
       <div className={`${styles.mobileMenu} ${mobileOpen ? styles.open : ''}`}>
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={styles.mobileLink}
-            onClick={handleLinkClick}
-          >
-            {link.label}
-          </Link>
-        ))}
+        <Link href="/#features" className={styles.mobileLink} onClick={handleLinkClick}>
+          {t('features')}
+        </Link>
+        <Link href="/#pricing" className={styles.mobileLink} onClick={handleLinkClick}>
+          {t('pricing')}
+        </Link>
+        <Link href="/demo/shadow-audit" className={styles.mobileLink} onClick={handleLinkClick}>
+          {t('demo')}
+        </Link>
+
+        {/* Mobile Switchers */}
+        <div className={styles.mobileSelectors}>
+          <div className={styles.mobileSelectRow}>
+            <span className={styles.selectLabel}>Country</span>
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className={styles.mobileSelect}
+              aria-label="Select country"
+            >
+              {supportedCountries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.mobileSelectRow}>
+            <span className={styles.selectLabel}>Language</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as Language)}
+              className={styles.mobileSelect}
+              aria-label="Select language"
+            >
+              {supportedLanguages.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className={styles.mobileActions}>
           <Button variant="ghost" size="md" as={Link} href="/auth/login" onClick={handleLinkClick}>
-            Log in
+            {t('login')}
           </Button>
           <Button variant="primary" size="md" as={Link} href="/auth/signup" onClick={handleLinkClick}>
-            Start Free Trial
+            {t('startFreeTrial')}
           </Button>
         </div>
       </div>

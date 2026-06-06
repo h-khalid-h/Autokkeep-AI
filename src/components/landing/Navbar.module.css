@@ -211,3 +211,137 @@
     padding: 0 var(--space-4);
   }
 }
+
+/* ─── Geo Badge ────────────────────────────── */
+.geoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-3);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-bold);
+  box-shadow: var(--glass-shadow);
+  user-select: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.geoBadge:hover {
+  border-color: var(--color-border-accent);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.flagIcon {
+  font-size: var(--text-base);
+  line-height: 1;
+}
+
+.countryLabel {
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.selectWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select {
+  appearance: none;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-1-5) var(--space-6) var(--space-1-5) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-bold);
+  box-shadow: var(--glass-shadow);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--duration-fast) var(--ease-out);
+  max-width: 150px;
+  text-overflow: ellipsis;
+  /* Custom arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+}
+
+.select:hover {
+  border-color: var(--color-border-accent);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+}
+
+.select:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.option {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Mobile Selectors */
+.mobileSelectors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobileSelectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.selectLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.mobileSelect {
+  flex: 1;
+  max-width: 160px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+/* ─── RTL Overrides ────────────────────────── */
+
+[dir="rtl"] .select {
+  padding: var(--space-1-5) var(--space-3) var(--space-1-5) var(--space-6);
+  background-position: left 8px center;
+}
+
+[dir="rtl"] .mobileMenu {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 1px solid var(--color-border);
+}
+
+
+

@@ -1,7 +1,12 @@
+'use client';
+
 import { Button } from '@/components/ui';
+import { useLanding } from '@/lib/context/LandingContext';
 import styles from './CTASection.module.css';
 
 export default function CTASection() {
+  const { t } = useLanding();
+
   return (
     <section className={styles.section} id="cta">
       <div className={styles.bgAccent}>
@@ -10,21 +15,19 @@ export default function CTASection() {
 
       <div className={styles.container}>
         <h2 className={styles.heading}>
-          Ready to put your books on{' '}
-          <span className={styles.headingGradient}>autopilot?</span>
+          {t('ctaHeading')}
         </h2>
 
         <p className={styles.description}>
-          Join hundreds of businesses that have eliminated manual bookkeeping.
-          Start your free 14-day trial today — no credit card required.
+          {t('ctaSubheading')}
         </p>
 
         <div className={styles.ctas}>
           <Button variant="primary" size="lg" href="/auth/signup">
-            Start Free Trial
+            {t('startFreeTrial')}
           </Button>
           <Button variant="ghost" size="lg" href="/demo/shadow-audit">
-            Try the Demo
+            {t('watchDemo')}
           </Button>
         </div>
       </div>
