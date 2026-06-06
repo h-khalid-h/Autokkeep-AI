@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     captureException(error, { tags: { route: 'webhooks/stripe' } });
     console.error('[Stripe Webhook] Error:', error);
-    return NextResponse.json({ received: true });
+    // Return 500 so Stripe retries the event — returning 200 would cause permanent data loss
+    return NextResponse.json({ error: 'Internal processing error' }, { status: 500 });
   }
 }

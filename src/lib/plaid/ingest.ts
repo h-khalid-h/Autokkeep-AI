@@ -120,8 +120,10 @@ export async function ingestTransactions(
     const skippedLocked = syncResult.added.length - eligible.length;
     if (skippedLocked > 0) {
       console.error(
-        `[Plaid Ingest] Skipped ${skippedLocked} transaction(s) in locked periods for entity ${entityId}`,
+        `[Plaid Ingest] CRITICAL: ${skippedLocked} transaction(s) in locked periods for entity ${entityId}. ` +
+        `Cursor will NOT advance until these periods are unlocked or transactions are handled.`,
       );
+      hasFailures = true; // Prevent cursor advancement — transactions would be permanently lost
     }
 
     const records = eligible.map((t) => ({

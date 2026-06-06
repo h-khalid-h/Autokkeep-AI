@@ -59,12 +59,18 @@ function createMockSupabase(config: MockChainConfig) {
           call.filters[`${col}__in`] = vals;
           return updateChain;
         });
+        updateChain.is = vi.fn().mockReturnValue(updateChain);
+        updateChain.lt = vi.fn().mockReturnValue(updateChain);
         updateChain.select = vi.fn().mockImplementation(() => {
-          // For the claiming step, return the fetched transaction IDs
+          // For the claiming step (ledger_synced=true), return the fetched transaction IDs.
+          // For stale-claim recovery (ledger_synced=false), return empty array.
           const txData = config.transactions?.data;
           if (table === 'transactions' && (data as Record<string, unknown>).ledger_synced === true && txData) {
             updateChain.then = (resolve: (v: unknown) => void) =>
               resolve({ data: txData.map((tx: unknown) => ({ id: (tx as { id: string }).id })), error: null });
+          } else {
+            updateChain.then = (resolve: (v: unknown) => void) =>
+              resolve({ data: [], error: null });
           }
           return updateChain;
         });

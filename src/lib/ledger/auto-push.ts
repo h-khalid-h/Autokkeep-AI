@@ -60,6 +60,29 @@ export async function pushApprovedTransactionsToLedger(
 ): Promise<PushResult> {
   const result: PushResult = { pushed: 0, failed: 0, skipped: 0, errors: [] };
 
+  // ── 0. Recover stale claims ──────────────────────────────────────────────
+  // If a previous run crashed after claiming transactions but before syncing
+  // (or before the failure rollback), those transactions are stuck as
+  // ledger_synced=true with no ledger_sync_id. Release claims older than 1 hour.
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: staleClaims } = await supabase
+    .from('transactions')
+    .update({
+      ledger_synced: false,
+      ledger_sync_error: 'Stale claim recovered — previous sync run likely crashed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('ledger_synced', true)
+    .is('ledger_sync_id', null)
+    .lt('updated_at', oneHourAgo)
+    .select('id');
+
+  if (staleClaims && staleClaims.length > 0) {
+    console.warn(
+      `[Auto-Push] Recovered ${staleClaims.length} stale claim(s) from a previous crashed run`,
+    );
+  }
+
   // 1. Fetch all approved, unsynced transactions
   const { data: transactions, error: txError } = await supabase
     .from('transactions')
