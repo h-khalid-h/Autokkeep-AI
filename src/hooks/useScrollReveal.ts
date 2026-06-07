@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * useScrollReveal — Intersection Observer hook for scroll-triggered animations.
@@ -73,7 +73,7 @@ export function useScrollReveal(options?: {
  */
 export function useStaggerReveal(
   selector: string = ':scope > *',
-  options?: { threshold?: number; rootMargin?: string }
+  _options?: { threshold?: number; rootMargin?: string }
 ) {
   const ref = useRef<HTMLElement>(null);
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createLogger, type Logger, type LogLevel } from './logger';
+import { createLogger } from './logger';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
