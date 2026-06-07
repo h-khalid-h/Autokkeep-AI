@@ -145,9 +145,11 @@ export default function Navbar() {
         <Button variant="ghost" size="sm" as={Link} href="/auth/login">
           {t('login')}
         </Button>
-        <Button variant="primary" size="sm" as={Link} href="/auth/signup">
-          {t('startFreeTrial')}
-        </Button>
+        <div className={styles.navCtaWrapper}>
+          <Link href="/auth/signup" className={styles.navCtaInner}>
+            {t('startFreeTrial')}
+          </Link>
+        </div>
       </div>
 
       {/* Hamburger button */}

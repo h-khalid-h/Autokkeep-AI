@@ -1,6 +1,6 @@
 /* ============================================
-   NAVBAR — Sticky transparent → solid on scroll
-   Mercury/Linear aesthetic
+   NAVBAR — Glean-inspired sticky nav
+   Transparent → solid with blue-tinted shadow
    ============================================ */
 
 .navbar {
@@ -23,9 +23,9 @@
 .scrolled {
   background: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 8px rgba(5, 7, 53, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* ─── Logo ─────────────────────────────────── */
@@ -69,8 +69,74 @@
 }
 
 .navLink:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent);
   background: var(--color-bg-hover);
+}
+
+/* ─── Animated nav CTA (Glean gradient border) ─── */
+
+.navCtaWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 2px;
+  overflow: hidden;
+  transition: all var(--duration-moderate) var(--ease-out);
+}
+
+.navCtaWrapper::after {
+  content: "";
+  width: 40%;
+  height: 500%;
+  position: absolute;
+  z-index: -2;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-cta-border);
+  animation: gradientSpin 5s linear infinite;
+}
+
+.navCtaWrapper::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  z-index: -1;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  animation: ctaBlink 5s ease-in-out infinite;
+}
+
+.navCtaInner {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1.6;
+  overflow: hidden;
+  transition: background var(--duration-normal) var(--ease-out);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navCtaInner:hover {
+  background: var(--color-accent-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navCtaWrapper::after,
+  .navCtaWrapper::before {
+    animation: none;
+  }
 }
 
 /* ─── Desktop actions ──────────────────────── */

@@ -6,6 +6,7 @@
 /* Design system */
 @import '../styles/tokens.css';
 @import '../styles/reset.css';
+@import '../styles/animations.css';
 
 /* ─── Animations ───────────────────────────── */
 

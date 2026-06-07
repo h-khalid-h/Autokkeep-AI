@@ -1,0 +1,233 @@
+/* ============================================
+   ANIMATION UTILITIES
+   Glean-inspired scroll reveals, micro-interactions,
+   and premium motion patterns
+   ============================================ */
+
+/* ─── Scroll-triggered Reveal ──────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Gradient Border Spin (Glean CTA) ─────── */
+
+@keyframes gradientSpin {
+  0% {
+    transform: rotate(0deg);
+    background: var(--gradient-cta-border);
+    opacity: 0;
+  }
+  10% {
+    transform: rotate(0deg);
+    background: var(--gradient-cta-border);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(270deg);
+    background: var(--gradient-cta-border);
+    opacity: 1;
+  }
+  51%, 99% {
+    transform: rotate(270deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(270deg);
+    opacity: 0;
+  }
+}
+
+/* ─── CTA Border Blink (Glean) ─────────────── */
+
+@keyframes ctaBlink {
+  0%, 50% { opacity: 0; }
+  60% { opacity: 1; }
+  70% { opacity: 0; }
+  80% { opacity: 1; }
+  90% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ─── Arrow Swipe (Glean CTA hover) ────────── */
+
+@keyframes arrowSwipe {
+  0%, 80% {
+    transform: translateX(-100%);
+  }
+  81% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ─── Bounce Down (scroll indicator) ──────── */
+
+@keyframes bounceDown {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
+
+/* ─── Pulse Glow ──────────────────────────── */
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+  }
+}
+
+/* ─── Float (for decorative elements) ──────── */
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+/* ─── Shimmer (loading skeleton) ──────────── */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ─── Scroll Reveal Utility Classes ────────── */
+
+/* Elements start invisible, then animate in when [data-revealed] is set */
+[data-scroll-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--duration-slow) var(--ease-premium),
+    transform var(--duration-slow) var(--ease-premium);
+}
+
+[data-scroll-reveal="left"] {
+  transform: translateX(-20px);
+}
+
+[data-scroll-reveal="right"] {
+  transform: translateX(20px);
+}
+
+[data-scroll-reveal="scale"] {
+  transform: scale(0.95);
+}
+
+[data-scroll-reveal].revealed {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+}
+
+/* Stagger delays for child elements */
+[data-scroll-reveal].revealed [data-stagger="1"] { transition-delay: 0s; }
+[data-scroll-reveal].revealed [data-stagger="2"] { transition-delay: 0.06s; }
+[data-scroll-reveal].revealed [data-stagger="3"] { transition-delay: 0.12s; }
+[data-scroll-reveal].revealed [data-stagger="4"] { transition-delay: 0.18s; }
+[data-scroll-reveal].revealed [data-stagger="5"] { transition-delay: 0.24s; }
+[data-scroll-reveal].revealed [data-stagger="6"] { transition-delay: 0.30s; }
+
+/* ─── Respect reduced motion ──────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scroll-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  [data-scroll-reveal].revealed [data-stagger] {
+    transition-delay: 0s;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

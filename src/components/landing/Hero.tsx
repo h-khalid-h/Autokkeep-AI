@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui';
 import { useLanding } from '@/lib/context/LandingContext';
 import { getCountryName } from '@/lib/country';
@@ -33,10 +34,11 @@ export default function Hero() {
 
   return (
     <section className={styles.hero} id="hero">
-      {/* Background gradient accents */}
+      {/* Background gradient accents — richer mesh */}
       <div className={styles.bgAccent}>
         <div className={styles.bgGradient1} />
         <div className={styles.bgGradient2} />
+        <div className={styles.bgFade} />
       </div>
 
       {/* Text content */}
@@ -60,16 +62,19 @@ export default function Hero() {
         </p>
 
         <div className={styles.ctas}>
-          <Button variant="primary" size="lg" href="/demo/shadow-audit">
-            {t('watchDemo')}
-          </Button>
+          {/* Animated gradient CTA (Glean-inspired) */}
+          <div className={styles.ctaPrimary}>
+            <Link href="/demo/shadow-audit" className={styles.ctaPrimaryInner}>
+              <span style={{ position: 'relative', zIndex: 2 }}>{t('watchDemo')}</span>
+            </Link>
+          </div>
           <Button variant="secondary" size="lg" href="/auth/signup">
             {t('startFreeTrial')}
           </Button>
         </div>
       </div>
 
-      {/* Product mockup */}
+      {/* Product mockup with floating UI overlays */}
       <div className={styles.mockupWrapper}>
         <div className={styles.mockupContainer}>
           <Image
@@ -78,9 +83,26 @@ export default function Hero() {
             fill
             className={styles.mockupImage}
             priority
-            sizes="(max-width: 768px) 100vw, 960px"
+            sizes="(max-width: 768px) 100vw, 1040px"
           />
         </div>
+
+        {/* Floating glassmorphism cards */}
+        <div className={styles.floatingCardTop}>
+          <div className={styles.floatingCardLabel}>AI Confidence</div>
+          <div className={styles.floatingCardValue}>
+            <span className={styles.floatingCardIcon}>✨</span>
+            98.7%
+          </div>
+        </div>
+        <div className={styles.floatingCardBottom}>
+          <div className={styles.floatingCardLabel}>Transactions Processed</div>
+          <div className={styles.floatingCardValue}>
+            <span className={styles.floatingCardIcon}>📊</span>
+            12,847
+          </div>
+        </div>
+
         <div className={styles.mockupGlow} />
       </div>
     </section>
