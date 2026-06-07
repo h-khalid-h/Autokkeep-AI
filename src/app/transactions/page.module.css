@@ -368,7 +368,7 @@
 .expandedField {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: 1.8;
+  line-height: var(--leading-loose);
 }
 
 .expandedFieldLabel {

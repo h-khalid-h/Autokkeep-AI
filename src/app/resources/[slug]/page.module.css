@@ -55,7 +55,7 @@
 
 .paragraph {
   font-size: var(--text-md);
-  line-height: 1.8;
+  line-height: var(--leading-loose);
   color: var(--color-text-primary);
   margin-bottom: var(--space-6);
 }

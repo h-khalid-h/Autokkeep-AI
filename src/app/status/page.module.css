@@ -23,7 +23,7 @@
 .statusEmoji {
   font-size: var(--text-3xl);
   margin-bottom: var(--space-2);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .statusTitle {

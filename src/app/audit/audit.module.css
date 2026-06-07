@@ -384,7 +384,7 @@
   max-height: 300px;
   white-space: pre-wrap;
   word-break: break-all;
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .jsonLabel {

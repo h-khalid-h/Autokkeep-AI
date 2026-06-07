@@ -22,6 +22,8 @@ interface FeatureTexts {
   taxReadyTitle: string;
   multiEntityTitle: string;
   multiEntityDesc: string;
+  continuousSyncTitle: string;
+  continuousSyncDesc: string;
 }
 
 const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
@@ -40,6 +42,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Tax Readiness',
     multiEntityTitle: 'Multi-Entity',
     multiEntityDesc: 'Manage multiple businesses or subsidiaries from a single dashboard with consolidated views.',
+    continuousSyncTitle: 'Continuous Sync',
+    continuousSyncDesc: 'Sync in real-time with QuickBooks, Xero, and major platforms, ensuring your general ledger is always up to date.',
   },
   de: {
     label: 'Funktionen',
@@ -56,6 +60,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Steuerbereitschaft',
     multiEntityTitle: 'Mehrere Einheiten',
     multiEntityDesc: 'Verwalten Sie mehrere Unternehmen oder Filialen über ein einziges Dashboard.',
+    continuousSyncTitle: 'Kontinuierliche Synchronisierung',
+    continuousSyncDesc: 'Echtzeit-Synchronisierung mit QuickBooks, Xero und anderen Plattformen für stets aktuelle Geschäftsbücher.',
   },
   fr: {
     label: 'Fonctionnalités',
@@ -72,6 +78,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Préparation fiscale',
     multiEntityTitle: 'Multi-entités',
     multiEntityDesc: 'Gérez plusieurs entreprises ou filiales à partir d\'un tableau de bord unique.',
+    continuousSyncTitle: 'Synchronisation continue',
+    continuousSyncDesc: 'Synchronisez en temps réel avec QuickBooks, Xero et les principales plateformes pour des livres toujours à jour.',
   },
   pt: {
     label: 'Recursos',
@@ -88,6 +96,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Prontidão Fiscal',
     multiEntityTitle: 'Multi-entidade',
     multiEntityDesc: 'Gerencie várias empresas ou subsidiárias a partir de um único painel central.',
+    continuousSyncTitle: 'Sincronização Contínua',
+    continuousSyncDesc: 'Sincronize em tempo real com QuickBooks, Xero e principais plataformas, mantendo seu livro-razão sempre atualizado.',
   },
   es: {
     label: 'Características',
@@ -104,6 +114,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Preparación de impuestos',
     multiEntityTitle: 'Multi-entidad',
     multiEntityDesc: 'Gestione varias empresas o filiales desde un único panel consolidado.',
+    continuousSyncTitle: 'Sincronización continua',
+    continuousSyncDesc: 'Sincronice en tiempo real con QuickBooks, Xero y las principales plataformas para mantener sus libros al día.',
   },
   ja: {
     label: '機能',
@@ -120,6 +132,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: '税務申告準備',
     multiEntityTitle: '複数拠点管理',
     multiEntityDesc: '複数の法人や子会社を、統合された1つのダッシュボードから管理します。',
+    continuousSyncTitle: 'リアルタイム同期',
+    continuousSyncDesc: 'QuickBooksやXeroなどの主要な会計システムとリアルタイムで同期し、帳簿を常に最新に保ちます。',
   },
   et: {
     label: 'Funktsioonid',
@@ -136,6 +150,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'Maksuvalmidus',
     multiEntityTitle: 'Mitu ettevõtet',
     multiEntityDesc: 'Halda mitut ettevõtet või tütarettevõtet ühise gekonsoolid töölaua kaudu.',
+    continuousSyncTitle: 'Pidev sünkroonimine',
+    continuousSyncDesc: 'Sünkrooni reaalajas QuickBooks, Xero ja teiste platvormidega, hoides oma üldraamatu alati ajakohasena.',
   },
   ar: {
     label: 'الميزات',
@@ -152,6 +168,8 @@ const TRANSLATED_TEXTS: Record<string, FeatureTexts> = {
     taxReadyTitle: 'جاهزية الضرائب',
     multiEntityTitle: 'متعدد الشركات',
     multiEntityDesc: 'إدارة شركات أو فروع متعددة من لوحة معلومات واحدة موحدة.',
+    continuousSyncTitle: 'مزامنة مستمرة',
+    continuousSyncDesc: 'مزامنة فورية مع QuickBooks و Xero والمنصات الرئيسية، مما يضمن تحديث دفاتر حساباتك باستمرار.',
   },
 };
 
@@ -277,6 +295,18 @@ export default function FeaturesGrid() {
       ),
       title: texts.multiEntityTitle,
       description: texts.multiEntityDesc,
+    },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+          <path d="M16 16h5v5" />
+        </svg>
+      ),
+      title: texts.continuousSyncTitle,
+      description: texts.continuousSyncDesc,
     },
   ];
 

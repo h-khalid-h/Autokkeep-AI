@@ -51,13 +51,13 @@
   color: var(--color-text-primary);
   margin-bottom: var(--space-6);
   letter-spacing: -0.5px;
-  line-height: 1.2;
+  line-height: var(--leading-tight);
 }
 
 .content {
   color: var(--color-text-secondary);
   font-size: var(--text-md);
-  line-height: 1.8;
+  line-height: var(--leading-loose);
 }
 
 .ctaBox {

@@ -427,6 +427,6 @@
 .noticeText {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   margin: 0;
 }

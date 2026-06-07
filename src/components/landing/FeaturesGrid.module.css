@@ -68,8 +68,9 @@
   transform: scale(1.1) rotate(3deg);
 }
 
-/* Bento grid: first card spans 2 columns */
-.featureCard:first-child {
+/* Bento grid: first card and last card span 2 columns */
+.featureCard:first-child,
+.featureCard:last-child {
   grid-column: span 2;
 }
 
@@ -108,7 +109,8 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .featureCard:first-child {
+  .featureCard:first-child,
+  .featureCard:last-child {
     grid-column: span 1;
   }
 }

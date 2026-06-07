@@ -91,7 +91,7 @@
   opacity: 0.35;
   display: block;
   margin-bottom: var(--space-4);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .stepTitle {
@@ -285,7 +285,7 @@
 .tierCheck {
   color: var(--color-success);
   font-size: var(--space-4);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .tierCta {
