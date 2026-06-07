@@ -170,7 +170,7 @@
   text-align: left;
   font-weight: var(--weight-bold);
   color: var(--color-text-secondary);
-  font-size: 10px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-widest);
   white-space: nowrap;

@@ -21,7 +21,7 @@
   width: 64px;
   height: 64px;
   margin-bottom: var(--space-6);
-  font-size: 2.5rem;
+  font-size: var(--text-5xl);
   color: var(--color-text-tertiary);
   background: var(--color-bg-subtle);
   border-radius: var(--radius-2xl);

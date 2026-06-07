@@ -31,12 +31,12 @@ describe('Structured Logger', () => {
     if (originalLogLevel !== undefined) {
       process.env.LOG_LEVEL = originalLogLevel;
     } else {
-      delete process.env.LOG_LEVEL;
+      Reflect.deleteProperty(process.env, 'LOG_LEVEL');
     }
     if (originalNodeEnv !== undefined) {
-      process.env.NODE_ENV = originalNodeEnv;
+      (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
     } else {
-      delete process.env.NODE_ENV;
+      Reflect.deleteProperty(process.env, 'NODE_ENV');
     }
   });
 
@@ -151,8 +151,8 @@ describe('Structured Logger', () => {
   });
 
   it('defaults to info in production when LOG_LEVEL is not set', () => {
-    delete process.env.LOG_LEVEL;
-    process.env.NODE_ENV = 'production';
+    Reflect.deleteProperty(process.env, 'LOG_LEVEL');
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     const logSpy = captureOutput('log');
     const logger = createLogger('prod-test');
 

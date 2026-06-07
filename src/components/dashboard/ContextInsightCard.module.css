@@ -1,7 +1,7 @@
 /* ─── Context Insight Card ────────────────────── */
 
 .amountValue {
-  font-size: 1.0625rem;
+  font-size: var(--text-md);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
 }

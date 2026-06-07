@@ -12,7 +12,7 @@
 }
 
 .heroTitle {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .heroSubtitle {
@@ -23,58 +23,58 @@
 .missionGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 64px;
+  gap: var(--space-16);
   align-items: center;
 }
 
 .missionTitle {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .missionIntro {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .missionFollow {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .marketCard {
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 .marketStatLarge {
   font-size: 4rem;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .marketLabel {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .marketSubGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 24px;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 }
 
 .marketStatSmall {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
 }
 
 /* ── Timeline ── */
 .timelineContainer {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-8);
   max-width: 600px;
   margin: 0 auto;
 }
 
 .timelineItem {
   display: flex;
-  gap: 24px;
+  gap: var(--space-6);
   align-items: flex-start;
 }
 
@@ -82,13 +82,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
 .timelineBadge {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: var(--text-base);
 }
 
 .timelineLine {
@@ -98,31 +98,31 @@
 }
 
 .timelineTitle {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 /* ── Values ── */
 .valueCard {
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 .valueIcon {
-  font-size: 2rem;
-  margin-bottom: 16px;
+  font-size: var(--text-3xl);
+  margin-bottom: var(--space-4);
 }
 
 .valueTitle {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 /* ── Tech Stack ── */
 .stackCard {
   max-width: 700px;
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--space-8);
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 2;
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
   color: var(--color-text-secondary);
 }
 
@@ -130,8 +130,8 @@
   display: flex;
   justify-content: space-between;
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .stackRowLast {
@@ -146,6 +146,6 @@
 /* ── CTA ── */
 .ctaButtons {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
 }

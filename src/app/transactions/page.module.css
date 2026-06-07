@@ -152,7 +152,7 @@
 .bulkCount {
   font-weight: var(--weight-semibold);
   color: var(--color-accent);
-  font-size: 0.875rem;
+  font-size: var(--text-base);
 }
 
 .bulkActions {

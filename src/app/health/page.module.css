@@ -282,7 +282,7 @@
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .regionButton:hover {

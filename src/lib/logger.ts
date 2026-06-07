@@ -43,12 +43,14 @@ function getMinLevel(): LogLevel {
 
 // ── Console Writer ───────────────────────────────────────────────────────────
 
-const CONSOLE_METHODS: Record<LogLevel, (...args: unknown[]) => void> = {
-  debug: console.log,
-  info: console.log,
-  warn: console.warn,
-  error: console.error,
-};
+function getWriter(level: LogLevel): (...args: unknown[]) => void {
+  switch (level) {
+    case 'debug': return console.log;
+    case 'info':  return console.log;
+    case 'warn':  return console.warn;
+    case 'error': return console.error;
+  }
+}
 
 // ── Logger Implementation ────────────────────────────────────────────────────
 
@@ -99,7 +101,7 @@ class StructuredLogger implements Logger {
       ...context,
     };
 
-    const writer = CONSOLE_METHODS[level];
+    const writer = getWriter(level);
     writer(JSON.stringify(entry));
   }
 }
