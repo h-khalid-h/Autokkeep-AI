@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 var(--space-8);
   background: var(--color-bg-overlay);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -18,29 +18,29 @@
 .logoLink {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   text-decoration: none;
 }
 
 .logoText {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
   color: var(--color-text-primary);
 }
 
 .navActions {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .navLink {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--duration-normal) var(--ease-out);
 }
 
 .navLink:hover {
@@ -53,7 +53,7 @@
 
 .hero {
   padding-top: 140px;
-  padding-bottom: 64px;
+  padding-bottom: var(--space-16);
   text-align: center;
   position: relative;
 }
@@ -73,26 +73,26 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-4);
   background: var(--color-accent-subtle);
   border: 1px solid var(--color-border-accent);
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-accent);
-  margin-bottom: 24px;
-  letter-spacing: 0.04em;
+  margin-bottom: var(--space-6);
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
 }
 
 .heroTitle {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .heroSubtitle {
   max-width: 600px;
-  margin: 0 auto 16px;
+  margin: 0 auto var(--space-4);
 }
 
 .heroDate {
@@ -102,8 +102,8 @@
 .mainGrid {
   display: grid;
   grid-template-columns: 220px 1fr;
-  gap: 48px;
-  padding-bottom: 96px;
+  gap: var(--space-12);
+  padding-bottom: var(--space-24);
   align-items: start;
 }
 
@@ -112,23 +112,23 @@
   top: 96px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .sidebarLink {
-  font-size: 13px;
+  font-size: var(--text-sm);
   text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
   border-left: 2px solid transparent;
   background: transparent;
-  transition: all 0.2s ease;
-  font-weight: 400;
+  transition: all var(--duration-normal) var(--ease-out);
+  font-weight: var(--weight-regular);
   color: var(--color-text-tertiary);
 }
 
 .sidebarLinkActive {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-accent);
   border-left-color: var(--color-accent);
   background: var(--color-accent-subtle);
@@ -137,28 +137,28 @@
 .contentColumn {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-8);
 }
 
 .sectionCard {
   background: var(--glass-bg);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 32px;
-  transition: border-color 0.3s ease;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  transition: border-color var(--duration-moderate) var(--ease-out);
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
 .sectionIcon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--color-accent-subtle);
   border: 1px solid var(--color-border-accent);
   display: flex;
@@ -175,23 +175,23 @@
 .contentItems {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .contentItem {
-  padding-left: 20px;
+  padding-left: var(--space-5);
   border-left: 2px solid var(--color-border);
 }
 
 .contentItemTitle {
-  margin-bottom: 8px;
-  font-size: 15px;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-md);
   color: var(--color-text-primary);
 }
 
 .contentItemText {
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -199,21 +199,21 @@
 .contactSection {
   background: var(--color-accent-subtle);
   border: 1px solid var(--color-border-accent);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
   text-align: center;
 }
 
 .contactTitle {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .contactText {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
-  line-height: 1.7;
+  line-height: var(--leading-loose);
   max-width: 500px;
-  margin: 0 auto 24px;
+  margin: 0 auto var(--space-6);
 }
 
 .contactLink {
@@ -222,7 +222,7 @@
 
 .footer {
   border-top: 1px solid var(--color-border);
-  padding: 48px 0;
+  padding: var(--space-12) 0;
   background: var(--color-bg-secondary);
 }
 
@@ -231,30 +231,30 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .footerBrand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .footerCopy {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-tertiary);
 }
 
 .footerLinks {
   display: flex;
-  gap: 32px;
+  gap: var(--space-8);
 }
 
 .footerLink {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-tertiary);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--duration-normal) var(--ease-out);
 }
 
 .footerLink:hover {
@@ -262,16 +262,16 @@
 }
 
 .footerLinkActive {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 @media (max-width: 768px) {
   .mainGrid {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: var(--space-6);
   }
 
   .sidebar {

@@ -4,46 +4,46 @@
 
 /* ── 1. Hero ── */
 .heroSection {
-  padding-top: calc(var(--header-height) + 80px);
+  padding-top: calc(var(--header-height) + var(--space-20));
   text-align: center;
 }
 
 .heroTitle {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 
 .heroSubtitle {
   max-width: 720px;
-  margin: 24px auto 0;
+  margin: var(--space-6) auto 0;
   color: var(--color-text-secondary);
 }
 
 .heroCta {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
-  margin-top: 40px;
+  margin-top: var(--space-10);
   flex-wrap: wrap;
 }
 
 /* ── 1b. Key Benefits ── */
 .gridMt48 {
-  margin-top: 48px;
+  margin-top: var(--space-12);
 }
 
 .benefitCard {
-  padding: 32px 24px;
+  padding: var(--space-8) var(--space-6);
   height: 100%;
 }
 
 .benefitIcon {
-  font-size: 2rem;
+  font-size: var(--text-2xl);
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .benefitTitle {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .benefitBody {
@@ -54,12 +54,12 @@
 /* ── 2. The Problem ── */
 .statCard {
   text-align: center;
-  padding: 40px;
+  padding: var(--space-10);
 }
 
 .statValue {
   color: var(--color-accent);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .statDesc {
@@ -68,11 +68,11 @@
 
 .accentBanner {
   text-align: center;
-  padding: 32px 40px;
+  padding: var(--space-8) var(--space-10);
 }
 
 .accentBannerMargin {
-  margin-top: 32px;
+  margin-top: var(--space-8);
 }
 
 .accentBannerText {
@@ -81,7 +81,7 @@
 
 /* ── 3. How It Works ── */
 .stepCard {
-  padding: 40px 32px;
+  padding: var(--space-10) var(--space-8);
   height: 100%;
 }
 
@@ -90,12 +90,12 @@
   color: var(--color-accent);
   opacity: 0.35;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   line-height: 1;
 }
 
 .stepTitle {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .stepBody {
@@ -106,31 +106,31 @@
 /* ── 4. Revenue Calculator ── */
 .calcWrapper {
   max-width: 800px;
-  margin: 48px auto 0;
+  margin: var(--space-12) auto 0;
 }
 
 .calcCard {
-  padding: 48px 40px;
+  padding: var(--space-12) var(--space-10);
 }
 
 .sliderGroup {
-  margin-bottom: 36px;
+  margin-bottom: var(--space-8);
 }
 
 .sliderHeader {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .sliderLabel {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .sliderValue {
   font-family: var(--font-mono);
   color: var(--color-accent);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .sliderInput {
@@ -143,7 +143,7 @@
 .sliderRange {
   display: flex;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .sliderRangeLabel {
@@ -153,36 +153,36 @@
 .divider {
   height: 1px;
   background: var(--color-border);
-  margin: 8px 0 36px;
+  margin: var(--space-2) 0 var(--space-8);
 }
 
 .outputGrid {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .outputCard {
-  padding: 24px;
+  padding: var(--space-6);
   text-align: center;
 }
 
 .outputCardAccent {
-  padding: 24px;
+  padding: var(--space-6);
   text-align: center;
   border-color: var(--color-accent);
 }
 
 .outputLabel {
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-wider);
 }
 
 .outputLabelAccent {
   color: var(--color-accent);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-wider);
 }
 
 .outputValue {
@@ -203,7 +203,7 @@
 
 .calcDisclaimer {
   color: var(--color-text-secondary);
-  margin-top: 24px;
+  margin-top: var(--space-6);
   text-align: center;
   font-style: italic;
 }
@@ -211,22 +211,22 @@
 /* ── 5. Shadow Audit CTA ── */
 .shadowAuditCard {
   text-align: center;
-  padding: 48px 40px;
+  padding: var(--space-12) var(--space-10);
 }
 
 .shadowAuditTitle {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .shadowAuditBody {
   color: var(--color-text-secondary);
   max-width: 640px;
-  margin: 0 auto 28px;
+  margin: 0 auto var(--space-6);
 }
 
 /* ── 6. Partner Tiers ── */
 .tierCard {
-  padding: 40px 32px;
+  padding: var(--space-10) var(--space-8);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -242,16 +242,16 @@
 
 .tierBadge {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .tierName {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .tierPriceRow {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .tierPrice {
@@ -264,27 +264,27 @@
 
 .tierDesc {
   color: var(--color-text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .tierFeatures {
   list-style: none;
   padding: 0;
-  margin: 0 0 32px;
+  margin: 0 0 var(--space-8);
   flex: 1;
 }
 
 .tierFeatureItem {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .tierCheck {
   color: var(--color-success);
-  font-size: 16px;
+  font-size: var(--space-4);
   line-height: 1;
 }
 
@@ -296,15 +296,15 @@
 /* ── 7. FAQ ── */
 .faqContainer {
   max-width: 800px;
-  margin: 48px auto 0;
+  margin: var(--space-12) auto 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .faqCard {
   overflow: hidden;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--duration-moderate) var(--ease-out);
 }
 
 .faqButton {
@@ -312,8 +312,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
   background: none;
   border: none;
   color: inherit;
@@ -324,14 +324,14 @@
 
 .faqQuestion {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--text-md);
 }
 
 .faqAnswer {
-  padding: 0 24px 24px;
+  padding: 0 var(--space-6) var(--space-6);
   margin: 0;
   color: var(--color-text-secondary);
-  line-height: 1.7;
+  line-height: var(--leading-loose);
 }
 
 /* ── 8. CTA / Form ── */
@@ -342,29 +342,29 @@
 .ctaSubtext {
   color: var(--color-text-secondary);
   max-width: 600px;
-  margin: 0 auto 16px;
-  font-size: 1.05rem;
+  margin: 0 auto var(--space-4);
+  font-size: var(--text-md);
 }
 
 .ctaFormWrapper {
   max-width: 480px;
-  margin: 40px auto 0;
+  margin: var(--space-10) auto 0;
 }
 
 .successCard {
-  padding: 40px 32px;
+  padding: var(--space-10) var(--space-8);
   text-align: center;
   border-color: var(--color-success-border);
   background: var(--color-success-subtle);
 }
 
 .successEmoji {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: var(--text-5xl);
+  margin-bottom: var(--space-3);
 }
 
 .successTitle {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .successBody {
@@ -375,20 +375,20 @@
 .partnerForm {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .formInput {
   width: 100%;
-  padding: 14px 18px;
-  border-radius: 12px;
+  padding: var(--space-3-5) var(--space-4);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
   color: inherit;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color var(--duration-normal) var(--ease-out);
   box-sizing: border-box;
 }
 
@@ -402,6 +402,6 @@
 
 /* ── Chevron ── */
 .chevron {
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-moderate) var(--ease-out);
   flex-shrink: 0;
 }

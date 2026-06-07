@@ -4,21 +4,21 @@
 
 /* ── Hero ── */
 .heroSection {
-  padding-top: calc(var(--header-height) + 80px);
+  padding-top: calc(var(--header-height) + var(--space-20));
 }
 
 /* ── Security Commitment Banner ── */
 .commitmentBanner {
   text-align: center;
-  padding: 32px;
-  margin-bottom: 64px;
+  padding: var(--space-8);
+  margin-bottom: var(--space-16);
 }
 
 .commitmentTitle {
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   color: var(--color-accent);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .commitmentBody {
@@ -28,33 +28,33 @@
 
 /* ── Security Layers Grid ── */
 .securityGrid {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .layerCard {
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 .layerIcon {
   font-size: 2rem;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .layerTitle {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .layerList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .layerItem {
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-start;
 }
 
@@ -76,28 +76,28 @@
 
 /* ── AI Safety & Compliance ── */
 .contentGrid {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .contentCard {
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 .contentIcon {
   font-size: 2rem;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .contentTitle {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 /* ── Compliance Cards ── */
 .complianceHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .complianceIcon {
@@ -112,38 +112,38 @@
 .infraContainer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   max-width: 700px;
   margin: 0 auto;
 }
 
 .infraCard {
-  padding: 24px;
+  padding: var(--space-6);
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 
 .infraCheck {
   color: var(--color-success);
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 .infraTitle {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 /* ── CTA ── */
 .ctaSection {
-  padding: 48px 0;
+  padding: var(--space-12) 0;
 }
 
 .ctaTitle {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .ctaBody {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }

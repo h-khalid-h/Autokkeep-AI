@@ -150,7 +150,7 @@
 }
 
 .bulkCount {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-accent);
   font-size: 0.875rem;
 }

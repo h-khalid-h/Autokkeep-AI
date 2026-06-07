@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
   background: var(--color-bg-primary);
-  padding: 120px 24px 80px;
+  padding: 120px var(--space-6) var(--space-20);
 }
 
 .container {
@@ -10,33 +10,33 @@
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: 800;
+  font-size: var(--text-5xl);
+  font-weight: var(--weight-extrabold);
   color: var(--color-text-primary);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   letter-spacing: -0.5px;
 }
 
 .subtitle {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   color: var(--color-text-secondary);
-  margin-bottom: 48px;
-  line-height: 1.6;
+  margin-bottom: var(--space-12);
+  line-height: var(--leading-relaxed);
 }
 
 .postList {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .postCard {
   background: var(--glass-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: 32px;
+  padding: var(--space-8);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) var(--ease-out);
   display: block;
 }
 
@@ -47,35 +47,35 @@
 
 .postMeta {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
   flex-wrap: wrap;
 }
 
 .categoryBadge {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-accent);
   background: var(--color-accent-subtle);
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   border-radius: var(--radius-sm);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .metaText {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-tertiary);
 }
 
 .postTitle {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   letter-spacing: -0.3px;
 }
 
 .postExcerpt {
-  font-size: 0.9375rem;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
