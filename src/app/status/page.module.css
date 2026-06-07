@@ -51,7 +51,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #22c55e;
+  background-color: var(--color-success);
   flex-shrink: 0;
   animation: pulseGreen 2s ease-in-out infinite;
 }
@@ -68,7 +68,7 @@
 .serviceStatus {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #22c55e;
+  color: var(--color-success-text);
 }
 
 /* ── Uptime ── */
@@ -90,7 +90,7 @@
   width: 7px;
   height: 28px;
   border-radius: 2px;
-  background-color: #22c55e;
+  background-color: var(--color-success);
 }
 
 .uptimeLabels {
@@ -111,7 +111,7 @@
 
 .incidentCard {
   padding: 24px;
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-success);
 }
 
 .incidentHeader {
@@ -132,8 +132,8 @@
 .incidentResolved {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #22c55e;
-  border: 1px solid #22c55e;
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
   border-radius: 9999px;
   padding: 2px 10px;
 }

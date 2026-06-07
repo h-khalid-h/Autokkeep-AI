@@ -143,7 +143,7 @@
 }
 
 .errorDismiss:hover {
-  background: rgba(244, 63, 94, 0.15);
+  background: var(--color-destructive-subtle);
 }
 
 /* ─── Welcome step ────────────────────────── */

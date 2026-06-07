@@ -30,7 +30,7 @@
 
 .uploadButton:hover:not(:disabled) {
   border-color: var(--color-accent);
-  background: var(--color-accent-subtle, rgba(99, 102, 241, 0.08));
+  background: var(--color-accent-subtle);
 }
 
 .uploadButton:disabled {
@@ -63,13 +63,13 @@
 .uploadError {
   margin-top: var(--space-2);
   font-size: var(--text-sm);
-  color: var(--color-destructive, #ef4444);
+  color: var(--color-destructive);
 }
 
 .uploadSuccess {
   margin-top: var(--space-2);
   font-size: var(--text-sm);
-  color: var(--color-success, #22c55e);
+  color: var(--color-success);
 }
 
 /* Local Compliance Card */

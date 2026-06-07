@@ -118,7 +118,7 @@ export default function PortfolioPage() {
   const [reportingCurrency, setReportingCurrency] = useState('USD');
   const [entityBalances, setEntityBalances] = useState<Record<string, number>>({});
   const [entityYtdPayments, setEntityYtdPayments] = useState<Record<string, number>>({});
-  const [fxError, setFxError] = useState<string | null>(null);
+
 
   // Add Entity modal state
   const [showAddEntity, setShowAddEntity] = useState(false);
@@ -145,13 +145,13 @@ export default function PortfolioPage() {
         .from('bank_accounts')
         .select('current_balance, connection_id, bank_connections ( entity_id )');
       
-      const bankData = rawBankData as any[] | null;
+      const bankData = rawBankData as { current_balance: unknown; connection_id: string; bank_connections: { entity_id: string } | null }[] | null;
       const balanceMap: Record<string, number> = {};
       if (!bankErr && bankData) {
         for (const item of bankData) {
           const entityId = item.bank_connections?.entity_id;
           if (entityId) {
-            const bal = parseFloat(item.current_balance as any) || 0;
+            const bal = parseFloat(String(item.current_balance ?? 0)) || 0;
             balanceMap[entityId] = (balanceMap[entityId] || 0) + bal;
           }
         }
@@ -162,13 +162,13 @@ export default function PortfolioPage() {
         .from('vendors')
         .select('ytd_payments, entity_id');
       
-      const vendorData = rawVendorData as any[] | null;
+      const vendorData = rawVendorData as { ytd_payments: unknown; entity_id: string }[] | null;
       const paymentMap: Record<string, number> = {};
       if (!vendorErr && vendorData) {
         for (const item of vendorData) {
           const entityId = item.entity_id;
           if (entityId) {
-            const ytd = parseFloat(item.ytd_payments as any) || 0;
+            const ytd = parseFloat(String(item.ytd_payments ?? 0)) || 0;
             paymentMap[entityId] = (paymentMap[entityId] || 0) + ytd;
           }
         }
@@ -200,10 +200,8 @@ export default function PortfolioPage() {
   }, [fetchBalancesAndPayments]);
 
   // Derived / Converted valuations
-  const { consolidatedValuation, consolidatedYtdPayments, convertedEntities } = React.useMemo(() => {
-    let totalValuation = 0;
-    let totalYtdPayments = 0;
-    let localFxError: string | null = null;
+  const { consolidatedValuation, consolidatedYtdPayments, convertedEntities, fxError } = React.useMemo(() => {
+    const fxErrors: string[] = [];
 
     const mapped = entities.map((entity) => {
       // 1. Get raw values (either real or fallback based on totalTransactions)
@@ -224,7 +222,7 @@ export default function PortfolioPage() {
         if (balConv) {
           convertedBalance = balConv.baseAmount;
         } else {
-          localFxError = `Could not resolve exchange rate for ${entity.currency} to ${reportingCurrency}`;
+          fxErrors.push(`Could not resolve exchange rate for ${entity.currency} to ${reportingCurrency}`);
         }
 
         const ytdConv = convertAmount(rawYtd, entity.currency, reportingCurrency);
@@ -233,14 +231,11 @@ export default function PortfolioPage() {
         }
       } catch (err) {
         if (err instanceof StaleRatesError) {
-          localFxError = `FX conversion is inactive: rates are stale (${err.ageDays} days old).`;
+          fxErrors.push(`FX conversion is inactive: rates are stale (${err.ageDays} days old).`);
         } else {
-          localFxError = 'Error during FX rate conversion.';
+          fxErrors.push('Error during FX rate conversion.');
         }
       }
-
-      totalValuation += convertedBalance;
-      totalYtdPayments += convertedYtd;
 
       return {
         ...entity,
@@ -251,16 +246,16 @@ export default function PortfolioPage() {
       };
     });
 
-    if (localFxError !== fxError) {
-      setFxError(localFxError);
-    }
+    const totalValuation = mapped.reduce((sum, e) => sum + (e.convertedBalance ?? 0), 0);
+    const totalYtdPayments = mapped.reduce((sum, e) => sum + (e.convertedYtd ?? 0), 0);
 
     return {
       consolidatedValuation: totalValuation,
       consolidatedYtdPayments: totalYtdPayments,
       convertedEntities: mapped,
+      fxError: fxErrors.length > 0 ? fxErrors[0] : null,
     };
-  }, [entities, entityBalances, entityYtdPayments, reportingCurrency, fxError]);
+  }, [entities, entityBalances, entityYtdPayments, reportingCurrency]);
 
   const formatReportingCurrency = useCallback((value: number) => {
     return new Intl.NumberFormat(undefined, {

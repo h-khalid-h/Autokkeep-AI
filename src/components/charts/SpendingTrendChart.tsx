@@ -101,13 +101,13 @@ export default function SpendingTrendChart({ data, currency }: SpendingTrendChar
             <defs>
               {/* Income gradient */}
               <linearGradient id="gradientIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="var(--chart-income)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="var(--chart-income)" stopOpacity={0.02} />
               </linearGradient>
               {/* Expenses gradient */}
               <linearGradient id="gradientExpenses" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F97316" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#F97316" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="var(--chart-expense)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="var(--chart-expense)" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -144,21 +144,21 @@ export default function SpendingTrendChart({ data, currency }: SpendingTrendChar
             <Area
               type="monotone"
               dataKey="income"
-              stroke="#10B981"
+              stroke="var(--chart-income)"
               strokeWidth={2.5}
               fill="url(#gradientIncome)"
               dot={false}
-              activeDot={{ r: 5, strokeWidth: 2, stroke: '#10B981', fill: 'var(--color-bg-surface)' }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--chart-income)', fill: 'var(--color-bg-surface)' }}
             />
 
             <Area
               type="monotone"
               dataKey="expenses"
-              stroke="#F97316"
+              stroke="var(--chart-expense)"
               strokeWidth={2.5}
               fill="url(#gradientExpenses)"
               dot={false}
-              activeDot={{ r: 5, strokeWidth: 2, stroke: '#F97316', fill: 'var(--color-bg-surface)' }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--chart-expense)', fill: 'var(--color-bg-surface)' }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -167,11 +167,11 @@ export default function SpendingTrendChart({ data, currency }: SpendingTrendChar
       {/* Inline legend */}
       <div className={styles.legend}>
         <span className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ backgroundColor: '#10B981' }} />
+          <span className={styles.legendDot} style={{ backgroundColor: 'var(--chart-income)' }} />
           Income
         </span>
         <span className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ backgroundColor: '#F97316' }} />
+          <span className={styles.legendDot} style={{ backgroundColor: 'var(--chart-expense)' }} />
           Expenses
         </span>
       </div>

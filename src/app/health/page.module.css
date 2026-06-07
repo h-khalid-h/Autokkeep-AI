@@ -293,7 +293,7 @@
 .regionButtonActive {
   background: var(--color-brand);
   border-color: var(--color-brand);
-  color: white;
+  color: var(--color-text-on-accent);
 }
 
 .complianceResult {

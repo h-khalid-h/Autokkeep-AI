@@ -38,8 +38,8 @@
   padding: var(--space-2, 8px) var(--space-4, 16px);
   font-size: var(--text-sm, 14px);
   font-weight: 500;
-  color: #fff;
-  background: var(--color-accent, #6366f1);
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
   border: none;
   border-radius: var(--radius-md, 8px);
   cursor: pointer;
@@ -71,7 +71,7 @@
 }
 
 .homeLink:hover {
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
 }
 
 .routeErrorPage {

@@ -282,7 +282,7 @@ describe('POST /api/transactions/[id]/split', () => {
 
   it('should return 404 when transaction belongs to a different entity', async () => {
     // User has access to a different entity than the transaction's
-    const otherEntityTx = { ...mockTransaction, entity_id: MOCK_OTHER_ENTITY };
+    const _otherEntityTx = { ...mockTransaction, entity_id: MOCK_OTHER_ENTITY };
     // The .in('entity_id', entityIds) filter will cause .single() to return null
     const fetchChain = createChainMock({ data: null, error: { code: 'PGRST116' } });
     mockDb.from.mockReturnValue(fetchChain);

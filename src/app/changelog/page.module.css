@@ -25,7 +25,7 @@
 
 .versionBadge {
   background: var(--color-brand-gradient);
-  color: #fff;
+  color: var(--color-text-on-accent);
   padding: 4px 14px;
   border-radius: 9999px;
   font-size: 0.875rem;

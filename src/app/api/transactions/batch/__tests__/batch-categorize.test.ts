@@ -84,7 +84,7 @@ describe('POST /api/transactions/batch (categorize)', () => {
 
   it('should bulk categorize transactions successfully', async () => {
     const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'org-1' } });
-    const txFetchChain = createChainMock({
+    const _txFetchChain = createChainMock({
       data: TX_IDS.map((id) => ({
         id,
         date: '2025-06-01',
@@ -173,7 +173,7 @@ describe('POST /api/transactions/batch (categorize)', () => {
 
   it('should still handle approve action normally', async () => {
     const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'org-1' } });
-    const txFetchChain = createChainMock({
+    const _txFetchChain = createChainMock({
       data: TX_IDS.map((id) => ({
         id,
         date: '2025-06-01',
@@ -226,7 +226,7 @@ describe('POST /api/transactions/batch (categorize)', () => {
 
   it('should still handle reject action normally', async () => {
     const entityChain = createChainMock({ data: { id: ENTITY_ID, org_id: 'org-1' } });
-    const txFetchChain = createChainMock({
+    const _txFetchChain = createChainMock({
       data: [{ id: TX_IDS[0], date: '2025-06-01', amount: 100, entity_id: ENTITY_ID }],
       error: null,
     });

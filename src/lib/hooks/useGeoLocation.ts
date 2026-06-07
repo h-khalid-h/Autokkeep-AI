@@ -58,17 +58,19 @@ const COUNTRY_DEFAULTS: Record<string, { currency: string; taxAuthority: string;
 };
 
 export function useGeoLocation() {
-  const [geoData, setGeoData] = useState<GeoData>(DEFAULT_GEO);
-
-  useEffect(() => {
-    // Check session cache first
+  // Use lazy initializer to read cached geo from sessionStorage,
+  // avoiding setState-during-effect lint violations.
+  const [geoData, setGeoData] = useState<GeoData>(() => {
     try {
       const cached = sessionStorage.getItem('autokkeep_geo');
-      if (cached) {
-        setGeoData(JSON.parse(cached));
-        return;
-      }
-    } catch (_) {}
+      if (cached) return JSON.parse(cached) as GeoData;
+    } catch (_e) { /* ignore */ }
+    return DEFAULT_GEO;
+  });
+
+  useEffect(() => {
+    // If we already have cached data (loaded=true), skip detection
+    if (geoData.loaded) return;
 
     const controller = new AbortController();
     const detect = async () => {
@@ -98,8 +100,8 @@ export function useGeoLocation() {
         setGeoData(geo);
         try {
           sessionStorage.setItem('autokkeep_geo', JSON.stringify(geo));
-        } catch (_) {}
-      } catch (err) {
+        } catch (_e) { /* ignore */ }
+      } catch (_err) {
         // Fallback to default but mark loaded
         setGeoData(prev => ({ ...prev, loaded: true }));
       }
@@ -107,6 +109,7 @@ export function useGeoLocation() {
 
     void detect();
     return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return geoData;

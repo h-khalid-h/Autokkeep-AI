@@ -51,7 +51,7 @@ interface VendorFormData {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
-const THRESHOLD_1099 = 600;
+const _THRESHOLD_1099 = 600;
 
 const W9_STATUS_MAP: Record<W9Status, { label: string; variant: BadgeVariant }> = {
   not_collected: { label: 'Not Collected', variant: 'warning' },

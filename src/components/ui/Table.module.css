@@ -39,7 +39,7 @@
   white-space: nowrap;
   user-select: none;
   position: relative;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-subtle);
 }
 
 .headerCellSortable {

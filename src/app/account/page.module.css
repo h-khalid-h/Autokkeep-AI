@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-text-on-accent);
   font-weight: var(--weight-bold);
   font-size: var(--text-xl);
   flex-shrink: 0;

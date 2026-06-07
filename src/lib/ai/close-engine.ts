@@ -536,7 +536,7 @@ async function us1099Check(
     }
 
     const missingW9 = (vendors || []).filter(
-      (v: any) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
+      (v: Record<string, unknown>) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
     );
 
     if (missingW9.length === 0) {
@@ -553,10 +553,10 @@ async function us1099Check(
       description: `${missingW9.length} 1099-eligible vendor(s) exceeded $600 YTD without a completed W-9 form.`,
       count: missingW9.length,
       details: missingW9.map(
-        (v: any) => `${v.name}: ${formatCurrency(v.ytd_payments, currency)} (W-9: ${v.w9_status})`
+        (v: Record<string, unknown>) => `${v.name}: ${formatCurrency(v.ytd_payments as number, currency)} (W-9: ${v.w9_status})`
       ),
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       name: 'IRS 1099-NEC Readiness',
       status: 'warning',
@@ -587,7 +587,7 @@ async function indiaTdsCheck(
     }
 
     const missingPan = (vendors || []).filter(
-      (v: any) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
+      (v: Record<string, unknown>) => v.w9_status === 'not_collected' || v.w9_status === 'requested'
     );
 
     if (missingPan.length === 0) {
@@ -604,10 +604,10 @@ async function indiaTdsCheck(
       description: `${missingPan.length} professional/contractor vendor(s) exceeded ₹30,000 threshold without a PAN card.`,
       count: missingPan.length,
       details: missingPan.map(
-        (v: any) => `${v.name}: ${formatCurrency(v.ytd_payments, currency)} (PAN: ${v.w9_status === 'requested' ? 'Requested' : 'Not Collected'})`
+        (v: Record<string, unknown>) => `${v.name}: ${formatCurrency(v.ytd_payments as number, currency)} (PAN: ${v.w9_status === 'requested' ? 'Requested' : 'Not Collected'})`
       ),
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       name: 'TDS Compliance (§194J/C)',
       status: 'warning',

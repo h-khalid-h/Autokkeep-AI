@@ -174,7 +174,7 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-widest);
   white-space: nowrap;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-subtle);
   border-bottom: 1px solid var(--glass-border);
 }
 
@@ -276,7 +276,7 @@
   justify-content: space-between;
   padding: var(--space-3-5) var(--space-4);
   border-top: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-subtle);
 }
 
 .paginationInfo {

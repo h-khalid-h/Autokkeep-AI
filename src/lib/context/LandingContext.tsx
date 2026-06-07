@@ -322,22 +322,31 @@ interface LandingContextValue {
 const LandingContext = createContext<LandingContextValue | undefined>(undefined);
 
 export function LandingProvider({ children }: { children: React.ReactNode }) {
-  const [country, setCountryState] = useState('Global');
-  const [language, setLanguageState] = useState<Language>('en');
-  const [dir, setDir] = useState<'ltr' | 'rtl'>('ltr');
+  // Read cached geo from sessionStorage via lazy initializers to avoid
+  // setState-during-effect lint violations.
+  const getCachedGeo = (): { detectedCountry: string; detectedLanguage: Language } | null => {
+    try {
+      const cached = sessionStorage.getItem('autokkeep_landing_geo');
+      if (cached) return JSON.parse(cached);
+    } catch (_e) { /* ignore */ }
+    return null;
+  };
 
-  // Detect country on mount
+  const [country, setCountryState] = useState(() => {
+    return getCachedGeo()?.detectedCountry ?? 'Global';
+  });
+  const [language, setLanguageState] = useState<Language>(() => {
+    return getCachedGeo()?.detectedLanguage ?? 'en';
+  });
+  const [dir, setDir] = useState<'ltr' | 'rtl'>(() => {
+    const lang = getCachedGeo()?.detectedLanguage;
+    return lang === 'ar' ? 'rtl' : 'ltr';
+  });
+
+  // Detect country on mount (only if no cached value)
   useEffect(() => {
-    const cached = sessionStorage.getItem('autokkeep_landing_geo');
-    if (cached) {
-      try {
-        const { detectedCountry, detectedLanguage } = JSON.parse(cached);
-        setCountryState(detectedCountry);
-        setLanguageState(detectedLanguage);
-        setDir(detectedLanguage === 'ar' ? 'rtl' : 'ltr');
-        return;
-      } catch (_) {}
-    }
+    // If we already have cached geo data, skip detection
+    if (getCachedGeo()) return;
 
     const detect = async () => {
       try {
@@ -359,7 +368,7 @@ export function LandingProvider({ children }: { children: React.ReactNode }) {
           'autokkeep_landing_geo',
           JSON.stringify({ detectedCountry: finalCountry, detectedLanguage: finalLang })
         );
-      } catch (err) {
+      } catch (_err) {
         // Fallback silently to Global/en
         setCountryState('Global');
         setLanguageState('en');

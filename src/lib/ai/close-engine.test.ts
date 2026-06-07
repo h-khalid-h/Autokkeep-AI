@@ -828,11 +828,11 @@ describe('runMonthEndClose country-specific checks', () => {
     const originalFrom = supabase.from;
     supabase.from = vi.fn((table: string) => {
       if (table === 'vendors') {
-        const chain = {} as any;
+        const chain = {} as MockChain;
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
         chain.gte = vi.fn().mockReturnValue(chain);
-        chain.then = (resolve: any) => resolve({ data: mockVendors, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ data: mockVendors, error: null });
         return chain;
       }
       return originalFrom(table);
@@ -853,11 +853,11 @@ describe('runMonthEndClose country-specific checks', () => {
     const originalFrom = supabase.from;
     supabase.from = vi.fn((table: string) => {
       if (table === 'vendors') {
-        const chain = {} as any;
+        const chain = {} as MockChain;
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
         chain.gte = vi.fn().mockReturnValue(chain);
-        chain.then = (resolve: any) => resolve({ data: mockVendors, error: null });
+        chain.then = (resolve: (v: unknown) => void) => resolve({ data: mockVendors, error: null });
         return chain;
       }
       return originalFrom(table);

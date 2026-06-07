@@ -107,12 +107,12 @@ export default function CashFlowBarChart({ data, currency }: CashFlowBarChartPro
           >
             <defs>
               <linearGradient id="barIncomeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.9} />
-                <stop offset="100%" stopColor="#059669" stopOpacity={0.7} />
+                <stop offset="0%" stopColor="var(--chart-income)" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="var(--chart-income-dark)" stopOpacity={0.7} />
               </linearGradient>
               <linearGradient id="barExpenseGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F97316" stopOpacity={0.9} />
-                <stop offset="100%" stopColor="#EA580C" stopOpacity={0.7} />
+                <stop offset="0%" stopColor="var(--chart-expense)" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="var(--chart-expense-dark)" stopOpacity={0.7} />
               </linearGradient>
             </defs>
 
@@ -165,10 +165,10 @@ export default function CashFlowBarChart({ data, currency }: CashFlowBarChartPro
             <Line
               type="monotone"
               dataKey="net"
-              stroke="#8B5CF6"
+              stroke="var(--chart-net)"
               strokeWidth={2.5}
-              dot={{ r: 4, fill: '#8B5CF6', stroke: 'var(--color-bg-surface)', strokeWidth: 2 }}
-              activeDot={{ r: 6, strokeWidth: 2, stroke: '#8B5CF6', fill: 'var(--color-bg-surface)' }}
+              dot={{ r: 4, fill: 'var(--chart-net)', stroke: 'var(--color-bg-surface)', strokeWidth: 2 }}
+              activeDot={{ r: 6, strokeWidth: 2, stroke: 'var(--chart-net)', fill: 'var(--color-bg-surface)' }}
               animationDuration={800}
             />
           </ComposedChart>
@@ -178,15 +178,15 @@ export default function CashFlowBarChart({ data, currency }: CashFlowBarChartPro
       {/* Legend */}
       <div className={styles.legend}>
         <span className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ backgroundColor: '#10B981' }} />
+          <span className={styles.legendDot} style={{ backgroundColor: 'var(--chart-income)' }} />
           Income
         </span>
         <span className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ backgroundColor: '#F97316' }} />
+          <span className={styles.legendDot} style={{ backgroundColor: 'var(--chart-expense)' }} />
           Expenses
         </span>
         <span className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ backgroundColor: '#8B5CF6' }} />
+          <span className={styles.legendDot} style={{ backgroundColor: 'var(--chart-net)' }} />
           Net Cash Flow
         </span>
       </div>

@@ -208,6 +208,13 @@
   --scrollbar-bg: transparent;
   --scrollbar-thumb: rgba(255, 255, 255, 0.12);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
+  /* Chart data colors */
+  --chart-income: hsl(160, 84%, 39%);
+  --chart-income-dark: hsl(160, 64%, 30%);
+  --chart-expense: hsl(24, 95%, 53%);
+  --chart-expense-dark: hsl(20, 84%, 47%);
+  --chart-net: hsl(258, 90%, 66%);
 }
 
 
@@ -304,6 +311,13 @@
   --scrollbar-bg: transparent;
   --scrollbar-thumb: rgba(15, 23, 42, 0.12);
   --scrollbar-thumb-hover: rgba(15, 23, 42, 0.25);
+
+  /* Chart data colors */
+  --chart-income: hsl(160, 84%, 36%);
+  --chart-income-dark: hsl(160, 64%, 28%);
+  --chart-expense: hsl(24, 95%, 48%);
+  --chart-expense-dark: hsl(20, 84%, 42%);
+  --chart-net: hsl(258, 90%, 58%);
 }
 
 
@@ -389,5 +403,12 @@
     --scrollbar-bg: transparent;
     --scrollbar-thumb: rgba(15, 23, 42, 0.12);
     --scrollbar-thumb-hover: rgba(15, 23, 42, 0.25);
+
+    /* Chart data colors */
+    --chart-income: hsl(160, 84%, 36%);
+    --chart-income-dark: hsl(160, 64%, 28%);
+    --chart-expense: hsl(24, 95%, 48%);
+    --chart-expense-dark: hsl(20, 84%, 42%);
+    --chart-net: hsl(258, 90%, 58%);
   }
 }

@@ -30,7 +30,7 @@
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-on-accent);
   border: none;
   cursor: pointer;
   font-size: var(--text-sm);

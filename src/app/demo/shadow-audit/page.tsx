@@ -156,9 +156,9 @@ const badgeClassMap = {
 } as const;
 
 function getConfidenceColor(c: number): string {
-  if (c >= 95) return '#10b981';
-  if (c >= 80) return '#3b82f6';
-  return '#f59e0b';
+  if (c >= 95) return 'var(--color-success)';
+  if (c >= 80) return 'var(--color-accent)';
+  return 'var(--color-warning)';
 }
 
 const badgeLabels = { exact: 'Exact Match', ai_inferred: 'AI Inferred', needs_review: 'Needs Review' };
@@ -470,10 +470,10 @@ export default function ShadowAuditPage() {
                 {/* Stats Bar */}
                 <div className={styles.statsGrid}>
                   {[
-                    { label: 'Total Transactions', value: stats.total, color: '#fff' },
-                    { label: 'Exact Match', value: stats.exact, color: '#10b981' },
-                    { label: 'AI Inferred', value: stats.inferred, color: '#3b82f6' },
-                    { label: 'Needs Review', value: stats.review, color: '#f59e0b' },
+                    { label: 'Total Transactions', value: stats.total, color: 'var(--color-text-primary)' },
+                    { label: 'Exact Match', value: stats.exact, color: 'var(--color-success)' },
+                    { label: 'AI Inferred', value: stats.inferred, color: 'var(--color-accent)' },
+                    { label: 'Needs Review', value: stats.review, color: 'var(--color-warning)' },
                     { label: 'Avg Confidence', value: `${stats.avgConf}%`, color: 'var(--color-accent)' },
                     { label: 'Processing Time', value: `${stats.time}s`, color: 'var(--color-accent)' },
                   ].map((s) => (

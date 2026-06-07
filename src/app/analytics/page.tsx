@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEntity } from '@/lib/context/EntityContext';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
@@ -74,9 +74,13 @@ export default function AnalyticsPage() {
   const [estimatedHomeOfficeSqFt, setEstimatedHomeOfficeSqFt] = useState<number>(200);
 
   // Reset custom tax rate when selectedEntity changes
-  useEffect(() => {
-    setCustomTaxRate(null);
-  }, [selectedEntity?.id]);
+  const prevEntityRef = useRef(selectedEntity?.id);
+  if (prevEntityRef.current !== selectedEntity?.id) {
+    prevEntityRef.current = selectedEntity?.id;
+    if (customTaxRate !== null) {
+      setCustomTaxRate(null);
+    }
+  }
 
   // Fetch real transaction stats on mount
   useEffect(() => {
@@ -207,15 +211,18 @@ export default function AnalyticsPage() {
 
   const activeTaxRate = customTaxRate !== null ? customTaxRate : (taxRules.defaultTaxRate * 100);
 
+  const [mountTimestamp] = useState(() => Date.now());
+
   const taxMetrics = useMemo(() => {
     if (rawTransactions.length === 0) {
       return { revenue: 0, expenses: 0, mealsTotal: 0, mealsNonDeductible: 0, netIncome: 0, taxableIncome: 0, estimatedTax: 0, mileageDeduction: 0, homeOfficeDeduction: 0 };
     }
 
+    const now = mountTimestamp;
     const cutoffDays: Record<TimeRange, number> = {
-      '7d': 7, '30d': 30, '90d': 90, 'ytd': Math.max(1, Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000)),
+      '7d': 7, '30d': 30, '90d': 90, 'ytd': Math.max(1, Math.floor((now - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000)),
     };
-    const cutoff = new Date(Date.now() - cutoffDays[timeRange] * 86400000).toISOString();
+    const cutoff = new Date(now - cutoffDays[timeRange] * 86400000).toISOString();
     const filtered = rawTransactions.filter((tx) => tx.date >= cutoff.slice(0, 10));
 
     let revenue = 0;
@@ -279,7 +286,7 @@ export default function AnalyticsPage() {
       mileageDeduction,
       homeOfficeDeduction,
     };
-  }, [rawTransactions, timeRange, taxRules, activeTaxRate, estimatedMileage, estimatedHomeOfficeSqFt, selectedEntity?.country]);
+  }, [rawTransactions, timeRange, taxRules, activeTaxRate, estimatedMileage, estimatedHomeOfficeSqFt, selectedEntity?.country, mountTimestamp]);
 
   const autoRate = useMemo(() => data.totalTransactions > 0
     ? ((data.autoApproved / data.totalTransactions) * 100).toFixed(1)

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   suggestCategorizationRules,
   normalizeMerchantName,
-  type RuleSuggestion,
 } from './suggestion-engine';
 
 // ─── Normalization Tests ────────────────────────────────────────────────────

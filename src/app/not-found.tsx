@@ -60,7 +60,7 @@ export default function NotFound() {
             fontSize: '0.9rem',
             textDecoration: 'none',
             background: 'var(--color-brand-gradient)',
-            color: '#fff',
+            color: 'var(--color-text-on-accent)',
             border: 'none',
             cursor: 'pointer',
             transition: 'transform 0.15s ease, box-shadow 0.15s ease',

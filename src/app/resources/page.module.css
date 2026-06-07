@@ -126,7 +126,7 @@
 .newsletterButton {
   padding: 10px 20px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-on-accent);
   border: none;
   border-radius: var(--radius-md);
   font-size: 0.875rem;

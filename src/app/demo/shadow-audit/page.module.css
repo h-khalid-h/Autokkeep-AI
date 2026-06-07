@@ -1,23 +1,23 @@
 .uploadZone {
-  border: 2px dashed rgba(30, 111, 255, 0.4);
+  border: 2px dashed var(--color-border-accent);
   border-radius: 16px;
   padding: 64px 32px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(30, 111, 255, 0.03);
+  background: var(--color-accent-subtle);
   position: relative;
 }
 
 .uploadZoneHover {
   composes: uploadZone;
-  border-color: rgba(30, 111, 255, 0.8);
-  background: rgba(30, 111, 255, 0.08);
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
 }
 
 .selectInput {
-  background: rgba(0, 0, 0, 0.4);
-  color: #fff;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 14px;
@@ -82,7 +82,7 @@
 }
 
 .uploadError {
-  color: #ef4444;
+  color: var(--color-destructive-text);
   margin-top: 12px;
   font-size: 0.875rem;
 }
@@ -117,8 +117,8 @@
 }
 
 .optionStyle {
-  background: #111;
-  color: #fff;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
 }
 
 .previewSection {
