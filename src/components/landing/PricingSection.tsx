@@ -94,7 +94,7 @@ export default function PricingSection() {
         <p className={styles.label}>Pricing</p>
         <h2 className={styles.heading}>Simple, transparent pricing</h2>
         <p className={styles.subheading}>
-          Start free for 14 days. No credit card required. Showed in {pricing.currency}.
+          Start free for 14 days. No credit card required. Shown in {pricing.currency}.
         </p>
 
         <div className={styles.tiers}>

@@ -163,7 +163,7 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   color: var(--color-text-tertiary);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 /* ─── Icon buttons ─── */

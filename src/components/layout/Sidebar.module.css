@@ -265,7 +265,7 @@
   background: var(--color-accent-subtle);
   padding: 1px var(--space-2);
   border-radius: var(--radius-full);
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   flex-shrink: 0;
 }
 

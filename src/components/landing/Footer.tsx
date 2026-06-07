@@ -136,7 +136,6 @@ const LOCAL_FOOTER: Record<string, FooterTexts> = {
 };
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
   const { language, t } = useLanding();
   const texts = LOCAL_FOOTER[language] || LOCAL_FOOTER.en;
 
@@ -202,7 +201,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className={styles.bottom}>
           <p className={styles.copyright}>
-            © {currentYear} Autokkeep. {t('copyright')}
+            {t('copyright')}
           </p>
           <div className={styles.bottomLinks}>
             <Link href="/privacy" className={styles.bottomLink}>

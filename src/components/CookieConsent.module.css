@@ -5,7 +5,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: var(--z-cookie);
   padding: var(--space-4);
   pointer-events: none;
   animation: cookieFadeIn 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -35,7 +35,7 @@
 .text {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
   margin: 0;
   flex: 1 1 400px;
 }

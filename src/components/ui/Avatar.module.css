@@ -67,7 +67,7 @@
 
 /* ─── Initials ───────────────────────────────── */
 .initials {
-  line-height: 1;
+  line-height: var(--leading-none);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
 }

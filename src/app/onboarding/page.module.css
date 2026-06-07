@@ -139,7 +139,7 @@
   padding: var(--space-1);
   border-radius: var(--radius-xs);
   transition: background var(--duration-fast) var(--ease-out);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .errorDismiss:hover {
@@ -647,13 +647,13 @@
 
 .noticeFlag {
   font-size: var(--text-base);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .noticeText {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.45;
+  line-height: var(--leading-snug);
 }
 
 .bankComplianceBadge {
@@ -670,13 +670,13 @@
 
 .complianceBadgeIcon {
   font-size: var(--text-sm);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .complianceBadgeText {
   font-size: var(--text-xs);
   color: var(--color-success-text);
   font-weight: var(--weight-medium);
-  line-height: 1.4;
+  line-height: var(--leading-snug);
 }
 

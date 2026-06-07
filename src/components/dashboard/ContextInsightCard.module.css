@@ -101,7 +101,7 @@
 .complianceText {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  line-height: var(--leading-snug);
   margin: 0;
 }
 

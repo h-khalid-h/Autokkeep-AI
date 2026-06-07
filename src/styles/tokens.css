@@ -11,7 +11,9 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
   /* Type scale */
-  --text-xs: 0.75rem;     /* 12px */
+  --text-2xs: 0.625rem;    /* 10px */
+  --text-mini: 0.6875rem;  /* 11px */
+  --text-xs: 0.75rem;      /* 12px */
   --text-sm: 0.8125rem;   /* 13px */
   --text-base: 0.875rem;  /* 14px */
   --text-md: 0.9375rem;   /* 15px */
@@ -113,6 +115,9 @@
   --z-toast: 600;
   --z-tooltip: 700;
   --z-command: 800;
+  --z-notification: 1000;
+  --z-import: 2000;
+  --z-cookie: 9999;
 
   /* Layout */
   --max-width: 1280px;
