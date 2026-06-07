@@ -1,7 +1,7 @@
 /* ─── Transaction Card ────────────────────────── */
 
 .checkbox {
-  margin-right: var(--space-2);
+  margin-inline-end: var(--space-2);
   cursor: pointer;
   accent-color: var(--color-accent);
   flex-shrink: 0;
@@ -129,7 +129,7 @@
 }
 
 .authorityName {
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-wide);
   font-family: var(--font-sans);
 }
 

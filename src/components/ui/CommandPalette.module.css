@@ -113,7 +113,7 @@
   transition: background var(--duration-fast) var(--ease-out),
               color var(--duration-fast) var(--ease-out);
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .item:hover,
@@ -144,7 +144,7 @@
 
 .itemShortcut {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 

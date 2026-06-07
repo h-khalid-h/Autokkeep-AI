@@ -75,7 +75,7 @@
 .searchInput {
   composes: filterInput;
   min-width: 200px;
-  padding-left: var(--space-8);
+  padding-inline-start: var(--space-8);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: var(--space-2-5) center;
@@ -85,7 +85,7 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 /* ─── Toolbar ─────────────────────────────── */
@@ -156,7 +156,7 @@
 }
 
 .table thead th {
-  text-align: left;
+  text-align: start;
   font-weight: var(--weight-semibold);
   color: var(--color-text-tertiary);
   font-size: var(--text-xs);
@@ -260,7 +260,7 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   text-transform: capitalize;
-  letter-spacing: 0.01em;
+  letter-spacing: var(--tracking-normal);
 }
 
 .actionCreate {
@@ -469,7 +469,7 @@
 /* ─── Error Banner ────────────────────────── */
 
 .errorBanner {
-  border-left: 4px solid var(--color-destructive);
+  border-inline-start: 4px solid var(--color-destructive);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -510,7 +510,7 @@
   }
 
   .filterActions {
-    margin-left: 0;
+    margin-inline-start: 0;
     justify-content: flex-end;
   }
 

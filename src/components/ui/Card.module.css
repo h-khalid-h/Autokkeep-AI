@@ -67,7 +67,7 @@
 
 /* Accent: left accent border */
 .accent {
-  border-left: 3px solid var(--color-accent);
+  border-inline-start: 3px solid var(--color-accent);
 }
 
 /* ─── Reduced motion ──────────────────────── */

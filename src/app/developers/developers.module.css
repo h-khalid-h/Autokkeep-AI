@@ -19,7 +19,7 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  border-right: 1px solid var(--glass-border);
+  border-inline-end: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -79,7 +79,7 @@
 .sidebarVersion {
   display: inline-flex;
   align-items: center;
-  margin-left: var(--space-2);
+  margin-inline-start: var(--space-2);
   padding: 1px 6px;
   background: var(--color-accent-subtle);
   color: var(--color-accent-text);
@@ -115,7 +115,7 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
-  text-align: left;
+  text-align: start;
 }
 
 .sidebarGroupButton:hover {
@@ -151,13 +151,13 @@
   padding: var(--space-1-5) var(--space-5) var(--space-1-5) var(--space-8);
   background: transparent;
   border: none;
-  border-left: 3px solid transparent;
+  border-inline-start: 3px solid transparent;
   font-family: inherit;
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
-  text-align: left;
+  text-align: start;
   text-decoration: none;
 }
 
@@ -169,7 +169,7 @@
 .sidebarLinkActive {
   composes: sidebarLink;
   color: var(--color-accent-text);
-  border-left-color: var(--color-accent);
+  border-inline-start-color: var(--color-accent);
   background: var(--color-accent-subtle);
   font-weight: var(--weight-medium);
 }
@@ -432,7 +432,7 @@
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   font-weight: var(--weight-medium);
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 /* ─── Parameters Table ────────────────────── */
@@ -456,7 +456,7 @@
 }
 
 .paramsTable th {
-  text-align: left;
+  text-align: start;
   padding: var(--space-2-5) var(--space-3);
   font-weight: var(--weight-semibold);
   color: var(--color-text-tertiary);
@@ -669,7 +669,7 @@
 }
 
 .rateLimitTable th {
-  text-align: left;
+  text-align: start;
   padding: var(--space-3) var(--space-4);
   font-weight: var(--weight-semibold);
   color: var(--color-text-tertiary);
@@ -921,7 +921,7 @@
   }
 
   .endpointRateLimit {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 
   .heroMeta {

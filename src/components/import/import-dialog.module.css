@@ -7,7 +7,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -236,7 +236,7 @@
 }
 
 .previewTable th {
-  text-align: left;
+  text-align: start;
   padding: var(--space-2) var(--space-3);
   background: var(--color-bg-subtle);
   font-weight: var(--weight-semibold);
@@ -276,7 +276,7 @@
   padding: var(--space-2) var(--space-3);
   background: hsla(0, 84%, 60%, 0.06);
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-destructive);
+  border-inline-start: 3px solid var(--color-destructive);
   margin-bottom: var(--space-2);
 }
 
@@ -295,7 +295,7 @@
 .validationWarning {
   composes: validationError;
   background: hsla(45, 93%, 47%, 0.08);
-  border-left-color: hsl(45, 93%, 47%);
+  border-inline-start-color: hsl(45, 93%, 47%);
 }
 
 .validationWarningIcon {

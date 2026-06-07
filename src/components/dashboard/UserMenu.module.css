@@ -18,7 +18,7 @@
   border: none;
   cursor: pointer;
   transition: box-shadow 150ms ease;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-wide);
 }
 
 .avatarBtn:hover {

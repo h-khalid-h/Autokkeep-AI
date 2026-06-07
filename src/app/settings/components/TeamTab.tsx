@@ -180,6 +180,7 @@ export default function TeamTab({
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={!canManageTeam}
+              autoComplete="email"
             />
           </div>
           <div className={styles.inviteRoleField}>

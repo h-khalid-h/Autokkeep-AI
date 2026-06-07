@@ -7,12 +7,12 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-spotlight);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 15vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   animation: fadeIn var(--duration-fast) var(--ease-out);
@@ -112,7 +112,7 @@
   font-weight: var(--weight-semibold);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-wider);
 }
 
 .groupIcon {
@@ -144,7 +144,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   font-family: var(--font-sans);
   transition: background var(--duration-fast) var(--ease-out);
 }
@@ -156,7 +156,7 @@
 .resultItemSelected {
   composes: resultItem;
   background: var(--color-accent-subtle);
-  border-left: 2px solid var(--color-accent);
+  border-inline-start: 2px solid var(--color-accent);
 }
 
 .resultContent {
@@ -256,12 +256,12 @@
   height: 18px;
   padding: 0 var(--space-1);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--color-text-secondary);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-input);
   border-radius: 3px;
-  margin-right: var(--space-0-5);
+  margin-inline-end: var(--space-0-5);
 }
 
 /* ─── Animations ──────────────────────────────── */

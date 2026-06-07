@@ -100,6 +100,7 @@ export default function ContactPage() {
                       value={formState.name}
                       onChange={handleChange}
                       required
+                      autoComplete="name"
                     />
                   </div>
 
@@ -116,6 +117,7 @@ export default function ContactPage() {
                       value={formState.email}
                       onChange={handleChange}
                       required
+                      autoComplete="email"
                     />
                   </div>
 
@@ -132,6 +134,7 @@ export default function ContactPage() {
                       value={formState.company}
                       onChange={handleChange}
                       required
+                      autoComplete="organization"
                     />
                   </div>
 

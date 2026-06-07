@@ -150,6 +150,7 @@ export default function SignupPage() {
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="Acme Inc."
                   required
+                  autoComplete="organization"
                   size="lg"
                 />
               </div>
@@ -164,6 +165,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
                   required
+                  autoComplete="email"
                   size="lg"
                 />
               </div>
@@ -179,6 +181,7 @@ export default function SignupPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     required
+                    autoComplete="new-password"
                     size="lg"
                   />
                   <button
@@ -255,6 +258,7 @@ export default function SignupPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your password"
                     required
+                    autoComplete="new-password"
                     size="lg"
                   />
                   <button

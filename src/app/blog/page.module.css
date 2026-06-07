@@ -14,7 +14,7 @@
   font-weight: var(--weight-extrabold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-3);
-  letter-spacing: -0.5px;
+  letter-spacing: var(--tracking-tighter);
 }
 
 .subtitle {
@@ -71,7 +71,7 @@
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-2);
-  letter-spacing: -0.3px;
+  letter-spacing: var(--tracking-tight);
 }
 
 .postExcerpt {

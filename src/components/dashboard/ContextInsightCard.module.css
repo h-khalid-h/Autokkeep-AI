@@ -8,7 +8,7 @@
 
 .cardMask {
   font-family: var(--font-mono);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-widest);
   color: var(--color-text-tertiary);
 }
 

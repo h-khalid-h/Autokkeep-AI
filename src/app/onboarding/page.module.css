@@ -47,8 +47,8 @@
   margin-top: var(--space-6);
   max-width: 800px;
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 /* ─── Step indicators ─────────────────────── */
@@ -130,7 +130,7 @@
 }
 
 .errorDismiss {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: none;
   border: none;
   color: inherit;
@@ -218,8 +218,8 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   color: var(--color-success-text);
-  margin-left: var(--space-1);
-  letter-spacing: normal;
+  margin-inline-start: var(--space-1);
+  letter-spacing: var(--tracking-normal);
   animation: fadeInUp var(--duration-moderate) var(--ease-premium);
 }
 
@@ -238,7 +238,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--space-4) center;
-  padding-right: var(--space-10);
+  padding-inline-end: var(--space-10);
   transition: border-color var(--duration-normal) var(--ease-out),
               box-shadow var(--duration-normal) var(--ease-out);
 }
@@ -328,7 +328,7 @@
   align-items: center;
   gap: var(--space-4);
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   width: 100%;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
@@ -388,7 +388,7 @@
 }
 
 .ledgerCheck {
-  margin-left: auto;
+  margin-inline-start: auto;
   color: var(--color-success);
   font-size: var(--text-lg);
   flex-shrink: 0;
@@ -517,7 +517,7 @@
 }
 
 .completeListCard {
-  text-align: left;
+  text-align: start;
   margin-bottom: var(--space-8);
 }
 
@@ -642,7 +642,7 @@
   display: flex;
   gap: var(--space-2);
   align-items: flex-start;
-  text-align: left;
+  text-align: start;
 }
 
 .noticeFlag {
@@ -665,7 +665,7 @@
   display: flex;
   gap: var(--space-2);
   align-items: center;
-  text-align: left;
+  text-align: start;
 }
 
 .complianceBadgeIcon {

@@ -89,11 +89,11 @@
 /* ─── With icons ───────────────────────────── */
 
 .hasLeftIcon {
-  padding-left: var(--space-10);
+  padding-inline-start: var(--space-10);
 }
 
 .hasRightIcon {
-  padding-right: var(--space-10);
+  padding-inline-end: var(--space-10);
 }
 
 /* ─── Icon slots ───────────────────────────── */

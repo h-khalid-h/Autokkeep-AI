@@ -38,15 +38,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // ── Focus input on open ─────────────────────────────────────────────────
+  // ── Reset state on open ──────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting state when modal opens
-      setQuery('');
-      setResults([]);
-      setSelectedIndex(0);
-      // Delay to ensure DOM is ready
       requestAnimationFrame(() => {
+        setQuery('');
+        setResults([]);
+        setSelectedIndex(0);
         inputRef.current?.focus();
       });
     }

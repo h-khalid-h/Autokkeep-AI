@@ -68,7 +68,7 @@
 .statContent {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .statLabel {
@@ -277,7 +277,7 @@
 }
 
 .retryButton {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: none;
   border: 1px solid var(--color-destructive-border);
   color: var(--color-destructive-text);

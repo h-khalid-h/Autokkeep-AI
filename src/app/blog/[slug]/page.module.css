@@ -50,7 +50,7 @@
   font-weight: var(--weight-extrabold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-6);
-  letter-spacing: -0.5px;
+  letter-spacing: var(--tracking-tighter);
   line-height: var(--leading-tight);
 }
 

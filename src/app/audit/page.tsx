@@ -5,6 +5,7 @@ import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Skeleton, EmptyState, Toggle, useToast } from '@/components/ui';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import type { AuditAction } from '@/lib/audit';
 import styles from './audit.module.css';
 
@@ -102,12 +103,6 @@ export default function AuditLogPage() {
   const [resourceTypeFilter, setResourceTypeFilter] = React.useState('');
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  // Data state
-  const [entries, setEntries] = React.useState<AuditLogEntry[]>([]);
-  const [total, setTotal] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
   // Pagination
   const [pageSize, setPageSize] = React.useState(25);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -115,20 +110,16 @@ export default function AuditLogPage() {
   // UI state
   const [expandedRowId, setExpandedRowId] = React.useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = React.useState(false);
-  const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
 
   const entityId = selectedEntity?.id;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  // ── Fetch audit logs ──────────────────────────────────────────────────────
-  const fetchLogs = React.useCallback(async () => {
-    if (!entityId) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  // ── Fetch audit logs via useDataFetcher ────────────────────────────────
+  const { data: auditData, isLoading, error, refetch } = useDataFetcher(
+    { entries: [] as AuditLogEntry[], total: 0, lastUpdated: null as Date | null },
+    async (signal) => {
+      if (!entityId) return { entries: [], total: 0, lastUpdated: null };
       const params = new URLSearchParams({
-        entityId,
+        entityId: entityId!,
         startDate,
         endDate,
         limit: String(pageSize),
@@ -137,35 +128,27 @@ export default function AuditLogPage() {
       if (actionFilter) params.set('action', actionFilter);
       if (resourceTypeFilter) params.set('resourceType', resourceTypeFilter);
       if (searchQuery) params.set('search', searchQuery);
-
-      const res = await fetch(`/api/audit?${params}`);
+      const res = await fetch(`/api/audit?${params}`, { signal });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
       const data: AuditResponse = await res.json();
-      setEntries(data.entries || []);
-      setTotal(data.total || 0);
-      setLastUpdated(new Date());
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load audit logs';
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [entityId, startDate, endDate, actionFilter, resourceTypeFilter, searchQuery, pageSize, currentPage]);
-
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate API data fetch
-    fetchLogs();
-  }, [fetchLogs]);
+      return { entries: data.entries || [], total: data.total || 0, lastUpdated: new Date() };
+    },
+    { deps: [entityId, startDate, endDate, actionFilter, resourceTypeFilter, searchQuery, pageSize, currentPage], enabled: !!entityId }
+  );
+  const entries = auditData.entries;
+  const total = auditData.total;
+  const lastUpdated = auditData.lastUpdated;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // Auto-refresh
   React.useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(fetchLogs, AUTO_REFRESH_INTERVAL);
+    const interval = setInterval(refetch, AUTO_REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchLogs]);
+  }, [autoRefresh, refetch]);
 
   // Reset to page 1 on filter change
   const applyFilters = React.useCallback(() => {
@@ -284,7 +267,7 @@ export default function AuditLogPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => { fetchLogs(); toast.success('Refreshed'); }}
+                      onClick={() => { refetch(); toast.success('Refreshed'); }}
                     >
                       🔄 Refresh
                     </Button>
@@ -313,7 +296,7 @@ export default function AuditLogPage() {
               {error && (
                 <div className={styles.errorBanner} role="alert">
                   <span className={styles.errorText}>⚠️ {error}</span>
-                  <Button variant="ghost" size="sm" onClick={fetchLogs}>Retry</Button>
+                  <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
                 </div>
               )}
 

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import { Card, Button } from '@/components/ui';
 import CardSkeletonBlock from './CardSkeletonBlock';
 import type {
@@ -185,50 +186,57 @@ export default function EntityTab({
   // ── Update entity ID when entities prop changes ─────────────────────────────
   useEffect(() => {
     if (entities.length > 0 && !entities.find(e => e.id === selectedEntityId)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedEntityId(entities[0].id);
+      Promise.resolve().then(() => {
+        setSelectedEntityId(entities[0].id);
+      });
     }
-  }, [entities, selectedEntityId]);
+  }, [entities, selectedEntityId, setSelectedEntityId]);
 
-  // ── Load all entity-scoped data ─────────────────────────────────────────────
-  const loadEntityData = useCallback(async () => {
-    if (!selectedEntityId) return;
+  // ── Load all entity-scoped data via useDataFetcher ──────────────────────────
+  interface EntityTabFetchResult {
+    profile: EntityProfileData | null;
+    vendorManagers: VendorManagerData[];
+    cardholderMappings: CardholderMappingData[];
+    optOuts: ChaseOptOutData[];
+    thresholds: ApprovalThresholdData[];
+    glCodes: GLCodeConfig;
+  }
 
-    try {
+  const { data: fetchedEntityData, refetch: reloadEntityData } = useDataFetcher<EntityTabFetchResult>(
+    { profile: null, vendorManagers: [], cardholderMappings: [], optOuts: [], thresholds: [], glCodes: { ...GL_DEFAULTS } },
+    async () => {
+      if (!selectedEntityId) return { profile: null, vendorManagers: [], cardholderMappings: [], optOuts: [], thresholds: [], glCodes: { ...GL_DEFAULTS } };
+
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
 
       const [profileRes, vmRes, chRes, optOutRes, thrRes] = await Promise.all([
-        // Entity profile
         db.from('entities')
           .select('id, name, legal_name, tax_id, fiscal_year_end, base_currency, country, timezone')
           .eq('id', selectedEntityId)
           .single(),
-        // Vendor managers
         db.from('vendor_managers')
           .select('id, vendor_pattern, manager_user_id, notes, created_at')
           .eq('entity_id', selectedEntityId)
           .order('created_at', { ascending: true }),
-        // Cardholder mappings
         db.from('cardholder_mappings')
           .select('id, card_holder, card_last4, mapped_user_id, notes, created_at')
           .eq('entity_id', selectedEntityId)
           .order('created_at', { ascending: true }),
-        // Chase opt-outs
         db.from('chase_opt_outs')
           .select('id, phone_number, entity_id, is_active, opted_out_at')
           .eq('entity_id', selectedEntityId)
           .eq('is_active', true),
-        // Approval thresholds
         db.from('approval_thresholds')
           .select('id, min_amount, required_role, requires_dual_approval, created_at')
           .eq('entity_id', selectedEntityId)
           .order('min_amount', { ascending: true }),
       ]);
 
+      let resultProfile: EntityProfileData | null = null;
       if (profileRes.data) {
         const p = profileRes.data as Record<string, unknown>;
-        setProfile({
+        resultProfile = {
           id: p.id as string,
           name: p.name as string,
           legal_name: (p.legal_name as string) || null,
@@ -237,13 +245,8 @@ export default function EntityTab({
           base_currency: (p.base_currency as string) || 'USD',
           country: (p.country as string) || 'US',
           timezone: (p.timezone as string) || 'America/New_York',
-        });
+        };
       }
-
-      setVendorManagers((vmRes.data || []) as VendorManagerData[]);
-      setCardholderMappings((chRes.data || []) as CardholderMappingData[]);
-      setOptOuts((optOutRes.data || []) as ChaseOptOutData[]);
-      setThresholds((thrRes.data || []) as ApprovalThresholdData[]);
 
       // Load GL code overrides
       const { data: settingsData } = await db
@@ -261,16 +264,30 @@ export default function EntityTab({
           }
         }
       }
-      setGlCodes(loadedGl);
-    } catch (err) {
-      console.error('[EntityTab] Failed to load entity data:', err);
-    }
-  }, [selectedEntityId]);
 
+      return {
+        profile: resultProfile,
+        vendorManagers: (vmRes.data || []) as VendorManagerData[],
+        cardholderMappings: (chRes.data || []) as CardholderMappingData[],
+        optOuts: (optOutRes.data || []) as ChaseOptOutData[],
+        thresholds: (thrRes.data || []) as ApprovalThresholdData[],
+        glCodes: loadedGl,
+      };
+    },
+    { deps: [selectedEntityId], enabled: !!selectedEntityId }
+  );
+
+  // Sync fetched data into local form state
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadEntityData();
-  }, [loadEntityData]);
+    Promise.resolve().then(() => {
+      setProfile(fetchedEntityData.profile);
+      setVendorManagers(fetchedEntityData.vendorManagers);
+      setCardholderMappings(fetchedEntityData.cardholderMappings);
+      setOptOuts(fetchedEntityData.optOuts);
+      setThresholds(fetchedEntityData.thresholds);
+      setGlCodes(fetchedEntityData.glCodes);
+    });
+  }, [fetchedEntityData]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const getTeamMemberLabel = (userId: string) => {
@@ -369,7 +386,7 @@ export default function EntityTab({
       setVmUserId('');
       setVmNotes('');
       setSaveResult({ type: 'success', message: 'Vendor manager added!' });
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       setSaveResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to add vendor manager' });
     } finally {
@@ -383,7 +400,7 @@ export default function EntityTab({
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       await db.from('vendor_managers').delete().eq('id', id);
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       console.error('[EntityTab] Failed to delete vendor manager:', err);
     }
@@ -414,7 +431,7 @@ export default function EntityTab({
       setChLast4('');
       setChUserId('');
       setSaveResult({ type: 'success', message: 'Cardholder mapping added!' });
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       setSaveResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to add mapping' });
     } finally {
@@ -428,7 +445,7 @@ export default function EntityTab({
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       await db.from('cardholder_mappings').delete().eq('id', id);
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       console.error('[EntityTab] Failed to delete cardholder mapping:', err);
     }
@@ -457,7 +474,7 @@ export default function EntityTab({
       if (insertError) throw new Error(insertError.message);
       setOptOutPhone('');
       setSaveResult({ type: 'success', message: 'Opt-out added!' });
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       setSaveResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to add opt-out' });
     } finally {
@@ -471,7 +488,7 @@ export default function EntityTab({
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       await db.from('chase_opt_outs').update({ is_active: false }).eq('id', id);
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       console.error('[EntityTab] Failed to remove opt-out:', err);
     }
@@ -508,7 +525,7 @@ export default function EntityTab({
       setThrRole('admin');
       setThrDual(false);
       setSaveResult({ type: 'success', message: 'Approval threshold added!' });
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       setSaveResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to add threshold' });
     } finally {
@@ -522,7 +539,7 @@ export default function EntityTab({
       const supabase = createClient();
       const db = supabase as unknown as SupabaseQueryClient;
       await db.from('approval_thresholds').delete().eq('id', id);
-      await loadEntityData();
+      await reloadEntityData();
     } catch (err) {
       console.error('[EntityTab] Failed to delete threshold:', err);
     }
@@ -573,16 +590,15 @@ export default function EntityTab({
       {/* ── Entity Selector ── */}
       {entities.length > 1 && (
         <Card padding="sm">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <label htmlFor="entity-tab-selector" className={styles.fieldLabel} style={{ margin: 0 }}>
+          <div className={styles.entitySelectorRow}>
+            <label htmlFor="entity-tab-selector" className={styles.entitySelectorLabel}>
               Configure Entity:
             </label>
             <select
               id="entity-tab-selector"
-              className={styles.select}
+              className={`${styles.select} ${styles.entitySelectorSelect}`}
               value={selectedEntityId}
               onChange={(e) => setSelectedEntityId(e.target.value)}
-              style={{ flex: 1, maxWidth: '20rem' }}
             >
               {entities.map((entity) => (
                 <option key={entity.id} value={entity.id} className={styles.selectOption}>
@@ -618,7 +634,7 @@ export default function EntityTab({
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className={styles.formGrid2}>
               <div>
                 <label htmlFor="legal-name" className={styles.fieldLabel}>Legal Name</label>
                 <input
@@ -645,7 +661,7 @@ export default function EntityTab({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <div className={styles.formGrid3}>
               <div>
                 <label htmlFor="entity-currency" className={styles.fieldLabel}>Base Currency</label>
                 <select
@@ -694,11 +710,10 @@ export default function EntityTab({
               <label htmlFor="fiscal-year" className={styles.fieldLabel}>Fiscal Year End (Month)</label>
               <select
                 id="fiscal-year"
-                className={styles.select}
+                className={`${styles.select} ${styles.maxWidthFiscal}`}
                 value={profile.fiscal_year_end || '12'}
                 onChange={(e) => setProfile({ ...profile, fiscal_year_end: e.target.value })}
                 disabled={!canManage}
-                style={{ maxWidth: '12rem' }}
               >
                 {Array.from({ length: 12 }, (_, i) => {
                   const month = i + 1;
@@ -727,7 +742,7 @@ export default function EntityTab({
         </p>
 
         <form onSubmit={handleSaveGlCodes} className={styles.localeForm}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className={styles.formGrid2}>
             {(Object.keys(GL_LABELS) as Array<keyof GLCodeConfig>).map((key) => (
               <div key={key}>
                 <label htmlFor={`gl-${key}`} className={styles.fieldLabel}>
@@ -794,7 +809,7 @@ export default function EntityTab({
 
         {/* Add form */}
         {canManage && (
-          <form onSubmit={handleAddVendorManager} className={styles.inviteForm} style={{ marginTop: '1rem' }}>
+          <form onSubmit={handleAddVendorManager} className={`${styles.inviteForm} ${styles.formSectionTop}`}>
             <div className={styles.inviteEmailField}>
               <label htmlFor="vm-pattern" className={styles.fieldLabel}>Vendor Pattern</label>
               <input
@@ -823,7 +838,7 @@ export default function EntityTab({
                 ))}
               </select>
             </div>
-            <div style={{ flex: 1, minWidth: '8rem' }}>
+            <div className={styles.notesField}>
               <label htmlFor="vm-notes" className={styles.fieldLabel}>Notes</label>
               <input
                 id="vm-notes"
@@ -835,7 +850,7 @@ export default function EntityTab({
                 maxLength={200}
               />
             </div>
-            <Button type="submit" variant="primary" disabled={vmAdding || !vmPattern.trim() || !vmUserId} isLoading={vmAdding} style={{ alignSelf: 'flex-end' }}>
+            <Button type="submit" variant="primary" disabled={vmAdding || !vmPattern.trim() || !vmUserId} isLoading={vmAdding} className={styles.alignSelfEnd}>
               Add
             </Button>
           </form>
@@ -881,7 +896,7 @@ export default function EntityTab({
         )}
 
         {canManage && (
-          <form onSubmit={handleAddCardholderMapping} className={styles.inviteForm} style={{ marginTop: '1rem' }}>
+          <form onSubmit={handleAddCardholderMapping} className={`${styles.inviteForm} ${styles.formSectionTop}`}>
             <div className={styles.inviteEmailField}>
               <label htmlFor="ch-name" className={styles.fieldLabel}>Card Holder Name</label>
               <input
@@ -894,7 +909,7 @@ export default function EntityTab({
                 maxLength={200}
               />
             </div>
-            <div style={{ flex: '0 0 6rem' }}>
+            <div className={styles.last4Field}>
               <label htmlFor="ch-last4" className={styles.fieldLabel}>Last 4</label>
               <input
                 id="ch-last4"
@@ -922,7 +937,7 @@ export default function EntityTab({
                 ))}
               </select>
             </div>
-            <Button type="submit" variant="primary" disabled={chAdding || !chCardHolder.trim() || !chUserId} isLoading={chAdding} style={{ alignSelf: 'flex-end' }}>
+            <Button type="submit" variant="primary" disabled={chAdding || !chCardHolder.trim() || !chUserId} isLoading={chAdding} className={styles.alignSelfEnd}>
               Add
             </Button>
           </form>
@@ -963,7 +978,7 @@ export default function EntityTab({
         )}
 
         {canManage && (
-          <form onSubmit={handleAddOptOut} className={styles.inviteForm} style={{ marginTop: '1rem' }}>
+          <form onSubmit={handleAddOptOut} className={`${styles.inviteForm} ${styles.formSectionTop}`}>
             <div className={styles.inviteEmailField}>
               <label htmlFor="optout-phone" className={styles.fieldLabel}>Phone Number / Identifier</label>
               <input
@@ -976,7 +991,7 @@ export default function EntityTab({
                 maxLength={30}
               />
             </div>
-            <Button type="submit" variant="primary" disabled={optOutAdding || !optOutPhone.trim()} isLoading={optOutAdding} style={{ alignSelf: 'flex-end' }}>
+            <Button type="submit" variant="primary" disabled={optOutAdding || !optOutPhone.trim()} isLoading={optOutAdding} className={styles.alignSelfEnd}>
               Add Opt-Out
             </Button>
           </form>
@@ -1020,8 +1035,8 @@ export default function EntityTab({
         )}
 
         {canManage && (
-          <form onSubmit={handleAddThreshold} className={styles.inviteForm} style={{ marginTop: '1rem' }}>
-            <div style={{ flex: '0 0 10rem' }}>
+          <form onSubmit={handleAddThreshold} className={`${styles.inviteForm} ${styles.formSectionTop}`}>
+            <div className={styles.thresholdAmountField}>
               <label htmlFor="thr-amount" className={styles.fieldLabel}>Minimum Amount</label>
               <input
                 id="thr-amount"
@@ -1046,16 +1061,16 @@ export default function EntityTab({
                 <option value="owner">Owner</option>
               </select>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', alignSelf: 'flex-end', paddingBottom: '0.25rem' }}>
+            <div className={styles.dualApprovalRow}>
               <input
                 id="thr-dual"
                 type="checkbox"
                 checked={thrDual}
                 onChange={(e) => setThrDual(e.target.checked)}
               />
-              <label htmlFor="thr-dual" className={styles.fieldLabel} style={{ margin: 0 }}>Dual approval</label>
+              <label htmlFor="thr-dual" className={styles.dualApprovalLabel}>Dual approval</label>
             </div>
-            <Button type="submit" variant="primary" disabled={thrAdding || !thrAmount} isLoading={thrAdding} style={{ alignSelf: 'flex-end' }}>
+            <Button type="submit" variant="primary" disabled={thrAdding || !thrAmount} isLoading={thrAdding} className={styles.alignSelfEnd}>
               Add
             </Button>
           </form>

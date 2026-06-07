@@ -118,6 +118,7 @@
   --z-notification: 1000;
   --z-import: 2000;
   --z-cookie: 9999;
+  --z-spotlight: 10000;
 
   /* Layout */
   --max-width: 1280px;
@@ -126,8 +127,17 @@
   --sidebar-collapsed-width: 64px;
   --content-padding: var(--space-6);
 
-  /* Breakpoints (for reference — actual usage in @media queries) */
-  /* sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px */
+  /*
+   * Breakpoints (canonical values — use these in @media queries)
+   * ───────────────────────────────────────────────────────────
+   * Mobile:  max-width: 640px   (sm)
+   * Tablet:  max-width: 768px   (md)
+   * Desktop: max-width: 1024px  (lg)
+   * Wide:    max-width: 1280px  (xl)
+   *
+   * Prefer mobile-first: min-width: 640px / 768px / 1024px
+   * Avoid non-standard values like 480px, 767px, 1023px
+   */
 }
 
 
@@ -238,6 +248,20 @@
   --chart-expense: hsl(24, 95%, 53%);
   --chart-expense-dark: hsl(20, 84%, 47%);
   --chart-net: hsl(258, 90%, 66%);
+
+  /* Role badge colors */
+  --color-role-owner: #d97706;
+  --color-role-owner-bg: rgba(245, 158, 11, 0.15);
+  --color-role-owner-border: rgba(245, 158, 11, 0.3);
+  --color-role-admin: #7c3aed;
+  --color-role-admin-bg: rgba(139, 92, 246, 0.15);
+  --color-role-admin-border: rgba(139, 92, 246, 0.3);
+  --color-role-member: #2563eb;
+  --color-role-member-bg: rgba(59, 130, 246, 0.15);
+  --color-role-member-border: rgba(59, 130, 246, 0.3);
+  --color-role-viewer: #6b7280;
+  --color-role-viewer-bg: rgba(156, 163, 175, 0.15);
+  --color-role-viewer-border: rgba(156, 163, 175, 0.3);
 }
 
 

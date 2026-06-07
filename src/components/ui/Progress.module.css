@@ -44,7 +44,7 @@
   color: var(--color-text-secondary);
   font-family: var(--font-mono);
   min-width: 3ch;
-  text-align: right;
+  text-align: end;
 }
 
 /* ─── Circle Variant ─────────────────────────── */

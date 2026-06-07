@@ -191,15 +191,15 @@
 .alertCard:nth-child(5) { animation-delay: 0.20s; }
 
 .alertCardCritical {
-  border-left: 3px solid var(--color-destructive) !important;
+  border-inline-start: 3px solid var(--color-destructive) !important;
 }
 
 .alertCardWarning {
-  border-left: 3px solid var(--color-warning) !important;
+  border-inline-start: 3px solid var(--color-warning) !important;
 }
 
 .alertCardInfo {
-  border-left: 3px solid var(--color-info) !important;
+  border-inline-start: 3px solid var(--color-info) !important;
 }
 
 .alertIconWrapper {
@@ -347,15 +347,15 @@
 }
 
 .violationCardCritical {
-  border-left: 3px solid var(--color-destructive) !important;
+  border-inline-start: 3px solid var(--color-destructive) !important;
 }
 
 .violationCardWarning {
-  border-left: 3px solid var(--color-warning) !important;
+  border-inline-start: 3px solid var(--color-warning) !important;
 }
 
 .violationCardInfo {
-  border-left: 3px solid var(--color-info) !important;
+  border-inline-start: 3px solid var(--color-info) !important;
 }
 
 .violationIcon {

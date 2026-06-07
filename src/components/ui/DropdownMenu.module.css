@@ -68,7 +68,7 @@
   font-size: var(--text-base);
   color: var(--color-text-primary);
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
   transition:
     background-color var(--duration-fast) var(--ease-out),

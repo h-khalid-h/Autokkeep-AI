@@ -45,8 +45,8 @@
   font-size: var(--text-lg);
   line-height: var(--leading-relaxed);
   color: var(--color-text-secondary);
-  border-left: 3px solid var(--color-accent);
-  padding-left: var(--space-4);
+  border-inline-start: 3px solid var(--color-accent);
+  padding-inline-start: var(--space-4);
 }
 
 .articleBody {

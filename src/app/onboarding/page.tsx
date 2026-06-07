@@ -139,18 +139,32 @@ const STEPS: { id: OnboardingStep; title: string; icon: string; description: str
   { id: 'complete', title: 'All Set!', icon: '🚀', description: 'Your AI financial engine is ready' },
 ];
 
+// ── Restore persisted onboarding state from localStorage (lazy init) ────────
+function getRestoredOnboardingState(): OnboardingState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    return saved ? JSON.parse(saved) as OnboardingState : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const toast = useToast();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [entityName, setEntityName] = useState('');
-  const [currency, setCurrency] = useState('USD');
-  const [fiscalYearEnd, setFiscalYearEnd] = useState('12');
-  const [selectedLedger, setSelectedLedger] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('');
+
+  // Restore from localStorage at initialization (avoids setState-in-effect)
+  const [restored] = useState(() => getRestoredOnboardingState());
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(restored?.currentStep || 'welcome');
+  const [entityName, setEntityName] = useState(restored?.entityName || '');
+  const [currency, setCurrency] = useState(restored?.currency || 'USD');
+  const [fiscalYearEnd, setFiscalYearEnd] = useState(restored?.fiscalYearEnd || '12');
+  const [selectedLedger, setSelectedLedger] = useState(restored?.selectedLedger || '');
+  const [selectedChannel, setSelectedChannel] = useState(restored?.selectedChannel || '');
 
   // Persisted IDs from entity creation
-  const [entityId, setEntityId] = useState<string | null>(null);
+  const [entityId, setEntityId] = useState<string | null>(restored?.entityId || null);
 
   // Loading & error state
   const [loading, setLoading] = useState(false);
@@ -166,15 +180,15 @@ export default function OnboardingPage() {
   const [inviteSaving, setInviteSaving] = useState(false);
 
   // Bank connection state
-  const [bankConnected, setBankConnected] = useState(false);
+  const [bankConnected, setBankConnected] = useState(restored?.bankConnected || false);
   const [bankLinkToken, setBankLinkToken] = useState<string | null>(null);
 
   // Invite check state
   const [isCheckingInvite, setIsCheckingInvite] = useState(true);
 
   // Region state (merged into entity step)
-  const [country, setCountry] = useState('US');
-  const [timezone, setTimezone] = useState('America/New_York');
+  const [country, setCountry] = useState(restored?.country || 'US');
+  const [timezone, setTimezone] = useState(restored?.timezone || 'America/New_York');
   const [geoDetected, setGeoDetected] = useState(false);
   const supportedCurrencies = getSupportedCurrencies();
 
@@ -350,31 +364,8 @@ export default function OnboardingPage() {
   }, [currentStep]);
 
   // ── Persist state to localStorage ──────────────────────────────────────
-  const restoredRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (saved) {
-        const state: OnboardingState = JSON.parse(saved);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (state.currentStep) setCurrentStep(state.currentStep);
-        if (state.entityName) setEntityName(state.entityName);
-        if (state.currency) setCurrency(state.currency);
-        if (state.fiscalYearEnd) setFiscalYearEnd(state.fiscalYearEnd);
-        if (state.selectedLedger) setSelectedLedger(state.selectedLedger);
-        if (state.selectedChannel) setSelectedChannel(state.selectedChannel);
-        if (state.entityId) setEntityId(state.entityId);
-        if (state.bankConnected) setBankConnected(state.bankConnected);
-        if (state.country) setCountry(state.country);
-        if (state.timezone) setTimezone(state.timezone);
-      }
-    } catch (_e) {
-      console.warn('[Onboarding] Failed to restore state:', _e);
-    }
-    restoredRef.current = true;
-  }, []);
+  // Restoration is handled by lazy useState initializers above.
+  const restoredRef = useRef(!!restored);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -741,6 +732,7 @@ export default function OnboardingPage() {
                     value={inviteDisplayName}
                     onChange={(e) => setInviteDisplayName(e.target.value)}
                     disabled={inviteSaving}
+                    autoComplete="name"
                   />
                 </div>
                 <div className={styles.fieldGroup}>
@@ -783,6 +775,13 @@ export default function OnboardingPage() {
                     value={inviteChannelId}
                     onChange={(e) => setInviteChannelId(e.target.value)}
                     disabled={inviteSaving}
+                    autoComplete={
+                      inviteChannel === 'email'
+                        ? 'email'
+                        : inviteChannel === 'sms' || inviteChannel === 'whatsapp'
+                        ? 'tel'
+                        : 'off'
+                    }
                   />
                 </div>
               </Card>
@@ -885,6 +884,7 @@ export default function OnboardingPage() {
                     value={entityName}
                     onChange={(e) => setEntityName(e.target.value)}
                     disabled={loading}
+                    autoComplete="organization"
                   />
                 </div>
                 <div className={styles.fieldGroup}>

@@ -45,9 +45,9 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
 
   const loadEntities = useCallback(async () => {
     try {
-      setError(null);
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
+      setError(null);
       if (!user) {
         setIsLoading(false);
         return;
@@ -135,8 +135,13 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadEntities();
+    const controller = new AbortController();
+    Promise.resolve().then(() => {
+      loadEntities().catch(() => {
+        // Errors already handled inside loadEntities
+      });
+    });
+    return () => controller.abort();
   }, [loadEntities]);
 
   const setSelectedEntityId = useCallback(

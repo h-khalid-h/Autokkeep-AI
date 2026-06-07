@@ -1,0 +1,543 @@
+/* ============================================
+   API KEY MANAGEMENT SETTINGS PAGE — CSS Module
+   Uses Autokkeep design tokens
+   ============================================ */
+
+/* ─── Page container ──────────────────────────── */
+.pageContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* ─── Page header ─────────────────────────────── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-lg);
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.backLink:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+  transform: translateX(-2px);
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0 0;
+}
+
+/* ─── Section Title ───────────────────────────── */
+.sectionTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionIcon {
+  font-size: var(--text-xl);
+}
+
+/* ─── Keys List ───────────────────────────────── */
+.keysSection {
+  margin-bottom: var(--space-8);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.keysList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.keyRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  transition: all var(--duration-fast) var(--ease-out);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.keyRow:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.keyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.keyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.keyName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.keyPrefix {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  padding: var(--space-0-5) var(--space-2);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  width: fit-content;
+}
+
+.keyActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.keyMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.keyPermissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+/* ─── Status Badges ───────────────────────────── */
+.statusActive {
+  color: var(--color-success-text);
+}
+
+.statusRevoked {
+  color: var(--color-destructive);
+}
+
+.statusExpired {
+  color: var(--color-warning);
+}
+
+/* ─── Permission Badges ───────────────────────── */
+.permissionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  border: 1px solid var(--color-border-accent);
+}
+
+/* ─── Create Form ─────────────────────────────── */
+.createSection {
+  margin-bottom: var(--space-8);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.formLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.formInput {
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.formInput:hover {
+  border-color: var(--color-border-strong);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.formInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.formHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Permission Checkboxes ───────────────────── */
+.permissionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+
+.permissionLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  transition: all var(--duration-fast) var(--ease-out);
+  user-select: none;
+}
+
+.permissionLabel:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-hover);
+}
+
+.permissionLabelChecked {
+  composes: permissionLabel;
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+}
+
+.permissionCheckbox {
+  accent-color: var(--color-accent);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ─── Expiry Selector ─────────────────────────── */
+.expirySelector {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.expiryOption {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.expiryOption:hover {
+  border-color: var(--color-accent);
+}
+
+.expiryOptionActive {
+  composes: expiryOption;
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* ─── Key Reveal ──────────────────────────────── */
+.keyReveal {
+  margin-bottom: var(--space-6);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.keyRevealBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+}
+
+.keyRevealValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  word-break: break-all;
+  flex: 1;
+  user-select: all;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.copyButton:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.keyRevealWarning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--color-role-owner-bg);
+  border: 1px solid var(--color-role-owner-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--color-role-owner);
+}
+
+/* ─── Revoke Confirmation ─────────────────────── */
+.revokeOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.revokeContent {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 420px;
+  width: calc(100% - var(--space-8));
+  box-shadow: var(--shadow-lg);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.revokeTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+}
+
+.revokeDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-5);
+  line-height: 1.5;
+}
+
+.revokeActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* ─── Banners ─────────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  margin-bottom: var(--space-4);
+}
+
+.errorDismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-destructive);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.errorDismiss:hover {
+  background: var(--color-destructive-border);
+}
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-success-border);
+  margin-bottom: var(--space-4);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+/* ─── Empty State ─────────────────────────────── */
+.emptyText {
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+/* ─── Skeleton ────────────────────────────────── */
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Animations ──────────────────────────────── */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── Responsive ──────────────────────────────── */
+@media (max-width: 640px) {
+  .keyHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .keyActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .permissionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .expirySelector {
+    flex-direction: column;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .revokeActions {
+    flex-direction: column;
+  }
+}

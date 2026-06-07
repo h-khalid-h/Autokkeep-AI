@@ -28,7 +28,7 @@
 
 /* Error banner */
 .errorBanner {
-  border-left: 4px solid var(--color-destructive);
+  border-inline-start: 4px solid var(--color-destructive);
 }
 
 .errorText {
@@ -116,7 +116,7 @@
 }
 
 .table thead th {
-  text-align: left;
+  text-align: start;
   font-weight: var(--weight-semibold);
   color: var(--color-text-tertiary);
   font-size: var(--text-xs);
@@ -154,7 +154,7 @@
 
 .numberCell {
   font-family: var(--font-mono);
-  text-align: right;
+  text-align: end;
 }
 
 /* Throttle rate badge */
@@ -290,7 +290,7 @@
   color: var(--color-text-tertiary);
   white-space: nowrap;
   min-width: 72px;
-  text-align: right;
+  text-align: end;
 }
 
 /* Expand icon */

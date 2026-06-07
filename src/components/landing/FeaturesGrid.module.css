@@ -35,8 +35,8 @@
   color: var(--color-text-secondary);
   margin: 0 0 var(--space-14);
   max-width: 560px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
   line-height: var(--leading-relaxed);
 }
 
@@ -46,7 +46,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-6);
-  text-align: left;
+  text-align: start;
 }
 
 /* ─── Card override ────────────────────────── */

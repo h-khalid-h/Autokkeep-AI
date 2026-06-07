@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import Link from 'next/link';
 import styles from './notification-center.module.css';
 
@@ -47,57 +48,36 @@ const POLL_INTERVAL = 60_000;
 
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ── Fetch notifications ───────────────────────────────────────────────────
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch('/api/notifications?limit=10');
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-      }
-    } catch (err) {
-      console.error('[NotificationCenter] Fetch error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // ── Fetch unread count ────────────────────────────────────────────────────
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/notifications/count');
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.count || 0);
-      }
-    } catch (err) {
-      console.error('[NotificationCenter] Count error:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate API data fetch
-    fetchUnreadCount();
-  }, [fetchUnreadCount]);
+  // ── Unread count ──────────────────────────────────────────────────────────
+  const { data: unreadCount, refetch: refetchCount, setData: setUnreadCount } = useDataFetcher(
+    0,
+    async (signal) => {
+      const res = await fetch('/api/notifications/count', { signal });
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return (data.count || 0) as number;
+    },
+  );
 
   // Poll unread count
   useEffect(() => {
-    const interval = setInterval(fetchUnreadCount, POLL_INTERVAL);
+    const interval = setInterval(() => { void refetchCount(); }, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+  }, [refetchCount]);
 
-  useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate API data fetch
-      fetchNotifications();
-    }
-  }, [isOpen, fetchNotifications]);
+  // ── Notifications (fetched when panel is open) ────────────────────────────
+  const { data: notifications, isLoading, setData: setNotifications } = useDataFetcher(
+    [] as Notification[],
+    async (signal) => {
+      const res = await fetch('/api/notifications?limit=10', { signal });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.notifications || []) as Notification[];
+    },
+    { enabled: isOpen }
+  );
 
   // ── Click outside ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -138,7 +118,7 @@ export default function NotificationCenter() {
     } catch (err) {
       console.error('[NotificationCenter] Mark read error:', err);
     }
-  }, []);
+  }, [setNotifications, setUnreadCount]);
 
   // ── Mark all as read ──────────────────────────────────────────────────────
   const markAllAsRead = useCallback(async () => {
@@ -153,7 +133,7 @@ export default function NotificationCenter() {
     } catch (err) {
       console.error('[NotificationCenter] Mark all read error:', err);
     }
-  }, []);
+  }, [setNotifications, setUnreadCount]);
 
   return (
     <div ref={containerRef} className={styles.bellWrapper}>

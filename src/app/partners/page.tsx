@@ -459,6 +459,7 @@ export default function PartnersPage() {
                       style={isOpen ? { borderColor: 'var(--color-accent)' } : undefined} /* dynamic */
                     >
                       <button
+                        type="button"
                         onClick={() => toggleFaq(i)}
                         className={styles.faqButton}
                       >

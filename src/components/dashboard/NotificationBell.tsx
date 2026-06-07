@@ -106,7 +106,11 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const toggleDropdown = useCallback(() => {
-    setIsOpen((prev) => !prev);
+    setIsOpen((prev) => {
+      const next = !prev;
+      setFocusedIndex(next ? 0 : -1);
+      return next;
+    });
   }, []);
 
   const markAllAsRead = useCallback(() => {
@@ -118,21 +122,14 @@ export default function NotificationBell() {
     const handleClickOutside = (event: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setFocusedIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus management
-  useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFocusedIndex(() => 0);
-    } else {
-      setFocusedIndex(() => -1);
-    }
-  }, [isOpen]);
+  // Focus management handled in event handlers
 
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
@@ -157,6 +154,7 @@ export default function NotificationBell() {
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
+        setFocusedIndex(-1);
         break;
       case 'Enter':
       case ' ':

@@ -334,6 +334,7 @@ export default function WebhookSettingsPage() {
                       value={formSecret}
                       onChange={(e) => setFormSecret(e.target.value)}
                       disabled={isSubmitting}
+                      autoComplete="new-password"
                     />
                     <span className={styles.formHint}>
                       Used for HMAC-SHA256 signature verification

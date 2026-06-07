@@ -21,12 +21,12 @@
   font-weight: var(--weight-normal);
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
-  margin-left: var(--space-3);
+  margin-inline-start: var(--space-3);
 }
 
 /* Error banner */
 .errorBanner {
-  border-left: 4px solid var(--color-destructive);
+  border-inline-start: 4px solid var(--color-destructive);
   box-shadow: var(--shadow-sm);
 }
 
@@ -274,7 +274,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--space-3) center;
-  padding-right: var(--space-8);
+  padding-inline-end: var(--space-8);
 }
 
 .select:hover {
@@ -398,18 +398,18 @@
 
 .resultSuccess {
   composes: resultBanner;
-  border-left: 4px solid var(--color-success);
+  border-inline-start: 4px solid var(--color-success);
   background: var(--color-success-subtle);
   border: 1px solid var(--color-success-border);
-  border-left-width: 4px;
+  border-inline-start-width: 4px;
 }
 
 .resultError {
   composes: resultBanner;
-  border-left: 4px solid var(--color-destructive);
+  border-inline-start: 4px solid var(--color-destructive);
   background: var(--color-destructive-subtle);
   border: 1px solid var(--color-destructive-border);
-  border-left-width: 4px;
+  border-inline-start-width: 4px;
 }
 
 .resultSuccessText {
@@ -445,3 +445,81 @@
   gap: var(--space-3);
   justify-content: flex-end;
 }
+
+/* ============================================
+   ENTITY TAB — Layout utilities
+   ============================================ */
+
+.entitySelectorRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.entitySelectorLabel {
+  composes: fieldLabel;
+  margin: 0;
+}
+
+.entitySelectorSelect {
+  flex: 1;
+  max-width: 20rem;
+}
+
+.formGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.formGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .formGrid2,
+  .formGrid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formSectionTop {
+  margin-top: var(--space-4);
+}
+
+.notesField {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.last4Field {
+  flex: 0 0 6rem;
+}
+
+.alignSelfEnd {
+  align-self: flex-end;
+}
+
+.maxWidthFiscal {
+  max-width: 12rem;
+}
+
+.thresholdAmountField {
+  flex: 0 0 10rem;
+}
+
+.dualApprovalRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-end;
+  padding-bottom: var(--space-0-5);
+}
+
+.dualApprovalLabel {
+  composes: fieldLabel;
+  margin: 0;
+}
+

@@ -1,0 +1,615 @@
+/* ============================================
+   TEAM MANAGEMENT SETTINGS PAGE — CSS Module
+   Uses Autokkeep design tokens
+   ============================================ */
+
+/* ─── Page container ──────────────────────────── */
+.pageContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* ─── Page header ─────────────────────────────── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-lg);
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.backLink:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+  transform: translateX(-2px);
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0 0;
+}
+
+/* ─── Stats Bar ───────────────────────────────── */
+.statsBar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.statCard:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.statValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+/* ─── Section Title ───────────────────────────── */
+.sectionTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionIcon {
+  font-size: var(--text-xl);
+}
+
+/* ─── Members Table ───────────────────────────── */
+.membersSection {
+  margin-bottom: var(--space-8);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  transition: all var(--duration-fast) var(--ease-out);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.memberRow:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.memberAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberEmail {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.memberLastActive {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* ─── Role Badges ─────────────────────────────── */
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.roleOwner {
+  composes: roleBadge;
+  background: var(--color-role-owner-bg);
+  color: var(--color-role-owner);
+  border: 1px solid var(--color-role-owner-border);
+}
+
+.roleAdmin {
+  composes: roleBadge;
+  background: var(--color-role-admin-bg);
+  color: var(--color-role-admin);
+  border: 1px solid var(--color-role-admin-border);
+}
+
+.roleMember {
+  composes: roleBadge;
+  background: var(--color-role-member-bg);
+  color: var(--color-role-member);
+  border: 1px solid var(--color-role-member-border);
+}
+
+.roleViewer {
+  composes: roleBadge;
+  background: var(--color-role-viewer-bg);
+  color: var(--color-role-viewer);
+  border: 1px solid var(--color-role-viewer-border);
+}
+
+/* ─── Status Badges ───────────────────────────── */
+.statusActive {
+  color: var(--color-success-text);
+}
+
+.statusInvited {
+  color: var(--color-warning);
+}
+
+.statusSuspended {
+  color: var(--color-destructive);
+}
+
+/* ─── Invite Form ─────────────────────────────── */
+.inviteSection {
+  margin-bottom: var(--space-8);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.inviteForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.inviteRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  flex: 1;
+}
+
+.formLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.formInput {
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.formInput:hover {
+  border-color: var(--color-border-strong);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.formInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.formSelect {
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-inline-end: var(--space-8);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.formSelect:hover {
+  border-color: var(--color-border-strong);
+}
+
+.formSelect:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* ─── Pending Invites ─────────────────────────── */
+.pendingSection {
+  margin-bottom: var(--space-8);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.pendingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pendingCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.pendingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.pendingEmail {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.pendingMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Actions Dropdown ────────────────────────── */
+.actionsDropdown {
+  position: relative;
+}
+
+.actionsTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.actionsTrigger:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
+}
+
+.actionsMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-1));
+  min-width: 160px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: start;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.actionButton:hover {
+  background: var(--color-bg-hover);
+}
+
+.actionButtonDanger {
+  composes: actionButton;
+  color: var(--color-destructive);
+}
+
+.actionButtonDanger:hover {
+  background: var(--color-destructive-subtle);
+}
+
+/* ─── Confirmation Dialog ─────────────────────── */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.confirmContent {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 420px;
+  width: calc(100% - var(--space-8));
+  box-shadow: var(--shadow-lg);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+.confirmTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+}
+
+.confirmDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-5);
+  line-height: 1.5;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* ─── Banners ─────────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  margin-bottom: var(--space-4);
+}
+
+.errorDismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-destructive);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.errorDismiss:hover {
+  background: var(--color-destructive-border);
+}
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-success-border);
+  margin-bottom: var(--space-4);
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+/* ─── Empty State ─────────────────────────────── */
+.emptyText {
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+/* ─── Skeleton ────────────────────────────────── */
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Animations ──────────────────────────────── */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Responsive ──────────────────────────────── */
+@media (max-width: 640px) {
+  .memberRow {
+    flex-wrap: wrap;
+  }
+
+  .memberMeta {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: var(--space-1);
+  }
+
+  .inviteRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .statsBar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .confirmActions {
+    flex-direction: column;
+  }
+}

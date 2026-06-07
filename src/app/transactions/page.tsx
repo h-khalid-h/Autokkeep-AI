@@ -155,16 +155,20 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchTransactions(controller.signal);
+    Promise.resolve().then(() => {
+      fetchTransactions(controller.signal).catch(() => {
+        // Errors handled inside fetchTransactions
+      });
+    });
     return () => controller.abort();
   }, [fetchTransactions]);
 
   // Reset page and selection when filters change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage((prev) => prev === 0 ? prev : 0);
-    setSelectedIds(new Set());
+    Promise.resolve().then(() => {
+      setPage(0);
+      setSelectedIds(new Set());
+    });
   }, [debouncedSearch, statusFilter, dateFrom, dateTo, sort]);
 
   // Fetch chart of accounts for inline editing

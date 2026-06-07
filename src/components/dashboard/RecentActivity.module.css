@@ -31,10 +31,10 @@
 .activityItem:hover {
   background-color: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
-  padding-left: var(--space-2);
-  margin-left: calc(var(--space-2) * -1);
-  padding-right: var(--space-2);
-  margin-right: calc(var(--space-2) * -1);
+  padding-inline-start: var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
+  padding-inline-end: var(--space-2);
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 .activityIcon {

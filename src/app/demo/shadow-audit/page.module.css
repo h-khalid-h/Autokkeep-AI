@@ -34,7 +34,7 @@
 }
 
 .th {
-  text-align: left;
+  text-align: start;
   padding: var(--space-3) var(--space-4);
   font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import styles from './UserMenu.module.css';
@@ -20,38 +21,36 @@ interface UserMenuProps {
 
 export default function UserMenu({ initials: propsInitials, email: propsEmail }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [userInitials, setUserInitials] = useState(propsInitials || 'AK');
-  const [userEmail, setUserEmail] = useState(propsEmail || '');
   const [loggingOut, setLoggingOut] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const menuRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
 
-  useEffect(() => {
-    if (propsInitials && propsEmail) return;
-    async function loadUser() {
-      try {
-        const supabase = getSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          setUserEmail(user.email);
-          const parts = user.email.split('@')[0].split(/[._-]/);
-          setUserInitials(
-            parts.length >= 2
-              ? (parts[0][0] + parts[1][0]).toUpperCase()
-              : user.email.slice(0, 2).toUpperCase()
-          );
-        }
-      } catch { /* fallback to defaults */ }
-    }
-    loadUser();
-  }, [propsInitials, propsEmail]);
+  const { data: userData } = useDataFetcher(
+    { email: propsEmail || '', initials: propsInitials || 'AK' },
+    async () => {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const parts = user.email.split('@')[0].split(/[._-]/);
+        const initials = parts.length >= 2
+          ? (parts[0][0] + parts[1][0]).toUpperCase()
+          : user.email.slice(0, 2).toUpperCase();
+        return { email: user.email, initials };
+      }
+      return { email: propsEmail || '', initials: propsInitials || 'AK' };
+    },
+    { enabled: !(propsInitials && propsEmail) }
+  );
+  const userEmail = userData.email;
+  const userInitials = userData.initials;
 
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setFocusedIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -70,15 +69,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
     }
   }, []);
 
-  // Focus management
-  useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFocusedIndex(() => 0);
-    } else {
-      setFocusedIndex(() => -1);
-    }
-  }, [isOpen]);
+  // Focus management handled in event handlers
 
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
@@ -101,6 +92,7 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
+        setFocusedIndex(-1);
         break;
       case 'Enter':
       case ' ':
@@ -115,7 +107,13 @@ export default function UserMenu({ initials: propsInitials, email: propsEmail }:
   return (
     <div ref={menuRef} className={styles.menuWrapper}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(prev => {
+            const next = !prev;
+            setFocusedIndex(next ? 0 : -1);
+            return next;
+          });
+        }}
         className={styles.avatarBtn}
         aria-label="User menu"
         aria-haspopup="menu"

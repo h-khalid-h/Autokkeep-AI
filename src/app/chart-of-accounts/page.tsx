@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useEntity } from '@/lib/context/EntityContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Input, Modal, Skeleton, EmptyState, useToast } from '@/components/ui';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import styles from './page.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -116,10 +117,20 @@ function getLocalizedGuidanceNotice(countryCode?: string) {
 export default function ChartOfAccountsPage() {
   const { selectedEntity } = useEntity();
 
-  // Data state
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Data fetching via hook
+  const { data: accounts, isLoading, error, refetch, setData: setAccounts } = useDataFetcher(
+    [] as Account[],
+    async (signal) => {
+      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity!.id}`, { signal });
+      if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
+      const data = await res.json();
+      return (data.accounts || []).map(mapApiAccount) as Account[];
+    },
+    { deps: [selectedEntity?.id], enabled: !!selectedEntity?.id }
+  );
+
+  // Separate error state for mutation errors
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   // Filter & sort
   const [search, setSearch] = useState('');
@@ -150,34 +161,6 @@ export default function ChartOfAccountsPage() {
   // CSV import ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
-
-  // ─── Fetch accounts ─────────────────────────────────────────────────────
-  const fetchAccounts = useCallback(async (signal?: AbortSignal) => {
-    if (!selectedEntity?.id) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity.id}`, { signal });
-      if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
-      const data = await res.json();
-      const mapped = (data.accounts || []).map(mapApiAccount);
-      setAccounts(mapped);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      console.error('[ChartOfAccounts] Fetch error:', err);
-      setAccounts([]);
-      setError('Could not load accounts from server. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedEntity]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchAccounts(controller.signal);
-    return () => controller.abort();
-  }, [fetchAccounts]);
 
   // ─── Filtering & sorting ────────────────────────────────────────────────
   const filtered = useMemo(() => accounts.filter(a => {
@@ -382,7 +365,7 @@ export default function ChartOfAccountsPage() {
           if (data.account) {
             setAccounts(prev => [...prev, mapApiAccount(data.account)]);
           } else {
-            await fetchAccounts();
+            await refetch();
           }
         }
         closeModal();
@@ -404,7 +387,7 @@ export default function ChartOfAccountsPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Failed to delete account');
+        setMutationError(data.error || 'Failed to delete account');
         setDeleteConfirmId(null);
         return;
       }
@@ -414,7 +397,7 @@ export default function ChartOfAccountsPage() {
       setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     } catch (err) {
       console.error('[ChartOfAccounts] Delete error:', err);
-      setError('Network error — could not delete account');
+      setMutationError('Network error — could not delete account');
       setDeleteConfirmId(null);
     }
   };
@@ -437,12 +420,12 @@ export default function ChartOfAccountsPage() {
       if (!res.ok) {
         setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
         const data = await res.json();
-        setError(data.error || 'Failed to update account status');
+        setMutationError(data.error || 'Failed to update account status');
       }
     } catch (err) {
       console.error('[ChartOfAccounts] Toggle active error:', err);
       setAccounts(prev => prev.map(a => a.id === id ? { ...a, active: !newActive } : a));
-      setError('Network error — could not update account status');
+      setMutationError('Network error — could not update account status');
     }
   };
 
@@ -474,7 +457,7 @@ export default function ChartOfAccountsPage() {
     });
 
     if (failed.length > 0) {
-      setError(`Failed to delete ${failed.length} account(s). Please try again.`);
+      setMutationError(`Failed to delete ${failed.length} account(s). Please try again.`);
     }
   };
 
@@ -503,7 +486,7 @@ export default function ChartOfAccountsPage() {
     setSelectedIds(new Set());
 
     if (failed.length > 0) {
-      setError(`Failed to deactivate ${failed.length} account(s). Please try again.`);
+      setMutationError(`Failed to deactivate ${failed.length} account(s). Please try again.`);
     }
   };
 
@@ -627,7 +610,7 @@ export default function ChartOfAccountsPage() {
         toast.info(`Skipped ${skippedRows} row(s) (empty fields or duplicate codes).`);
       }
       if (failedImports > 0) {
-        setError(`${failedImports} account(s) could not be saved to the server. Please try importing them again.`);
+        setMutationError(`${failedImports} account(s) could not be saved to the server. Please try importing them again.`);
       }
       if (importedAccounts.length === 0 && failedImports === 0 && skippedRows === 0) {
         toast.info('No new accounts found to import.');
@@ -694,12 +677,13 @@ export default function ChartOfAccountsPage() {
           })()}
 
           {/* ── Error Banner ──────────────────────────────────────────── */}
-          {error && (
+          {(error || mutationError) && (
             <div role="alert" className={styles.errorBanner}>
-              ⚠️ {error}
+              ⚠️ {error || mutationError}
               <button
+                type="button"
                 className={styles.actionBtn}
-                onClick={() => setError(null)}
+                onClick={() => setMutationError(null)}
                 aria-label="Dismiss error"
               >
                 ✕
@@ -874,6 +858,7 @@ export default function ChartOfAccountsPage() {
                           </td>
                           <td>
                             <button
+                              type="button"
                               className={`${styles.statusToggle} ${account.active ? styles.statusActive : styles.statusInactive}`}
                               onClick={() => toggleActive(account.id)}
                               title={account.active ? 'Click to deactivate' : 'Click to activate'}
@@ -884,6 +869,7 @@ export default function ChartOfAccountsPage() {
                           <td>
                             <div className={styles.rowActions}>
                               <button
+                                type="button"
                                 className={styles.actionBtn}
                                 onClick={() => openEditModal(account)}
                                 title="Edit"
@@ -910,6 +896,7 @@ export default function ChartOfAccountsPage() {
                                 </div>
                               ) : (
                                 <button
+                                  type="button"
                                   className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                                   onClick={() => setDeleteConfirmId(account.id)}
                                   title="Delete"

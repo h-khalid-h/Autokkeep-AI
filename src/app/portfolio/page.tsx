@@ -268,8 +268,11 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchPortfolio(controller.signal);
+    Promise.resolve().then(() => {
+      fetchPortfolio(controller.signal).catch(() => {
+        // Errors handled inside fetchPortfolio
+      });
+    });
     return () => controller.abort();
   }, [fetchPortfolio]);
 

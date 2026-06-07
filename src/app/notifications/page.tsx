@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Button, EmptyState, Skeleton, useToast } from '@/components/ui';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import type { Notification } from '@/components/notifications/NotificationCenter';
 import styles from './notifications.module.css';
 
@@ -57,50 +58,46 @@ function timeAgo(dateStr: string): string {
 export default function NotificationsPage() {
   const toast = useToast();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────
-  const fetchNotifications = useCallback(async (reset = false) => {
-    try {
-      setIsLoading(true);
-      const newOffset = reset ? 0 : offset;
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: String(newOffset),
-      });
-
-      const res = await fetch(`/api/notifications?${params}`);
+  // ── Initial fetch via useDataFetcher ──────────────────────────────────
+  const { data: notifData, isLoading, setData: setNotifData, refetch } = useDataFetcher(
+    { notifications: [] as Notification[], hasMore: true, offset: 0 },
+    async (signal) => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: '0' });
+      const res = await fetch(`/api/notifications?${params}`, { signal });
       if (!res.ok) throw new Error('Failed to load');
-
       const data = await res.json();
       const items: Notification[] = data.notifications || [];
+      return { notifications: items, hasMore: items.length >= PAGE_SIZE, offset: items.length };
+    },
+  );
+  const notifications = notifData.notifications;
+  const hasMore = notifData.hasMore;
 
-      if (reset) {
-        setNotifications(items);
-        setOffset(items.length);
-      } else {
-        setNotifications((prev) => [...prev, ...items]);
-        setOffset((prev) => prev + items.length);
-      }
-      setHasMore(items.length >= PAGE_SIZE);
+  // ── Load more (manual append) ──────────────────────────────────────
+  const loadMore = useCallback(async () => {
+    try {
+      setIsLoadingMore(true);
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(notifData.offset) });
+      const res = await fetch(`/api/notifications?${params}`);
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      const items: Notification[] = data.notifications || [];
+      setNotifData(prev => ({
+        notifications: [...prev.notifications, ...items],
+        hasMore: items.length >= PAGE_SIZE,
+        offset: prev.offset + items.length,
+      }));
     } catch (err) {
       console.error('[NotificationsPage] Error:', err);
       toast.error('Failed to load notifications');
     } finally {
-      setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  }, [offset, toast]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate API data fetch
-    fetchNotifications(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [notifData.offset, setNotifData, toast]);
 
   // ── Filter ────────────────────────────────────────────────────────────────
   const filtered = React.useMemo(() => {
@@ -136,11 +133,11 @@ export default function NotificationsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, read: true }),
       });
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setNotifData(prev => ({ ...prev, notifications: prev.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)) }));
     } catch (err) {
       console.error('[NotificationsPage] Mark read error:', err);
     }
-  }, []);
+  }, [setNotifData]);
 
   const markSelectedAsRead = useCallback(async () => {
     const ids = Array.from(selectedIds);
@@ -154,15 +151,13 @@ export default function NotificationsPage() {
           })
         )
       );
-      setNotifications((prev) =>
-        prev.map((n) => (selectedIds.has(n.id) ? { ...n, read: true } : n))
-      );
+      setNotifData(prev => ({ ...prev, notifications: prev.notifications.map((n) => (selectedIds.has(n.id) ? { ...n, read: true } : n)) }));
       setSelectedIds(new Set());
       toast.success(`Marked ${ids.length} as read`);
     } catch (_err) {
       toast.error('Failed to mark as read');
     }
-  }, [selectedIds, toast]);
+  }, [selectedIds, setNotifData, toast]);
 
   const markAllAsRead = useCallback(async () => {
     try {
@@ -171,12 +166,12 @@ export default function NotificationsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAllRead: true }),
       });
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setNotifData(prev => ({ ...prev, notifications: prev.notifications.map((n) => ({ ...n, read: true })) }));
       toast.success('All notifications marked as read');
     } catch (_err) {
       toast.error('Failed to mark all as read');
     }
-  }, [toast]);
+  }, [setNotifData, toast]);
 
   return (
     <ErrorBoundary componentName="Notifications">
@@ -236,7 +231,7 @@ export default function NotificationsPage() {
                     Mark all as read
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => fetchNotifications(true)}>
+                <Button variant="ghost" size="sm" onClick={() => refetch()}>
                   🔄 Refresh
                 </Button>
               </div>
@@ -311,10 +306,10 @@ export default function NotificationsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => fetchNotifications(false)}
-                  disabled={isLoading}
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
                 >
-                  {isLoading ? 'Loading...' : 'Load more'}
+                  {isLoadingMore ? 'Loading...' : 'Load more'}
                 </Button>
               </div>
             )}

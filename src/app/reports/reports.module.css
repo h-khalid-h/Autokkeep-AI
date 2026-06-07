@@ -247,7 +247,7 @@
 }
 
 .lineItemsTable th {
-  text-align: left;
+  text-align: start;
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   color: var(--color-text-tertiary);
@@ -258,7 +258,7 @@
 }
 
 .lineItemsTable th:last-child {
-  text-align: right;
+  text-align: end;
 }
 
 .lineItemRow {
@@ -288,7 +288,7 @@
 }
 
 .lineItemAmount {
-  text-align: right;
+  text-align: end;
   font-family: var(--font-mono);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
@@ -311,7 +311,7 @@
 }
 
 .totalAmount {
-  text-align: right;
+  text-align: end;
   font-family: var(--font-mono);
   font-weight: var(--weight-bold);
   color: var(--color-accent-text);

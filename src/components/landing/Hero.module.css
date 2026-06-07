@@ -321,7 +321,7 @@
 
 .floatingCardIcon {
   display: inline-flex;
-  margin-right: var(--space-2);
+  margin-inline-end: var(--space-2);
 }
 
 .mockupGlow {

@@ -159,7 +159,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   width: 36px;
   height: 36px;
   padding: 0;
@@ -211,7 +211,7 @@
   bottom: 0;
   width: 280px;
   background: var(--color-bg-primary);
-  border-left: 1px solid var(--color-border);
+  border-inline-start: 1px solid var(--color-border);
   padding: calc(var(--header-height) + var(--space-6)) var(--space-6) var(--space-6);
   flex-direction: column;
   gap: var(--space-2);
@@ -410,8 +410,8 @@
 [dir="rtl"] .mobileMenu {
   right: auto;
   left: 0;
-  border-left: none;
-  border-right: 1px solid var(--color-border);
+  border-inline-start: none;
+  border-inline-end: 1px solid var(--color-border);
 }
 
 
