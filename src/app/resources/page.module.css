@@ -16,7 +16,7 @@
 
 .featuredCard:hover {
   border-color: var(--color-accent);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .featuredBadge {

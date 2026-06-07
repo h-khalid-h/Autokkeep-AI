@@ -23,7 +23,7 @@
 .shortcutsPill:hover {
   opacity: 1;
   border-color: var(--color-accent);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .pillKbd {

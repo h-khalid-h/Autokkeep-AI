@@ -34,7 +34,7 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover);
   overflow: hidden;
   z-index: var(--z-dropdown, 1000);
   animation: menuFadeIn 150ms ease-out;

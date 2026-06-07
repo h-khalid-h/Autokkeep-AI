@@ -62,7 +62,7 @@
   border: 1px solid var(--glass-border);
   padding: var(--space-2-5) var(--space-4);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .stepIndicator {
@@ -338,14 +338,14 @@
   transition: all var(--duration-normal) var(--ease-spring);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .ledgerOption:hover:not(:disabled) {
   border-color: var(--color-border-accent);
   background: var(--color-bg-hover);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .ledgerOption[data-selected="true"] {
@@ -409,14 +409,14 @@
   position: relative;
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .channelOption:hover:not(:disabled) {
   border-color: var(--color-border-accent);
   background: var(--color-bg-hover);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .channelOption[data-selected="true"] {

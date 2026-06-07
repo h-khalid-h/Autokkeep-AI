@@ -10,7 +10,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 /* ─── Base Table ─────────────────────────────── */
@@ -39,7 +39,7 @@
   white-space: nowrap;
   user-select: none;
   position: relative;
-  background: var(--color-bg-subtle);
+  background: var(--color-bg-secondary);
 }
 
 .headerCellSortable {
@@ -48,7 +48,7 @@
 }
 
 .headerCellSortable:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
 }
 
 .headerCellSortable:focus-visible {

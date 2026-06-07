@@ -84,14 +84,14 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   transition: all var(--duration-fast) var(--ease-out);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .integrationRow:hover {
   border-color: var(--color-border-accent);
   background: var(--color-bg-hover);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 @media (max-width: 640px) {
@@ -318,7 +318,7 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   transition: all var(--duration-fast) var(--ease-out);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   margin-bottom: var(--space-1);
 }
 

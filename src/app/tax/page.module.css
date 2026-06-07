@@ -90,25 +90,25 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .kpiCard:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 .kpiCard:nth-child(2):hover {
-  box-shadow: var(--shadow-md), var(--shadow-glow-success);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-success);
 }
 
 .kpiCard:nth-child(3):hover {
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-accent);
 }
 
 .kpiCard:nth-child(4):hover {
-  box-shadow: var(--shadow-md), var(--shadow-glow-warning);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-warning);
 }
 
 .kpiLabel {
@@ -158,7 +158,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .scoreSummary {
@@ -398,7 +398,7 @@
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 

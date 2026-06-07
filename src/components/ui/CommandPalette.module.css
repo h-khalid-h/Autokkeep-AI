@@ -16,10 +16,10 @@
   width: min(560px, calc(100vw - var(--space-8)));
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-button-hover);
   overflow: hidden;
-  animation: scale-in var(--duration-fast) var(--ease-out);
+  animation: scale-in var(--duration-fast) var(--ease-premium);
 }
 
 /* ─── Search Input ─── */
@@ -119,7 +119,12 @@
 .item:hover,
 .item.active {
   background: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
+}
+
+.item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .itemIcon {

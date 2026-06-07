@@ -29,7 +29,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   transition: transform var(--duration-fast) var(--ease-out),
               box-shadow var(--duration-fast) var(--ease-out),
               background-color var(--duration-fast) var(--ease-out);
@@ -38,18 +38,18 @@
 .statCard:hover {
   transform: translateY(-2px);
   background-color: var(--color-bg-hover);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 /* Specific glows for stat cards based on status labels */
 .statCard:nth-child(2):hover {
   /* Pending card - Warning status color */
-  box-shadow: var(--shadow-md), var(--shadow-glow-warning);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-warning);
 }
 
 .statCard:nth-child(4):hover {
   /* AI Accuracy card - Success status color */
-  box-shadow: var(--shadow-md), var(--shadow-glow-success);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-success);
 }
 
 .statIcon {
@@ -110,14 +110,14 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-xl);
   transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .chartCard:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 .chartTitle {
@@ -134,7 +134,7 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-xl);
   padding: var(--space-4);
 }
@@ -159,7 +159,7 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-xl);
   transition: transform var(--duration-fast) var(--ease-out),
               box-shadow var(--duration-fast) var(--ease-out),
@@ -169,7 +169,7 @@
 .moduleCardInner:hover {
   transform: translateY(-4px);
   border-color: var(--color-accent-muted);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
 }
 
 .moduleCardIcon {
@@ -204,6 +204,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  transition: transform var(--duration-fast) var(--ease-premium);
+}
+
+.moduleCardInner:hover .moduleCardCta {
+  transform: translateX(4px);
 }
 
 /* ─── 2-Panel Layout ──────────────────────── */
@@ -225,7 +230,7 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-2xl);
 }
 
@@ -240,7 +245,7 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-2xl);
 }
 

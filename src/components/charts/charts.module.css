@@ -34,7 +34,7 @@
 
 .chartCard:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* ─── Chart Header ────────────────────────── */
@@ -90,7 +90,7 @@
 }
 
 .periodButton:hover {
-  color: var(--color-text-secondary);
+  color: var(--color-accent-text);
   background: var(--color-bg-hover);
 }
 
@@ -113,7 +113,7 @@
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover);
   backdrop-filter: blur(12px);
   min-width: 140px;
 }
@@ -265,7 +265,7 @@
 /* ─── Animation ───────────────────────────── */
 
 .chartCard {
-  animation: chartFadeIn var(--duration-moderate) var(--ease-out) both;
+  animation: chartFadeIn var(--duration-moderate) var(--ease-premium) both;
 }
 
 @keyframes chartFadeIn {

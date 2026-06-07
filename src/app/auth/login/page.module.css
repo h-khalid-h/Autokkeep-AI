@@ -11,7 +11,8 @@
   background:
     radial-gradient(ellipse 60% 50% at 50% 40%, var(--color-accent-subtle) 0%, transparent 60%),
     radial-gradient(ellipse at 20% 50%, var(--color-accent-subtle) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, var(--color-info-subtle) 0%, transparent 50%);
+    radial-gradient(ellipse at 80% 20%, var(--color-info-subtle) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(216, 253, 73, 0.03) 0%, transparent 50%);
   z-index: var(--z-hide);
 }
 
@@ -45,8 +46,8 @@
   width: 100%;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-xl), var(--shadow-glow);
-  animation: cardFadeIn var(--duration-slower) var(--ease-out) forwards;
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
+  animation: cardFadeIn var(--duration-slower) var(--ease-premium) forwards;
   opacity: 0;
 }
 
@@ -200,7 +201,7 @@
 }
 
 .backLink:hover {
-  color: var(--color-text-secondary);
+  color: var(--color-accent-text);
 }
 
 /* ─── Error toast ─────────────────────────── */

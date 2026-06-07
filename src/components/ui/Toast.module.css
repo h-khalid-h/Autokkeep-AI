@@ -22,10 +22,10 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover);
   font-family: var(--font-sans);
   pointer-events: all;
   position: relative;

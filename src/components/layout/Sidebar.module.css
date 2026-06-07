@@ -209,6 +209,11 @@
   color: var(--color-accent-text);
 }
 
+.navItem:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .navItem:hover .navItemIcon {
   transform: translateX(3px);
 }
