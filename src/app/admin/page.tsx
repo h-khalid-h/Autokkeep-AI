@@ -82,7 +82,7 @@ const STATUS_COLORS: Record<string, string> = {
   approved: 'var(--color-success)',
   auto_categorized: 'var(--color-accent)',
   human_review: 'var(--color-destructive)',
-  synced: '#8b5cf6',
+  synced: 'var(--chart-net)',
 };
 
 function statusIcon(status: string) {
@@ -162,7 +162,7 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
               className={styles.statusSegment}
               style={{
                 width: `${pct}%`,
-                background: STATUS_COLORS[status] || '#6b7280',
+                background: STATUS_COLORS[status] || 'var(--color-text-tertiary)',
               }}
             />
           );
@@ -174,7 +174,7 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
           <div key={status} className={styles.statusLegendItem}>
             <div
               className={styles.statusDot}
-              style={{ background: STATUS_COLORS[status] || '#6b7280' }}
+              style={{ background: STATUS_COLORS[status] || 'var(--color-text-tertiary)' }}
             />
             <span className={styles.statusCaption}>
               {status.replace(/_/g, ' ')}: {formatNumber(count)}

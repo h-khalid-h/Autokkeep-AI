@@ -5,55 +5,55 @@
 .entriesList {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-8);
   max-width: 800px;
   margin: 0 auto;
 }
 
 .entryCard {
-  padding: 32px;
+  padding: var(--space-8);
   border-left: 4px solid var(--color-accent);
 }
 
 .entryHeader {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
 .versionBadge {
   background: var(--color-brand-gradient);
   color: var(--color-text-on-accent);
-  padding: 4px 14px;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  padding: var(--space-1) var(--space-3-5);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wide);
 }
 
 .entryDate {
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
 }
 
 .changesList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .changeItem {
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
 }
 
 .ctaSection {
-  padding: 48px 0;
+  padding: var(--space-12) 0;
 }
 
 .ctaText {

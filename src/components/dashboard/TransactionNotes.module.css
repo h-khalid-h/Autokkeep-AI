@@ -147,7 +147,7 @@
 
 .saveButton {
   background: var(--color-accent);
-  color: var(--color-text-on-accent, #fff);
+  color: var(--color-text-on-accent);
   border-color: var(--color-accent);
 }
 

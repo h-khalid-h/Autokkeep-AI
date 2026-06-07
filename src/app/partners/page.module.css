@@ -237,7 +237,7 @@
 .tierCardHighlight {
   composes: tierCard;
   border-color: var(--color-accent);
-  box-shadow: 0 0 40px rgba(30, 111, 255, 0.12);
+  box-shadow: var(--shadow-glow);
 }
 
 .tierBadge {

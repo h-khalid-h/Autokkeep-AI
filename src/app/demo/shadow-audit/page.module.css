@@ -1,6 +1,6 @@
 .uploadZone {
   border: 2px dashed var(--color-border-accent);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 64px 32px;
   text-align: center;
   cursor: pointer;
@@ -19,7 +19,7 @@
   background: var(--color-bg-input);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
   font-size: 0.875rem;
   width: 100%;
@@ -48,7 +48,7 @@
 .badgeBase {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
@@ -176,14 +176,14 @@
 
 .progressTrack {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--color-bg-secondary);
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   transition: width 0.15s ease;
 }
 

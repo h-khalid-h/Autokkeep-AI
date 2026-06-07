@@ -293,8 +293,8 @@
 }
 
 .signOutButton:hover {
-  background: hsla(0, 70%, 55%, 0.1);
-  color: hsl(0, 70%, 55%);
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
 }
 
 .signOutButton:disabled {

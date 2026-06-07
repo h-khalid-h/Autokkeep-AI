@@ -12,7 +12,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           padding: 'var(--space-2) var(--space-4)',
           borderRadius: 'var(--radius-md)',
           background: 'var(--color-brand)',
-          color: 'white',
+          color: 'var(--color-text-on-accent)',
           border: 'none',
           cursor: 'pointer',
         }}

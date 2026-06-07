@@ -863,7 +863,7 @@ export default function ChartOfAccountsPage() {
                           <td className={styles.cellCode}>{account.code}</td>
                           <td className={styles.cellName}>
                             {account.parent_id && (
-                              <span style={{ color: 'var(--color-text-tertiary, #999)', marginRight: 4 }}>└─</span>
+                              <span style={{ color: 'var(--color-text-tertiary)', marginRight: 4 }}>└─</span>
                             )}
                             {account.name}
                           </td>

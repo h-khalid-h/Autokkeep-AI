@@ -92,12 +92,12 @@
   font-weight: var(--weight-semibold);
   font-family: inherit;
   transition: all 200ms ease;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
   white-space: nowrap;
 }
 
 .acceptBtn:hover {
   background: var(--color-accent-hover);
-  box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-1px);
 }
