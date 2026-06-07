@@ -61,7 +61,16 @@
 
 .featureCard:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
+}
+
+.featureCard:hover .featureIcon {
+  transform: scale(1.1) rotate(3deg);
+}
+
+/* Bento grid: first card spans 2 columns */
+.featureCard:first-child {
+  grid-column: span 2;
 }
 
 .featureIcon {
@@ -75,6 +84,7 @@
   color: var(--color-accent-text);
   font-size: var(--text-xl);
   flex-shrink: 0;
+  transition: transform var(--duration-moderate) var(--ease-spring);
 }
 
 .featureTitle {
@@ -96,6 +106,10 @@
 @media (max-width: 1024px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .featureCard:first-child {
+    grid-column: span 1;
   }
 }
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-scroll-reveal>
       <div className={styles.container}>
         <h1 className={styles.title}>
           Autokkeep Blog
@@ -19,7 +19,7 @@ export default function BlogPage() {
           Insights on AI financial operations, small business automation, and the future of accounting.
         </p>
 
-        <div className={styles.postList}>
+        <div className={styles.postList} data-scroll-reveal>
           {blogPosts.map((post) => (
             <Link
               key={post.slug}

@@ -1,0 +1,527 @@
+/* ============================================
+   FINANCIAL REPORTS HUB — CSS Module
+   Uses Autokkeep design tokens
+   ============================================ */
+
+/* ─── Page container ──────────────────────────── */
+.pageContainer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* ─── Page header ─────────────────────────────── */
+.pageHeader {
+  margin-bottom: var(--space-6);
+}
+
+.pageTitle {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 var(--space-1);
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pageSubtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ─── Report Type Tabs ────────────────────────── */
+.reportTabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.reportTab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--glass-shadow);
+}
+
+.reportTab:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.reportTabActive {
+  composes: reportTab;
+  background: var(--color-accent-subtle);
+  border-color: var(--color-border-accent);
+  color: var(--color-accent-text);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.reportTabIcon {
+  font-size: var(--text-lg);
+}
+
+/* ─── Controls Row ────────────────────────────── */
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+}
+
+.dateField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  flex: 1;
+  min-width: 180px;
+}
+
+.dateLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.dateInput {
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.dateInput:hover {
+  border-color: var(--color-border-strong);
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.generateActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+/* ─── Error banner ────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-destructive-subtle);
+  color: var(--color-destructive);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-destructive-border);
+  margin-bottom: var(--space-4);
+}
+
+.errorDismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-destructive);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.errorDismiss:hover {
+  background: var(--color-destructive-border);
+}
+
+/* ─── Report Display ──────────────────────────── */
+.reportContainer {
+  animation: slideUpFade var(--duration-moderate) var(--ease-spring);
+}
+
+/* ─── Report Meta Header ──────────────────────── */
+.reportMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-xl);
+}
+
+.reportMetaLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.reportName {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.reportPeriod {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.reportMetaRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.reportTimestamp {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* ─── Report Section ──────────────────────────── */
+.reportSection {
+  margin-bottom: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionIcon {
+  font-size: var(--text-xl);
+}
+
+/* ─── Line Items Table ────────────────────────── */
+.lineItemsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lineItemsTable th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.lineItemsTable th:last-child {
+  text-align: right;
+}
+
+.lineItemRow {
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.lineItemRow:hover {
+  background: var(--color-bg-hover);
+}
+
+.lineItemRow td {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lineItemCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  width: 100px;
+}
+
+.lineItemName {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.lineItemAmount {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ─── Total Row ───────────────────────────────── */
+.totalRow {
+  border-top: 2px solid var(--color-border);
+}
+
+.totalRow td {
+  padding: var(--space-3);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  border-bottom: none;
+}
+
+.totalLabel {
+  color: var(--color-text-primary);
+}
+
+.totalAmount {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent-text);
+}
+
+/* ─── Net Income / Summary Card ───────────────── */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+@media (min-width: 640px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.summaryItem {
+  text-align: center;
+  padding: var(--space-5);
+}
+
+.summaryLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-2);
+}
+
+.summaryValue {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
+}
+
+.summaryValuePositive {
+  composes: summaryValue;
+  color: var(--color-success);
+}
+
+.summaryValueNegative {
+  composes: summaryValue;
+  color: var(--color-destructive);
+}
+
+.summaryValueNeutral {
+  composes: summaryValue;
+  color: var(--color-text-primary);
+}
+
+/* ─── Balance Sheet specific ──────────────────── */
+.balancedIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  margin-top: var(--space-4);
+}
+
+.balancedTrue {
+  composes: balancedIndicator;
+  background: var(--color-success-subtle);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
+}
+
+.balancedFalse {
+  composes: balancedIndicator;
+  background: var(--color-warning-subtle);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
+/* ─── Comparison Period ───────────────────────── */
+.comparisonSection {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+}
+
+.comparisonTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.comparisonLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.comparisonValue {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+/* ─── Export Actions ──────────────────────────── */
+.exportActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ─── Loading Skeleton Grid ───────────────────── */
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ─── Empty State ─────────────────────────────── */
+.emptyReport {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+}
+
+.emptyIcon {
+  font-size: 56px;
+  margin-bottom: var(--space-4);
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(var(--shadow-glow));
+}
+
+.emptyTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+}
+
+.emptyDesc {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: var(--leading-relaxed);
+}
+
+/* ─── Animations ──────────────────────────────── */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ─── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .controlsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dateField {
+    min-width: 100%;
+  }
+
+  .generateActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .reportMeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .comparisonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exportActions {
+    flex-direction: column;
+  }
+}

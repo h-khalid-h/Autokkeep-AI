@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 import Link from 'next/link';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import styles from './page.module.css';
 
 export default function ContactPage() {
+  const scrollRef = useScrollReveal();
   const [formState, setFormState] = useState({
     name: '',
     email: '',
@@ -58,8 +60,8 @@ export default function ContactPage() {
   return (
     <>
       <Navbar />
-      <main>
-        <section className={`section ${styles.section}`}>
+      <main ref={scrollRef}>
+        <section className={`section ${styles.section}`} data-scroll-reveal>
           <div className={`container ${styles.container}`}>
             <div className="section-header">
               <div className="section-label">

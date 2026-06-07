@@ -8,7 +8,7 @@ export default function CTASection() {
   const { t } = useLanding();
 
   return (
-    <section className={styles.section} id="cta">
+    <section className={styles.section} id="cta" data-scroll-reveal>
       <div className={styles.bgAccent}>
         <div className={styles.bgGradient} />
       </div>

@@ -206,7 +206,11 @@
 
 .navItem:hover {
   background: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
+}
+
+.navItem:hover .navItemIcon {
+  transform: translateX(3px);
 }
 
 .navItem.active {
@@ -234,6 +238,7 @@
   justify-content: center;
   flex-shrink: 0;
   font-size: var(--text-base);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .navItemLabel {

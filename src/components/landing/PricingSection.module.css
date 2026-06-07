@@ -57,11 +57,16 @@
 
 .tierCard:hover {
   transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .popular {
   border-color: var(--color-accent);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-button), var(--shadow-glow);
+}
+
+.popular:hover {
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
 }
 
 .popularBadge {

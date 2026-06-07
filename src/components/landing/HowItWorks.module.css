@@ -76,8 +76,8 @@
 }
 
 .step:hover .stepIcon {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-glow);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
 }
 
 .stepNumber {

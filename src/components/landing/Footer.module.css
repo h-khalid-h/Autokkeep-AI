@@ -78,7 +78,7 @@
 }
 
 .link:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
 }
 
 /* ─── Bottom bar ───────────────────────────── */

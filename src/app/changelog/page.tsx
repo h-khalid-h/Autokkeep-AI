@@ -81,7 +81,7 @@ export default function ChangelogPage() {
     <>
       <Navbar />
       <main>
-        <section className={`section ${styles.section}`}>
+        <section className={`section ${styles.section}`} data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <div className="section-label">

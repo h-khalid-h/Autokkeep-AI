@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import styles from './page.module.css';
@@ -62,6 +63,7 @@ function Chevron({ open }: { open: boolean }) {
    PAGE
    ═══════════════════════════════════════════════════════════ */
 export default function PartnersPage() {
+  const scrollRef = useScrollReveal();
   /* ── calculator state ── */
   const [clients, setClients] = useState(50);
   const [fee, setFee] = useState(500);
@@ -104,9 +106,9 @@ export default function PartnersPage() {
     <>
       <Navbar />
 
-      <main>
+      <main ref={scrollRef}>
         {/* ───────────────── 1  HERO ───────────────── */}
-        <section className={`section ${styles.heroSection}`}>
+        <section className={`section ${styles.heroSection}`} data-scroll-reveal>
           <div className="container">
             <Anim>
               <span className="section-label">🦾 Built for Accounting Professionals</span>
@@ -134,7 +136,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 1b  KEY BENEFITS ───────────────── */}
-        <section className="section-sm">
+        <section className="section-sm" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">✨ Why CPAs Choose Autokkeep</span></Anim>
@@ -167,7 +169,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 2  THE PROBLEM ───────────────── */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">📊 The Crisis</span></Anim>
@@ -204,7 +206,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 3  HOW IT WORKS ───────────────── */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">⚡ How It Works</span></Anim>
@@ -236,7 +238,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 4  REVENUE CALCULATOR ───────────────── */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">💰 Revenue Calculator</span></Anim>
@@ -314,7 +316,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 5  SHADOW AUDIT CTA ───────────────── */}
-        <section className="section-sm">
+        <section className="section-sm" data-scroll-reveal>
           <div className="container">
             <Anim>
               <div className={`card-accent ${styles.shadowAuditCard}`}>
@@ -329,7 +331,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 6  PARTNER TIERS ───────────────── */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">🏷️ Partner Pricing</span></Anim>
@@ -415,7 +417,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 7  FAQ ───────────────── */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <Anim><span className="section-label">❓ Common Questions</span></Anim>
@@ -486,7 +488,7 @@ export default function PartnersPage() {
         </section>
 
         {/* ───────────────── 8  CTA / FORM ───────────────── */}
-        <section className="cta-section" id="partner-cta">
+        <section className="cta-section" id="partner-cta" data-scroll-reveal>
           <div className={`container ${styles.ctaContainer}`}>
             <Anim>
               <h2 className="cta-title">

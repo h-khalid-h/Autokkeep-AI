@@ -10,7 +10,7 @@
   border-radius: var(--radius-xl);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   transition:
     box-shadow var(--duration-normal) var(--ease-out),
     transform var(--duration-normal) var(--ease-out),
@@ -41,7 +41,7 @@
 /* Elevated: shadow instead of strong border */
 .elevated {
   border-color: var(--glass-border);
-  box-shadow: var(--shadow-md), var(--glass-shadow);
+  box-shadow: var(--shadow-card-hover), var(--glass-shadow);
 }
 
 /* Interactive: hover lift */
@@ -50,7 +50,7 @@
 }
 
 .interactive:hover {
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
   transform: translateY(-3px) scale(1.005);
   border-color: var(--color-accent-muted);
 }

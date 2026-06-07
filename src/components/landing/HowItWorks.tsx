@@ -74,7 +74,7 @@ export default function HowItWorks() {
   const stepNums = STEP_NUMBERS[language] || STEP_NUMBERS.en;
 
   return (
-    <section className={styles.section} id="how-it-works">
+    <section className={styles.section} id="how-it-works" data-scroll-reveal>
       <div className={styles.container}>
         <p className={styles.label}>{label}</p>
         <h2 className={styles.heading}>{t('howItWorks')}</h2>

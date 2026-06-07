@@ -76,7 +76,7 @@ export default function SecurityPage() {
     <>
       <Navbar />
       <main>
-        <section className={`section ${styles.heroSection}`}>
+        <section className={`section ${styles.heroSection}`} data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <div className="section-label">
@@ -119,7 +119,7 @@ export default function SecurityPage() {
             </div>
 
             {/* Data Flow Diagram */}
-            <section className="section-sm">
+            <section className="section-sm" data-scroll-reveal>
               <div className="section-header">
                 <h2 className="section-title">How Your Data <span className="text-gradient">Flows</span></h2>
                 <p className="section-subtitle">
@@ -163,7 +163,7 @@ export default function SecurityPage() {
             </section>
 
             {/* AI Safety */}
-            <section className="section-sm">
+            <section className="section-sm" data-scroll-reveal>
               <div className="section-header">
                 <h2 className="section-title">AI <span className="text-gradient">Safety</span></h2>
                 <p className="section-subtitle">
@@ -196,7 +196,7 @@ export default function SecurityPage() {
             </section>
 
             {/* Compliance */}
-            <section className="section-sm">
+            <section className="section-sm" data-scroll-reveal>
               <div className="section-header">
                 <h2 className="section-title">Compliance <span className="text-gradient">Standards</span></h2>
                 <p className="section-subtitle">
@@ -237,7 +237,7 @@ export default function SecurityPage() {
             </section>
 
             {/* Infrastructure */}
-            <section className="section-sm">
+            <section className="section-sm" data-scroll-reveal>
               <div className="section-header">
                 <h2 className="section-title">Infrastructure <span className="text-gradient">Security</span></h2>
                 <p className="section-subtitle">

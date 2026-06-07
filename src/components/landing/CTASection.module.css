@@ -20,15 +20,17 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 700px;
-  height: 400px;
+  width: 900px;
+  height: 500px;
   background: radial-gradient(
     ellipse at center,
-    rgba(1, 95, 253, 0.1) 0%,
-    rgba(0, 245, 255, 0.05) 40%,
+    rgba(52, 60, 237, 0.10) 0%,
+    rgba(216, 253, 73, 0.04) 30%,
+    rgba(225, 107, 255, 0.06) 50%,
     transparent 70%
   );
-  filter: blur(60px);
+  filter: blur(80px);
+  animation: floatSlow 20s ease-in-out infinite;
 }
 
 .container {

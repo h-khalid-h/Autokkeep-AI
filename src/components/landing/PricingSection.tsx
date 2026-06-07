@@ -89,7 +89,7 @@ export default function PricingSection() {
   const pricing = LOCAL_PRICING[country] || LOCAL_PRICING.US;
 
   return (
-    <section className={styles.section} id="pricing">
+    <section className={styles.section} id="pricing" data-scroll-reveal>
       <div className={styles.container}>
         <p className={styles.label}>Pricing</p>
         <h2 className={styles.heading}>Simple, transparent pricing</h2>

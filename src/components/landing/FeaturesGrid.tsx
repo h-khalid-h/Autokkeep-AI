@@ -281,7 +281,7 @@ export default function FeaturesGrid() {
   ];
 
   return (
-    <section className={styles.section} id="features">
+    <section className={styles.section} id="features" data-scroll-reveal>
       <div className={styles.container}>
         <p className={styles.label}>{texts.label}</p>
         <h2 className={styles.heading}>{texts.heading}</h2>

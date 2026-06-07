@@ -1,9 +1,10 @@
 /* ============================================
-   SOCIAL PROOF — Trust bar
+   SOCIAL PROOF — Trust bar with stat counters
+   Glean-inspired metrics display
    ============================================ */
 
 .section {
-  padding: var(--space-12) var(--space-6);
+  padding: var(--space-16) var(--space-6);
   text-align: center;
 }
 
@@ -17,7 +18,7 @@
   font-weight: var(--weight-medium);
   color: var(--color-text-tertiary);
   letter-spacing: var(--tracking-wide);
-  margin: 0;
+  margin: 0 0 var(--space-10);
 }
 
 .trustHighlight {
@@ -25,16 +26,58 @@
   font-weight: var(--weight-semibold);
 }
 
+/* ─── Stat counters grid ───────────────────── */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.statValue {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+
+.statLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
 .divider {
   width: 48px;
   height: 1px;
   background: var(--color-border-strong);
-  margin: var(--space-6) auto 0;
+  margin: var(--space-10) auto 0;
 }
 
 @media (max-width: 640px) {
   .section {
-    padding: var(--space-8) var(--space-4);
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8) var(--space-4);
+  }
+
+  .statValue {
+    font-size: var(--text-2xl);
   }
 
   .trustText {

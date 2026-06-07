@@ -13,7 +13,7 @@ export default function PricingPage() {
     <>
       <Navbar />
       <main>
-        <div style={{ paddingTop: 'var(--header-height)' }}>
+        <div style={{ paddingTop: 'var(--header-height)' }} data-scroll-reveal>
           <PricingSection />
           <CTASection />
         </div>

@@ -61,7 +61,7 @@ export default function AboutPage() {
       <Navbar />
       <main>
         {/* Hero */}
-        <section className={`section ${styles.heroSection}`}>
+        <section className={`section ${styles.heroSection}`} data-scroll-reveal>
           <div className="container">
             <div className={`section-header ${styles.heroHeader}`}>
               <div className="section-label">
@@ -79,7 +79,7 @@ export default function AboutPage() {
         </section>
 
         {/* Mission */}
-        <section className="section-sm">
+        <section className="section-sm" data-scroll-reveal>
           <div className="container">
             <div className={styles.missionGrid}>
               <div>
@@ -120,7 +120,7 @@ export default function AboutPage() {
         </section>
 
         {/* Timeline */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <h2 className="section-title">Our <span className="text-gradient">Journey</span></h2>
@@ -148,7 +148,7 @@ export default function AboutPage() {
         </section>
 
         {/* Values */}
-        <section className="section-sm">
+        <section className="section-sm" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <h2 className="section-title">Our <span className="text-gradient">Principles</span></h2>
@@ -167,7 +167,7 @@ export default function AboutPage() {
         </section>
 
         {/* Solo Founder Stack */}
-        <section className="section">
+        <section className="section" data-scroll-reveal>
           <div className="container">
             <div className="section-header">
               <div className="section-label">
@@ -215,7 +215,7 @@ export default function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="cta-section section">
+        <section className="cta-section section" data-scroll-reveal>
           <div className="container">
             <h2 className="cta-title">
               Ready to <span className="text-gradient">Join Us</span>?
