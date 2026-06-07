@@ -94,6 +94,11 @@
   background: var(--color-bg-hover);
 }
 
+.periodButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .periodButton[data-active='true'] {
   color: var(--color-text-primary);
   background: var(--color-bg-tertiary);

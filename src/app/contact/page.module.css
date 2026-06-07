@@ -59,7 +59,7 @@
   text-align: center;
   max-width: 560px;
   margin: 0 auto;
-  animation: slide-up-fade var(--duration-slow) var(--ease-out) forwards;
+  animation: slide-up-fade var(--duration-slow) var(--ease-premium) forwards;
 }
 
 .successIcon {

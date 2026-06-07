@@ -181,7 +181,7 @@
   display: flex;
   gap: var(--space-4);
   align-items: flex-start;
-  animation: fadeInUp 0.3s ease-out both;
+  animation: fadeInUp 0.3s var(--ease-premium) both;
 }
 
 .alertCard:nth-child(1) { animation-delay: 0s; }

@@ -6,7 +6,7 @@ import styles from './Card.module.css';
 /* ─── Types ────────────────────────────────── */
 
 export type CardVariant = 'default' | 'elevated' | 'interactive' | 'accent';
-export type CardPadding = 'sm' | 'md' | 'lg';
+export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Visual variant */
@@ -22,6 +22,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 /* ─── Padding map ──────────────────────────── */
 
 const paddingMap: Record<CardPadding, string> = {
+  none: '',
   sm: styles.paddingSm,
   md: styles.paddingMd,
   lg: styles.paddingLg,

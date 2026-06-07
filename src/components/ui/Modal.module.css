@@ -13,7 +13,7 @@
   justify-content: center;
   padding: var(--space-4);
   background-color: var(--color-bg-overlay);
-  animation: overlayFadeIn var(--duration-normal) var(--ease-out);
+  animation: overlayFadeIn var(--duration-normal) var(--ease-premium);
 }
 
 @keyframes overlayFadeIn {
@@ -34,7 +34,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
   animation: panelScaleIn var(--duration-moderate) var(--ease-spring);

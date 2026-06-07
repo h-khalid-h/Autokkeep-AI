@@ -250,6 +250,11 @@
   background: var(--color-bg-hover);
 }
 
+.tr:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .trExpanded {
   composes: tr;
   background: var(--color-bg-active);
@@ -335,7 +340,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-5);
-  animation: slideUpFade var(--duration-normal) var(--ease-out);
+  animation: slideUpFade var(--duration-normal) var(--ease-premium);
 }
 
 .expandedSection {

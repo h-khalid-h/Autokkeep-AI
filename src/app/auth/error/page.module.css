@@ -45,8 +45,8 @@
   width: 100%;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-xl), var(--shadow-glow);
-  animation: cardFadeIn var(--duration-slower) var(--ease-out) forwards;
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
+  animation: cardFadeIn var(--duration-slower) var(--ease-premium) forwards;
   opacity: 0;
   text-align: center;
 }

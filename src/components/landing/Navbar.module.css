@@ -73,6 +73,11 @@
   background: var(--color-bg-hover);
 }
 
+.navLink:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* ─── Animated nav CTA (Glean gradient border) ─── */
 
 .navCtaWrapper {
@@ -227,7 +232,7 @@
 }
 
 .mobileLink:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
   background: var(--color-bg-hover);
 }
 
@@ -292,7 +297,7 @@
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   font-weight: var(--weight-bold);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   user-select: none;
   transition: all var(--duration-fast) var(--ease-out);
 }
@@ -330,7 +335,7 @@
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   font-weight: var(--weight-bold);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   outline: none;
   transition: all var(--duration-fast) var(--ease-out);

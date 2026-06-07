@@ -41,7 +41,7 @@
 /* Elevated: shadow instead of strong border */
 .elevated {
   border-color: var(--glass-border);
-  box-shadow: var(--shadow-card-hover), var(--glass-shadow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-card);
 }
 
 /* Interactive: hover lift */

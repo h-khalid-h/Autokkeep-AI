@@ -60,8 +60,8 @@
   width: 100%;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-xl), var(--shadow-glow);
-  animation: fadeInUp 0.5s var(--ease-out) both;
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
+  animation: fadeInUp 0.5s var(--ease-premium) both;
 }
 
 /* ─── Logo row ────────────────────────────── */
@@ -117,7 +117,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2-5);
-  animation: fadeInUp 0.25s var(--ease-out) both;
+  animation: fadeInUp 0.25s var(--ease-premium) both;
 }
 
 .errorIcon {
@@ -190,7 +190,7 @@
 
 .success {
   text-align: center;
-  animation: fadeInUp 0.4s var(--ease-out) both;
+  animation: fadeInUp 0.4s var(--ease-premium) both;
 }
 
 .successIcon {

@@ -23,6 +23,11 @@
   background: var(--color-bg-hover);
 }
 
+.bellButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .unreadBadge {
   position: absolute;
   top: 2px;
@@ -53,7 +58,7 @@
   box-shadow: var(--shadow-button-hover);
   overflow: hidden;
   z-index: var(--z-dropdown, 1000);
-  animation: bellFadeIn 150ms ease-out;
+  animation: bellFadeIn 150ms var(--ease-premium);
 }
 
 @keyframes bellFadeIn {

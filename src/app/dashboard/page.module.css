@@ -41,6 +41,11 @@
   box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
+.statCard:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* Specific glows for stat cards based on status labels */
 .statCard:nth-child(2):hover {
   /* Pending card - Warning status color */
@@ -170,6 +175,11 @@
   transform: translateY(-4px);
   border-color: var(--color-accent-muted);
   box-shadow: var(--shadow-button-hover), var(--shadow-glow);
+}
+
+.moduleCardInner:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .moduleCardIcon {

@@ -37,7 +37,7 @@
   box-shadow: var(--shadow-button-hover);
   overflow: hidden;
   z-index: var(--z-dropdown, 1000);
-  animation: menuFadeIn 150ms ease-out;
+  animation: menuFadeIn 150ms var(--ease-premium);
 }
 
 @keyframes menuFadeIn {

@@ -137,6 +137,11 @@
   box-shadow: var(--shadow-card);
 }
 
+.searchTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .searchShortcut {
   display: flex;
   align-items: center;
@@ -180,6 +185,11 @@
   color: var(--color-accent-text);
 }
 
+.iconButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .notificationDot {
   position: absolute;
   top: 6px;
@@ -204,6 +214,11 @@
 
 .userTrigger:hover {
   background: var(--color-bg-hover);
+}
+
+.userTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* ─── Responsive ─── */

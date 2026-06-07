@@ -40,7 +40,7 @@
   box-shadow: var(--shadow-button-hover);
   font-family: var(--font-sans);
   outline: none;
-  animation: scaleIn var(--duration-fast) var(--ease-out) forwards;
+  animation: scaleIn var(--duration-fast) var(--ease-premium) forwards;
   transform-origin: top left;
 }
 

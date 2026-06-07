@@ -115,7 +115,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
   z-index: var(--z-dropdown);
   max-height: 250px;
   overflow-y: auto;

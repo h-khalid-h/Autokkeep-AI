@@ -8,7 +8,7 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: max(20vh, 120px);
-  animation: fade-in var(--duration-fast) var(--ease-out);
+  animation: fade-in var(--duration-fast) var(--ease-premium);
 }
 
 /* ─── Palette Container ─── */

@@ -56,14 +56,14 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--duration-normal) var(--ease-spring);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .reportTab:hover {
   border-color: var(--color-accent);
   color: var(--color-accent-text);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 .reportTabActive {
@@ -71,7 +71,7 @@
   background: var(--color-accent-subtle);
   border-color: var(--color-border-accent);
   color: var(--color-accent-text);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 .reportTabIcon {
@@ -91,7 +91,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .dateField {

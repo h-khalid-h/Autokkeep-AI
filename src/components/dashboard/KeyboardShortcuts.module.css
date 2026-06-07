@@ -26,6 +26,11 @@
   box-shadow: var(--shadow-button-hover);
 }
 
+.shortcutsPill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .pillKbd {
   display: inline-flex;
   align-items: center;

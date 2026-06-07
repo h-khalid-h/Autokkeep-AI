@@ -44,7 +44,7 @@
 }
 
 .navLink:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
 }
 
 .signInLink {
@@ -258,7 +258,7 @@
 }
 
 .footerLink:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent-text);
 }
 
 .footerLinkActive {

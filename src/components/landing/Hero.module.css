@@ -201,6 +201,11 @@
   background: var(--color-accent-hover);
 }
 
+.ctaPrimaryInner:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* Arrow swipe effect inside button */
 .ctaPrimaryInner::before {
   content: "";
@@ -229,14 +234,14 @@
   border-radius: var(--radius-2xl);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-xl), var(--shadow-glow);
+  box-shadow: var(--shadow-button-hover), var(--shadow-glow);
   background: var(--color-bg-secondary);
   aspect-ratio: 16 / 9;
   transition: box-shadow var(--duration-moderate) var(--ease-out);
 }
 
 .mockupContainer:hover {
-  box-shadow: var(--shadow-xl), 0 0 40px rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-button-hover), 0 0 40px rgba(59, 130, 246, 0.2);
 }
 
 .mockupImage {
@@ -272,7 +277,7 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover);
   z-index: 2;
   font-size: var(--text-sm);
   color: var(--color-text-primary);

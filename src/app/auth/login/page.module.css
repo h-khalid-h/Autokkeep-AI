@@ -217,7 +217,7 @@
   padding: var(--space-3) var(--space-4);
   color: var(--color-destructive-text);
   font-size: var(--text-sm);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-button-hover);
   animation: toastIn var(--duration-moderate) var(--ease-out) forwards;
 }
 

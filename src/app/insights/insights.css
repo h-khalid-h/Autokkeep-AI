@@ -208,14 +208,14 @@
   color: var(--color-text-primary);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .insights-suggestion-card:hover {
   background: var(--color-bg-hover);
   border-color: var(--color-accent);
   transform: translateY(-3px) scale(1.02);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
 }
 
 .insights-suggestion-icon {
@@ -281,7 +281,7 @@
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   border-bottom-right-radius: var(--radius-xs);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
   border: 1px solid var(--color-accent-hover);
 }
 
@@ -294,7 +294,7 @@
   border-left: 3px solid var(--color-accent);
   color: var(--color-text-primary);
   border-bottom-left-radius: var(--radius-xs);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .insights-message-content p {
@@ -502,12 +502,12 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   transition: all var(--duration-normal) var(--ease-out);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .insights-input-container:focus-within {
   border-color: var(--color-accent);
-  box-shadow: var(--glass-shadow), var(--shadow-glow);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
 }
 
 .insights-input {
@@ -621,7 +621,7 @@
     width: 280px;
     min-width: 280px;
     border-right: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-button-hover);
   }
 
   .insights-sidebar-toggle {

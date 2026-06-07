@@ -121,7 +121,7 @@
 .destructive:hover:not(:disabled) {
   background-color: var(--color-destructive-text);
   border-color: var(--color-destructive-text);
-  box-shadow: var(--shadow-md), var(--shadow-glow-destructive);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow-destructive);
   transform: translateY(-1px) scale(1.02);
 }
 

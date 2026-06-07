@@ -10,6 +10,7 @@ import { validateApiKey, hashApiKey } from '@/lib/api/public-api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { handleApiError } from '@/lib/api-helpers';
 import { createServerClient } from '@/lib/supabase/server';
+import type { SupabaseQueryClient } from '@/lib/supabase/query-client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('api-v1-webhooks');
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     const secretHash = await hashApiKey(secret);
 
     // Use untyped query client for tables not in generated types
-    const db = supabase as unknown as import('@/lib/supabase/query-client').SupabaseQueryClient;
+    const db = supabase as unknown as SupabaseQueryClient;
 
     const { data: subscription, error } = await db
       .from('webhook_subscriptions')

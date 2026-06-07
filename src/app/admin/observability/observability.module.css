@@ -304,7 +304,7 @@
 .expandedDetails {
   border-top: 2px solid var(--color-accent);
   margin-top: var(--space-0-5);
-  animation: fade-in-down var(--duration-fast) var(--ease-out);
+  animation: fade-in-down var(--duration-fast) var(--ease-premium);
 }
 
 @keyframes fade-in-down {

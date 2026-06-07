@@ -1,0 +1,363 @@
+/* ============================================
+   Import Dialog Styles
+   ============================================ */
+
+/* ─── Overlay ─────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: overlay-enter var(--duration-normal) var(--ease-premium);
+}
+
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dialog {
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 24px 80px -16px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dialog-enter var(--duration-normal) var(--ease-premium);
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── Header ──────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.headerTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.closeButton {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.closeButton:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* ─── Body ────────────────────────────────── */
+
+.body {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+/* ─── Drop Zone ───────────────────────────── */
+
+.dropZone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.dropZone:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.dropZoneActive {
+  composes: dropZone;
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  transform: scale(1.01);
+}
+
+.dropZoneIcon {
+  font-size: 48px;
+  opacity: 0.5;
+  margin-bottom: var(--space-3);
+}
+
+.dropZoneTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.dropZoneSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.dropZoneLink {
+  color: var(--color-accent-text);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.dropZoneLink:hover {
+  text-decoration: underline;
+}
+
+.fileInput {
+  display: none;
+}
+
+/* ─── Selected File ───────────────────────── */
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  margin-top: var(--space-4);
+}
+
+.fileIcon {
+  font-size: var(--text-xl);
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSize {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.removeFile {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.removeFile:hover {
+  background: hsla(0, 84%, 60%, 0.1);
+  color: var(--color-destructive);
+}
+
+/* ─── Preview Table ───────────────────────── */
+
+.previewSection {
+  margin-top: var(--space-6);
+}
+
+.previewTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.previewMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.previewTableWrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.previewTable th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-subtle);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.previewTable td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.previewTable tr:hover td {
+  background: var(--color-bg-hover);
+}
+
+/* ─── Validation Errors ───────────────────── */
+
+.validationSection {
+  margin-top: var(--space-4);
+}
+
+.validationError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: hsla(0, 84%, 60%, 0.06);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-destructive);
+  margin-bottom: var(--space-2);
+}
+
+.validationErrorIcon {
+  color: var(--color-destructive);
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+}
+
+.validationErrorText {
+  font-size: var(--text-xs);
+  color: var(--color-destructive);
+  line-height: 1.4;
+}
+
+.validationWarning {
+  composes: validationError;
+  background: hsla(45, 93%, 47%, 0.08);
+  border-left-color: hsl(45, 93%, 47%);
+}
+
+.validationWarningIcon {
+  color: hsl(45, 93%, 47%);
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+}
+
+.validationWarningText {
+  font-size: var(--text-xs);
+  color: hsl(45, 93%, 35%);
+  line-height: 1.4;
+}
+
+/* ─── Progress ────────────────────────────── */
+
+.progressSection {
+  margin-top: var(--space-4);
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.progressText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.progressPercent {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.progressBar {
+  height: 8px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.progressSuccess .progressFill {
+  background: var(--color-success);
+}
+
+/* ─── Footer ──────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}

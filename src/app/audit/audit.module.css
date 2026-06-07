@@ -1,0 +1,526 @@
+/* ============================================
+   Audit Log Viewer Styles
+   ============================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.pageDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+/* ─── Filters Bar ─────────────────────────── */
+
+.filtersBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 140px;
+}
+
+.filterLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.filterInput,
+.filterSelect {
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.filterInput:focus,
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.searchInput {
+  composes: filterInput;
+  min-width: 200px;
+  padding-left: var(--space-8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: var(--space-2-5) center;
+}
+
+.filterActions {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* ─── Toolbar ─────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.lastUpdated {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.resultCount {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.resultCountNum {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ─── Audit Table ─────────────────────────── */
+
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+}
+
+.table thead th {
+  text-align: left;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card);
+  z-index: 1;
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.table tbody td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.timestampCell {
+  font-size: var(--text-xs);
+}
+
+.timestampRelative {
+  display: block;
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.timestampFull {
+  display: block;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  margin-top: 1px;
+}
+
+.emailCell {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resourceIdCell {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-accent-text);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-subtle);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.resourceIdCell:hover {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.resourceTypeCell {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.detailsToggle {
+  font-size: var(--text-xs);
+  color: var(--color-accent-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.detailsToggle:hover {
+  background: var(--color-accent-subtle);
+}
+
+/* ─── Action Badges ───────────────────────── */
+
+.actionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+}
+
+.actionCreate {
+  background: hsla(142, 76%, 36%, 0.12);
+  color: hsl(142, 76%, 36%);
+}
+
+.actionUpdate {
+  background: hsla(217, 91%, 60%, 0.12);
+  color: hsl(217, 91%, 60%);
+}
+
+.actionDelete {
+  background: hsla(0, 84%, 60%, 0.12);
+  color: hsl(0, 84%, 60%);
+}
+
+.actionCategorize {
+  background: hsla(271, 91%, 65%, 0.12);
+  color: hsl(271, 91%, 65%);
+}
+
+.actionApprove {
+  background: hsla(142, 76%, 36%, 0.12);
+  color: hsl(142, 76%, 36%);
+}
+
+.actionRevoke {
+  background: hsla(25, 95%, 53%, 0.12);
+  color: hsl(25, 95%, 53%);
+}
+
+.actionExport {
+  background: hsla(187, 92%, 41%, 0.12);
+  color: hsl(187, 92%, 41%);
+}
+
+.actionSync {
+  background: hsla(48, 96%, 53%, 0.15);
+  color: hsl(45, 93%, 40%);
+}
+
+.actionLogin {
+  background: hsla(220, 9%, 46%, 0.12);
+  color: hsl(220, 9%, 46%);
+}
+
+.actionConnect,
+.actionDisconnect {
+  background: hsla(174, 72%, 40%, 0.12);
+  color: hsl(174, 72%, 40%);
+}
+
+.actionDefault {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+}
+
+/* ─── Expanded Row Detail ─────────────────── */
+
+.expandedRow td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.expandedContent {
+  padding: var(--space-4) var(--space-6);
+  animation: fade-in-down var(--duration-fast) var(--ease-premium);
+  background: var(--color-bg-subtle);
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detailItem {}
+
+.detailLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-1);
+}
+
+.detailValue {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.detailMono {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.jsonBlock {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow-x: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+.jsonLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* ─── Pagination ──────────────────────────── */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-4);
+}
+
+.paginationInfo {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pageSizeSelect {
+  composes: filterSelect;
+  width: auto;
+  min-width: 70px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageButtonActive {
+  composes: pageButton;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-weight: var(--weight-semibold);
+}
+
+.pageButtonActive:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* ─── Error Banner ────────────────────────── */
+
+.errorBanner {
+  border-left: 4px solid var(--color-destructive);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+  background: hsla(0, 84%, 60%, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.errorText {
+  color: var(--color-destructive);
+  font-size: var(--text-sm);
+}
+
+/* ─── Skeleton helpers ────────────────────── */
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeletonRow {
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* ─── Responsive ──────────────────────────── */
+
+@media (max-width: 768px) {
+  .filtersBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterGroup {
+    min-width: unset;
+  }
+
+  .filterActions {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+  }
+}
