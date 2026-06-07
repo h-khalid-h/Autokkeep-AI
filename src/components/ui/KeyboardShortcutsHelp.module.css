@@ -33,7 +33,7 @@
   align-items: center;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  transition: background 150ms ease;
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .row:hover {

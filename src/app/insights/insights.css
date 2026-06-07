@@ -164,7 +164,7 @@
   font-size: 64px;
   margin-bottom: var(--space-4);
   animation: float 4s ease-in-out infinite;
-  filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.2));
+  filter: drop-shadow(var(--shadow-glow));
 }
 
 .insights-empty-title {

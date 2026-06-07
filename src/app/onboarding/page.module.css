@@ -96,7 +96,7 @@
 .stepIndicator[data-state="current"] .stepLabel {
   font-weight: var(--weight-bold);
   color: var(--color-accent-text);
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+  text-shadow: var(--shadow-glow);
 }
 
 /* ─── Content area ────────────────────────── */
@@ -156,7 +156,7 @@
   font-size: var(--text-5xl);
   margin-bottom: var(--space-6);
   display: block;
-  filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.2));
+  filter: drop-shadow(var(--shadow-glow));
   animation: float 4s ease-in-out infinite;
 }
 

@@ -1,27 +1,27 @@
 .activityCard {
-  margin-top: var(--spacing-3);
+  margin-top: var(--space-3);
 }
 
 .activityTitle {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-3);
+  margin-bottom: var(--space-3);
 }
 
 .activityList {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--space-2);
 }
 
 .activityItem {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) 0;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
-  transition: background-color 0.15s ease;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .activityItem:last-child {
@@ -31,10 +31,10 @@
 .activityItem:hover {
   background-color: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
-  padding-left: var(--spacing-2);
-  margin-left: calc(var(--spacing-2) * -1);
-  padding-right: var(--spacing-2);
-  margin-right: calc(var(--spacing-2) * -1);
+  padding-left: var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  padding-right: var(--space-2);
+  margin-right: calc(var(--space-2) * -1);
 }
 
 .activityIcon {
@@ -44,7 +44,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   background: var(--color-bg-subtle);
   border-radius: var(--radius-full);
 }
@@ -58,28 +58,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-2);
+  gap: var(--space-2);
 }
 
 .activityTime {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
 }
 
 .activityDescription {
   display: block;
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .activityEmpty {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
   text-align: center;
-  padding: var(--spacing-4) 0;
+  padding: var(--space-4) 0;
 }

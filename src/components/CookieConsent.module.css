@@ -72,7 +72,7 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   font-family: inherit;
-  transition: all 200ms ease;
+  transition: all var(--duration-fast) var(--ease-out);
   white-space: nowrap;
 }
 
@@ -91,7 +91,7 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   font-family: inherit;
-  transition: all 200ms ease;
+  transition: all var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-md);
   white-space: nowrap;
 }
