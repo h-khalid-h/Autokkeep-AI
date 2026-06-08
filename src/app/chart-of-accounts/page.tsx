@@ -121,7 +121,7 @@ export default function ChartOfAccountsPage() {
   const { data: accounts, isLoading, error, refetch, setData: setAccounts } = useDataFetcher(
     [] as Account[],
     async (signal) => {
-      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity!.id}`, { signal });
+      const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity?.id ?? ''}`, { signal });
       if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
       const data = await res.json();
       return (data.accounts || []).map(mapApiAccount) as Account[];

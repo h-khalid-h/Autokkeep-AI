@@ -164,7 +164,12 @@ export const schemas = {
   // Compliance check (POST /api/compliance/check)
   complianceCheck: z.object({
     entityId: uuid,
-    region: z.enum(['estonia', 'qatar', 'hong_kong', 'japan', 'india', 'united_states']),
+    region: z.enum([
+      'united_states', 'united_kingdom', 'germany', 'european_union', 'estonia',
+      'canada', 'australia', 'india', 'japan', 'singapore', 'hong_kong',
+      'switzerland', 'uae', 'saudi_arabia', 'qatar', 'egypt',
+      'brazil', 'mexico', 'south_africa', 'nigeria', 'kenya',
+    ]),
   }),
 
   // Health alert action (PATCH /api/insights/health)

@@ -16,6 +16,10 @@ const protectedRoutes = [
   '/portfolio',
   '/tax',
   '/admin',
+  '/vendors',
+  '/reports',
+  '/audit',
+  '/notifications',
 ];
 const authRoutes = ['/auth/login', '/auth/signup'];
 

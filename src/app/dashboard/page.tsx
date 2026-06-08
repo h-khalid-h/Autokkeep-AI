@@ -341,6 +341,7 @@ export default function DashboardPage() {
   // ─── Fetch transactions from API on mount ───────────────────────────────────
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
     let cancelled = false;
 
     async function fetchTransactions() {
@@ -348,7 +349,7 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const res = await fetch(`/api/transactions?status=human_review,pending,pending_approval&entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/transactions?status=human_review,pending,pending_approval&entityId=${entityId}`);
 
         if (!res.ok) {
           throw new Error(`Failed to fetch transactions (${res.status})`);
@@ -379,11 +380,12 @@ export default function DashboardPage() {
   // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
     let cancelled = false;
 
     async function fetchChartOfAccounts() {
       try {
-        const res = await fetch(`/api/chart-of-accounts?entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/chart-of-accounts?entityId=${entityId}`);
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) {
@@ -752,6 +754,7 @@ export default function DashboardPage() {
               <span className={styles.errorBannerIcon}>⚠️</span>
               <span>Could not load transactions. ({error})</span>
               <button
+                type="button"
                 className={styles.retryButton}
                 onClick={() => setRetryKey((k) => k + 1)}
               >
@@ -790,6 +793,7 @@ export default function DashboardPage() {
             >
               {mobileDetailOpen && (
                 <button
+                  type="button"
                   className={styles.mobileBackButton}
                   onClick={handleMobileBack}
                   aria-label="Back to queue"

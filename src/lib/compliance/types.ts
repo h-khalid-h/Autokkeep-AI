@@ -2,7 +2,28 @@
 // Compliance Plugin System — Core Types
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export type ComplianceRegion = 'estonia' | 'qatar' | 'hong_kong' | 'japan' | 'india' | 'united_states';
+export type ComplianceRegion =
+  | 'united_states'
+  | 'united_kingdom'
+  | 'germany'
+  | 'european_union'   // FR, NL, IE, SE, FI, LV, LT, PL
+  | 'estonia'
+  | 'canada'
+  | 'australia'
+  | 'india'
+  | 'japan'
+  | 'singapore'
+  | 'hong_kong'
+  | 'switzerland'
+  | 'uae'
+  | 'saudi_arabia'
+  | 'qatar'
+  | 'egypt'
+  | 'brazil'
+  | 'mexico'
+  | 'south_africa'
+  | 'nigeria'
+  | 'kenya';
 export type ComplianceSeverity = 'info' | 'warning' | 'violation';
 
 export interface ComplianceRule {

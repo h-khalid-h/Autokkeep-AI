@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Button, Toggle, Skeleton } from '@/components/ui';
+import { Card, Button, Toggle, Skeleton, Modal } from '@/components/ui';
 import type { UserPreferences } from '@/lib/preferences/engine';
 import styles from './preferences.module.css';
 
@@ -76,6 +76,7 @@ export default function PreferencesSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // ── Fetch preferences ─────────────────────────────────────────────────
   const fetchPreferences = useCallback(async () => {
@@ -148,7 +149,7 @@ export default function PreferencesSettingsPage() {
 
   // ── Reset preferences ─────────────────────────────────────────────────
   const handleReset = useCallback(async () => {
-    if (!confirm('Reset all preferences to defaults? This cannot be undone.')) return;
+    setShowResetModal(false);
     setIsSaving(true);
     setError(null);
     setSuccess(null);
@@ -440,12 +441,32 @@ export default function PreferencesSettingsPage() {
                 <Button
                   id="reset-preferences-btn"
                   variant="ghost"
-                  onClick={handleReset}
+                  onClick={() => setShowResetModal(true)}
                   disabled={isSaving}
                 >
                   🔄 Reset to Defaults
                 </Button>
               </div>
+
+              {/* Reset Confirmation Modal */}
+              <Modal
+                isOpen={showResetModal}
+                onClose={() => setShowResetModal(false)}
+                title="Reset Preferences"
+                size="sm"
+                footer={
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                    <Button variant="ghost" size="sm" onClick={() => setShowResetModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={handleReset}>
+                      Reset to Defaults
+                    </Button>
+                  </div>
+                }
+              >
+                <p>Are you sure you want to reset all preferences to their default values? This cannot be undone.</p>
+              </Modal>
             </>
           )}
         </div>

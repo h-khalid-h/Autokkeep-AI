@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
-import { Card, Badge, Button, Skeleton } from '@/components/ui';
+import { Card, Badge, Button, Skeleton, Modal } from '@/components/ui';
 import styles from './webhooks.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ export default function WebhookSettingsPage() {
   const [formEvents, setFormEvents] = useState<Set<WebhookEventType>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // ── Fetch data ────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -177,8 +178,7 @@ export default function WebhookSettingsPage() {
 
   // ── Delete subscription ───────────────────────────────────────────────────
   const handleDeleteSubscription = useCallback(async (subscriptionId: string) => {
-    if (!confirm('Are you sure you want to delete this webhook subscription?')) return;
-
+    setConfirmDeleteId(null);
     setIsDeleting(subscriptionId);
     setError(null);
     setSuccessMessage(null);
@@ -423,7 +423,7 @@ export default function WebhookSettingsPage() {
                             id={`delete-sub-${sub.id}`}
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteSubscription(sub.id)}
+                            onClick={() => setConfirmDeleteId(sub.id)}
                             disabled={isDeleting === sub.id}
                           >
                             {isDeleting === sub.id ? '…' : '🗑️'}
@@ -503,6 +503,30 @@ export default function WebhookSettingsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={!!confirmDeleteId}
+          onClose={() => setConfirmDeleteId(null)}
+          title="Delete Webhook Subscription"
+          size="sm"
+          footer={
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => confirmDeleteId && handleDeleteSubscription(confirmDeleteId)}
+              >
+                Delete Subscription
+              </Button>
+            </div>
+          }
+        >
+          <p>Are you sure you want to delete this webhook subscription? This action cannot be undone.</p>
+        </Modal>
       </AppShell>
     </ErrorBoundary>
   );

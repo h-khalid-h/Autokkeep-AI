@@ -85,11 +85,12 @@ export default function AnalyticsPage() {
   // Fetch real transaction stats on mount
   useEffect(() => {
     if (!selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
     const controller = new AbortController();
     async function fetchAnalytics() {
       setError(null);
       try {
-        const res = await fetch(`/api/transactions?entityId=${selectedEntity!.id}`, { signal: controller.signal });
+        const res = await fetch(`/api/transactions?entityId=${entityId}`, { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch');
         const result = await res.json();
         const txns = result.transactions || [];

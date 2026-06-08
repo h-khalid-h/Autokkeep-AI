@@ -77,12 +77,13 @@ export default function RecentActivity() {
 
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
     let cancelled = false;
 
     async function fetchActivity() {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/audit?entityId=${selectedEntity!.id}&limit=8`);
+        const res = await fetch(`/api/audit?entityId=${entityId}&limit=8`);
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setEntries(data.auditLogs || []);

@@ -143,12 +143,13 @@ export default function InsightsPage() {
   // ── Fetch conversation list ─────────────────────────────────────────────────
   React.useEffect(() => {
     if (!selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
     let cancelled = false;
 
     async function fetchConversations() {
       setIsSidebarLoading(true);
       try {
-        const res = await fetch(`/api/ai/chat?entityId=${selectedEntity!.id}`);
+        const res = await fetch(`/api/ai/chat?entityId=${entityId}`);
         if (!res.ok) throw new Error('Failed to fetch conversations');
         const data = await res.json();
         if (!cancelled) {
