@@ -107,6 +107,7 @@ const INITIAL_FORM: VendorFormData = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function VendorsPage() {
+  'use no memo';
   const { selectedEntity } = useEntity();
   const toast = useToast();
   const isUS = selectedEntity?.country === 'US';
@@ -201,6 +202,7 @@ export default function VendorsPage() {
 
   // ── Fetch vendors ───────────────────────────────────────────────────────
   const fetchVendors = useCallback(async (signal?: AbortSignal) => {
+    'use no memo';
     if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
@@ -226,9 +228,7 @@ export default function VendorsPage() {
         total: 0, limit: PAGE_SIZE, offset: page * PAGE_SIZE, hasMore: false,
       });
 
-      if (hasAnyVendors === null) {
-        setHasAnyVendors(data.pagination?.total > 0 || list.length > 0);
-      }
+      setHasAnyVendors(prev => prev !== null ? prev : (data.pagination?.total > 0 || list.length > 0));
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[Vendors] Fetch error:', err);
@@ -236,7 +236,6 @@ export default function VendorsPage() {
     } finally {
       setIsLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedSearch, w9Filter, eligible1099Filter, selectedEntity?.id]);
 
   useEffect(() => {

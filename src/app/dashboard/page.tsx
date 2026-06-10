@@ -387,7 +387,7 @@ export default function DashboardPage() {
 
     fetchTransactions();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id, retryKey]);
 
   // ─── Fetch chart of accounts ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -410,7 +410,7 @@ export default function DashboardPage() {
 
     fetchChartOfAccounts();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id]);
 
   const handleSelectTransaction = React.useCallback(
     (transaction: Transaction) => {

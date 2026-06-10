@@ -31,6 +31,17 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+  // Complex data-fetching pages with many useCallback/useMemo hooks that the
+  // React Compiler cannot auto-optimize. These are opted out via 'use no memo'.
+  {
+    files: [
+      "src/app/transactions/page.tsx",
+      "src/app/vendors/page.tsx",
+    ],
+    rules: {
+      "react-compiler/react-compiler": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

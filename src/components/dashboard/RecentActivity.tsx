@@ -96,7 +96,7 @@ export default function RecentActivity() {
 
     fetchActivity();
     return () => { cancelled = true; };
-  }, [selectedEntity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id]);
 
   // Don't render if no entity selected
   if (!selectedEntity?.id) return null;

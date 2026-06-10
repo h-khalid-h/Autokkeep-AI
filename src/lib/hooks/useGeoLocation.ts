@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getCountryFlag, getCountryName } from '@/lib/country';
 
 export interface GeoData {
@@ -68,9 +68,13 @@ export function useGeoLocation() {
     return DEFAULT_GEO;
   });
 
+  // Track whether detection was already attempted (covers both cached and fresh)
+  const detectionAttempted = useRef(geoData.loaded);
+
   useEffect(() => {
-    // If we already have cached data (loaded=true), skip detection
-    if (geoData.loaded) return;
+    // If we already have cached data or already attempted detection, skip
+    if (detectionAttempted.current) return;
+    detectionAttempted.current = true;
 
     const controller = new AbortController();
     const detect = async () => {
@@ -109,7 +113,6 @@ export function useGeoLocation() {
 
     void detect();
     return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return geoData;

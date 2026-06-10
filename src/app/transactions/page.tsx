@@ -99,6 +99,7 @@ const getConfidenceColor = (conf: number) => {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
+  'use no memo';
   const { selectedEntity } = useEntity();
   const toast = useToast();
   const entityCurrency = selectedEntity?.currency || 'USD';
@@ -157,6 +158,7 @@ export default function TransactionsPage() {
 
   // Fetch transactions
   const fetchTransactions = useCallback(async (signal?: AbortSignal) => {
+    'use no memo';
     if (!selectedEntity?.id) return;
     setIsLoading(true);
     setError(null);
@@ -182,9 +184,7 @@ export default function TransactionsPage() {
       setTransactions(txns);
       setPagination(data.pagination || { total: 0, limit: PAGE_SIZE, offset: page * PAGE_SIZE, hasMore: false });
 
-      if (hasAnyTransactions === null) {
-        setHasAnyTransactions(data.pagination?.total > 0 || txns.length > 0);
-      }
+      setHasAnyTransactions(prev => prev !== null ? prev : (data.pagination?.total > 0 || txns.length > 0));
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[Transactions] Fetch error:', err);
@@ -192,7 +192,6 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sort, selectedEntity?.id]);
 
   useEffect(() => {

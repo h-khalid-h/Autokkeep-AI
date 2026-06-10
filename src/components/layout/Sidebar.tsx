@@ -79,12 +79,23 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
   const collapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const mobileOpen = controlledMobileOpen !== undefined ? controlledMobileOpen : internalMobileOpen;
-  const setMobileOpen = (open: boolean) => {
+  const setMobileOpenRef = useRef((open: boolean) => {
     if (onMobileClose && !open) {
       onMobileClose();
     }
     setInternalMobileOpen(open);
-  };
+  });
+  useEffect(() => {
+    setMobileOpenRef.current = (open: boolean) => {
+      if (onMobileClose && !open) {
+        onMobileClose();
+      }
+      setInternalMobileOpen(open);
+    };
+  }, [onMobileClose]);
+  const setMobileOpen = useCallback((open: boolean) => {
+    setMobileOpenRef.current(open);
+  }, []);
   const [entityDropdownOpen, setEntityDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const prevPathnameRef = useRef(pathname);
@@ -96,7 +107,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
       prevPathnameRef.current = pathname;
       setMobileOpen(false);
     }
-  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pathname, setMobileOpen]);
 
   // Close mobile sidebar on Escape
   useEffect(() => {
@@ -107,7 +118,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mobileOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mobileOpen, setMobileOpen]);
 
   // Close entity dropdown on click outside
   useEffect(() => {
@@ -133,7 +144,7 @@ export default function Sidebar({ pendingCount, isConnected = false, collapsed: 
 
   const toggleMobile = useCallback(() => {
     setMobileOpen(!mobileOpen);
-  }, [mobileOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mobileOpen, setMobileOpen]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';

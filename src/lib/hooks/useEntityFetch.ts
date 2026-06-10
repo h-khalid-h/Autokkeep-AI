@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /**
  * Shared hook for entity-scoped API data fetching with AbortController support.
@@ -69,6 +69,13 @@ export function useEntityFetch<TData, TParams = undefined>(
     }
   }, [entityId, buildUrl, params]);
 
+  // Memoize serialized params so ESLint can validate it as a proper dependency
+  const paramsKey = useMemo(() => JSON.stringify(params), [params]);
+
+  // Keep a ref to params so the effect can access the latest value without depending on object identity
+  const paramsRef = useRef(params);
+  useEffect(() => { paramsRef.current = params; }, [params]);
+
   // Auto-fetch with AbortController when entityId or params change
   useEffect(() => {
     if (!autoFetch || !entityId) return;
@@ -84,7 +91,7 @@ export function useEntityFetch<TData, TParams = undefined>(
       setError(null);
 
       try {
-        const url = buildUrl(entityId, params);
+        const url = buildUrl(entityId, paramsRef.current);
         const res = await fetch(url, { signal: controller.signal });
 
         if (!res.ok) {
@@ -106,9 +113,7 @@ export function useEntityFetch<TData, TParams = undefined>(
 
     doFetch();
     return () => controller.abort();
-    // params is intentionally serialized to trigger re-fetch on value changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entityId, autoFetch, buildUrl, JSON.stringify(params)]);
+  }, [entityId, autoFetch, buildUrl, paramsKey]);
 
   const clearError = useCallback(() => setError(null), []);
 
