@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated output:
+    "coverage/**",
   ]),
   {
     rules: {
@@ -39,7 +41,7 @@ const eslintConfig = defineConfig([
       "src/app/vendors/page.tsx",
     ],
     rules: {
-      "react-compiler/react-compiler": "warn",
+      "react-hooks/preserve-manual-memoization": "off",
     },
   },
 ]);
