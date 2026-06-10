@@ -6,6 +6,8 @@ import { formatCurrency } from '@/lib/currency/converter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Skeleton, EmptyState } from '@/components/ui';
+import { renderPnLHtml } from '@/lib/reports/pnl-html';
+import { renderBalanceSheetHtml } from '@/lib/reports/balance-sheet-html';
 import styles from './reports.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -548,6 +550,36 @@ h1{color:#1e293b}h2{color:#475569;margin-top:2rem}</style>
     }
   }, [entityId, reportType, periodStart, periodEnd, asOfDate]);
 
+  // ── Export as PDF (print) ───────────────────────────────────────────────────
+  const handlePdfExport = useCallback(() => {
+    let reportHtml: string | null = null;
+
+    if (reportType === 'profit-loss' && pnlReport) {
+      reportHtml = renderPnLHtml(pnlReport as Parameters<typeof renderPnLHtml>[0]);
+    } else if (reportType === 'balance-sheet' && bsReport) {
+      reportHtml = renderBalanceSheetHtml(bsReport as Parameters<typeof renderBalanceSheetHtml>[0]);
+    }
+
+    if (!reportHtml) {
+      setError('Generate a report first before exporting as PDF.');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      setError('Unable to open print window. Please allow popups for this site.');
+      return;
+    }
+
+    printWindow.document.write(reportHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    // Small delay to ensure the document is fully rendered before printing
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  }, [reportType, pnlReport, bsReport]);
+
   const hasReport = pnlReport || bsReport;
 
   return (
@@ -717,6 +749,13 @@ h1{color:#1e293b}h2{color:#475569;margin-top:2rem}</style>
                     <Button variant="ghost" onClick={exportHtml}>
                       📥 Download as HTML
                     </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={handlePdfExport}
+                      aria-label="Export report as PDF"
+                    >
+                      📄 Export as PDF
+                    </Button>
                     <Button variant="ghost" onClick={generateReport}>
                       🔄 Regenerate
                     </Button>
@@ -731,6 +770,13 @@ h1{color:#1e293b}h2{color:#475569;margin-top:2rem}</style>
                   <div className={styles.exportActions}>
                     <Button variant="ghost" onClick={exportHtml}>
                       📥 Download as HTML
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={handlePdfExport}
+                      aria-label="Export report as PDF"
+                    >
+                      📄 Export as PDF
                     </Button>
                     <Button variant="ghost" onClick={generateReport}>
                       🔄 Regenerate

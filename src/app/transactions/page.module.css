@@ -457,7 +457,398 @@
   gap: var(--space-3);
 }
 
+/* ─── Bulk Categorize Dropdown ─────────────── */
+.bulkCategorizeWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.bulkCategorizeDropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 10;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 260px;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: slideUpFade var(--duration-normal) var(--ease-premium);
+}
+
+.bulkCategorizeItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-2-5) var(--space-3);
+  text-align: start;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bulkCategorizeItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.bulkCategorizeItem:focus-visible {
+  outline: none;
+  background: var(--color-bg-hover);
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Split Transaction Dialog ─────────────── */
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.dialogPanel {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 90%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpFade var(--duration-normal) var(--ease-premium);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dialogTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.dialogBody {
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dialogFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.dialogFooterActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.splitOriginalAmount {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.splitOriginalAmount strong {
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-bold);
+}
+
+.splitRow {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.splitSelect {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-2-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.splitInput {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-2-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+}
+
+.splitDescInput {
+  composes: splitInput;
+  font-family: var(--font-sans);
+}
+
+.splitRemoveBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.splitRemoveBtn:hover {
+  color: var(--color-destructive);
+}
+
+.splitSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  font-size: var(--text-sm);
+}
+
+.splitRemaining {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+}
+
+.splitBalanced {
+  color: var(--color-success);
+}
+
+.splitUnbalanced {
+  color: var(--color-destructive);
+}
+
+/* ─── Recurring Panel ─────────────────────── */
+.featurePanel {
+  animation: slideUpFade var(--duration-normal) var(--ease-premium);
+}
+
+.featurePanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.featurePanelTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.recurringList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recurringItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.recurringItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.recurringItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.recurringMerchant {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+}
+
+.recurringMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.recurringMetaItem {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.recurringMetaItem strong {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.recurringTransactions {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.recurringTxRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding: var(--space-1) 0;
+}
+
+.recurringTxAmount {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+}
+
+/* ─── Duplicates Panel ────────────────────── */
+.duplicateList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.duplicatePair {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.duplicatePairHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2-5) var(--space-4);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.duplicateConfidence {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.duplicateCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.duplicateCard {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
+}
+
+.duplicateCard:first-child {
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.duplicateFieldLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.duplicateFieldValue {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.duplicateFieldValueMono {
+  composes: duplicateFieldValue;
+  font-family: var(--font-mono);
+}
+
+.duplicatePairActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2-5) var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-secondary);
+}
+
+.badgeButton {
+  position: relative;
+}
+
+.badgeCount {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-destructive);
+  color: white;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.panelLoading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
 /* ─── Animations ──────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes slideUpFade {
   from {
     opacity: 0;

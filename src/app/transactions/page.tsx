@@ -32,6 +32,31 @@ interface TransactionRow {
   description: string | null;
 }
 
+interface DuplicateTransaction {
+  id: string;
+  merchant_name: string | null;
+  amount: number;
+  date: string;
+  source: string | null;
+}
+
+interface RecurringPattern {
+  id: string;
+  merchant_name: string;
+  frequency: string;
+  avg_amount: number;
+  next_expected: string | null;
+  confidence: number;
+  transactions?: { id: string; date: string; amount: number }[];
+}
+
+interface DuplicatePair {
+  id: string;
+  confidence: number;
+  transaction_a: DuplicateTransaction;
+  transaction_b: DuplicateTransaction;
+}
+
 interface Pagination {
   total: number;
   limit: number;
@@ -101,10 +126,27 @@ export default function TransactionsPage() {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = useState(false);
+  const [batchCategorizeOpen, setBatchCategorizeOpen] = useState(false);
 
   // Inline category editing
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [glAccounts, setGlAccounts] = useState<{gl_code: string; name: string}[]>([]);
+
+  // Split transaction dialog
+  const [splitDialogTxId, setSplitDialogTxId] = useState<string | null>(null);
+  const [splitRows, setSplitRows] = useState<{ glCode: string; glName: string; amount: number; description: string }[]>([]);
+  const [splitLoading, setSplitLoading] = useState(false);
+
+  // Recurring patterns
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [recurringData, setRecurringData] = useState<RecurringPattern[]>([]);
+  const [recurringLoading, setRecurringLoading] = useState(false);
+  const [expandedRecurringId, setExpandedRecurringId] = useState<string | null>(null);
+
+  // Duplicates review
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [duplicateData, setDuplicateData] = useState<DuplicatePair[]>([]);
+  const [duplicatesLoading, setDuplicatesLoading] = useState(false);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -243,29 +285,160 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleBatchAction = async (action: 'approve' | 'reject') => {
+  const handleBatchAction = async (action: 'approve' | 'reject' | 'categorize', glCode?: string, glName?: string) => {
     if (selectedIds.size === 0 || !selectedEntity?.id) return;
     setBatchLoading(true);
     try {
+      const body: Record<string, unknown> = {
+        transactionIds: Array.from(selectedIds),
+        action,
+        entityId: selectedEntity.id,
+      };
+      if (action === 'categorize' && glCode) {
+        body.glCode = glCode;
+        body.glName = glName;
+      }
       const res = await fetch('/api/transactions/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionIds: Array.from(selectedIds),
-          action,
-          entityId: selectedEntity.id,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Batch action failed');
       const count = selectedIds.size;
       setSelectedIds(new Set());
-      toast.success(`${count} transaction${count > 1 ? 's' : ''} ${action === 'approve' ? 'approved' : 'rejected'}`);
+      setBatchCategorizeOpen(false);
+      const actionLabel = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'categorized';
+      toast.success(`${count} transaction${count > 1 ? 's' : ''} ${actionLabel}`);
       await fetchTransactions();
     } catch (err) {
       console.error('[Transactions] Batch error:', err);
       toast.error('Batch action failed. Please try again.');
     } finally {
       setBatchLoading(false);
+    }
+  };
+
+  // ── Split transaction handlers ──────────────────────────────────────────
+  const openSplitDialog = (tx: TransactionRow) => {
+    setSplitDialogTxId(tx.id);
+    const halfAmount = Math.round(Math.abs(tx.amount) * 50) / 100;
+    setSplitRows([
+      { glCode: '', glName: '', amount: halfAmount, description: '' },
+      { glCode: '', glName: '', amount: Math.round((Math.abs(tx.amount) - halfAmount) * 100) / 100, description: '' },
+    ]);
+  };
+
+  const updateSplitRow = (index: number, field: keyof typeof splitRows[0], value: string | number) => {
+    setSplitRows(prev => prev.map((row, i) => {
+      if (i !== index) return row;
+      if (field === 'glCode') {
+        const acct = glAccounts.find(a => a.gl_code === value);
+        return { ...row, glCode: value as string, glName: acct?.name || '' };
+      }
+      return { ...row, [field]: value };
+    }));
+  };
+
+  const addSplitRow = () => {
+    setSplitRows(prev => [...prev, { glCode: '', glName: '', amount: 0, description: '' }]);
+  };
+
+  const removeSplitRow = (index: number) => {
+    if (splitRows.length <= 2) return;
+    setSplitRows(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSplitSubmit = async () => {
+    if (!splitDialogTxId || !selectedEntity?.id) return;
+    setSplitLoading(true);
+    try {
+      const res = await fetch(`/api/transactions/${splitDialogTxId}/split`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityId: selectedEntity.id,
+          splits: splitRows,
+        }),
+      });
+      if (!res.ok) throw new Error('Split failed');
+      toast.success('Transaction split successfully');
+      setSplitDialogTxId(null);
+      setSplitRows([]);
+      await fetchTransactions();
+    } catch (err) {
+      console.error('[Transactions] Split error:', err);
+      toast.error('Failed to split transaction. Please try again.');
+    } finally {
+      setSplitLoading(false);
+    }
+  };
+
+  // ── Recurring patterns handler ─────────────────────────────────────────
+  const fetchRecurring = async () => {
+    if (!selectedEntity?.id) return;
+    setRecurringLoading(true);
+    try {
+      const res = await fetch(`/api/transactions/recurring?entityId=${selectedEntity.id}`);
+      if (!res.ok) throw new Error('Failed to fetch recurring patterns');
+      const data = await res.json();
+      setRecurringData(data.patterns || []);
+    } catch (err) {
+      console.error('[Transactions] Recurring error:', err);
+      toast.error('Failed to load recurring patterns.');
+    } finally {
+      setRecurringLoading(false);
+    }
+  };
+
+  const toggleRecurring = () => {
+    const next = !showRecurring;
+    setShowRecurring(next);
+    if (next) {
+      setShowDuplicates(false);
+      fetchRecurring();
+    }
+  };
+
+  // ── Duplicates handler ─────────────────────────────────────────────────
+  const fetchDuplicates = async () => {
+    if (!selectedEntity?.id) return;
+    setDuplicatesLoading(true);
+    try {
+      const res = await fetch(`/api/transactions/duplicates?entityId=${selectedEntity.id}`);
+      if (!res.ok) throw new Error('Failed to fetch duplicates');
+      const data = await res.json();
+      setDuplicateData(data.pairs || []);
+    } catch (err) {
+      console.error('[Transactions] Duplicates error:', err);
+      toast.error('Failed to load duplicates.');
+    } finally {
+      setDuplicatesLoading(false);
+    }
+  };
+
+  const toggleDuplicates = () => {
+    const next = !showDuplicates;
+    setShowDuplicates(next);
+    if (next) {
+      setShowRecurring(false);
+      fetchDuplicates();
+    }
+  };
+
+  const handleDuplicateAction = async (pairId: string, action: 'keep' | 'mark_duplicate') => {
+    if (!selectedEntity?.id) return;
+    try {
+      const res = await fetch(`/api/transactions/duplicates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairId, action, entityId: selectedEntity.id }),
+      });
+      if (!res.ok) throw new Error('Action failed');
+      toast.success(action === 'keep' ? 'Both transactions kept' : 'Marked as duplicate');
+      setDuplicateData(prev => prev.filter(p => p.id !== pairId));
+    } catch (err) {
+      console.error('[Transactions] Duplicate action error:', err);
+      toast.error('Action failed. Please try again.');
     }
   };
 
@@ -296,6 +469,12 @@ export default function TransactionsPage() {
     : 0, [transactions]);
   const pendingCount = useMemo(() => transactions.filter(tx => tx.status === TRANSACTION_STATUS.PENDING || tx.status === TRANSACTION_STATUS.HUMAN_REVIEW).length, [transactions]);
 
+  // Split dialog memoized values
+  const splitTx = useMemo(() => transactions.find(tx => tx.id === splitDialogTxId), [transactions, splitDialogTxId]);
+  const splitTotal = useMemo(() => splitRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0), [splitRows]);
+  const splitRemaining = useMemo(() => splitTx ? Math.round((Math.abs(splitTx.amount) - splitTotal) * 100) / 100 : 0, [splitTx, splitTotal]);
+  const isSplitBalanced = useMemo(() => Math.abs(splitRemaining) <= 0.01, [splitRemaining]);
+
   // Pagination (memoized)
   const totalPages = useMemo(() => Math.ceil(pagination.total / PAGE_SIZE), [pagination.total]);
   const showFrom = pagination.total > 0 ? page * PAGE_SIZE + 1 : 0;
@@ -311,6 +490,27 @@ export default function TransactionsPage() {
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Transaction History</h1>
             <div className={styles.headerActions}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={toggleRecurring}
+                aria-label="Toggle recurring patterns panel"
+              >
+                🔄 Recurring
+              </Button>
+              <div className={styles.badgeButton}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={toggleDuplicates}
+                  aria-label="Toggle duplicates review panel"
+                >
+                  ⚠️ Duplicates
+                </Button>
+                {duplicateData.length > 0 && (
+                  <span className={styles.badgeCount}>{duplicateData.length}</span>
+                )}
+              </div>
               <Button
                 variant="primary"
                 size="sm"
@@ -477,6 +677,128 @@ export default function TransactionsPage() {
             </Card>
           )}
 
+          {/* ── Recurring Patterns Panel ──────────────────────────────── */}
+          {showRecurring && (
+            <Card padding="md" className={styles.featurePanel}>
+              <div className={styles.featurePanelHeader}>
+                <h2 className={styles.featurePanelTitle}>🔄 Recurring Patterns</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowRecurring(false)} aria-label="Close recurring panel">
+                  ✕
+                </Button>
+              </div>
+              {recurringLoading ? (
+                <div className={styles.panelLoading}>
+                  <Skeleton height={20} width="60%" />
+                  <Skeleton height={56} count={3} />
+                </div>
+              ) : recurringData.length === 0 ? (
+                <EmptyState icon="🔄" title="No Recurring Patterns" description="No recurring transaction patterns have been detected yet." />
+              ) : (
+                <div className={styles.recurringList}>
+                  {recurringData.map((pattern: RecurringPattern) => (
+                    <div
+                      key={pattern.id}
+                      className={styles.recurringItem}
+                      onClick={() => setExpandedRecurringId(expandedRecurringId === pattern.id ? null : pattern.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedRecurringId(expandedRecurringId === pattern.id ? null : pattern.id); } }}
+                      aria-expanded={expandedRecurringId === pattern.id}
+                      aria-label={`Recurring pattern: ${pattern.merchant_name}`}
+                    >
+                      <div className={styles.recurringItemHeader}>
+                        <span className={styles.recurringMerchant}>{pattern.merchant_name}</span>
+                        <div className={styles.recurringMeta}>
+                          <Badge variant="info" size="sm">{pattern.frequency}</Badge>
+                          <span className={styles.recurringMetaItem}>Avg: <strong>{fmtCurrency(pattern.avg_amount)}</strong></span>
+                          <span className={styles.recurringMetaItem}>Next: <strong>{pattern.next_expected ? formatDate(pattern.next_expected) : '—'}</strong></span>
+                          <Badge variant={pattern.confidence >= 80 ? 'success' : pattern.confidence >= 50 ? 'warning' : 'destructive'} size="sm">
+                            {pattern.confidence}% conf.
+                          </Badge>
+                        </div>
+                      </div>
+                      {expandedRecurringId === pattern.id && pattern.transactions && (
+                        <div className={styles.recurringTransactions}>
+                          {pattern.transactions.map((rtx: { id: string; date: string; amount: number }) => (
+                            <div key={rtx.id} className={styles.recurringTxRow}>
+                              <span>{formatDate(rtx.date)}</span>
+                              <span className={styles.recurringTxAmount}>{fmtCurrency(rtx.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* ── Duplicates Review Panel ───────────────────────────────── */}
+          {showDuplicates && (
+            <Card padding="md" className={styles.featurePanel}>
+              <div className={styles.featurePanelHeader}>
+                <h2 className={styles.featurePanelTitle}>⚠️ Potential Duplicates</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowDuplicates(false)} aria-label="Close duplicates panel">
+                  ✕
+                </Button>
+              </div>
+              {duplicatesLoading ? (
+                <div className={styles.panelLoading}>
+                  <Skeleton height={20} width="50%" />
+                  <Skeleton height={80} count={3} />
+                </div>
+              ) : duplicateData.length === 0 ? (
+                <EmptyState icon="✅" title="No Duplicates Found" description="No potential duplicate transactions were detected." />
+              ) : (
+                <div className={styles.duplicateList}>
+                  {duplicateData.map((pair: DuplicatePair) => (
+                    <div key={pair.id} className={styles.duplicatePair}>
+                      <div className={styles.duplicatePairHeader}>
+                        <span className={styles.duplicateConfidence}>
+                          Similarity
+                        </span>
+                        <Badge variant={pair.confidence >= 90 ? 'destructive' : pair.confidence >= 70 ? 'warning' : 'info'} size="sm">
+                          {pair.confidence}%
+                        </Badge>
+                      </div>
+                      <div className={styles.duplicateCards}>
+                        {[pair.transaction_a, pair.transaction_b].map((dtx: DuplicateTransaction, idx: number) => (
+                          <div key={idx} className={styles.duplicateCard}>
+                            <div>
+                              <span className={styles.duplicateFieldLabel}>Merchant</span>
+                              <div className={styles.duplicateFieldValue}>{dtx.merchant_name || 'Unknown'}</div>
+                            </div>
+                            <div>
+                              <span className={styles.duplicateFieldLabel}>Amount</span>
+                              <div className={styles.duplicateFieldValueMono}>{fmtCurrency(dtx.amount)}</div>
+                            </div>
+                            <div>
+                              <span className={styles.duplicateFieldLabel}>Date</span>
+                              <div className={styles.duplicateFieldValue}>{formatDate(dtx.date)}</div>
+                            </div>
+                            <div>
+                              <span className={styles.duplicateFieldLabel}>Source</span>
+                              <div className={styles.duplicateFieldValue}>{dtx.source || '—'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={styles.duplicatePairActions}>
+                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAction(pair.id, 'keep')} aria-label="Keep both transactions">
+                          Keep Both
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDuplicateAction(pair.id, 'mark_duplicate')} aria-label="Mark as duplicate">
+                          Mark Duplicate
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
           {/* ── Bulk Action Bar ──────────────────────────────────────── */}
           {selectedIds.size > 0 && (
             <div className={styles.bulkBar}>
@@ -485,6 +807,33 @@ export default function TransactionsPage() {
                 <Button variant="primary" size="sm" disabled={batchLoading} isLoading={batchLoading} onClick={() => handleBatchAction('approve')}>
                   ✅ Approve Selected
                 </Button>
+                <div className={styles.bulkCategorizeWrapper}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={batchLoading}
+                    onClick={() => setBatchCategorizeOpen(prev => !prev)}
+                    aria-label="Bulk categorize selected transactions"
+                    aria-expanded={batchCategorizeOpen}
+                  >
+                    📂 Categorize
+                  </Button>
+                  {batchCategorizeOpen && (
+                    <div className={styles.bulkCategorizeDropdown} role="listbox" aria-label="Select GL account">
+                      {glAccounts.map(acct => (
+                        <button
+                          key={acct.gl_code}
+                          className={styles.bulkCategorizeItem}
+                          role="option"
+                          aria-selected={false}
+                          onClick={() => handleBatchAction('categorize', acct.gl_code, acct.name)}
+                        >
+                          {acct.gl_code} — {acct.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Button variant="destructive" size="sm" disabled={batchLoading} onClick={() => handleBatchAction('reject')}>
                   ❌ Reject Selected
                 </Button>
@@ -613,6 +962,17 @@ export default function TransactionsPage() {
                                     Review
                                   </Button>
                                 )}
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    openSplitDialog(tx);
+                                  }}
+                                  aria-label={`Split transaction ${tx.merchant_name || 'unknown'}`}
+                                >
+                                  Split
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -760,6 +1120,110 @@ export default function TransactionsPage() {
                 </div>
               </div>
             </Card>
+          )}
+
+          {/* ── Split Transaction Dialog ──────────────────────────────── */}
+          {splitDialogTxId && splitTx && (
+            <div
+              className={styles.dialogOverlay}
+              onClick={() => setSplitDialogTxId(null)}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Split transaction"
+            >
+              <div className={styles.dialogPanel} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.dialogHeader}>
+                  <h2 className={styles.dialogTitle}>
+                    Split Transaction
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => setSplitDialogTxId(null)} aria-label="Close split dialog">
+                    ✕
+                  </Button>
+                </div>
+                <div className={styles.dialogBody}>
+                  <div className={styles.splitOriginalAmount}>
+                    Original amount: <strong>{fmtCurrency(Math.abs(splitTx.amount))}</strong>
+                    {' '}({splitTx.merchant_name || splitTx.merchant_raw || 'Unknown'})
+                  </div>
+
+                  {splitRows.map((row, idx) => (
+                    <div key={idx} className={styles.splitRow}>
+                      <select
+                        className={styles.splitSelect}
+                        value={row.glCode}
+                        onChange={(e) => updateSplitRow(idx, 'glCode', e.target.value)}
+                        aria-label={`GL account for split row ${idx + 1}`}
+                      >
+                        <option value="">— GL Account —</option>
+                        {glAccounts.map(acct => (
+                          <option key={acct.gl_code} value={acct.gl_code}>
+                            {acct.gl_code} — {acct.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className={styles.splitInput}
+                        value={row.amount || ''}
+                        onChange={(e) => updateSplitRow(idx, 'amount', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        aria-label={`Amount for split row ${idx + 1}`}
+                      />
+                      <input
+                        type="text"
+                        className={styles.splitDescInput}
+                        value={row.description}
+                        onChange={(e) => updateSplitRow(idx, 'description', e.target.value)}
+                        placeholder="Description"
+                        aria-label={`Description for split row ${idx + 1}`}
+                      />
+                      <button
+                        className={styles.splitRemoveBtn}
+                        onClick={() => removeSplitRow(idx)}
+                        disabled={splitRows.length <= 2}
+                        aria-label={`Remove split row ${idx + 1}`}
+                        type="button"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  <Button variant="ghost" size="sm" onClick={addSplitRow} aria-label="Add another split row">
+                    + Add Split Row
+                  </Button>
+
+                  <div className={styles.splitSummary}>
+                    <span>Allocated: <strong>{fmtCurrency(splitTotal)}</strong></span>
+                    <span className={`${styles.splitRemaining} ${isSplitBalanced ? styles.splitBalanced : styles.splitUnbalanced}`}>
+                      Remaining: {fmtCurrency(Math.abs(splitRemaining))}
+                      {isSplitBalanced ? ' ✓' : ''}
+                    </span>
+                  </div>
+                </div>
+                <div className={styles.dialogFooter}>
+                  <span className={styles.splitOriginalAmount}>
+                    {splitRows.length} splits
+                  </span>
+                  <div className={styles.dialogFooterActions}>
+                    <Button variant="ghost" size="sm" onClick={() => setSplitDialogTxId(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!isSplitBalanced || splitRows.some(r => !r.glCode) || splitLoading}
+                      isLoading={splitLoading}
+                      onClick={handleSplitSubmit}
+                    >
+                      Split Transaction
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </AppShell>
