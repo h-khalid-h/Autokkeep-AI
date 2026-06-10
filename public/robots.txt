@@ -17,6 +17,10 @@ Disallow: /health
 Disallow: /insights
 Disallow: /portfolio
 Disallow: /tax
+Disallow: /vendors
+Disallow: /reports
+Disallow: /audit
+Disallow: /notifications
 Disallow: /api
 Disallow: /auth/callback
 

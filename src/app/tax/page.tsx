@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useEntity } from '@/lib/context/EntityContext';
 import { formatCurrency } from '@/lib/currency/converter';
 import { getTaxAuthorityName } from '@/lib/tax/rules';
@@ -8,6 +9,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AppShell from '@/components/layout/AppShell';
 import { Card, Button, Gauge, Skeleton, EmptyState, useToast } from '@/components/ui';
 import styles from './page.module.css';
+
+const DeductionBarChart = dynamic(() => import('@/components/charts/DeductionBarChart'), {
+  loading: () => <Skeleton variant="rect" width="100%" height={200} />,
+  ssr: false,
+});
 
 // ─── Localized Tax Forms Mapping ─────────────────────────────────────────────
 
@@ -80,65 +86,9 @@ function getGaugeColor(score: number): 'success' | 'warning' | 'destructive' {
   return 'destructive';
 }
 
-// ─── Deduction Bar Chart ────────────────────────────────────────────────────
+// ─── Deduction Bar Chart (dynamically loaded) ──────────────────────────────
 
-function DeductionBarChart({ categories, currency }: { categories: DeductionCategory[]; currency: string }) {
-  if (categories.length === 0) {
-    return (
-      <div className={styles.barChartEmpty}>
-        No deductible expenses found
-      </div>
-    );
-  }
-
-  const maxAmount = Math.max(...categories.map(c => c.amount));
-  const barColors = [
-    'var(--color-accent)',
-    'var(--color-success)',
-    '#8b5cf6',
-    '#ec4899',
-    '#f59e0b',
-    '#06b6d4',
-    '#84cc16',
-    '#f97316',
-    '#6366f1',
-    '#14b8a6',
-    '#e11d48',
-    '#a855f7',
-  ];
-
-  return (
-    <div className={styles.barRow}>
-      {categories.slice(0, 10).map((cat, i) => {
-        const barWidth = maxAmount > 0 ? (cat.amount / maxAmount) * 100 : 0;
-        const color = barColors[i % barColors.length];
-
-        return (
-          <div key={cat.category}>
-            <div className={styles.barLabel}>
-              <span className={styles.barLabelName}>{cat.category}</span>
-              <span className={styles.barLabelValue}>
-                {formatCurrency(cat.amount, currency)} ({cat.count})
-              </span>
-            </div>
-            <svg width="100%" height="8" style={{ display: 'block' }}>
-              <rect x="0" y="0" width="100%" height="8" rx="4" fill="var(--color-border-primary)" />
-              <rect
-                x="0"
-                y="0"
-                width={`${barWidth}%`}
-                height="8"
-                rx="4"
-                fill={color}
-                style={{ transition: 'width 0.8s ease-out' }}
-              />
-            </svg>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// Deduction chart is loaded dynamically — see @/components/charts/DeductionBarChart
 
 // ─── Tax Dashboard Page ─────────────────────────────────────────────────────
 

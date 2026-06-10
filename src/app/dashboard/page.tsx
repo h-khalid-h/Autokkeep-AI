@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEntity } from '@/lib/context/EntityContext';
 import { Transaction } from '@/lib/types/transaction';
 import { TRANSACTION_STATUS } from '@/lib/supabase/types';
@@ -11,13 +12,20 @@ import { formatCurrency } from '@/lib/currency/converter';
 import ExceptionQueueList from '@/components/dashboard/ExceptionQueueList';
 import TransactionDetailPanel from '@/components/dashboard/TransactionDetailPanel';
 import RecentActivity from '@/components/dashboard/RecentActivity';
-import {
-  SpendingTrendChart,
-  CategoryDonutChart,
-  CashFlowBarChart,
-  transformStatsToTrendData,
-  transformCategoriesToDonutData,
-} from '@/components/charts';
+import { transformStatsToTrendData, transformCategoriesToDonutData } from '@/components/charts/chart-helpers';
+
+const SpendingTrendChart = dynamic(() => import('@/components/charts/SpendingTrendChart'), {
+  loading: () => <Skeleton variant="rect" width="100%" height={240} />,
+  ssr: false,
+});
+const CategoryDonutChart = dynamic(() => import('@/components/charts/CategoryDonutChart'), {
+  loading: () => <Skeleton variant="rect" width="100%" height={240} />,
+  ssr: false,
+});
+const CashFlowBarChart = dynamic(() => import('@/components/charts/CashFlowBarChart'), {
+  loading: () => <Skeleton variant="rect" width="100%" height={240} />,
+  ssr: false,
+});
 
 import KeyboardShortcuts from '@/components/dashboard/KeyboardShortcuts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
