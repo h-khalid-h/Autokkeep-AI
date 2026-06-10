@@ -1,0 +1,718 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Autokkeep API",
+    "version": "1.0.0",
+    "description": "AI-powered bookkeeping API. Retrieve transactions, generate financial reports, manage chart of accounts, and subscribe to real-time webhook events — all through a simple REST API.",
+    "contact": {
+      "name": "Autokkeep Support",
+      "url": "https://app.autokkeep.com",
+      "email": "support@autokkeep.com"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://app.autokkeep.com/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://app.autokkeep.com",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/transactions": {
+      "get": {
+        "operationId": "listTransactions",
+        "summary": "List Transactions",
+        "description": "Retrieve a paginated list of transactions for your organization. Filter by entity, status, or date range.",
+        "tags": ["Transactions"],
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": false,
+            "description": "Filter transactions by entity ID",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter by status (e.g. pending, approved, synced)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "description": "ISO 8601 date — filter transactions on or after this date",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "description": "ISO 8601 date — filter transactions on or before this date",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of results per page (default 50, max 100)",
+            "schema": { "type": "integer", "default": 50, "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of results to skip for pagination",
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of transactions",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Transaction" }
+                    },
+                    "total": { "type": "integer", "description": "Total number of matching transactions" },
+                    "limit": { "type": "integer" },
+                    "offset": { "type": "integer" }
+                  },
+                  "required": ["data", "total", "limit", "offset"]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "txn_9f8e7d6c",
+                      "entity_id": "ent_abc123",
+                      "merchant_name": "AWS",
+                      "amount": -429.99,
+                      "date": "2025-06-01",
+                      "status": "approved",
+                      "category_ai": "6100",
+                      "confidence": 0.94,
+                      "created_at": "2025-06-01T08:30:00Z",
+                      "updated_at": "2025-06-02T14:00:00Z"
+                    }
+                  ],
+                  "total": 142,
+                  "limit": 10,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/entities": {
+      "get": {
+        "operationId": "listEntities",
+        "summary": "List Entities",
+        "description": "List all entities (companies/subsidiaries) associated with your organization.",
+        "tags": ["Entities"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of entities",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Entity" }
+                    },
+                    "total": { "type": "integer" }
+                  },
+                  "required": ["data", "total"]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "ent_abc123",
+                      "name": "Acme Corp",
+                      "base_currency": "USD",
+                      "country": "US",
+                      "created_at": "2025-01-15T10:00:00Z"
+                    }
+                  ],
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "operationId": "listCategories",
+        "summary": "List Categories",
+        "description": "List chart of accounts (categories) for your organization. Optionally filter by entity.",
+        "tags": ["Categories"],
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": false,
+            "description": "Filter categories by entity ID",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Category" }
+                    },
+                    "total": { "type": "integer" }
+                  },
+                  "required": ["data", "total"]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "coa_001",
+                      "entity_id": "ent_abc123",
+                      "code": "4000",
+                      "name": "Sales Revenue",
+                      "type": "revenue",
+                      "is_active": true
+                    },
+                    {
+                      "id": "coa_002",
+                      "entity_id": "ent_abc123",
+                      "code": "6100",
+                      "name": "Cloud Infrastructure",
+                      "type": "expense",
+                      "is_active": true
+                    }
+                  ],
+                  "total": 2
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/reports/profit-loss": {
+      "get": {
+        "operationId": "getProfitLossReport",
+        "summary": "Profit & Loss Report",
+        "description": "Generate a Profit & Loss (Income Statement) report for a given entity and date range. Uses approved and synced transactions only.",
+        "tags": ["Reports"],
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": true,
+            "description": "The entity to generate the report for",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "periodStart",
+            "in": "query",
+            "required": true,
+            "description": "ISO 8601 date — start of the reporting period",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "periodEnd",
+            "in": "query",
+            "required": true,
+            "description": "ISO 8601 date — end of the reporting period",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profit & Loss report data",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/ProfitLossReport" }
+                  },
+                  "required": ["data"]
+                },
+                "example": {
+                  "data": {
+                    "entityName": "Acme Corp",
+                    "entityCurrency": "USD",
+                    "periodStart": "2025-01-01",
+                    "periodEnd": "2025-06-30",
+                    "generatedAt": "2025-07-01T12:00:00Z",
+                    "revenue": [
+                      { "code": "4000", "name": "Sales Revenue", "amount": 150000, "type": "revenue" }
+                    ],
+                    "totalRevenue": 150000,
+                    "expenses": [
+                      { "code": "6100", "name": "Cloud Infra", "amount": 25000, "type": "expense" }
+                    ],
+                    "totalExpenses": 25000,
+                    "netIncome": 125000
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/reports/balance-sheet": {
+      "get": {
+        "operationId": "getBalanceSheetReport",
+        "summary": "Balance Sheet Report",
+        "description": "Generate a Balance Sheet report as of a specific date. Shows assets, liabilities, equity, and retained earnings.",
+        "tags": ["Reports"],
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": true,
+            "description": "The entity to generate the report for",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "asOfDate",
+            "in": "query",
+            "required": true,
+            "description": "ISO 8601 date — the \"as of\" date for the balance sheet",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance Sheet report data",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/BalanceSheetReport" }
+                  },
+                  "required": ["data"]
+                },
+                "example": {
+                  "data": {
+                    "entityName": "Acme Corp",
+                    "entityCurrency": "USD",
+                    "asOfDate": "2025-06-30",
+                    "generatedAt": "2025-07-01T12:00:00Z",
+                    "assets": [
+                      { "code": "1000", "name": "Cash", "amount": 200000, "type": "asset" }
+                    ],
+                    "totalAssets": 200000,
+                    "liabilities": [],
+                    "totalLiabilities": 0,
+                    "equity": [],
+                    "totalEquity": 0,
+                    "isBalanced": true,
+                    "retainedEarnings": 200000
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "summary": "List Webhook Subscriptions",
+        "description": "List all webhook subscriptions for your organization.",
+        "tags": ["Webhooks"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of webhook subscriptions",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/WebhookSubscription" }
+                    },
+                    "total": { "type": "integer" }
+                  },
+                  "required": ["data", "total"]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "wh_sub_001",
+                      "url": "https://your-app.com/webhooks/autokkeep",
+                      "events": ["transaction.created", "transaction.approved"],
+                      "is_active": true,
+                      "created_at": "2025-06-01T10:00:00Z"
+                    }
+                  ],
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "operationId": "createWebhook",
+        "summary": "Create Webhook Subscription",
+        "description": "Create a new webhook subscription. You'll receive HTTP POST requests to your URL when specified events occur.",
+        "tags": ["Webhooks"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "HTTPS endpoint URL to receive webhook events"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1,
+                    "description": "Array of event types to subscribe to"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "minLength": 16,
+                    "description": "Signing secret for verifying payloads (min 16 characters)"
+                  }
+                },
+                "required": ["url", "events", "secret"]
+              },
+              "example": {
+                "url": "https://your-app.com/webhooks/autokkeep",
+                "events": ["transaction.created", "transaction.approved"],
+                "secret": "whsec_your_signing_secret_here"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook subscription created",
+            "headers": {
+              "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+              "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/WebhookSubscription" },
+                    "message": { "type": "string" }
+                  },
+                  "required": ["data", "message"]
+                },
+                "example": {
+                  "data": {
+                    "id": "wh_sub_002",
+                    "url": "https://your-app.com/webhooks/autokkeep",
+                    "events": ["transaction.created", "transaction.approved"],
+                    "is_active": true,
+                    "created_at": "2025-07-01T12:00:00Z"
+                  },
+                  "message": "Webhook subscription created"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key scoped to your organization. Create keys from Settings → API Keys in the Autokkeep dashboard."
+      }
+    },
+    "headers": {
+      "X-RateLimit-Limit": {
+        "description": "Maximum number of requests allowed in the current window",
+        "schema": { "type": "integer" },
+        "example": 60
+      },
+      "X-RateLimit-Remaining": {
+        "description": "Number of requests remaining in the current window",
+        "schema": { "type": "integer" },
+        "example": 58
+      }
+    },
+    "schemas": {
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique transaction identifier" },
+          "entity_id": { "type": "string", "description": "ID of the entity this transaction belongs to" },
+          "merchant_name": { "type": "string", "description": "Name of the merchant" },
+          "amount": { "type": "number", "description": "Transaction amount (negative for debits)" },
+          "date": { "type": "string", "format": "date", "description": "Transaction date (YYYY-MM-DD)" },
+          "status": { "type": "string", "description": "Transaction status (pending, approved, synced)" },
+          "category_ai": { "type": "string", "description": "AI-assigned chart of accounts code" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "AI classification confidence score (0–1)" },
+          "created_at": { "type": "string", "format": "date-time", "description": "When the transaction was created" },
+          "updated_at": { "type": "string", "format": "date-time", "description": "When the transaction was last updated" }
+        },
+        "required": ["id", "entity_id", "merchant_name", "amount", "date", "status", "category_ai", "confidence", "created_at", "updated_at"]
+      },
+      "Entity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique entity identifier" },
+          "name": { "type": "string", "description": "Entity name (company / subsidiary)" },
+          "base_currency": { "type": "string", "description": "Base currency code (e.g. USD)" },
+          "country": { "type": "string", "description": "Country code (ISO 3166-1 alpha-2)" },
+          "created_at": { "type": "string", "format": "date-time", "description": "When the entity was created" }
+        },
+        "required": ["id", "name", "base_currency", "country", "created_at"]
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique category identifier" },
+          "entity_id": { "type": "string", "description": "ID of the entity this category belongs to" },
+          "code": { "type": "string", "description": "Chart of accounts code" },
+          "name": { "type": "string", "description": "Category name" },
+          "type": { "type": "string", "description": "Account type (revenue, expense, asset, liability, equity)" },
+          "is_active": { "type": "boolean", "description": "Whether the category is active" }
+        },
+        "required": ["id", "entity_id", "code", "name", "type", "is_active"]
+      },
+      "ReportLineItem": {
+        "type": "object",
+        "description": "A single line item in a financial report",
+        "properties": {
+          "code": { "type": "string", "description": "Chart of accounts code" },
+          "name": { "type": "string", "description": "Account name" },
+          "amount": { "type": "number", "description": "Total amount for this account" },
+          "type": { "type": "string", "description": "Account type" }
+        },
+        "required": ["code", "name", "amount", "type"]
+      },
+      "ProfitLossReport": {
+        "type": "object",
+        "description": "Profit & Loss (Income Statement) report",
+        "properties": {
+          "entityName": { "type": "string" },
+          "entityCurrency": { "type": "string" },
+          "periodStart": { "type": "string", "format": "date" },
+          "periodEnd": { "type": "string", "format": "date" },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "revenue": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReportLineItem" }
+          },
+          "totalRevenue": { "type": "number" },
+          "expenses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReportLineItem" }
+          },
+          "totalExpenses": { "type": "number" },
+          "netIncome": { "type": "number" }
+        },
+        "required": ["entityName", "entityCurrency", "periodStart", "periodEnd", "generatedAt", "revenue", "totalRevenue", "expenses", "totalExpenses", "netIncome"]
+      },
+      "BalanceSheetReport": {
+        "type": "object",
+        "description": "Balance Sheet report as of a specific date",
+        "properties": {
+          "entityName": { "type": "string" },
+          "entityCurrency": { "type": "string" },
+          "asOfDate": { "type": "string", "format": "date" },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "assets": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReportLineItem" }
+          },
+          "totalAssets": { "type": "number" },
+          "liabilities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReportLineItem" }
+          },
+          "totalLiabilities": { "type": "number" },
+          "equity": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReportLineItem" }
+          },
+          "totalEquity": { "type": "number" },
+          "isBalanced": { "type": "boolean", "description": "Whether assets = liabilities + equity" },
+          "retainedEarnings": { "type": "number" }
+        },
+        "required": ["entityName", "entityCurrency", "asOfDate", "generatedAt", "assets", "totalAssets", "liabilities", "totalLiabilities", "equity", "totalEquity", "isBalanced", "retainedEarnings"]
+      },
+      "WebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique webhook subscription identifier" },
+          "url": { "type": "string", "format": "uri", "description": "HTTPS endpoint URL" },
+          "events": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Subscribed event types"
+          },
+          "is_active": { "type": "boolean", "description": "Whether the subscription is active" },
+          "created_at": { "type": "string", "format": "date-time", "description": "When the subscription was created" }
+        },
+        "required": ["id", "url", "events", "is_active", "created_at"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error response",
+        "properties": {
+          "error": { "type": "string", "description": "Human-readable error message" }
+        },
+        "required": ["error"]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request — missing or invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "Missing required parameter: entityId" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized — missing or invalid API key",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "Invalid or missing API key" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden — entity does not belong to your organization",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "Entity not found or does not belong to your organization" }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Too Many Requests — rate limit exceeded",
+        "headers": {
+          "X-RateLimit-Limit": { "$ref": "#/components/headers/X-RateLimit-Limit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/X-RateLimit-Remaining" },
+          "Retry-After": {
+            "description": "Seconds until the rate limit window resets",
+            "schema": { "type": "integer" },
+            "example": 45
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "Too many requests. Please try again later." }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "An unexpected error occurred" }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Transactions", "description": "Access and filter transaction data" },
+    { "name": "Entities", "description": "Manage entities (companies / subsidiaries)" },
+    { "name": "Categories", "description": "Chart of accounts (GL categories)" },
+    { "name": "Reports", "description": "Generate financial reports (P&L, Balance Sheet)" },
+    { "name": "Webhooks", "description": "Manage real-time webhook subscriptions" }
+  ]
+}

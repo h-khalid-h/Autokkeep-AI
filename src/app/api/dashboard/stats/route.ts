@@ -186,8 +186,14 @@ export async function GET(request: NextRequest) {
       timestamp: t.updated_at || t.date,
     }));
 
-    // Previous month volume for comparison badge
+    // ── Previous period comparison ─────────────────────────────────────────────
+    // Query the same stats for the prior month to compute % changes
     let previousMonthVolume = 0;
+    let prevTotalChange: number | null = null;
+    let prevPendingChange: number | null = null;
+    let prevApprovedChange: number | null = null;
+    let prevAccuracyChange: number | null = null;
+
     try {
       const today = new Date();
       const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -195,21 +201,107 @@ export async function GET(request: NextRequest) {
       const prevStartStr = prevMonthStart.toISOString().slice(0, 10);
       const prevEndStr = prevMonthEnd.toISOString().slice(0, 10);
 
-      const { data: prevTxns } = await db
-        .from('transactions')
-        .select('amount')
-        .in('entity_id', entityIds)
-        .neq('status', TRANSACTION_STATUS.REMOVED)
-        .is('deleted_at', null)
-        .gte('date', prevStartStr)
-        .lte('date', prevEndStr)
-        .limit(50000);
+      // Current month start for current-period scoped counts
+      const curMonthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
-      previousMonthVolume = (prevTxns || [])
+      const [
+        prevVolumeRes,
+        prevTotalRes,
+        prevPendingRes,
+        prevApprovedRes,
+        prevHighConfRes,
+        prevCatCountRes,
+        curTotalRes,
+        curPendingRes,
+        curApprovedRes,
+        curHighConfRes,
+        curCatCountRes,
+      ] = await Promise.all([
+        // Previous month volume
+        db.from('transactions').select('amount')
+          .in('entity_id', entityIds).neq('status', TRANSACTION_STATUS.REMOVED)
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr).limit(50000),
+        // Previous month: total
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).neq('status', TRANSACTION_STATUS.REMOVED)
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr),
+        // Previous month: pending
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW])
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr),
+        // Previous month: approved
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.AUTO_CATEGORIZED, TRANSACTION_STATUS.APPROVED])
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr),
+        // Previous month: high confidence (>= 90)
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).gte('confidence', 90)
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr),
+        // Previous month: all categorized (has confidence)
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).not('confidence', 'is', null)
+          .is('deleted_at', null).gte('date', prevStartStr).lte('date', prevEndStr),
+        // Current month: total
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).neq('status', TRANSACTION_STATUS.REMOVED)
+          .is('deleted_at', null).gte('date', curMonthStart),
+        // Current month: pending
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.PENDING, TRANSACTION_STATUS.HUMAN_REVIEW])
+          .is('deleted_at', null).gte('date', curMonthStart),
+        // Current month: approved
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).in('status', [TRANSACTION_STATUS.AUTO_CATEGORIZED, TRANSACTION_STATUS.APPROVED])
+          .is('deleted_at', null).gte('date', curMonthStart),
+        // Current month: high confidence (>= 90)
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).gte('confidence', 90)
+          .is('deleted_at', null).gte('date', curMonthStart),
+        // Current month: all categorized (has confidence)
+        db.from('transactions').select('id', { count: 'exact', head: true })
+          .in('entity_id', entityIds).not('confidence', 'is', null)
+          .is('deleted_at', null).gte('date', curMonthStart),
+      ]);
+
+      // Volume
+      previousMonthVolume = (prevVolumeRes.data || [])
         .reduce((sum: number, t: Record<string, unknown>) => {
           const val = Number(t.amount) || 0;
           return sum + Math.abs(val);
         }, 0);
+
+      // Helper: compute % change (null if no previous data)
+      const pctChange = (cur: number, prev: number): number | null =>
+        prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null;
+
+      // Total transactions change (current month vs previous month)
+      const curTotal = curTotalRes.count ?? 0;
+      const prevTotal = prevTotalRes.count ?? 0;
+      prevTotalChange = pctChange(curTotal, prevTotal);
+
+      // Pending change
+      const curPending = curPendingRes.count ?? 0;
+      const prevPending = prevPendingRes.count ?? 0;
+      prevPendingChange = pctChange(curPending, prevPending);
+
+      // Approved change
+      const curApproved = curApprovedRes.count ?? 0;
+      const prevApproved = prevApprovedRes.count ?? 0;
+      prevApprovedChange = pctChange(curApproved, prevApproved);
+
+      // AI accuracy change
+      const prevHighConf = prevHighConfRes.count ?? 0;
+      const prevCatCount = prevCatCountRes.count ?? 0;
+      const prevAccuracy = prevCatCount > 0 ? Math.round((prevHighConf / prevCatCount) * 1000) / 10 : 0;
+
+      const curHighConf = curHighConfRes.count ?? 0;
+      const curCatCount = curCatCountRes.count ?? 0;
+      const curAccuracy = curCatCount > 0 ? Math.round((curHighConf / curCatCount) * 1000) / 10 : 0;
+
+      // For accuracy, report the absolute difference in percentage points
+      prevAccuracyChange = prevAccuracy > 0
+        ? Math.round((curAccuracy - prevAccuracy) * 10) / 10
+        : null;
     } catch {
       // Non-critical — skip comparison if it fails
     }
@@ -228,6 +320,10 @@ export async function GET(request: NextRequest) {
       monthlyVolume: Math.round(monthlyVolume * 100) / 100,
       previousMonthVolume: Math.round(previousMonthVolume * 100) / 100,
       volumeChange,
+      totalChange: prevTotalChange,
+      pendingChange: prevPendingChange,
+      approvedChange: prevApprovedChange,
+      accuracyChange: prevAccuracyChange,
       topCategories,
       recentActivity,
     });

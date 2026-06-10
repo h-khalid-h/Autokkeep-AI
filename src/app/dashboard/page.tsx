@@ -178,7 +178,11 @@ interface DashboardStatsData {
   approved: number;
   autoRate: number;
   monthlyVolume: number;
-  volumeChange: number | null; // % change vs. previous month
+  volumeChange: number | null;
+  totalChange: number | null;
+  pendingChange: number | null;
+  approvedChange: number | null;
+  accuracyChange: number | null;
 }
 
 function StatsBar({
@@ -212,10 +216,10 @@ function StatsBar({
   };
 
   const items = [
-    { label: 'Total', value: stats.total.toLocaleString(), icon: '📊', change: null as number | null },
-    { label: 'Pending', value: stats.pending, icon: '⏳', change: null as number | null },
-    { label: 'Approved', value: stats.approved.toLocaleString(), icon: '✅', change: null as number | null },
-    { label: 'AI Accuracy', value: `${stats.autoRate}%`, icon: '🤖', change: null as number | null },
+    { label: 'Total', value: stats.total.toLocaleString(), icon: '📊', change: stats.totalChange },
+    { label: 'Pending', value: stats.pending, icon: '⏳', change: stats.pendingChange, invertColor: true },
+    { label: 'Approved', value: stats.approved.toLocaleString(), icon: '✅', change: stats.approvedChange },
+    { label: 'AI Accuracy', value: `${stats.autoRate}%`, icon: '🤖', change: stats.accuracyChange, suffix: 'pp' },
     { label: 'Month Vol', value: formatVolume(stats.monthlyVolume), icon: '💰', change: stats.volumeChange },
   ];
 
@@ -229,10 +233,14 @@ function StatsBar({
             <span className={styles.statValue}>{item.value}</span>
             {item.change !== null && (
               <span
-                className={`${styles.statChange} ${item.change >= 0 ? styles.statChangeUp : styles.statChangeDown}`}
-                title={`${item.change >= 0 ? '+' : ''}${item.change}% vs. last month`}
+                className={`${styles.statChange} ${
+                  item.invertColor
+                    ? (item.change <= 0 ? styles.statChangeUp : styles.statChangeDown)
+                    : (item.change >= 0 ? styles.statChangeUp : styles.statChangeDown)
+                }`}
+                title={`${item.change >= 0 ? '+' : ''}${item.change}${item.suffix || '%'} vs. last month`}
               >
-                {item.change >= 0 ? '↑' : '↓'} {Math.abs(item.change)}%
+                {item.change >= 0 ? '↑' : '↓'} {Math.abs(item.change)}{item.suffix || '%'}
               </span>
             )}
           </div>
@@ -285,13 +293,17 @@ export default function DashboardPage() {
             autoRate: data.aiAccuracy ?? 0,
             monthlyVolume: data.monthlyVolume ?? 0,
             volumeChange: data.volumeChange ?? null,
+            totalChange: data.totalChange ?? null,
+            pendingChange: data.pendingChange ?? null,
+            approvedChange: data.approvedChange ?? null,
+            accuracyChange: data.accuracyChange ?? null,
           });
         }
       } catch (err) {
         console.error('[Dashboard] Stats fetch error:', err);
         if (!cancelled) {
           // Fallback: compute from local transactions
-          setStats({ total: transactionCount, pending: 0, approved: 0, autoRate: 0, monthlyVolume: 0, volumeChange: null });
+          setStats({ total: transactionCount, pending: 0, approved: 0, autoRate: 0, monthlyVolume: 0, volumeChange: null, totalChange: null, pendingChange: null, approvedChange: null, accuracyChange: null });
         }
       } finally {
         if (!cancelled) setStatsLoading(false);

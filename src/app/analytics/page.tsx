@@ -11,6 +11,17 @@ import AppShell from '@/components/layout/AppShell';
 import { Card, Badge, Button, Progress, Skeleton, EmptyState } from '@/components/ui';
 import styles from './analytics.module.css';
 
+// ── Category drill-down types ────────────────────────────────────────────────
+interface CategoryDrilldownData {
+  category: string;
+  categoryName: string;
+  totalAmount: number;
+  transactionCount: number;
+  transactions: { id: string; date: string; merchant_name: string | null; amount: number; status: string }[];
+  vendorBreakdown: { vendor: string; count: number; total: number }[];
+  monthlyTrend: { month: string; total: number }[];
+}
+
 type TimeRange = '7d' | '30d' | '90d' | 'ytd';
 
 interface AnalyticsData {
@@ -67,6 +78,12 @@ export default function AnalyticsPage() {
   const [hasData, setHasData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+
+  // Category drill-down state
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [drilldownData, setDrilldownData] = useState<CategoryDrilldownData | null>(null);
+  const [drilldownLoading, setDrilldownLoading] = useState(false);
+  const [drilldownError, setDrilldownError] = useState<string | null>(null);
 
   const [rawTransactions, setRawTransactions] = useState<RawTxn[]>([]);
   const [customTaxRate, setCustomTaxRate] = useState<number | null>(null);
@@ -199,7 +216,40 @@ export default function AnalyticsPage() {
 
     fetchAnalytics();
     return () => controller.abort();
-  }, [selectedEntity?.id, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedEntity?.id, retryKey]);
+
+  // ── Fetch category drill-down when a category is selected ────────────────────
+  useEffect(() => {
+    if (!selectedCategory || !selectedEntity?.id) return;
+    const entityId = selectedEntity.id;
+    const categoryCode = selectedCategory; // narrowed to string
+    const controller = new AbortController();
+
+    async function fetchDrilldown() {
+      setDrilldownLoading(true);
+      setDrilldownError(null);
+      try {
+        const params = new URLSearchParams({
+          entityId,
+          category: categoryCode,
+        });
+        const res = await fetch(`/api/analytics/category?${params}`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Failed to fetch category details (${res.status})`);
+        const result: CategoryDrilldownData = await res.json();
+        setDrilldownData(result);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.warn('[Analytics] Category drilldown failed:', err);
+          setDrilldownError(err instanceof Error ? err.message : 'Failed to load category details');
+        }
+      } finally {
+        setDrilldownLoading(false);
+      }
+    }
+
+    fetchDrilldown();
+    return () => controller.abort();
+  }, [selectedCategory, selectedEntity?.id]);
 
   const data = analyticsData[timeRange];
   const entityCurrency = selectedEntity?.currency || 'USD';
@@ -501,12 +551,17 @@ export default function AnalyticsPage() {
               </div>
             </Card>
 
-            {/* Top Categories */}
             <Card padding="lg">
               <div className={styles.sectionTitle}>Top GL Categories</div>
               <div className={styles.categoryList}>
                 {data.topCategories.map((cat, i) => (
-                  <div key={cat.code}>
+                  <button
+                    key={cat.code}
+                    type="button"
+                    className={`${styles.categoryItem} ${selectedCategory === cat.code ? styles.categoryItemActive : ''}`}
+                    onClick={() => setSelectedCategory(prev => prev === cat.code ? null : cat.code)}
+                    aria-expanded={selectedCategory === cat.code}
+                  >
                     <div className={styles.categoryRow}>
                       <span className={styles.categoryName}>
                         {i + 1}. {cat.name}
@@ -522,12 +577,143 @@ export default function AnalyticsPage() {
                     />
                     <div className={styles.categoryCount}>
                       {cat.count} transactions
+                      <span className={styles.categoryDrillHint}>
+                        {selectedCategory === cat.code ? '▲ Hide details' : '▼ View details'}
+                      </span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Card>
           </div>
+
+          {/* ── Category Drill-Down Panel ──────────────────────────────── */}
+          {selectedCategory && (
+            <Card padding="lg" className={styles.drilldownCard}>
+              <div className={styles.drilldownHeader}>
+                <div className={styles.sectionTitle}>
+                  📂 {drilldownData?.categoryName || selectedCategory}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  ✕ Close
+                </Button>
+              </div>
+
+              {drilldownLoading && (
+                <div className={styles.drilldownLoading}>
+                  <Skeleton variant="rect" width="100%" height={24} />
+                  <Skeleton variant="rect" width="100%" height={120} />
+                  <Skeleton variant="rect" width="60%" height={24} />
+                </div>
+              )}
+
+              {drilldownError && (
+                <div className={styles.drilldownError}>
+                  ⚠️ {drilldownError}
+                </div>
+              )}
+
+              {drilldownData && !drilldownLoading && (
+                <div className={styles.drilldownContent}>
+                  {/* Summary row */}
+                  <div className={styles.drilldownSummary}>
+                    <div className={styles.drilldownSummaryStat}>
+                      <span className={styles.drilldownSummaryLabel}>Total</span>
+                      <span className={styles.drilldownSummaryValue}>{fmtCurrency(drilldownData.totalAmount)}</span>
+                    </div>
+                    <div className={styles.drilldownSummaryStat}>
+                      <span className={styles.drilldownSummaryLabel}>Transactions</span>
+                      <span className={styles.drilldownSummaryValue}>{drilldownData.transactionCount}</span>
+                    </div>
+                    <div className={styles.drilldownSummaryStat}>
+                      <span className={styles.drilldownSummaryLabel}>Vendors</span>
+                      <span className={styles.drilldownSummaryValue}>{drilldownData.vendorBreakdown.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Monthly Trend */}
+                  {drilldownData.monthlyTrend.length > 0 && (
+                    <div className={styles.drilldownSection}>
+                      <div className={styles.drilldownSectionTitle}>Monthly Trend</div>
+                      <div className={styles.drilldownTrendGrid}>
+                        {drilldownData.monthlyTrend.map((m) => {
+                          const maxTrend = Math.max(...drilldownData.monthlyTrend.map(t => t.total), 1);
+                          return (
+                            <div key={m.month} className={styles.drilldownTrendItem}>
+                              <div className={styles.drilldownTrendBarContainer}>
+                                <div
+                                  className={styles.drilldownTrendBar}
+                                  style={{ height: `${(m.total / maxTrend) * 100}%` }}
+                                />
+                              </div>
+                              <span className={styles.drilldownTrendLabel}>{m.month.slice(5)}</span>
+                              <span className={styles.drilldownTrendValue}>{fmtCurrency(m.total)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Vendors */}
+                  {drilldownData.vendorBreakdown.length > 0 && (
+                    <div className={styles.drilldownSection}>
+                      <div className={styles.drilldownSectionTitle}>Top Vendors</div>
+                      <div className={styles.drilldownVendorList}>
+                        {drilldownData.vendorBreakdown.slice(0, 8).map((v) => (
+                          <div key={v.vendor} className={styles.drilldownVendorRow}>
+                            <div className={styles.drilldownVendorInfo}>
+                              <span className={styles.drilldownVendorName}>{v.vendor}</span>
+                              <span className={styles.drilldownVendorCount}>{v.count} txns</span>
+                            </div>
+                            <span className={styles.drilldownVendorAmount}>{fmtCurrency(v.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recent Transactions */}
+                  {drilldownData.transactions.length > 0 && (
+                    <div className={styles.drilldownSection}>
+                      <div className={styles.drilldownSectionTitle}>
+                        Transactions ({drilldownData.transactions.length})
+                      </div>
+                      <div className={styles.drilldownTxnList}>
+                        {drilldownData.transactions.slice(0, 10).map((tx) => (
+                          <div key={tx.id} className={styles.drilldownTxnRow}>
+                            <div className={styles.drilldownTxnInfo}>
+                              <span className={styles.drilldownTxnMerchant}>
+                                {tx.merchant_name || 'Unknown'}
+                              </span>
+                              <span className={styles.drilldownTxnDate}>{tx.date}</span>
+                            </div>
+                            <div className={styles.drilldownTxnMeta}>
+                              <span className={styles.drilldownTxnAmount}>
+                                {fmtCurrency(Math.abs(tx.amount))}
+                              </span>
+                              <Badge variant={tx.status === 'approved' || tx.status === 'synced' ? 'success' : tx.status === 'pending' ? 'warning' : 'default'}>
+                                {tx.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                        {drilldownData.transactions.length > 10 && (
+                          <div className={styles.drilldownTxnMore}>
+                            +{drilldownData.transactions.length - 10} more transactions
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Tax Estimator & Deductions Panel */}
           {taxRules.hasIncomeTax && (
